@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { toPng } from 'html-to-image';
 
 type Component = {
   id: string;
@@ -115,8 +116,9 @@ const SearchableSelect = ({
 export default function PCBuilderClient({ categories }: { categories: Category[] }) {
   const [selectedComponents, setSelectedComponents] = useState<Record<string, Component | null>>({});
   const [result, setResult] = useState<{ status: 'success' | 'error' | 'idle', message: string, totalTdp: number, totalPrice: number }>({ status: 'idle', message: '', totalTdp: 0, totalPrice: 0 });
-  
   const [detailsModal, setDetailsModal] = useState<{ comp: Component, categoryName: string } | null>(null);
+  
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const handleSelect = (categoryName: string, componentId: string) => {
     const category = categories.find(c => c.name === categoryName);
@@ -142,7 +144,6 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
 
     return components.filter(comp => {
       const specs = parseSpecs(comp.specs);
-
       if (categoryName === 'Motherboard') {
         if (cpu) {
           const cpuSpecs = parseSpecs(cpu.specs);
@@ -153,27 +154,22 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
           if (specs.ramType && ramSpecs.type && specs.ramType !== ramSpecs.type) return false;
         }
       }
-
       if (categoryName === 'CPU' && mobo) {
         const moboSpecs = parseSpecs(mobo.specs);
         if (specs.socket && moboSpecs.socket && specs.socket !== moboSpecs.socket) return false;
       }
-
       if (categoryName === 'RAM' && mobo) {
         const moboSpecs = parseSpecs(mobo.specs);
         if (specs.type && moboSpecs.ramType && specs.type !== moboSpecs.ramType) return false;
       }
-
       if (categoryName === 'Case' && gpu) {
         const gpuSpecs = parseSpecs(gpu.specs);
         if (specs.maxGpuLength && gpuSpecs.lengthMm && parseFloat(specs.maxGpuLength) < parseFloat(gpuSpecs.lengthMm)) return false;
       }
-
       if (categoryName === 'GPU' && pcCase) {
         const caseSpecs = parseSpecs(pcCase.specs);
         if (specs.lengthMm && caseSpecs.maxGpuLength && parseFloat(specs.lengthMm) > parseFloat(caseSpecs.maxGpuLength)) return false;
       }
-
       return true;
     });
   };
@@ -212,12 +208,10 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
       setResult({ status: 'error', message: `عدم توافق: المعالج بمقبس ${cpuSpecs?.socket} واللوحة الأم بمقبس ${moboSpecs?.socket}.`, totalTdp, totalPrice });
       return;
     }
-
     if (ramSpecs?.type !== moboSpecs?.ramType) {
       setResult({ status: 'error', message: `عدم توافق: اللوحة الأم تدعم ${moboSpecs?.ramType} والرام المختار من نوع ${ramSpecs?.type}.`, totalTdp, totalPrice });
       return;
     }
-
     if (gpuSpecs?.lengthMm > caseSpecs?.maxGpuLength) {
       setResult({ status: 'error', message: `عدم توافق: طول كرت الشاشة (${gpuSpecs?.lengthMm}mm) أكبر من المساحة المتاحة في الكيس (${caseSpecs?.maxGpuLength}mm).`, totalTdp, totalPrice });
       return;
@@ -230,6 +224,28 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
     }
 
     setResult({ status: 'success', message: 'تم التوافق! جميع القطع متوافقة تماماً.', totalTdp, totalPrice });
+  };
+
+  const exportBuildAsImage = async () => {
+    if (!resultRef.current) return;
+    try {
+      // إخفاء الأزرار أثناء التقاط الصورة عبر الـ filter
+      const filter = (node: HTMLElement) => {
+        return !node.classList?.contains('export-ignore');
+      };
+
+      const dataUrl = await toPng(resultRef.current, { 
+        backgroundColor: '#0f172a',
+        filter: filter as any
+      }); 
+
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = "My-PC-Build.png";
+      link.click();
+    } catch (error) {
+      console.error("خطأ في تصدير الصورة:", error);
+    }
   };
 
   const renderSpecs = (specsStr: any) => {
@@ -250,7 +266,6 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
 
   return (
     <div className="max-w-5xl mx-auto mt-10 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-800">
-      
       <div className="bg-gradient-to-r from-blue-900 to-blue-700 dark:from-slate-800 dark:to-slate-900 p-8 text-center text-white rounded-t-2xl">
         <h1 className="text-3xl font-bold mb-2 flex items-center justify-center gap-3">
           <span>💻</span> منصة بناء أجهزة الـ PC
@@ -261,18 +276,13 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
       <div className="p-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {categories.map((category) => {
-            const filteredCategory = {
-              ...category,
-              components: getFilteredComponents(category.name, category.components)
-            };
-
+            const filteredCategory = { ...category, components: getFilteredComponents(category.name, category.components) };
             return (
               <div key={category.id} className="flex flex-col gap-2">
                 <label className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-1">
                   <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                   {category.name}
                 </label>
-                
                 <div className="flex gap-3 items-center">
                   {selectedComponents[category.name]?.imageUrl && (
                     <img 
@@ -281,7 +291,6 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
                       className="w-14 h-14 rounded-lg object-contain bg-white dark:bg-slate-800 border p-1 shadow-sm" 
                     />
                   )}
-                  
                   <SearchableSelect 
                     category={filteredCategory}
                     selectedComponent={selectedComponents[category.name]}
@@ -302,62 +311,63 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
         </button>
 
         {result.status !== 'idle' && (
-          <div className={`mt-8 p-6 rounded-xl border ${result.status === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-green-200' : 'bg-red-50 dark:bg-red-900/20 border-red-200'}`}>
-             <div className="flex items-start gap-4">
-              <div className="text-2xl">{result.status === 'success' ? '✅' : '❌'}</div>
-              <div className="flex-1">
-                <h3 className={`text-lg font-bold mb-2 ${result.status === 'success' ? 'text-green-800 dark:text-green-400' : 'text-red-800 dark:text-red-400'}`}>
-                  {result.message}
-                </h3>
-                <div className="mt-4 flex gap-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-                  <span>⚡ الطاقة المطلوبة: {result.totalTdp}W</span>
-                  <span>💰 التكلفة الإجمالية: ${result.totalPrice}</span>
-                </div>
-
-                {/* قسم عرض روابط شراء التجميعة الكاملة عند التوافق الإيجابي */}
-                {result.status === 'success' && (
-                  <div className="mt-6 pt-6 border-t border-green-200 dark:border-green-800/50">
-                    <h4 className="font-bold text-green-900 dark:text-green-400 mb-4">🛒 روابط شراء القطع المتوافقة:</h4>
-                    <div className="space-y-3">
-                      {Object.entries(selectedComponents).map(([catName, comp]) => {
-                        if (!comp || (!comp.amazonUrl && !comp.cazasouqUrl)) return null;
-                        return (
-                          <div key={comp.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700/50 gap-3">
-                            <div className="text-sm">
-                              <span className="font-bold text-gray-400 dark:text-gray-500 ml-2">[{catName}]</span>
-                              <span className="text-gray-900 dark:text-gray-100 font-medium">{comp.brand} {comp.name}</span>
-                            </div>
-                            <div className="flex gap-2">
-                              {comp.amazonUrl && (
-                                <a 
-                                  href={comp.amazonUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs rounded-md font-bold transition-colors shadow-sm"
-                                >
-                                  أمازون
-                                </a>
-                              )}
-                              {comp.cazasouqUrl && (
-                                <a 
-                                  href={comp.cazasouqUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-md font-bold transition-colors shadow-sm"
-                                >
-                                  كازاسوق
-                                </a>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+          <div className="mt-8 relative">
+            <div ref={resultRef} className={`p-6 rounded-xl border ${result.status === 'success' ? 'bg-green-50 dark:bg-slate-800 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border-red-200'}`}>
+              <div className="flex items-start gap-4">
+                <div className="text-2xl">{result.status === 'success' ? '✅' : '❌'}</div>
+                <div className="flex-1">
+                  <h3 className={`text-lg font-bold mb-2 ${result.status === 'success' ? 'text-green-800 dark:text-green-400' : 'text-red-800 dark:text-red-400'}`}>
+                    {result.message}
+                  </h3>
+                  <div className="mt-4 flex gap-4 text-sm font-bold text-gray-800 dark:text-gray-200">
+                    <span>⚡ الطاقة المطلوبة: {result.totalTdp}W</span>
+                    <span>💰 التكلفة الإجمالية: ${result.totalPrice}</span>
                   </div>
-                )}
 
+                  {result.status === 'success' && (
+                    <div className="mt-6 pt-6 border-t border-green-200 dark:border-green-800/50">
+                      <h4 className="font-bold text-green-900 dark:text-green-400 mb-4">🛒 قطع التجميعة المتوافقة:</h4>
+                      <div className="space-y-3">
+                        {Object.entries(selectedComponents).map(([catName, comp]) => {
+                          if (!comp) return null;
+                          return (
+                            <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700/50 gap-3">
+                              <div className="text-sm">
+                                <span className="font-bold text-gray-400 dark:text-gray-500 ml-2">[{catName}]</span>
+                                <span className="text-gray-900 dark:text-gray-100 font-medium">{comp.brand} {comp.name}</span>
+                              </div>
+                              <div className="flex gap-2 export-ignore">
+                                {comp.amazonUrl && (
+                                  <a href={comp.amazonUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs rounded-md font-bold transition-colors shadow-sm">
+                                    أمازون
+                                  </a>
+                                )}
+                                {comp.cazasouqUrl && (
+                                  <a href={comp.cazasouqUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-md font-bold transition-colors shadow-sm">
+                                    كازاسوق
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+
+            {result.status === 'success' && (
+              <div className="mt-4 flex justify-end">
+                <button 
+                  onClick={exportBuildAsImage}
+                  className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-md"
+                >
+                  📸 حفظ التجميعة كصورة
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -367,19 +377,13 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
           <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden">
             <div className="flex justify-between items-center p-4 border-b dark:border-slate-800 bg-gray-50 dark:bg-slate-800">
               <h2 className="font-bold text-xl text-gray-900 dark:text-white">تفاصيل القطعة</h2>
-              <button 
-                onClick={() => setDetailsModal(null)}
-                className="text-gray-500 hover:text-red-500 font-bold text-xl transition-colors"
-              >
-                ✕
-              </button>
+              <button onClick={() => setDetailsModal(null)} className="text-gray-500 hover:text-red-500 font-bold text-xl transition-colors">✕</button>
             </div>
             <div className="p-6">
               <div className="mb-4">
                 <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{detailsModal.comp.brand}</span>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{detailsModal.comp.name}</h3>
               </div>
-              
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-lg">
                   <span className="block text-sm text-gray-500 dark:text-gray-400">السعر</span>
@@ -390,35 +394,19 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
                   <span className="font-bold text-lg dark:text-white">{detailsModal.comp.tdpWattage}W</span>
                 </div>
               </div>
-
               <div className="mb-6">
                 <h4 className="font-bold text-gray-900 dark:text-gray-200 border-b dark:border-slate-700 pb-2 mb-2">المواصفات التقنية:</h4>
                 {renderSpecs(detailsModal.comp.specs)}
               </div>
-
               <div className="mb-6">
                 <h4 className="font-bold text-gray-900 dark:text-gray-200 border-b dark:border-slate-700 pb-2 mb-2">وصف القطعة:</h4>
                 <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-line">
                   {detailsModal.comp.description || "لا يوجد وصف متوفر لهذه القطعة."}
                 </p>
               </div>
-              
               <div className="flex gap-4">
-                <button 
-                  onClick={() => {
-                    handleSelect(detailsModal.categoryName, detailsModal.comp.id);
-                    setDetailsModal(null);
-                  }}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors"
-                >
-                  اختيار القطعة
-                </button>
-                <button 
-                  onClick={() => setDetailsModal(null)}
-                  className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-bold transition-colors"
-                >
-                  إغلاق
-                </button>
+                <button onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors">اختيار القطعة</button>
+                <button onClick={() => setDetailsModal(null)} className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-bold transition-colors">إغلاق</button>
               </div>
             </div>
           </div>

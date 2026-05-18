@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link'; // تم إضافة هذا السطر لحل المشكلة
+import Link from 'next/link';
 import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, updateNews } from './actions';
 import toast from 'react-hot-toast';
 
@@ -15,6 +15,10 @@ export default function AdminManager({ categories, components, news }: { categor
   const [specKey, setSpecKey] = useState('');
   const [specValue, setSpecValue] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+
+  // متغيرات الفلترة والبحث الخاصة بجدول القطع
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('ALL');
 
   const handleAddSpec = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -85,6 +89,15 @@ export default function AdminManager({ categories, components, news }: { categor
     }
   };
 
+  // تطبيق الفلترة على القطع
+  const filteredComponents = components.filter(comp => {
+    const matchesSearch = 
+      comp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      comp.brand.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'ALL' || comp.categoryId === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   return (
     <div className="flex flex-col gap-8">
       
@@ -102,7 +115,6 @@ export default function AdminManager({ categories, components, news }: { categor
           📰 إدارة الأخبار
         </button>
 
-        {/* الزر الجديد للانتقال لصفحة الـ JSON */}
         <Link 
           href="/admin/import" 
           className="px-6 py-3 font-bold rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
@@ -174,6 +186,28 @@ export default function AdminManager({ categories, components, news }: { categor
 
           <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">إدارة القطع الحالية</h2>
+            
+            {/* شريط البحث والفلترة */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <input
+                type="text"
+                placeholder="ابحث باسم القطعة أو الشركة..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+              >
+                <option value="ALL">جميع الفئات</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-right border-collapse">
                 <thead>
@@ -186,32 +220,38 @@ export default function AdminManager({ categories, components, news }: { categor
                   </tr>
                 </thead>
                 <tbody className="text-gray-800 dark:text-gray-200">
-                  {components.map((comp) => (
-                    <tr key={comp.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800/50">
-                      <td className="p-4">{comp.category?.name}</td>
-                      <td className="p-4 font-semibold">{comp.brand}</td>
-                      <td className="p-4">{comp.name}</td>
-                      <td className="p-4 text-emerald-600 dark:text-emerald-400 font-bold">${comp.price}</td>
-                      <td className="p-4 flex gap-2">
-                        <button onClick={() => startEditComponent(comp)} className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium rounded-lg hover:bg-blue-200 transition-colors">
-                          تعديل
-                        </button>
-                        <form action={async (formData) => {
-                          if (!window.confirm(`حذف (${comp.name})؟`)) return;
-                          const t = toast.loading('جاري الحذف...');
-                          try {
-                            await deleteComponent(formData);
-                            toast.success('تم الحذف بنجاح', { id: t });
-                          } catch (e) {
-                            toast.error('حدث خطأ أثناء الحذف', { id: t });
-                          }
-                        }}>
-                          <input type="hidden" name="id" value={comp.id} />
-                          <button type="submit" className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-medium rounded-lg hover:bg-red-200 transition-colors">حذف</button>
-                        </form>
-                      </td>
+                  {filteredComponents.length > 0 ? (
+                    filteredComponents.map((comp) => (
+                      <tr key={comp.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800/50">
+                        <td className="p-4">{comp.category?.name}</td>
+                        <td className="p-4 font-semibold">{comp.brand}</td>
+                        <td className="p-4">{comp.name}</td>
+                        <td className="p-4 text-emerald-600 dark:text-emerald-400 font-bold">${comp.price}</td>
+                        <td className="p-4 flex gap-2">
+                          <button onClick={() => startEditComponent(comp)} className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium rounded-lg hover:bg-blue-200 transition-colors">
+                            تعديل
+                          </button>
+                          <form action={async (formData) => {
+                            if (!window.confirm(`حذف (${comp.name})؟`)) return;
+                            const t = toast.loading('جاري الحذف...');
+                            try {
+                              await deleteComponent(formData);
+                              toast.success('تم الحذف بنجاح', { id: t });
+                            } catch (e) {
+                              toast.error('حدث خطأ أثناء الحذف', { id: t });
+                            }
+                          }}>
+                            <input type="hidden" name="id" value={comp.id} />
+                            <button type="submit" className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-medium rounded-lg hover:bg-red-200 transition-colors">حذف</button>
+                          </form>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-gray-500">لا توجد قطع مطابقة للبحث</td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>

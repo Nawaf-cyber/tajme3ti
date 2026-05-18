@@ -1,2 +1,11 @@
 {"timestamp":"00:00:00.616","source":"Server","level":"LOG","message":""}
 {"timestamp":"00:00:08.822","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:11:28.094","source":"Server","level":"LOG","message":"✓ Compiled in 96ms"}
+{"timestamp":"00:11:32.224","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:11:45.561","source":"Browser","level":"DEBUG","message":"#1 0ms Starting document clone with size 1255x1297 scrolled to 0,-371"}
+{"timestamp":"00:11:45.621","source":"Browser","level":"ERROR","message":"خطأ في تصدير الصورة: {}"}
+{"timestamp":"00:11:45.633","source":"Server","level":"ERROR","message":"[browser] \"خطأ في تصدير الصورة:\" \"\\u001b[31mError: Attempting to parse an unsupported color function \\\"lab\\\"\\u001b[39m\" \"\\u001b[2m(components/PCBuilderClient.tsx:239:15)\\u001b[22m\""}
+{"timestamp":"00:11:45.633","source":"Browser","level":"ERROR","message":"خطأ في تصدير الصورة: \"\\u001b[31mError: Attempting to parse an unsupported color function \\\"lab\\\"\\u001b[39m\" \"\\u001b[2m(components/PCBuilderClient.tsx:239:15)\\u001b[22m\""}
+{"timestamp":"00:13:29.203","source":"Server","level":"LOG","message":"✓ Compiled in 356ms"}
+{"timestamp":"00:13:44.931","source":"Server","level":"LOG","message":"✓ Compiled in 55ms"}
+{"timestamp":"00:23:00.089","source":"Server","level":"LOG","message":"✓ Compiled in 33ms"}
