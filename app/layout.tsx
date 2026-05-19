@@ -1,4 +1,5 @@
 import './globals.css';
+import { Analytics } from '@vercel/analytics/react';
 import { Providers } from '../components/Providers';
 import Navbar from '../components/Navbar';
 import { Toaster } from 'react-hot-toast';
@@ -12,6 +13,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           {/* مكون الإشعارات المنبثقة */}
           <Toaster position="top-center" reverseOrder={false} />
+          
+          {/* إضافة مكون الإحصائيات هنا */}
+          <Analytics />
         </Providers>
       </body>
     </html>
