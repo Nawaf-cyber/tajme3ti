@@ -26,6 +26,13 @@ export default function Navbar() {
               <span>📰</span> الأخبار
             </Link>
           </div>
+          {session?.user?.email === "admin@pcbuilder.com" && (
+            <Link 
+               href="/admin/suggestions" 
+              className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 px-3 py-2 rounded-lg transition-colors">
+                ⚙️ إدارة الاقتراحات
+             </Link>
+)}
           
           <div className="flex items-center gap-4">
             {mounted && (
