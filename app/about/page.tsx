@@ -1,4 +1,11 @@
+"use client";
+
+import { useState } from 'react';
+import SuggestionModal from '../../components/SuggestionModal';
+
 export default function AboutPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+    
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 p-8 md:p-12">
@@ -26,12 +33,18 @@ export default function AboutPage() {
             <p className="text-sm mb-4">
               نحن في مرحلة التطوير المستمر، وملاحظاتكم تهمنا جداً لتحسين المنصة وإضافة ميزات جديدة. لا تتردد في إرسال أفكارك أو الإبلاغ عن أي مشكلة.
             </p>
-            <a href="mailto:your-email@example.com" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+            >
               إرسال اقتراح
-            </a>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* النافذة المنبثقة للاقتراحات */}
+      <SuggestionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }

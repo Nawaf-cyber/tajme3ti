@@ -61,8 +61,8 @@ export default function AdminSuggestions() {
                   حذف
                 </button>
               </div>
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                {s.content}
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed break-words">
+                 {s.content}
               </p>
               <div className="mt-6 pt-4 border-t border-gray-100 dark:border-slate-800">
                 <span className="text-xs font-bold text-gray-400">
