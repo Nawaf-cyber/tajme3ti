@@ -2,6 +2,8 @@
 export const dynamic = 'force-dynamic';
 import { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
+import { useSession } from 'next-auth/react';
+import toast from 'react-hot-toast';
 
 type Component = {
   id: string;
@@ -114,9 +116,15 @@ const SearchableSelect = ({
 };
 
 export default function PCBuilderClient({ categories }: { categories: Category[] }) {
+  const { data: session } = useSession();
   const [selectedComponents, setSelectedComponents] = useState<Record<string, Component | null>>({});
   const [result, setResult] = useState<{ status: 'success' | 'error' | 'idle', message: string, totalTdp: number, totalPrice: number }>({ status: 'idle', message: '', totalTdp: 0, totalPrice: 0 });
   const [detailsModal, setDetailsModal] = useState<{ comp: Component, categoryName: string } | null>(null);
+  
+  // حالات الحفظ والتسمية
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [buildName, setBuildName] = useState("");
   
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -226,10 +234,49 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
     setResult({ status: 'success', message: 'تم التوافق! جميع القطع متوافقة تماماً.', totalTdp, totalPrice });
   };
 
+  const handleSaveBuildClick = () => {
+    if (!session) {
+      toast.error('يجب تسجيل الدخول أولاً لحفظ التجميعة');
+      return;
+    }
+    setBuildName("تجميعة " + new Date().toLocaleDateString('ar-SA'));
+    setSaveModalOpen(true);
+  };
+
+  const confirmSaveBuild = async () => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        name: buildName || "تجميعة مخصصة",
+        cpuId: selectedComponents['CPU']?.id || null,
+        gpuId: selectedComponents['GPU']?.id || null,
+        ramId: selectedComponents['RAM']?.id || null,
+        motherboardId: selectedComponents['Motherboard']?.id || null,
+        caseId: selectedComponents['Case']?.id || null,
+        psuId: selectedComponents['PSU']?.id || null,
+        storageId: selectedComponents['Storage']?.id || null,
+      };
+
+      const res = await fetch('/api/builds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('فشل الحفظ');
+      
+      toast.success('تم حفظ التجميعة بنجاح!');
+      setSaveModalOpen(false);
+    } catch (error) {
+      toast.error('حدث خطأ أثناء حفظ التجميعة');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const exportBuildAsImage = async () => {
     if (!resultRef.current) return;
     try {
-      // إخفاء الأزرار أثناء التقاط الصورة عبر الـ filter
       const filter = (node: HTMLElement) => {
         return !node.classList?.contains('export-ignore');
       };
@@ -359,12 +406,18 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
             </div>
 
             {result.status === 'success' && (
-              <div className="mt-4 flex justify-end">
+              <div className="mt-4 flex justify-end gap-3">
                 <button 
                   onClick={exportBuildAsImage}
                   className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-md"
                 >
                   📸 حفظ التجميعة كصورة
+                </button>
+                <button 
+                  onClick={handleSaveBuildClick}
+                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-md"
+                >
+                  💾 حفظ في حسابي
                 </button>
               </div>
             )}
@@ -407,6 +460,40 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
               <div className="flex gap-4">
                 <button onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors">اختيار القطعة</button>
                 <button onClick={() => setDetailsModal(null)} className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-bold transition-colors">إغلاق</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* نافذة تسمية التجميعة */}
+      {saveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+            <div className="p-6">
+              <h3 className="font-bold text-xl mb-4 text-gray-900 dark:text-white">تسمية التجميعة</h3>
+              <input 
+                type="text" 
+                value={buildName}
+                onChange={(e) => setBuildName(e.target.value)}
+                className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:text-white font-bold mb-6"
+                placeholder="أدخل اسم التجميعة هنا..."
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button 
+                  onClick={confirmSaveBuild} 
+                  disabled={isSaving}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-bold transition-colors disabled:opacity-50"
+                >
+                  {isSaving ? 'جاري الحفظ...' : 'حفظ'}
+                </button>
+                <button 
+                  onClick={() => setSaveModalOpen(false)} 
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-white py-2 rounded-lg font-bold transition-colors"
+                >
+                  إلغاء
+                </button>
               </div>
             </div>
           </div>

@@ -43,9 +43,18 @@ export default function Navbar() {
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full hidden sm:block">
                   {session.user?.email}
                 </span>
-                <Link href="/admin" className="text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-800">
-                  لوحة الإدارة
+
+                <Link href="/my-builds" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 px-4 py-2 rounded-lg transition-colors border border-blue-200 dark:border-blue-800">
+                  تجميعاتي
                 </Link>
+                
+                {/* إخفاء زر الإدارة عن المستخدمين العاديين */}
+                {session.user?.role === 'ADMIN' && (
+                  <Link href="/admin" className="text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-800">
+                    لوحة الإدارة
+                  </Link>
+                )}
+
                 <button 
                   onClick={() => signOut({ callbackUrl: '/' })} 
                   className="text-sm font-bold text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
@@ -54,9 +63,15 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <Link href="/api/auth/signin" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-white dark:hover:text-white hover:bg-blue-600 dark:hover:bg-blue-600 px-5 py-2 rounded-lg transition-colors border-2 border-blue-600 dark:border-blue-500">
-                تسجيل الدخول
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link href="/api/auth/signin" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-white dark:hover:text-white hover:bg-blue-600 dark:hover:bg-blue-600 px-5 py-2 rounded-lg transition-colors border-2 border-blue-600 dark:border-blue-500">
+                  دخول
+                </Link>
+                {/* زر إنشاء الحساب الجديد */}
+                <Link href="/register" className="text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg transition-colors shadow-sm">
+                  حساب جديد
+                </Link>
+              </div>
             )}
           </div>
         </div>

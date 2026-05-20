@@ -6,7 +6,7 @@ import { compare } from "bcryptjs";
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
-      name: "Admin Login",
+      name: "Login",
       credentials: {
         email: { label: "البريد الإلكتروني", type: "email" },
         password: { label: "كلمة المرور", type: "password" }
@@ -18,18 +18,33 @@ const handler = NextAuth({
           where: { email: credentials.email }
         });
 
-        // التحقق من وجود المستخدم وصلاحياته
-        if (!user || user.role !== "ADMIN") return null;
+        if (!user) return null;
 
-        // مطابقة كلمة المرور المشفرة
         const isPasswordValid = await compare(credentials.password, user.password);
 
         if (!isPasswordValid) return null;
 
+        // إرجاع بيانات المستخدم سواء كان ADMIN أو USER
         return { id: user.id, name: user.name, email: user.email, role: user.role };
       }
     })
   ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role;
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.role = token.role as string;
+        session.user.id = token.id as string;
+      }
+      return session;
+    }
+  },
   session: {
     strategy: "jwt",
   },

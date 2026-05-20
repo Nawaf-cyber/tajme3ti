@@ -5,9 +5,9 @@ export default async function Home() {
   const categories = await prisma.category.findMany({
     include: { components: true },
   });
-
+  
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
+    <main className="bg-gray-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <PCBuilderClient categories={categories} />
     </main>
   );

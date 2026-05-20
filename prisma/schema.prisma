@@ -30,7 +30,7 @@ model Component {
   cazasouqUrl String?  // رابط كازاسوق
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  description String?  // <--- أضف هذا السطر هنا
+  description String?  
 
   @@index([categoryId])
 }
@@ -42,15 +42,35 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        String       @id @default(cuid())
   name      String?
-  email     String   @unique
+  email     String       @unique
   password  String
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
+  role      Role         @default(USER)
+  createdAt DateTime     @default(now())
+  builds    SavedBuild[] // ربط المستخدم بتجميعاته المحفوظة
 }
 
-// 4. جدول الأخبار (News)
+// 4. جدول التجميعات المحفوظة (Saved Builds)
+model SavedBuild {
+  id            String   @id @default(cuid())
+  name          String   @default("تجميعة مخصصة")
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // تخزين معرفات (IDs) القطع المختارة في التجميعة
+  cpuId         String?
+  gpuId         String?
+  ramId         String?
+  motherboardId String?
+  caseId        String?
+  psuId         String?
+  storageId     String?
+  
+  createdAt     DateTime @default(now())
+}
+
+// 5. جدول الأخبار (News)
 model News {
   id        String   @id @default(cuid())
   title     String

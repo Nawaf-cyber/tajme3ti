@@ -165,7 +165,7 @@ var __turbopack_async_dependencies__ = __turbopack_handle_async_dependencies__([
 const handler = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$index$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"])({
     providers: [
         (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$providers$2f$credentials$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"])({
-            name: "Admin Login",
+            name: "Login",
             credentials: {
                 email: {
                     label: "البريد الإلكتروني",
@@ -183,11 +183,10 @@ const handler = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules
                         email: credentials.email
                     }
                 });
-                // التحقق من وجود المستخدم وصلاحياته
-                if (!user || user.role !== "ADMIN") return null;
-                // مطابقة كلمة المرور المشفرة
+                if (!user) return null;
                 const isPasswordValid = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$bcryptjs$2f$index$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["compare"])(credentials.password, user.password);
                 if (!isPasswordValid) return null;
+                // إرجاع بيانات المستخدم سواء كان ADMIN أو USER
                 return {
                     id: user.id,
                     name: user.name,
@@ -197,6 +196,22 @@ const handler = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules
             }
         })
     ],
+    callbacks: {
+        async jwt ({ token, user }) {
+            if (user) {
+                token.role = user.role;
+                token.id = user.id;
+            }
+            return token;
+        },
+        async session ({ session, token }) {
+            if (session.user) {
+                session.user.role = token.role;
+                session.user.id = token.id;
+            }
+            return session;
+        }
+    },
     session: {
         strategy: "jwt"
     },

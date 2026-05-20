@@ -1,6 +1,9 @@
 {
-  "/admin/import/page": "app/admin/import/page.js",
-  "/admin/page": "app/admin/page.js",
+  "/about/page": "app/about/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/page": "app/page.js"
+  "/api/builds/[id]/route": "app/api/builds/[id]/route.js",
+  "/api/builds/route": "app/api/builds/route.js",
+  "/my-builds/page": "app/my-builds/page.js",
+  "/page": "app/page.js",
+  "/register/page": "app/register/page.js"
 }
