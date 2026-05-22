@@ -172,7 +172,12 @@ const handler = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules
         // 1. تسجيل الدخول عبر Google
         (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$providers$2f$google$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"])({
             clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            authorization: {
+                params: {
+                    prompt: "select_account"
+                }
+            }
         }),
         // 2. تسجيل الدخول القديم (البريد الإلكتروني وكلمة المرور)
         (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$providers$2f$credentials$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"])({
