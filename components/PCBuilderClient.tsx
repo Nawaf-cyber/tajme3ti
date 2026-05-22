@@ -115,13 +115,27 @@ const SearchableSelect = ({
   );
 };
 
-export default function PCBuilderClient({ categories }: { categories: Category[] }) {
+export default function PCBuilderClient({ categories, importedSelections = {} }: { categories: Category[], importedSelections?: Record<string, string> }) {
   const { data: session } = useSession();
-  const [selectedComponents, setSelectedComponents] = useState<Record<string, Component | null>>({});
+  
+  // تحميل القطع المستوردة كحالة مبدئية
+  const getInitialSelections = () => {
+    const initialState: Record<string, Component | null> = {};
+    categories.forEach(cat => {
+      const importedCompId = importedSelections[cat.id];
+      if (importedCompId) {
+        initialState[cat.name] = cat.components.find(c => c.id === importedCompId) || null;
+      } else {
+        initialState[cat.name] = null;
+      }
+    });
+    return initialState;
+  };
+
+  const [selectedComponents, setSelectedComponents] = useState<Record<string, Component | null>>(getInitialSelections);
   const [result, setResult] = useState<{ status: 'success' | 'error' | 'idle', message: string, totalTdp: number, totalPrice: number }>({ status: 'idle', message: '', totalTdp: 0, totalPrice: 0 });
   const [detailsModal, setDetailsModal] = useState<{ comp: Component, categoryName: string } | null>(null);
   
-  // حالات الحفظ والتسمية
   const [isSaving, setIsSaving] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [buildName, setBuildName] = useState("");
@@ -466,7 +480,6 @@ export default function PCBuilderClient({ categories }: { categories: Category[]
         </div>
       )}
 
-      {/* نافذة تسمية التجميعة */}
       {saveModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden">
