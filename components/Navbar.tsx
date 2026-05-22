@@ -74,10 +74,6 @@ export default function Navbar() {
                 <Link href="/api/auth/signin" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-white dark:hover:text-white hover:bg-blue-600 dark:hover:bg-blue-600 px-5 py-2 rounded-lg transition-colors border-2 border-blue-600 dark:border-blue-500">
                   دخول
                 </Link>
-                {/* زر إنشاء الحساب الجديد */}
-                <Link href="/register" className="text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg transition-colors shadow-sm">
-                  حساب جديد
-                </Link>
               </div>
             )}
           </div>

@@ -1,10 +1,20 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "../../../../lib/prisma";
 import { compare } from "bcryptjs";
 
 const handler = NextAuth({
+  adapter: PrismaAdapter(prisma),
   providers: [
+    // 1. تسجيل الدخول عبر Google
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    }),
+
+    // 2. تسجيل الدخول القديم (البريد الإلكتروني وكلمة المرور)
     CredentialsProvider({
       name: "Login",
       credentials: {
@@ -18,13 +28,12 @@ const handler = NextAuth({
           where: { email: credentials.email }
         });
 
-        if (!user) return null;
+        if (!user || !user.password) return null;
 
         const isPasswordValid = await compare(credentials.password, user.password);
 
         if (!isPasswordValid) return null;
 
-        // إرجاع بيانات المستخدم سواء كان ADMIN أو USER
         return { id: user.id, name: user.name, email: user.email, role: user.role };
       }
     })
@@ -32,6 +41,7 @@ const handler = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        // @ts-ignore
         token.role = user.role;
         token.id = user.id;
       }
@@ -39,7 +49,9 @@ const handler = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
+        // @ts-ignore
         session.user.role = token.role as string;
+        // @ts-ignore
         session.user.id = token.id as string;
       }
       return session;

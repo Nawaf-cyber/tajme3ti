@@ -7,6 +7,10 @@ interface Suggestion {
   title: string;
   content: string;
   createdAt: string;
+  user?: {
+    name: string | null;
+    email: string | null;
+  };
 }
 
 export default function AdminSuggestions() {
@@ -51,24 +55,36 @@ export default function AdminSuggestions() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {suggestions.map((s) => (
-            <div key={s.id} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div key={s.id} className="flex flex-col bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+              
               <div className="flex justify-between items-start mb-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{s.title}</h2>
                 <button 
                   onClick={() => handleDelete(s.id)}
-                  className="text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
+                  className="text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors shrink-0"
                 >
                   حذف
                 </button>
               </div>
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed break-words">
+              
+              <p className="flex-grow text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed break-words mb-6">
                  {s.content}
               </p>
-              <div className="mt-6 pt-4 border-t border-gray-100 dark:border-slate-800">
-                <span className="text-xs font-bold text-gray-400">
+              
+              <div className="pt-4 border-t border-gray-100 dark:border-slate-800 flex justify-between items-end">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                    {s.user?.name || 'مستخدم غير معروف'}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400" dir="ltr">
+                    {s.user?.email || 'بدون إيميل'}
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-gray-400 shrink-0">
                   {new Date(s.createdAt).toLocaleDateString('ar-SA')}
                 </span>
               </div>
+
             </div>
           ))}
         </div>

@@ -1,5 +1,102 @@
 {
-  "node": {},
+  "node": {
+    "40bfa07d3f51fbad4514ed4eff0d724e8df1d50e8e": {
+      "workers": {
+        "app/admin/prebuilds/page": {
+          "moduleId": "[project]/.next-internal/server/app/admin/prebuilds/page/actions.js { ACTIONS_MODULE0 => \"[project]/app/admin/prebuilds/page.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "$$RSC_SERVER_ACTION_1",
+          "filename": "app/admin/prebuilds/page.tsx"
+        }
+      },
+      "filename": "app/admin/prebuilds/page.tsx",
+      "exportedName": "$$RSC_SERVER_ACTION_1"
+    },
+    "40cac29f3beb8cfeae696f08ee8bc6f08876f8b162": {
+      "workers": {
+        "app/admin/prebuilds/page": {
+          "moduleId": "[project]/.next-internal/server/app/admin/prebuilds/page/actions.js { ACTIONS_MODULE0 => \"[project]/app/admin/prebuilds/page.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "app/admin/prebuilds/page.tsx"
+        }
+      },
+      "filename": "app/admin/prebuilds/page.tsx",
+      "exportedName": "$$RSC_SERVER_ACTION_0"
+    },
+    "4072f026a3552f64bede1121bb2c7737cdb073fec8": {
+      "workers": {
+        "app/admin/page": {
+          "moduleId": "[project]/.next-internal/server/app/admin/page/actions.js { ACTIONS_MODULE0 => \"[project]/app/admin/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "addComponent",
+          "filename": "app/admin/actions.ts"
+        }
+      },
+      "filename": "app/admin/actions.ts",
+      "exportedName": "addComponent"
+    },
+    "40599481361be4ac4a75309e9b13f0c06a4caf12ba": {
+      "workers": {
+        "app/admin/page": {
+          "moduleId": "[project]/.next-internal/server/app/admin/page/actions.js { ACTIONS_MODULE0 => \"[project]/app/admin/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "deleteComponent",
+          "filename": "app/admin/actions.ts"
+        }
+      },
+      "filename": "app/admin/actions.ts",
+      "exportedName": "deleteComponent"
+    },
+    "400003bdf31c766f3e972a1820d3fe3ca8d26ae1ef": {
+      "workers": {
+        "app/admin/page": {
+          "moduleId": "[project]/.next-internal/server/app/admin/page/actions.js { ACTIONS_MODULE0 => \"[project]/app/admin/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "addNews",
+          "filename": "app/admin/actions.ts"
+        }
+      },
+      "filename": "app/admin/actions.ts",
+      "exportedName": "addNews"
+    },
+    "401b3162db636dd5bf752b1c6ef248dacc0b8288bd": {
+      "workers": {
+        "app/admin/page": {
+          "moduleId": "[project]/.next-internal/server/app/admin/page/actions.js { ACTIONS_MODULE0 => \"[project]/app/admin/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "deleteNews",
+          "filename": "app/admin/actions.ts"
+        }
+      },
+      "filename": "app/admin/actions.ts",
+      "exportedName": "deleteNews"
+    },
+    "40af58c9a05736ccbf0441752c5f30efff1f65a5c3": {
+      "workers": {
+        "app/admin/page": {
+          "moduleId": "[project]/.next-internal/server/app/admin/page/actions.js { ACTIONS_MODULE0 => \"[project]/app/admin/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "updateComponent",
+          "filename": "app/admin/actions.ts"
+        }
+      },
+      "filename": "app/admin/actions.ts",
+      "exportedName": "updateComponent"
+    },
+    "40f52350b9be61d364d0fdc789316e52f0f6e3d667": {
+      "workers": {
+        "app/admin/page": {
+          "moduleId": "[project]/.next-internal/server/app/admin/page/actions.js { ACTIONS_MODULE0 => \"[project]/app/admin/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "updateNews",
+          "filename": "app/admin/actions.ts"
+        }
+      },
+      "filename": "app/admin/actions.ts",
+      "exportedName": "updateNews"
+    }
+  },
   "edge": {},
-  "encryptionKey": "xYLSoSghNHexE9Fn2cxWXepTtINWUF9NnDElRLCpTsM="
+  "encryptionKey": "eIkLLocvZlyCUqsXHG/9z4/PMK3hnTNGP1lw5AHTJEk="
 }
