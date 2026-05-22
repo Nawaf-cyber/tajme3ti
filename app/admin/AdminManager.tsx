@@ -121,6 +121,12 @@ export default function AdminManager({ categories, components, news }: { categor
         >
           📥 استيراد من JSON
         </Link>
+
+        <Link 
+          href="/admin/prebuilds" 
+          className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-sm">
+          <span>➕</span> إضافة تجميعة جاهزة
+        </Link>
       </div>
 
       {activeTab === 'components' && (
