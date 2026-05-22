@@ -6,7 +6,7 @@ import { prisma } from "../../../../lib/prisma";
 import { compare } from "bcryptjs";
 
 const handler = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as any,
   providers: [
     // 1. تسجيل الدخول عبر Google
     GoogleProvider({
