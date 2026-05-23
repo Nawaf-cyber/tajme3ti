@@ -8,20 +8,20 @@ export async function GET() {
 
     // إنشاء حساب مستخدم عادي للتجارب
     await prisma.user.upsert({
-      where: { email: "user@test.com" },
+      where: { email: "nawaf1290m@gmail.com" },
       update: {},
       create: {
-        name: "Nawaf Test",
-        email: "user@test.com",
+        name: "Nawaf Admin",
+        email: "nawaf1290m@gmail.com",
         password: hashedPassword,
-        role: "USER" // مستخدم بصلاحيات عادية
+        role: "ADMIN" // مستخدم بصلاحيات إدارية
       }
     });
 
     return NextResponse.json({ 
       message: "تم إنشاء الحساب بنجاح.",
-      email: "user@test.com",
-      password: "123456"
+      email: "nawaf1290m@gmail.com",
+      password: "hashedPassword"
     });
   } catch (error) {
     return NextResponse.json({ error: "حدث خطأ أثناء الإنشاء." }, { status: 500 });

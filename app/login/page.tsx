@@ -85,15 +85,6 @@ export default function LoginPage() {
             الدخول بكلمة المرور
           </button>
         </form>
-
-        {/* زر إرسال رابط الدخول */}
-        <button
-          onClick={handleEmailLogin}
-          type="button"
-          className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition-colors"
-        >
-          إرسال رابط الدخول (بدون كلمة مرور)
-        </button>
       </div>
     </div>
   );

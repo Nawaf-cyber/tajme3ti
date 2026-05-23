@@ -9,7 +9,7 @@ export default function Navbar() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // حالة فتح وإغلاق القائمة
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -84,7 +84,7 @@ export default function Navbar() {
                   </button>
                 </>
               ) : (
-                <Link href="/api/auth/signin" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-white dark:hover:text-white hover:bg-blue-600 dark:hover:bg-blue-600 px-5 py-2 rounded-lg transition-colors border-2 border-blue-600 dark:border-blue-500">
+                <Link href="/login" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-white dark:hover:text-white hover:bg-blue-600 dark:hover:bg-blue-600 px-5 py-2 rounded-lg transition-colors border-2 border-blue-600 dark:border-blue-500">
                   دخول
                 </Link>
               )}
@@ -143,7 +143,7 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <Link href="/api/auth/signin" onClick={() => setIsMobileMenuOpen(false)} className="text-center text-sm font-bold text-blue-600 dark:text-blue-400 bg-transparent border-2 border-blue-600 dark:border-blue-500 px-5 py-3 rounded-lg mt-2">
+              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-center text-sm font-bold text-blue-600 dark:text-blue-400 bg-transparent border-2 border-blue-600 dark:border-blue-500 px-5 py-3 rounded-lg mt-2">
                 تسجيل الدخول
               </Link>
             )}

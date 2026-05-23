@@ -29,8 +29,13 @@ export default function AboutPage() {
           </p>
           <p> 
               نسعى لتقديم تجربة مبسطة تناسب الجميع، سواء كنت مبتدئًا في عالم الـ PC أو محترفًا يبحث عن أفضل تجميعة ممكنة.
+              <br />
+             <strong className="text-blue-600 dark:text-blue-400">هدفنا</strong>  هو تمكين المستخدم العربي من بناء جهاز أحلامه بسهولة وثقة، مع توفير الوقت والجهد في البحث عن القطع المناسبة.
           </p>
-          
+          <p> 
+            الروابط داخل المنصة هي روابط تابعة (Affiliate Links)، وقد نحصل على عمولة عند الشراء من خلالها دون أي تكلفة إضافية على المستخدم.
+كما يتم عرض إعلانات من طرف ثالث مثل Google AdSense لدعم تشغيل المنصة.
+          </p>
           <div className="bg-blue-50 dark:bg-slate-800/50 p-6 rounded-xl border border-blue-100 dark:border-slate-700 mt-8">
             <h3 className="font-bold text-xl text-blue-800 dark:text-blue-400 mb-2">تواصل معنا</h3>
             <p className="text-sm mb-4">

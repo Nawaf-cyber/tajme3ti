@@ -54,15 +54,15 @@ const SearchableSelect = ({
   );
 
   return (
-    <div className="relative flex-1" ref={wrapperRef}>
+    <div className="relative flex-1 min-w-0" ref={wrapperRef}>
       <div 
-        className="p-3 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 cursor-pointer flex justify-between items-center"
+        className="p-3 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 cursor-pointer flex justify-between items-center w-full min-h-[50px] gap-2"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="truncate text-gray-800 dark:text-gray-100">
+        <span className="whitespace-normal break-words flex-1 text-gray-800 dark:text-gray-100 rtl:text-right text-sm leading-relaxed">
           {selectedComponent ? `${selectedComponent.brand} ${selectedComponent.name} - $${selectedComponent.price}` : `-- اختر ${category.name} --`}
         </span>
-        <span className="text-gray-500">▼</span>
+        <span className="text-gray-500 shrink-0">▼</span>
       </div>
 
       {isOpen && (
@@ -83,22 +83,22 @@ const SearchableSelect = ({
               filteredComponents.map((comp) => (
                 <li 
                   key={comp.id} 
-                  className="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer flex justify-between items-center border-b border-gray-50 dark:border-slate-700/50 last:border-0"
+                  className="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer flex justify-between items-center border-b border-gray-50 dark:border-slate-700/50 last:border-0 gap-3"
                   onClick={() => {
                     onSelect(comp.id);
                     setIsOpen(false);
                     setSearchTerm('');
                   }}
                 >
-                  <span className="text-gray-800 dark:text-gray-200">{comp.brand} {comp.name}</span>
-                  <div className="flex items-center gap-3">
+                  <span className="whitespace-normal break-words flex-1 text-gray-800 dark:text-gray-200 text-sm leading-relaxed">{comp.brand} {comp.name}</span>
+                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
                     <span className="font-bold text-blue-600 dark:text-blue-400">${comp.price}</span>
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         onShowDetails(comp);
                       }}
-                      className="px-2 py-1 text-xs bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 text-gray-800 dark:text-white rounded"
+                      className="px-2 py-1 text-xs bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 text-gray-800 dark:text-white rounded shrink-0"
                     >
                       التفاصيل
                     </button>
@@ -118,7 +118,6 @@ const SearchableSelect = ({
 export default function PCBuilderClient({ categories, importedSelections = {} }: { categories: Category[], importedSelections?: Record<string, string> }) {
   const { data: session } = useSession();
   
-  // تحميل القطع المستوردة كحالة مبدئية
   const getInitialSelections = () => {
     const initialState: Record<string, Component | null> = {};
     categories.forEach(cat => {
@@ -344,12 +343,12 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                   <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                   {category.name}
                 </label>
-                <div className="flex gap-3 items-center">
+                <div className="flex gap-3 items-start w-full min-w-0">
                   {selectedComponents[category.name]?.imageUrl && (
                     <img 
                       src={selectedComponents[category.name]?.imageUrl as string} 
                       alt={selectedComponents[category.name]?.name}
-                      className="w-14 h-14 rounded-lg object-contain bg-white dark:bg-slate-800 border p-1 shadow-sm" 
+                      className="w-14 h-14 rounded-lg object-contain bg-white dark:bg-slate-800 border p-1 shadow-sm shrink-0 mt-1" 
                     />
                   )}
                   <SearchableSelect 
@@ -393,11 +392,11 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                           if (!comp) return null;
                           return (
                             <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700/50 gap-3">
-                              <div className="text-sm">
-                                <span className="font-bold text-gray-400 dark:text-gray-500 ml-2">[{catName}]</span>
+                              <div className="text-sm flex-1 whitespace-normal break-words leading-relaxed">
+                                <span className="font-bold text-gray-400 dark:text-gray-500 ml-2 block sm:inline">[{catName}]</span>
                                 <span className="text-gray-900 dark:text-gray-100 font-medium">{comp.brand} {comp.name}</span>
                               </div>
-                              <div className="flex gap-2 export-ignore">
+                              <div className="flex gap-2 export-ignore shrink-0">
                                 {comp.amazonUrl && (
                                   <a href={comp.amazonUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs rounded-md font-bold transition-colors shadow-sm">
                                     أمازون
@@ -449,7 +448,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             <div className="p-6 overflow-y-auto">
               <div className="mb-4">
                 <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{detailsModal.comp.brand}</span>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{detailsModal.comp.name}</h3>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1 whitespace-normal break-words">{detailsModal.comp.name}</h3>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-lg">

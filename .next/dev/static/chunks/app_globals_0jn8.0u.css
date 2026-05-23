@@ -732,6 +732,10 @@
     max-height: 90vh;
   }
 
+  .min-h-\[50px\] {
+    min-height: 50px;
+  }
+
   .min-h-\[80vh\] {
     min-height: 80vh;
   }
@@ -802,6 +806,10 @@
 
   .max-w-sm {
     max-width: var(--container-sm);
+  }
+
+  .min-w-0 {
+    min-width: calc(var(--spacing) * 0);
   }
 
   .min-w-\[150px\] {
@@ -1528,6 +1536,10 @@
     overflow-wrap: break-word;
   }
 
+  .whitespace-normal {
+    white-space: normal;
+  }
+
   .whitespace-nowrap {
     white-space: nowrap;
   }
@@ -2071,6 +2083,12 @@
   }
 
   @media (min-width: 40rem) {
+    .sm\:inline {
+      display: inline;
+    }
+  }
+
+  @media (min-width: 40rem) {
     .sm\:flex-row {
       flex-direction: row;
     }
@@ -2236,6 +2254,10 @@
     .xl\:grid-cols-3 {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+  }
+
+  .rtl\:text-right:where(:is(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi)), [dir="rtl"], [dir="rtl"] *) {
+    text-align: right;
   }
 
   :where(.dark\:divide-slate-800:where(.dark, .dark *) > :not(:last-child)) {
