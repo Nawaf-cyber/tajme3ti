@@ -5,8 +5,76 @@ export default function AdminPrebuildForm({ dbComponents, categories, action }: 
   // حالة حفظ القطع المحددة
   const [selections, setSelections] = useState<Record<string, string>>({});
 
-  // جلب القطع حسب الفئة
-  const getCompsByCat = (catId: string) => dbComponents.filter(c => c.categoryId === catId);
+  // دالة لتحويل نصوص المواصفات إلى كائن JSON
+  const parseSpecs = (specsStr: any) => {
+    if (!specsStr) return {};
+    try {
+      return typeof specsStr === 'string' ? JSON.parse(specsStr) : specsStr;
+    } catch (e) {
+      return {};
+    }
+  };
+
+  // دالة لجلب القطعة المحددة حالياً بناءً على اسم الفئة
+  const getSelectedCompByName = (catName: string) => {
+    const cat = categories.find((c: any) => c.name === catName);
+    if (!cat) return null;
+    const compId = selections[cat.id];
+    return dbComponents.find(c => c.id === compId) || null;
+  };
+
+  // دالة لفلترة القطع وعرض المتوافق منها فقط
+  const getFilteredComps = (category: any) => {
+    const baseComps = dbComponents.filter(c => c.categoryId === category.id);
+
+    const cpu = getSelectedCompByName('CPU');
+    const mobo = getSelectedCompByName('Motherboard');
+    const ram = getSelectedCompByName('RAM');
+    const gpu = getSelectedCompByName('GPU');
+    const pcCase = getSelectedCompByName('Case');
+
+    return baseComps.filter(comp => {
+      const specs = parseSpecs(comp.specs);
+
+      // توافق اللوحة الأم مع المعالج والرام
+      if (category.name === 'Motherboard') {
+        if (cpu) {
+          const cpuSpecs = parseSpecs(cpu.specs);
+          if (specs.socket && cpuSpecs.socket && specs.socket !== cpuSpecs.socket) return false;
+        }
+        if (ram) {
+          const ramSpecs = parseSpecs(ram.specs);
+          if (specs.ramType && ramSpecs.type && specs.ramType !== ramSpecs.type) return false;
+        }
+      }
+      
+      // توافق المعالج مع اللوحة الأم
+      if (category.name === 'CPU' && mobo) {
+        const moboSpecs = parseSpecs(mobo.specs);
+        if (specs.socket && moboSpecs.socket && specs.socket !== moboSpecs.socket) return false;
+      }
+      
+      // توافق الرام مع اللوحة الأم
+      if (category.name === 'RAM' && mobo) {
+        const moboSpecs = parseSpecs(mobo.specs);
+        if (specs.type && moboSpecs.ramType && specs.type !== moboSpecs.ramType) return false;
+      }
+      
+      // توافق الكيس مع طول كرت الشاشة
+      if (category.name === 'Case' && gpu) {
+        const gpuSpecs = parseSpecs(gpu.specs);
+        if (specs.maxGpuLength && gpuSpecs.lengthMm && parseFloat(specs.maxGpuLength) < parseFloat(gpuSpecs.lengthMm)) return false;
+      }
+      
+      // توافق كرت الشاشة مع الكيس
+      if (category.name === 'GPU' && pcCase) {
+        const caseSpecs = parseSpecs(pcCase.specs);
+        if (specs.lengthMm && caseSpecs.maxGpuLength && parseFloat(specs.lengthMm) > parseFloat(caseSpecs.maxGpuLength)) return false;
+      }
+
+      return true;
+    });
+  };
 
   // حساب السعر الإجمالي آلياً
   const totalPrice = Object.values(selections).reduce((sum, compId) => {
@@ -37,21 +105,26 @@ export default function AdminPrebuildForm({ dbComponents, categories, action }: 
       <div className="mb-6 bg-slate-50 dark:bg-[#0B1120] p-6 rounded-xl border border-slate-200 dark:border-slate-800">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">اختيار القطع الأساسية</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {categories.map((cat: any) => (
-            <div key={cat.id}>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{cat.name}</label>
-              <select
-                className="w-full bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm"
-                value={selections[cat.id] || ''}
-                onChange={(e) => setSelections({ ...selections, [cat.id]: e.target.value })}
-              >
-                <option value="">-- اختر {cat.name} --</option>
-                {getCompsByCat(cat.id).map(c => (
-                  <option key={c.id} value={c.id}>{c.name} - ${c.price}</option>
-                ))}
-              </select>
-            </div>
-          ))}
+          {categories.map((cat: any) => {
+            // جلب القطع المتوافقة فقط لهذه الفئة
+            const compatibleComps = getFilteredComps(cat);
+            
+            return (
+              <div key={cat.id}>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{cat.name}</label>
+                <select
+                  className="w-full bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm"
+                  value={selections[cat.id] || ''}
+                  onChange={(e) => setSelections({ ...selections, [cat.id]: e.target.value })}
+                >
+                  <option value="">-- اختر {cat.name} --</option>
+                  {compatibleComps.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.brand} {c.name} - ${c.price}</option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
         </div>
       </div>
 
