@@ -441,12 +441,12 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
       {detailsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b dark:border-slate-800 bg-gray-50 dark:bg-slate-800">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-4 border-b dark:border-slate-800 bg-gray-50 dark:bg-slate-800 shrink-0 rounded-t-2xl">
               <h2 className="font-bold text-xl text-gray-900 dark:text-white">تفاصيل القطعة</h2>
               <button onClick={() => setDetailsModal(null)} className="text-gray-500 hover:text-red-500 font-bold text-xl transition-colors">✕</button>
             </div>
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto">
               <div className="mb-4">
                 <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{detailsModal.comp.brand}</span>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{detailsModal.comp.name}</h3>
@@ -467,11 +467,30 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
               </div>
               <div className="mb-6">
                 <h4 className="font-bold text-gray-900 dark:text-gray-200 border-b dark:border-slate-700 pb-2 mb-2">وصف القطعة:</h4>
-                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-line">
-                  {detailsModal.comp.description || "لا يوجد وصف متوفر لهذه القطعة."}
+                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-line break-words">
+                  {detailsModal.comp.description ? (
+                    detailsModal.comp.description.split(/(https?:\/\/[^\s]+)/g).map((part, index) => 
+                      /(https?:\/\/[^\s]+)/.test(part) ? (
+                        <a 
+                          key={index} 
+                          href={part} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 dark:text-blue-400 hover:underline font-bold"
+                        >
+                          {part}
+                        </a>
+                      ) : (
+                        part
+                      )
+                    )
+                  ) : (
+                    "لا يوجد وصف متوفر لهذه القطعة."
+                  )}
                 </p>
               </div>
-              <div className="flex gap-4">
+
+              <div className="flex gap-4 pt-2">
                 <button onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors">اختيار القطعة</button>
                 <button onClick={() => setDetailsModal(null)} className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-bold transition-colors">إغلاق</button>
               </div>
