@@ -65,13 +65,15 @@ export default function SuggestionModal({ isOpen, onClose }: Props) {
               className="w-full px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="اشرح فكرتك هنا..."
             ></textarea>
+            <p className="text-[13px] text-gray-400 leading-6 mt-4">
+              مع العلم سوف تظهر بياناتك (بريدك الاكتروني واسمك) مع الاقتراح، ولكن لا تقلق سيتم إخفاء بريدك الإلكتروني عن الجميع ولن يتم استخدامه إلا للرد عليك في حال تم تنفيذ اقتراحك أو إذا كنا بحاجة لمزيد من التفاصيل.
+            </p>
           </div>
           <div className="flex justify-end gap-3 mt-6">
             <button 
               type="button" 
               onClick={onClose} 
-              className="px-4 py-2 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            >
+              className="px-4 py-2 font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
               إلغاء
             </button>
             <button 
