@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/update-amazon",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/update-cazasouq",
+      "schedule": "30 0 * * *"
+    }
+  ]
+}
