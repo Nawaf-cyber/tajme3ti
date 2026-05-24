@@ -1,15 +1,13 @@
 {
-  "/about/page": "app/about/page.js",
-  "/admin/import/page": "app/admin/import/page.js",
   "/admin/page": "app/admin/page.js",
   "/admin/prebuilds/page": "app/admin/prebuilds/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/api/builds/route": "app/api/builds/route.js",
+  "/api/update-amazon/route": "app/api/update-amazon/route.js",
   "/api/update-cazasouq/route": "app/api/update-cazasouq/route.js",
-  "/components/[id]/page": "app/components/[id]/page.js",
-  "/components/page": "app/components/page.js",
-  "/login/page": "app/login/page.js",
   "/my-builds/page": "app/my-builds/page.js",
+  "/news/[id]/page": "app/news/[id]/page.js",
   "/news/page": "app/news/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/prebuilds/page": "app/prebuilds/page.js"
 }

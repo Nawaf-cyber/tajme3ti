@@ -1,6 +1,22 @@
 import { prisma } from '../../lib/prisma';
 import SavePrebuildButton from './SavePrebuildButton';
 
+const RiyalIcon = ({ size = 'h-5 w-5' }: { size?: string }) => (
+  <div 
+    className={`${size} bg-emerald-600 dark:bg-emerald-400 inline-block`} 
+    style={{ 
+      maskImage: "url('/riyal.svg')", 
+      WebkitMaskImage: "url('/riyal.svg')", 
+      maskSize: 'contain', 
+      WebkitMaskSize: 'contain', 
+      maskRepeat: 'no-repeat', 
+      WebkitMaskRepeat: 'no-repeat',
+      maskPosition: 'center',
+      WebkitMaskPosition: 'center'
+    }} 
+  />
+);
+
 export default async function PrebuildsPage() {
   const prebuilds = await prisma.prebuild.findMany({
     orderBy: { createdAt: 'desc' },
@@ -44,10 +60,12 @@ export default async function PrebuildsPage() {
               <div key={build.id} className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{build.title}</h3>
-                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-4">${build.price}</div>
+                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-4 flex items-center gap-2">
+                    {build.price} <RiyalIcon size="h-6 w-6" />
+                  </div>
                   <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{build.description}</p>
                 </div>
-                <div className="p-6 pt-0 border-t border-slate-100 dark:border-slate-800/60 mt-auto">
+                <div className="p-6 pt-0 border-t border-slate-100 dark:border-slate-800/60 mt-auto pt-4">
                   <SavePrebuildButton payload={payload} />
                 </div>
               </div>

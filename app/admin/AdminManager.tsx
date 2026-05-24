@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, updateNews } from './actions';
 import toast from 'react-hot-toast';
 import UpdateCazasouqButton from './components/UpdateCazasouqButton';
+import UpdateAmazonButton from './components/UpdateAmazonButton';
 
 export default function AdminManager({ categories, components, news }: { categories: any[], components: any[], news: any[] }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news'>('components');
@@ -109,7 +110,6 @@ export default function AdminManager({ categories, components, news }: { categor
         >
           💻 إدارة القطع
         </button>
-        
         <button 
           onClick={() => { setActiveTab('news'); cancelEdit(); }}
           className={`px-6 py-3 font-bold rounded-lg transition-colors ${activeTab === 'news' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
@@ -129,12 +129,13 @@ export default function AdminManager({ categories, components, news }: { categor
           className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-sm">
           <span>➕</span> إضافة تجميعة جاهزة
         </Link>
-        {/* داخل الكود الخاص بالصفحة: */}
-        <div className="mb-6">
-          <UpdateCazasouqButton />
-        </div>
+        
       </div>
-
+      {/* داخل الكود الخاص بالصفحة: */}
+        <div className="mb-6 flex gap-2">
+          <UpdateCazasouqButton />
+          <UpdateAmazonButton />
+        </div>
       {activeTab === 'components' && (
         <div className="flex flex-col gap-8 animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 transition-colors duration-200">
@@ -238,7 +239,25 @@ export default function AdminManager({ categories, components, news }: { categor
                         <td className="p-4">{comp.category?.name}</td>
                         <td className="p-4 font-semibold">{comp.brand}</td>
                         <td className="p-4">{comp.name}</td>
-                        <td className="p-4 text-emerald-600 dark:text-emerald-400 font-bold">${comp.price}</td>
+                        {/* تم تعديل السطر التالي لإضافة الشعار بجانب السعر */}
+                        <td className="p-4 text-emerald-600 dark:text-emerald-400 font-bold">
+                        <div className="flex items-center gap-1">
+                          {comp.price} 
+                         <div 
+                           className="h-4 w-4 bg-emerald-600 dark:bg-emerald-400" 
+                           style={{ 
+                             maskImage: "url('/riyal.svg')", 
+                             WebkitMaskImage: "url('/riyal.svg')", 
+                             maskSize: 'contain', 
+                             WebkitMaskSize: 'contain', 
+                             maskRepeat: 'no-repeat', 
+                             WebkitMaskRepeat: 'no-repeat',
+                             maskPosition: 'center',
+                             WebkitMaskPosition: 'center'
+                           }} 
+                           />
+                          </div>
+                        </td>
                         <td className="p-4 flex gap-2">
                           <button onClick={() => startEditComponent(comp)} className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium rounded-lg hover:bg-blue-200 transition-colors">
                             تعديل

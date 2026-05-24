@@ -7,72 +7,72 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const components = await prisma.component.findMany({
-      where: {
-        cazasouqUrl: {
-          not: null,
-        }
-      }
+      where: { amazonUrl: { not: null } }
     });
 
     let updatedCount = 0;
     const errors: string[] = [];
-
-    // مفتاح ScraperAPI الخاص بك
     const SCRAPER_API_KEY = "dbd6d15311b2604075c1aa72ae26849d"; 
 
-    // تحديد عدد الطلبات المتزامنة لتسريع العملية (5 طلبات كحد أقصى في نفس الوقت لتجنب الحظر)
+    // تحديد عدد الطلبات المتزامنة (5 طلبات في نفس الوقت) لتسريع العملية وتجنب الحظر
     const chunkSize = 5; 
-
+    
     for (let i = 0; i < components.length; i += chunkSize) {
       const chunk = components.slice(i, i + chunkSize);
       
       await Promise.all(chunk.map(async (comp) => {
-        if (!comp.cazasouqUrl) return;
-
         try {
-          const targetUrl = encodeURIComponent(comp.cazasouqUrl);
-          // إضافة render=true لتخطي حماية جافاسكربت المعقدة إن وجدت
+          const targetUrl = encodeURIComponent(comp.amazonUrl!);
           const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&render=true`;
 
           const res = await fetch(url, { cache: 'no-store' });
-
           if (!res.ok) throw new Error(`HTTP Status ${res.status}`);
 
           const html = await res.text();
           const $ = cheerio.load(html);
 
-          const priceText = $('.price, .product-price, .price-item, .amount').first().text();
+          let priceText = '';
+          const mainPrice = $('.a-price .a-offscreen').first().text();
+          
+          if (mainPrice) {
+            priceText = mainPrice;
+          } else {
+            const whole = $('.a-price-whole').first().text().replace(/[,.]/g, '');
+            const fraction = $('.a-price-fraction').first().text();
+            if (whole) priceText = fraction ? `${whole}.${fraction}` : whole;
+          }
+
           const cleanedPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
 
           if (!isNaN(cleanedPrice) && cleanedPrice > 0) {
-            const currentAmazonPrice = comp.amazonPrice || Infinity;
-            const lowestPrice = Math.min(cleanedPrice, currentAmazonPrice);
+            const currentCazaPrice = comp.cazasouqPrice || Infinity;
+            const lowestPrice = Math.min(cleanedPrice, currentCazaPrice);
 
             await prisma.component.update({
               where: { id: comp.id },
               data: { 
-                cazasouqPrice: cleanedPrice,
+                amazonPrice: cleanedPrice,
                 price: lowestPrice !== Infinity ? lowestPrice : cleanedPrice 
               }
             });
             updatedCount++;
           } else {
-            errors.push(`لم يتم العثور على سعر صالح للقطعة: ${comp.name}`);
+            errors.push(`سعر غير صالح: ${comp.name}`);
           }
         } catch (err: any) {
-          errors.push(`خطأ في القطعة ${comp.name}: ${err.message}`);
+          errors.push(`خطأ ${comp.name}: ${err.message}`);
         }
       }));
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: `تم تحديث ${updatedCount} منتج بنجاح.`,
+      message: `تم تحديث أسعار ${updatedCount} منتج من أمازون بنجاح.`,
       errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في النظام أثناء التحديث." }, { status: 500 });
+    return NextResponse.json({ error: "حدث خطأ في النظام أثناء تحديث أمازون." }, { status: 500 });
   }
 }

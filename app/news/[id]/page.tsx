@@ -31,9 +31,16 @@ export default async function NewsDetails({ params }: { params: Promise<{ id: st
             </span>
           </div>
           
-          <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-6 leading-tight">
+          <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-8 leading-tight">
             {news.title}
           </h1>
+
+          {/* كود عرض الصورة */}
+          {news.imageUrl && (
+            <div className="w-full h-64 md:h-96 mb-8 rounded-xl overflow-hidden border border-gray-100 dark:border-slate-800">
+              <img src={news.imageUrl} alt={news.title} className="w-full h-full object-cover" />
+            </div>
+          )}
           
           <div className="prose prose-lg dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-words">
             {news.content}

@@ -2,6 +2,22 @@ import { prisma } from '../../../lib/prisma';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+const RiyalIcon = ({ size = 'h-7 w-7' }: { size?: string }) => (
+  <div 
+    className={`${size} bg-emerald-600 dark:bg-emerald-400 inline-block`} 
+    style={{ 
+      maskImage: "url('/riyal.svg')", 
+      WebkitMaskImage: "url('/riyal.svg')", 
+      maskSize: 'contain', 
+      WebkitMaskSize: 'contain', 
+      maskRepeat: 'no-repeat', 
+      WebkitMaskRepeat: 'no-repeat',
+      maskPosition: 'center',
+      WebkitMaskPosition: 'center'
+    }} 
+  />
+);
+
 // دالة لاكتشاف الروابط في النص وتحويلها
 const formatTextWithLinks = (text: string) => {
   if (!text) return null;
@@ -72,8 +88,10 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">
                 {comp.name}
               </h1>
-              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                ${comp.price}
+              
+              {/* السعر مع الشعار الجديد */}
+              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-6 flex items-center gap-2">
+                {comp.price} <RiyalIcon size="h-7 w-7" />
               </div>
 
               {/* أزرار الشراء */}

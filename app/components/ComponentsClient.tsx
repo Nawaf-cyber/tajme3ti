@@ -2,10 +2,27 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+// إضافة colorClass للتحكم بلون الشعار حسب مكانه (أزرق للفلتر، أخضر للأسعار)
+const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
+  <div 
+    className={`${size} ${colorClass} inline-block`} 
+    style={{ 
+      maskImage: "url('/riyal.svg')", 
+      WebkitMaskImage: "url('/riyal.svg')", 
+      maskSize: 'contain', 
+      WebkitMaskSize: 'contain', 
+      maskRepeat: 'no-repeat', 
+      WebkitMaskRepeat: 'no-repeat',
+      maskPosition: 'center',
+      WebkitMaskPosition: 'center'
+    }} 
+  />
+);
+
 export default function ComponentsClient({ components, categories }: { components: any[], categories: any[] }) {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(5000);
+  const [maxPrice, setMaxPrice] = useState(15000); // تم الرفع ليتناسب مع أسعار الريال
 
   // منطق الفلترة
   const filtered = components.filter((c) => {
@@ -45,14 +62,17 @@ export default function ComponentsClient({ components, categories }: { component
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-            الحد الأقصى للسعر: <span className="text-blue-600">${maxPrice}</span>
+          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1">
+            الحد الأقصى للسعر: 
+            <span className="text-blue-600 flex items-center gap-1 mr-1">
+              {maxPrice} <RiyalIcon size="h-3 w-3" colorClass="bg-blue-600" />
+            </span>
           </label>
           <input 
             type="range" 
             min="0" 
-            max="5000" 
-            step="50"
+            max="15000" // تم الرفع ليتناسب مع أسعار الريال
+            step="100"
             value={maxPrice}
             onChange={(e) => setMaxPrice(Number(e.target.value))}
             className="w-full"
@@ -74,7 +94,9 @@ export default function ComponentsClient({ components, categories }: { component
                   <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold px-3 py-1 rounded-full">
                     {comp.category?.name}
                   </span>
-                  <span className="font-black text-emerald-600 dark:text-emerald-400">${comp.price}</span>
+                  <span className="font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    {comp.price} <RiyalIcon size="h-4 w-4" />
+                  </span>
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">{comp.name}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">{comp.brand}</p>

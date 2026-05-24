@@ -24,6 +24,22 @@ type Category = {
   components: Component[];
 };
 
+const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
+  <div 
+    className={`${size} ${colorClass} inline-block shrink-0`} 
+    style={{ 
+      maskImage: "url('/riyal.svg')", 
+      WebkitMaskImage: "url('/riyal.svg')", 
+      maskSize: 'contain', 
+      WebkitMaskSize: 'contain', 
+      maskRepeat: 'no-repeat', 
+      WebkitMaskRepeat: 'no-repeat',
+      maskPosition: 'center',
+      WebkitMaskPosition: 'center'
+    }} 
+  />
+);
+
 const SearchableSelect = ({ 
   category, 
   selectedComponent, 
@@ -60,7 +76,16 @@ const SearchableSelect = ({
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className="whitespace-normal break-words flex-1 text-gray-800 dark:text-gray-100 rtl:text-right text-sm leading-relaxed">
-          {selectedComponent ? `${selectedComponent.brand} ${selectedComponent.name} - $${selectedComponent.price}` : `-- اختر ${category.name} --`}
+          {selectedComponent ? (
+            <span className="flex items-center gap-1 flex-wrap">
+              {selectedComponent.brand} {selectedComponent.name} - 
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mx-1">
+                {selectedComponent.price} <RiyalIcon size="h-3 w-3" />
+              </span>
+            </span>
+          ) : (
+            `-- اختر ${category.name} --`
+          )}
         </span>
         <span className="text-gray-500 shrink-0">▼</span>
       </div>
@@ -83,7 +108,7 @@ const SearchableSelect = ({
               filteredComponents.map((comp) => (
                 <li 
                   key={comp.id} 
-                  className="p-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer flex justify-between items-center border-b border-gray-50 dark:border-slate-700/50 last:border-0 gap-3"
+                  className="p-3 hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer flex justify-between items-center border-b border-gray-50 dark:border-slate-700/50 last:border-0 gap-3"
                   onClick={() => {
                     onSelect(comp.id);
                     setIsOpen(false);
@@ -92,7 +117,9 @@ const SearchableSelect = ({
                 >
                   <span className="whitespace-normal break-words flex-1 text-gray-800 dark:text-gray-200 text-sm leading-relaxed">{comp.brand} {comp.name}</span>
                   <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
-                    <span className="font-bold text-blue-600 dark:text-blue-400">${comp.price}</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      {comp.price} <RiyalIcon size="h-3 w-3" />
+                    </span>
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
@@ -379,9 +406,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                   <h3 className={`text-lg font-bold mb-2 ${result.status === 'success' ? 'text-green-800 dark:text-green-400' : 'text-red-800 dark:text-red-400'}`}>
                     {result.message}
                   </h3>
-                  <div className="mt-4 flex gap-4 text-sm font-bold text-gray-800 dark:text-gray-200">
+                  <div className="mt-4 flex flex-wrap gap-4 text-sm font-bold text-gray-800 dark:text-gray-200">
                     <span>⚡ الطاقة المطلوبة: {result.totalTdp}W</span>
-                    <span>💰 التكلفة الإجمالية: ${result.totalPrice}</span>
+                    <span className="flex items-center gap-1">💰 التكلفة الإجمالية: <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">{result.totalPrice} <RiyalIcon size="h-4 w-4" /></span></span>
                   </div>
 
                   {result.status === 'success' && (
@@ -447,13 +474,15 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             </div>
             <div className="p-6 overflow-y-auto">
               <div className="mb-4">
-                <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{detailsModal.comp.brand}</span>
+                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{detailsModal.comp.brand}</span>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1 whitespace-normal break-words">{detailsModal.comp.name}</h3>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-lg">
                   <span className="block text-sm text-gray-500 dark:text-gray-400">السعر</span>
-                  <span className="font-bold text-lg dark:text-white">${detailsModal.comp.price}</span>
+                  <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    {detailsModal.comp.price} <RiyalIcon size="h-4 w-4" />
+                  </span>
                 </div>
                 <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-lg">
                   <span className="block text-sm text-gray-500 dark:text-gray-400">استهلاك الطاقة</span>
@@ -490,7 +519,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
               </div>
 
               <div className="flex gap-4 pt-2">
-                <button onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors">اختيار القطعة</button>
+                <button onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors">اختيار القطعة</button>
                 <button onClick={() => setDetailsModal(null)} className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-bold transition-colors">إغلاق</button>
               </div>
             </div>

@@ -13,16 +13,32 @@ export default async function HomePage() {
     orderBy: { createdAt: 'desc' }
   });
 
-  // 1. جلب أحدث 3 أخبار من قاعدة البيانات
   const latestNews = await prisma.news.findMany({
     take: 3,
     orderBy: { createdAt: 'desc' }
   });
 
+  // مكون فرعي معزول لتجنب تكرار كود الشعار
+  const RiyalIcon = ({ size = 'h-4 w-4' }: { size?: string }) => (
+    <div 
+      className={`${size} bg-emerald-600 dark:bg-emerald-400 inline-block`} 
+      style={{ 
+        maskImage: "url('/riyal.svg')", 
+        WebkitMaskImage: "url('/riyal.svg')", 
+        maskSize: 'contain', 
+        WebkitMaskSize: 'contain', 
+        maskRepeat: 'no-repeat', 
+        WebkitMaskRepeat: 'no-repeat',
+        maskPosition: 'center',
+        WebkitMaskPosition: 'center'
+      }} 
+    />
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] transition-colors">
       
-      {/* القسم العلوي (Hero Section) */}
+      {/* 1. القسم العلوي (Hero Section) */}
       <section className="max-w-7xl mx-auto px-4 py-20 text-center">
         <h1 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 tracking-tight">
           ابنِ جهاز أحلامك <span className="text-blue-600">بسهولة</span>
@@ -40,7 +56,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* قسم أحدث القطع (Latest Components) */}
+      {/* 2. قسم أحدث القطع (Latest Components) */}
       <section className="max-w-7xl mx-auto px-4 py-16 border-t border-slate-200 dark:border-slate-800/60">
         <div className="flex justify-between items-end mb-10">
           <h2 className="text-3xl font-black text-slate-900 dark:text-white">أحدث القطع المضافة</h2>
@@ -62,8 +78,8 @@ export default async function HomePage() {
                     <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold px-3 py-1 rounded-full">
                       {comp.category?.name || 'قطعة'}
                     </span>
-                    <span className="font-black text-emerald-600 dark:text-emerald-400">
-                      ${comp.price}
+                    <span className="font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      {comp.price} <RiyalIcon size="h-4 w-4" />
                     </span>
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1 line-clamp-1">{comp.name}</h3>
@@ -80,7 +96,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* قسم التجميعات الجاهزة (Latest Prebuilds) */}
+      {/* 3. قسم التجميعات الجاهزة (Latest Prebuilds) */}
       <section className="max-w-7xl mx-auto px-4 py-16 border-t border-slate-200 dark:border-slate-800/60">
         <div className="flex justify-between items-end mb-10">
           <h2 className="text-3xl font-black text-slate-900 dark:text-white">أحدث التجميعات المقترحة</h2>
@@ -99,7 +115,9 @@ export default async function HomePage() {
               <div key={build.id} className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-emerald-500/50 transition-all flex flex-col justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{build.title}</h3>
-                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-4">${build.price}</div>
+                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-4 flex items-center gap-1">
+                    {build.price} <RiyalIcon size="h-5 w-5" />
+                  </div>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 line-clamp-3 whitespace-pre-wrap">{build.description}</p>
                 </div>
                 <Link href="/prebuilds" className="block w-full text-center bg-slate-100 hover:bg-slate-200 dark:bg-[#0B1120] dark:hover:bg-slate-800 text-slate-900 dark:text-white font-bold py-3 rounded-xl transition-colors text-sm border border-transparent dark:border-slate-800">
@@ -111,7 +129,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* قسم الأخبار (Latest News) */}
+      {/* 4. قسم الأخبار (Latest News) */}
       <section className="max-w-7xl mx-auto px-4 py-16 mb-20 border-t border-slate-200 dark:border-slate-800/60">
         <div className="flex justify-between items-end mb-10">
           <h2 className="text-3xl font-black text-slate-900 dark:text-white">أحدث الأخبار التقنية</h2>

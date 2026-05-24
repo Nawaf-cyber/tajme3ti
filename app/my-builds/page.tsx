@@ -5,6 +5,22 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
+const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
+  <div 
+    className={`${size} ${colorClass} inline-block shrink-0`} 
+    style={{ 
+      maskImage: "url('/riyal.svg')", 
+      WebkitMaskImage: "url('/riyal.svg')", 
+      maskSize: 'contain', 
+      WebkitMaskSize: 'contain', 
+      maskRepeat: 'no-repeat', 
+      WebkitMaskRepeat: 'no-repeat',
+      maskPosition: 'center',
+      WebkitMaskPosition: 'center'
+    }} 
+  />
+);
+
 export default function MyBuildsPage() {
   const { data: session, status } = useSession();
   const [builds, setBuilds] = useState<any[]>([]);
@@ -78,8 +94,8 @@ export default function MyBuildsPage() {
               <div>
                 <h3 className="font-bold text-xl mb-1 text-blue-700 dark:text-blue-400">{build.name}</h3>
                 <p className="text-sm text-gray-500 mb-4">{new Date(build.createdAt).toLocaleDateString('ar-SA')}</p>
-                <div className="mb-4 text-gray-800 dark:text-gray-200 font-bold">
-                  التكلفة الإجمالية: <span className="text-green-600 dark:text-green-400">${build.totalPrice}</span>
+                <div className="mb-4 text-gray-800 dark:text-gray-200 font-bold flex items-center gap-1">
+                  التكلفة الإجمالية: <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">{build.totalPrice} <RiyalIcon size="h-3 w-3" /></span>
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
@@ -134,7 +150,9 @@ export default function MyBuildsPage() {
                         </div>
                       </div>
                       {part && (
-                        <span className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap">${part.price}</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap flex items-center gap-1">
+                          {part.price} <RiyalIcon size="h-3 w-3" />
+                        </span>
                       )}
                     </div>
                     
@@ -159,7 +177,9 @@ export default function MyBuildsPage() {
             </div>
 
             <div className="p-4 border-t dark:border-slate-800 bg-gray-50 dark:bg-slate-800 flex justify-between items-center">
-              <div className="font-bold text-lg">الإجمالي: <span className="text-green-600 dark:text-green-400">${selectedBuild.totalPrice}</span></div>
+              <div className="font-bold text-lg flex items-center gap-1">
+                الإجمالي: <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">{selectedBuild.totalPrice} <RiyalIcon size="h-4 w-4" /></span>
+              </div>
               <button onClick={() => setSelectedBuild(null)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold transition-colors">إغلاق</button>
             </div>
           </div>
