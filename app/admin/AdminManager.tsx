@@ -6,6 +6,7 @@ import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, up
 import toast from 'react-hot-toast';
 import UpdateCazasouqButton from './components/UpdateCazasouqButton';
 import UpdateAmazonButton from './components/UpdateAmazonButton';
+import UpdatePricesButton from './UpdatePricesButton';
 
 export default function AdminManager({ categories, components, news }: { categories: any[], components: any[], news: any[] }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news'>('components');
@@ -133,8 +134,7 @@ export default function AdminManager({ categories, components, news }: { categor
       </div>
       {/* داخل الكود الخاص بالصفحة: */}
         <div className="mb-6 flex gap-2">
-          <UpdateCazasouqButton />
-          <UpdateAmazonButton />
+          <UpdatePricesButton />
         </div>
       {activeTab === 'components' && (
         <div className="flex flex-col gap-8 animate-in fade-in duration-300">

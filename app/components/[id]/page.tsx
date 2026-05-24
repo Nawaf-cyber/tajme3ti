@@ -6,8 +6,8 @@ const RiyalIcon = ({ size = 'h-7 w-7' }: { size?: string }) => (
   <div 
     className={`${size} bg-emerald-600 dark:bg-emerald-400 inline-block`} 
     style={{ 
-      maskImage: "url('/riyal.svg')", 
-      WebkitMaskImage: "url('/riyal.svg')", 
+      maskImage: "url('/riyal.png')", 
+      WebkitMaskImage: "url('/riyal.png')", 
       maskSize: 'contain', 
       WebkitMaskSize: 'contain', 
       maskRepeat: 'no-repeat', 
@@ -48,11 +48,25 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
   const specs = typeof comp.specs === 'string' ? JSON.parse(comp.specs) : comp.specs || {};
 
+  // تحديد المتجر صاحب السعر الأقل بشكل دقيق
+  let sourceText = "";
+  const amz = comp.amazonPrice || 0;
+  const caza = comp.cazasouqPrice || 0;
+
+  if (amz > 0 && caza > 0) {
+    if (amz < caza) sourceText = "(السعر الأقل من: أمازون)";
+    else if (caza < amz) sourceText = "(السعر الأقل من: كازاسوق)";
+    else sourceText = "(السعر متطابق في المتجرين)";
+  } else if (amz > 0) {
+    sourceText = "(السعر من: أمازون)";
+  } else if (caza > 0) {
+    sourceText = "(السعر من: كازاسوق)";
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-10 px-4 sm:px-6 lg:px-8 transition-colors">
       <div className="max-w-6xl mx-auto">
         
-        {/* شريط التنقل العلوي (Breadcrumb) */}
         <nav className="mb-8">
           <Link href="/components" className="text-sm font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors inline-flex items-center gap-2">
             &rarr; العودة لتصفح القطع
@@ -61,7 +75,6 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
         
         <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col lg:flex-row">
           
-          {/* قسم الصورة الجانبي */}
           <div className="lg:w-2/5 bg-slate-50/50 dark:bg-[#0B1120]/50 p-12 flex items-center justify-center border-b lg:border-b-0 lg:border-l border-slate-200 dark:border-slate-800">
             <div className="relative w-full max-w-md aspect-square flex items-center justify-center bg-white dark:bg-[#0F172A] rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4">
               <img 
@@ -72,10 +85,8 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             </div>
           </div>
 
-          {/* قسم المعلومات والمواصفات */}
           <div className="lg:w-3/5 p-8 lg:p-12 flex flex-col">
             
-            {/* الترويسة */}
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-3">
                 <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold px-3 py-1 rounded-md tracking-wider uppercase">
@@ -89,12 +100,18 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                 {comp.name}
               </h1>
               
-              {/* السعر مع الشعار الجديد */}
-              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-6 flex items-center gap-2">
-                {comp.price} <RiyalIcon size="h-7 w-7" />
+              {/* السعر والمصدر الجديد */}
+              <div className="flex flex-col gap-1 mb-6">
+                <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                  {comp.price} <RiyalIcon size="h-7 w-7" />
+                </div>
+                {sourceText && (
+                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
+                    {sourceText}
+                  </span>
+                )}
               </div>
 
-              {/* أزرار الشراء */}
               {(comp.amazonUrl || comp.cazasouqUrl) && (
                 <div className="flex flex-wrap gap-4 mt-2">
                   {comp.amazonUrl && (
@@ -111,7 +128,6 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               )}
             </div>
 
-            {/* المواصفات التقنية */}
             <div className="flex-grow">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 border-b border-slate-200 dark:border-slate-800 pb-2">
                 المواصفات التقنية
@@ -134,18 +150,15 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                 </ul>
               )}
             </div>
-
           </div>
         </div>
 
-        {/* قسم الوصف */}
         <div className="mt-8 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl p-8 shadow-sm">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">نظرة عامة</h3>
           <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm lg:text-base whitespace-pre-wrap">
             {comp.description ? formatTextWithLinks(comp.description) : "لا يوجد وصف إضافي متاح لهذه القطعة حالياً."}
           </p>
         </div>
-
       </div>
     </div>
   );

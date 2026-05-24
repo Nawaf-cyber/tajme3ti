@@ -42,7 +42,21 @@ export async function GET() {
           const $ = cheerio.load(html);
 
           const priceText = $('.price, .product-price, .price-item, .amount').first().text();
-          const cleanedPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+          let cleanedPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+
+          // تصحيح عملة كازاسوق (تحويل الدينار إلى ريال)
+          const isBHD = priceText.toLowerCase().includes('bhd') || priceText.includes('د.ب') || priceText.toLowerCase().includes('bd');
+
+          if (isBHD) {
+            cleanedPrice = cleanedPrice * 10;
+          } else if (cleanedPrice > 0) {
+            // تحقق احتياطي في حال عدم سحب رمز العملة: 
+            // إذا كان السعر المسحوب أصغر من سعر أمازون بـ 80%، فهو بالدينار حتماً ويجب ضربه بـ 10
+            const amzPrice = comp.amazonPrice || 0;
+            if (amzPrice > 0 && cleanedPrice < (amzPrice * 0.2)) {
+              cleanedPrice = cleanedPrice * 10;
+            }
+          }
 
           if (!isNaN(cleanedPrice) && cleanedPrice > 0) {
             const currentAmazonPrice = comp.amazonPrice || Infinity;
@@ -67,6 +81,7 @@ export async function GET() {
 
     return NextResponse.json({ 
       success: true, 
+      updatedCount, // تمت إضافة هذا السطر ليقرأه الزر
       message: `تم تحديث ${updatedCount} منتج بنجاح.`,
       errors: errors.length > 0 ? errors : undefined
     });

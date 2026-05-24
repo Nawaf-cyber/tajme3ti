@@ -71,30 +71,6 @@
       },
       "filename": "app/admin/actions.ts",
       "exportedName": "updateNews"
-    },
-    "40bfa07d3f51fbad4514ed4eff0d724e8df1d50e8e": {
-      "workers": {
-        "app/admin/prebuilds/page": {
-          "moduleId": "[project]/.next-internal/server/app/admin/prebuilds/page/actions.js { ACTIONS_MODULE0 => \"[project]/app/admin/prebuilds/page.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": true,
-          "exportedName": "$$RSC_SERVER_ACTION_1",
-          "filename": "app/admin/prebuilds/page.tsx"
-        }
-      },
-      "filename": "app/admin/prebuilds/page.tsx",
-      "exportedName": "$$RSC_SERVER_ACTION_1"
-    },
-    "40cac29f3beb8cfeae696f08ee8bc6f08876f8b162": {
-      "workers": {
-        "app/admin/prebuilds/page": {
-          "moduleId": "[project]/.next-internal/server/app/admin/prebuilds/page/actions.js { ACTIONS_MODULE0 => \"[project]/app/admin/prebuilds/page.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": true,
-          "exportedName": "$$RSC_SERVER_ACTION_0",
-          "filename": "app/admin/prebuilds/page.tsx"
-        }
-      },
-      "filename": "app/admin/prebuilds/page.tsx",
-      "exportedName": "$$RSC_SERVER_ACTION_0"
     }
   },
   "edge": {},
