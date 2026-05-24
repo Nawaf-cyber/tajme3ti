@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, updateNews } from './actions';
 import toast from 'react-hot-toast';
+import UpdateCazasouqButton from './components/UpdateCazasouqButton';
 
 export default function AdminManager({ categories, components, news }: { categories: any[], components: any[], news: any[] }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news'>('components');
@@ -108,6 +109,7 @@ export default function AdminManager({ categories, components, news }: { categor
         >
           💻 إدارة القطع
         </button>
+        
         <button 
           onClick={() => { setActiveTab('news'); cancelEdit(); }}
           className={`px-6 py-3 font-bold rounded-lg transition-colors ${activeTab === 'news' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
@@ -127,6 +129,10 @@ export default function AdminManager({ categories, components, news }: { categor
           className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-sm">
           <span>➕</span> إضافة تجميعة جاهزة
         </Link>
+        {/* داخل الكود الخاص بالصفحة: */}
+        <div className="mb-6">
+          <UpdateCazasouqButton />
+        </div>
       </div>
 
       {activeTab === 'components' && (

@@ -103,6 +103,7 @@
     --color-blue-700: #1447e6;
     --color-blue-800: #193cb8;
     --color-blue-900: #1c398e;
+    --color-purple-500: #ac4bff;
     --color-purple-600: #9810fa;
     --color-purple-700: #8200da;
     --color-slate-50: #f8fafc;
@@ -169,6 +170,7 @@
     --radius-lg: .5rem;
     --radius-xl: .75rem;
     --radius-2xl: 1rem;
+    --animate-spin: spin 1s linear infinite;
     --blur-sm: 8px;
     --default-transition-duration: .15s;
     --default-transition-timing-function: cubic-bezier(.4, 0, .2, 1);
@@ -217,6 +219,7 @@
       --color-blue-700: lab(36.9089% 35.0961 -85.6872);
       --color-blue-800: lab(30.2514% 27.7854 -70.2699);
       --color-blue-900: lab(26.1542% 15.7545 -51.5504);
+      --color-purple-500: lab(52.0183% 66.11 -78.2316);
       --color-purple-600: lab(43.0295% 75.21 -86.5669);
       --color-purple-700: lab(36.1758% 69.8525 -80.0381);
       --color-slate-50: lab(98.1434% -.369549 -1.05968);
@@ -571,10 +574,6 @@
     margin-top: calc(var(--spacing) * 4);
   }
 
-  .mt-5 {
-    margin-top: calc(var(--spacing) * 5);
-  }
-
   .mt-6 {
     margin-top: calc(var(--spacing) * 6);
   }
@@ -589,6 +588,10 @@
 
   .mt-auto {
     margin-top: auto;
+  }
+
+  .mr-2 {
+    margin-right: calc(var(--spacing) * 2);
   }
 
   .mr-14 {
@@ -629,6 +632,10 @@
 
   .mb-20 {
     margin-bottom: calc(var(--spacing) * 20);
+  }
+
+  .-ml-1 {
+    margin-left: calc(var(--spacing) * -1);
   }
 
   .ml-2 {
@@ -686,6 +693,10 @@
 
   .h-2 {
     height: calc(var(--spacing) * 2);
+  }
+
+  .h-4 {
+    height: calc(var(--spacing) * 4);
   }
 
   .h-5 {
@@ -750,6 +761,10 @@
 
   .w-3 {
     width: calc(var(--spacing) * 3);
+  }
+
+  .w-4 {
+    width: calc(var(--spacing) * 4);
   }
 
   .w-5 {
@@ -834,6 +849,10 @@
 
   .border-collapse {
     border-collapse: collapse;
+  }
+
+  .animate-spin {
+    animation: var(--animate-spin);
   }
 
   .cursor-pointer {
@@ -1487,11 +1506,6 @@
     line-height: calc(var(--spacing) * 6);
   }
 
-  .leading-7 {
-    --tw-leading: calc(var(--spacing) * 7);
-    line-height: calc(var(--spacing) * 7);
-  }
-
   .leading-relaxed {
     --tw-leading: var(--leading-relaxed);
     line-height: var(--leading-relaxed);
@@ -1592,10 +1606,6 @@
     color: var(--color-emerald-700);
   }
 
-  .text-gray-300 {
-    color: var(--color-gray-300);
-  }
-
   .text-gray-400 {
     color: var(--color-gray-400);
   }
@@ -1632,6 +1642,10 @@
     color: var(--color-green-900);
   }
 
+  .text-purple-600 {
+    color: var(--color-purple-600);
+  }
+
   .text-red-500 {
     color: var(--color-red-500);
   }
@@ -1646,6 +1660,10 @@
 
   .text-red-800 {
     color: var(--color-red-800);
+  }
+
+  .text-slate-200 {
+    color: var(--color-slate-200);
   }
 
   .text-slate-400 {
@@ -1690,6 +1708,14 @@
 
   .uppercase {
     text-transform: uppercase;
+  }
+
+  .opacity-25 {
+    opacity: .25;
+  }
+
+  .opacity-75 {
+    opacity: .75;
   }
 
   .shadow {
@@ -1844,6 +1870,24 @@
       .hover\:border-emerald-500\/50:hover {
         border-color: color-mix(in oklab, var(--color-emerald-500) 50%, transparent);
       }
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:border-purple-500\/50:hover {
+      border-color: #ac4bff80;
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:border-purple-500\/50:hover {
+        border-color: color-mix(in oklab, var(--color-purple-500) 50%, transparent);
+      }
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:border-slate-500:hover {
+      border-color: var(--color-slate-500);
     }
   }
 
@@ -2004,6 +2048,12 @@
   }
 
   @media (hover: hover) {
+    .hover\:text-purple-700:hover {
+      color: var(--color-purple-700);
+    }
+  }
+
+  @media (hover: hover) {
     .hover\:text-red-500:hover {
       color: var(--color-red-500);
     }
@@ -2074,12 +2124,6 @@
 
   .disabled\:opacity-50:disabled {
     opacity: .5;
-  }
-
-  @media (min-width: 40rem) {
-    .sm\:block {
-      display: block;
-    }
   }
 
   @media (min-width: 40rem) {
@@ -2963,6 +3007,12 @@
 @property --tw-duration {
   syntax: "*";
   inherits: false
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /*# sourceMappingURL=app_globals_0jn8.0u.css.map*/

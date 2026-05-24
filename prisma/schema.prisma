@@ -23,6 +23,8 @@ model Component {
   brand       String   
   name        String   
   price       Float    @default(0)
+  amazonPrice   Float?  // سعر أمازون
+  cazasouqPrice Float?  // سعر كازاسوق
   tdpWattage  Int      @default(0)
   specs       Json     
   imageUrl    String?  

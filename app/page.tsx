@@ -13,10 +13,16 @@ export default async function HomePage() {
     orderBy: { createdAt: 'desc' }
   });
 
+  // 1. جلب أحدث 3 أخبار من قاعدة البيانات
+  const latestNews = await prisma.news.findMany({
+    take: 3,
+    orderBy: { createdAt: 'desc' }
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] transition-colors">
       
-      {/* 1. القسم العلوي (Hero Section) */}
+      {/* القسم العلوي (Hero Section) */}
       <section className="max-w-7xl mx-auto px-4 py-20 text-center">
         <h1 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 tracking-tight">
           ابنِ جهاز أحلامك <span className="text-blue-600">بسهولة</span>
@@ -34,7 +40,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 2. قسم أحدث القطع (Latest Components) */}
+      {/* قسم أحدث القطع (Latest Components) */}
       <section className="max-w-7xl mx-auto px-4 py-16 border-t border-slate-200 dark:border-slate-800/60">
         <div className="flex justify-between items-end mb-10">
           <h2 className="text-3xl font-black text-slate-900 dark:text-white">أحدث القطع المضافة</h2>
@@ -74,8 +80,8 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 3. قسم التجميعات الجاهزة (Latest Prebuilds) */}
-      <section className="max-w-7xl mx-auto px-4 py-16 mb-20 border-t border-slate-200 dark:border-slate-800/60">
+      {/* قسم التجميعات الجاهزة (Latest Prebuilds) */}
+      <section className="max-w-7xl mx-auto px-4 py-16 border-t border-slate-200 dark:border-slate-800/60">
         <div className="flex justify-between items-end mb-10">
           <h2 className="text-3xl font-black text-slate-900 dark:text-white">أحدث التجميعات المقترحة</h2>
           <Link href="/prebuilds" className="text-blue-600 font-bold hover:underline">
@@ -96,9 +102,41 @@ export default async function HomePage() {
                   <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-4">${build.price}</div>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 line-clamp-3 whitespace-pre-wrap">{build.description}</p>
                 </div>
-                {/* تم تعديل التوجيه والنص هنا */}
                 <Link href="/prebuilds" className="block w-full text-center bg-slate-100 hover:bg-slate-200 dark:bg-[#0B1120] dark:hover:bg-slate-800 text-slate-900 dark:text-white font-bold py-3 rounded-xl transition-colors text-sm border border-transparent dark:border-slate-800">
                   عرض التجميعة &larr;
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* قسم الأخبار (Latest News) */}
+      <section className="max-w-7xl mx-auto px-4 py-16 mb-20 border-t border-slate-200 dark:border-slate-800/60">
+        <div className="flex justify-between items-end mb-10">
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white">أحدث الأخبار التقنية</h2>
+          <Link href="/news" className="text-blue-600 font-bold hover:underline">
+            عرض الكل &larr;
+          </Link>
+        </div>
+
+        {latestNews.length === 0 ? (
+          <div className="text-center py-16 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 font-medium shadow-sm">
+            لا توجد أخبار مضافة حالياً.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {latestNews.map((newsItem) => (
+              <div key={newsItem.id} className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-purple-500/50 transition-all flex flex-col justify-between">
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-3 font-bold">
+                    {new Date(newsItem.createdAt).toLocaleDateString('ar-SA')}
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 line-clamp-2">{newsItem.title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 line-clamp-3 leading-relaxed">{newsItem.content}</p>
+                </div>
+                <Link href={`/news/${newsItem.id}`} className="text-purple-600 font-bold hover:text-purple-700 text-sm">
+                  قراءة المزيد &larr;
                 </Link>
               </div>
             ))}
