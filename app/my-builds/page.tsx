@@ -21,6 +21,20 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emer
   />
 );
 
+// دالة لحساب رسالة الاختناق (عنق الزجاجة)
+const getBottleneckMessage = (parts: any) => {
+  const cpu = parts['CPU'];
+  const gpu = parts['GPU'];
+  
+  if (cpu?.performanceTier && gpu?.performanceTier) {
+    const diff = cpu.performanceTier - gpu.performanceTier;
+    if (diff < -1) return "⚠️ تنبيه أداء: المعالج أضعف بكثير من كرت الشاشة (عنق زجاجة).";
+    if (diff > 1) return "💡 تنبيه أداء: كرت الشاشة أضعف من المعالج، مناسبة للبث والألعاب التنافسية.";
+    return "🚀 توازن مثالي بين المعالج وكرت الشاشة.";
+  }
+  return null;
+};
+
 export default function MyBuildsPage() {
   const { data: session, status } = useSession();
   const [builds, setBuilds] = useState<any[]>([]);
@@ -67,13 +81,13 @@ export default function MyBuildsPage() {
     toast.success('تم نسخ الرابط! يمكنك مشاركته الآن');
   };
 
-  if (status === 'loading' || loading) return <div className="min-h-screen flex items-center justify-center font-bold">جاري التحميل...</div>;
+  if (status === 'loading' || loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-800 dark:text-gray-200">جاري التحميل...</div>;
 
   if (status === 'unauthenticated') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold mb-4">يجب تسجيل الدخول لرؤية تجميعاتك</h2>
-        <Link href="/api/auth/signin" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">تسجيل الدخول</Link>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-[#0B1120] transition-colors duration-200">
+        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">يجب تسجيل الدخول لرؤية تجميعاتك</h2>
+        <Link href="/api/auth/signin" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors">تسجيل الدخول</Link>
       </div>
     );
   }
@@ -89,39 +103,53 @@ export default function MyBuildsPage() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {builds.map((build) => (
-            <div key={build.id} className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 flex flex-col justify-between">
-              <div>
-                <h3 className="font-bold text-xl mb-1 text-blue-700 dark:text-blue-400">{build.name}</h3>
-                <p className="text-sm text-gray-500 mb-4">{new Date(build.createdAt).toLocaleDateString('ar-SA')}</p>
-                <div className="mb-4 text-gray-800 dark:text-gray-200 font-bold flex items-center gap-1">
-                  التكلفة الإجمالية: <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">{build.totalPrice} <RiyalIcon size="h-3 w-3" /></span>
+          {builds.map((build) => {
+            const bottleneckMsg = getBottleneckMessage(build.parts);
+            
+            return (
+              <div key={build.id} className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-bold text-xl mb-1 text-blue-700 dark:text-blue-400">{build.name}</h3>
+                  <p className="text-sm text-gray-500 mb-4">{new Date(build.createdAt).toLocaleDateString('ar-SA')}</p>
+                  
+                  {/* حل مشكلة الفواصل هنا باستخدام toFixed(2) */}
+                  <div className="mb-4 text-gray-800 dark:text-gray-200 font-bold flex items-center gap-1">
+                    التكلفة الإجمالية: <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">{Number(build.totalPrice).toFixed(2)} <RiyalIcon size="h-3 w-3" /></span>
+                  </div>
+
+                  {/* رسالة كشف الاختناق */}
+                  {bottleneckMsg && (
+                    <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-xs font-bold text-blue-800 dark:text-blue-300">
+                      {bottleneckMsg}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2 mt-4">
+                  <button 
+                    onClick={() => setSelectedBuild(build)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-900 dark:text-white font-bold py-2 rounded-lg transition-colors"
+                  >
+                    التفاصيل
+                  </button>
+                  <button 
+                    onClick={() => handleShare(build.id)}
+                    className="px-4 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 font-bold py-2 rounded-lg transition-colors"
+                    title="مشاركة التجميعة"
+                  >
+                    🔗
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(build.id)}
+                    className="px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 font-bold py-2 rounded-lg transition-colors"
+                    title="حذف التجميعة"
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
-              <div className="flex gap-2 mt-4">
-                <button 
-                  onClick={() => setSelectedBuild(build)}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-900 dark:text-white font-bold py-2 rounded-lg transition-colors"
-                >
-                  التفاصيل
-                </button>
-                <button 
-                  onClick={() => handleShare(build.id)}
-                  className="px-4 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 font-bold py-2 rounded-lg transition-colors"
-                  title="مشاركة التجميعة"
-                >
-                  🔗
-                </button>
-                <button 
-                  onClick={() => handleDelete(build.id)}
-                  className="px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 font-bold py-2 rounded-lg transition-colors"
-                  title="حذف التجميعة"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -177,8 +205,8 @@ export default function MyBuildsPage() {
             </div>
 
             <div className="p-4 border-t dark:border-slate-800 bg-gray-50 dark:bg-slate-800 flex justify-between items-center">
-              <div className="font-bold text-lg flex items-center gap-1">
-                الإجمالي: <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">{selectedBuild.totalPrice} <RiyalIcon size="h-4 w-4" /></span>
+              <div className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-1">
+                الإجمالي: <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">{Number(selectedBuild.totalPrice).toFixed(2)} <RiyalIcon size="h-4 w-4" /></span>
               </div>
               <button onClick={() => setSelectedBuild(null)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold transition-colors">إغلاق</button>
             </div>

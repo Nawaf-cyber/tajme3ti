@@ -1,6 +1,9 @@
 import { prisma } from '../../lib/prisma';
 import PCBuilderClient from '../../components/PCBuilderClient';
 
+// هذا السطر يمنع الكاش ويجبر الصفحة على جلب البيانات الحية دائماً
+export const dynamic = 'force-dynamic';
+
 export default async function BuilderPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
   const { from } = await searchParams;
 

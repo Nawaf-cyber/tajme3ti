@@ -33,6 +33,7 @@ model Component {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   description String?  
+  performanceTier Int?  // تقييم من 1 إلى 5 (1=اقتصادي، 5=فئة عليا)
 
   @@index([categoryId])
 }

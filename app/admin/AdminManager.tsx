@@ -132,7 +132,7 @@ export default function AdminManager({ categories, components, news }: { categor
         </Link>
         
       </div>
-      {/* داخل الكود الخاص بالصفحة: */}
+      
         <div className="mb-6 flex gap-2">
           <UpdatePricesButton />
         </div>
@@ -158,7 +158,17 @@ export default function AdminManager({ categories, components, news }: { categor
               <input type="number" step="0.01" name="price" defaultValue={editingComponent?.price} placeholder="السعر (Price)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               <input type="number" name="tdpWattage" defaultValue={editingComponent?.tdpWattage} placeholder="استهلاك الطاقة بالواط (TDP)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               
-              <input type="url" name="imageUrl" defaultValue={editingComponent?.imageUrl || ''} placeholder="رابط صورة القطعة (URL) - اختياري" className="md:col-span-2 p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
+              {/* الحقل الجديد: مستوى الأداء */}
+              <select name="performanceTier" defaultValue={editingComponent?.performanceTier || ''} className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">مستوى الأداء (اختياري - خاص بالمعالج والكرت)</option>
+                <option value="1">1 - اقتصادي (Entry Level)</option>
+                <option value="2">2 - متوسط (Mid-Range)</option>
+                <option value="3">3 - فوق المتوسط (High-Mid)</option>
+                <option value="4">4 - عالي (High-End)</option>
+                <option value="5">5 - فئة عليا (Enthusiast)</option>
+              </select>
+
+              <input type="url" name="imageUrl" defaultValue={editingComponent?.imageUrl || ''} placeholder="رابط صورة القطعة (URL) - اختياري" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
               
               <input type="url" name="amazonUrl" defaultValue={editingComponent?.amazonUrl || ''} placeholder="رابط أمازون (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
               <input type="url" name="cazasouqUrl" defaultValue={editingComponent?.cazasouqUrl || ''} placeholder="رابط كازاسوق (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
@@ -239,7 +249,6 @@ export default function AdminManager({ categories, components, news }: { categor
                         <td className="p-4">{comp.category?.name}</td>
                         <td className="p-4 font-semibold">{comp.brand}</td>
                         <td className="p-4">{comp.name}</td>
-                        {/* تم تعديل السطر التالي لإضافة الشعار بجانب السعر */}
                         <td className="p-4 text-emerald-600 dark:text-emerald-400 font-bold">
                         <div className="flex items-center gap-1">
                           {comp.price} 
