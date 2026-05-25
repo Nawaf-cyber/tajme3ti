@@ -524,17 +524,20 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                         {result.bottleneck.title}
                       </span>
                       
-                      <div className="relative group cursor-pointer flex items-center justify-center">
-                        <span className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-lg transition-colors">
-                          ℹ️
+                      <div tabIndex={0} className="relative group cursor-pointer flex items-center justify-center shrink-0 outline-none">
+                           <span className={`text-sm font-bold underline cursor-pointer hover:opacity-70 transition-opacity ${result.bottleneck.color}`}>
+                             لماذا؟    
                         </span>
-                        
-                        <div className="absolute bottom-full mb-2 right-1/2 translate-x-1/2 w-64 p-3 bg-gray-900 dark:bg-black text-white text-xs leading-relaxed font-semibold rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl pointer-events-none text-center">
-                          {result.bottleneck.desc}
-                          <div className="absolute top-full right-1/2 translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-black"></div>
-                        </div>
-                      </div>
+  
+                       {/* الصندوق العائم (Tooltip) متوافق مع الجوال */}
+                     <div className="absolute bottom-full mb-2 right-1/2 translate-x-1/2 w-[80vw] max-w-[260px] sm:w-64 p-3 bg-gray-900 dark:bg-black text-white text-xs leading-relaxed font-semibold rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus:opacity-100 group-focus:visible transition-all duration-200 z-50 shadow-xl pointer-events-none text-center">
+                     {/* لاحظ: في ملف شاشة البناء المتغير اسمه result.bottleneck.desc وفي الملفين الأخرى اسمه bottleneck.desc */}
+                     {/* استخدم المتغير الصحيح بناءً على الملف، أو استخدم هذا السطر المزدوج ليعمل في كل الملفات تلقائياً: */}
+                {result.bottleneck.desc}    
+                     <div className="absolute top-full right-1/2 translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-black"></div>
+                     </div>
                     </div>
+                  </div>
                   )}
 
                   {result.status === 'success' && (

@@ -854,6 +854,10 @@
     width: calc(var(--spacing) * 64);
   }
 
+  .w-\[80vw\] {
+    width: 80vw;
+  }
+
   .w-fit {
     width: fit-content;
   }
@@ -880,6 +884,10 @@
 
   .max-w-7xl {
     max-width: var(--container-7xl);
+  }
+
+  .max-w-\[260px\] {
+    max-width: 260px;
   }
 
   .max-w-md {
@@ -1837,6 +1845,10 @@
     text-transform: uppercase;
   }
 
+  .underline {
+    text-decoration-line: underline;
+  }
+
   .opacity-0 {
     opacity: 0;
   }
@@ -1901,6 +1913,12 @@
     transition-duration: var(--tw-duration, var(--default-transition-duration));
   }
 
+  .transition-opacity {
+    transition-property: opacity;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+
   .transition-shadow {
     transition-property: box-shadow;
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
@@ -1937,6 +1955,14 @@
     .group-hover\:opacity-100:is(:where(.group):hover *) {
       opacity: 1;
     }
+  }
+
+  .group-focus\:visible:is(:where(.group):focus *) {
+    visibility: visible;
+  }
+
+  .group-focus\:opacity-100:is(:where(.group):focus *) {
+    opacity: 1;
   }
 
   .file\:mr-4::file-selector-button {
@@ -2238,6 +2264,12 @@
   }
 
   @media (hover: hover) {
+    .hover\:opacity-70:hover {
+      opacity: .7;
+    }
+  }
+
+  @media (hover: hover) {
     .hover\:shadow-md:hover {
       --tw-shadow: 0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a);
       box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
@@ -2283,6 +2315,12 @@
   @media (min-width: 40rem) {
     .sm\:inline {
       display: inline;
+    }
+  }
+
+  @media (min-width: 40rem) {
+    .sm\:w-64 {
+      width: calc(var(--spacing) * 64);
     }
   }
 

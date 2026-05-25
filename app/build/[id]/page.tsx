@@ -21,9 +21,28 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emer
 const getBottleneckMessage = (cpu: any, gpu: any) => {
   if (cpu?.performanceTier && gpu?.performanceTier) {
     const diff = cpu.performanceTier - gpu.performanceTier;
-    if (diff < -1) return "⚠️ تنبيه أداء: المعالج أضعف بكثير من كرت الشاشة (عنق زجاجة).";
-    if (diff > 1) return "💡 تنبيه أداء: كرت الشاشة أضعف من المعالج، مناسبة للبث والألعاب التنافسية.";
-    return "🚀 توازن مثالي بين المعالج وكرت الشاشة.";
+    if (diff < -1) {
+      return {
+        title: "⚠️ تنبيه أداء: المعالج أضعف بكثير من كرت الشاشة.",
+        desc: "سيشكل المعالج 'عنق زجاجة' ولن يتمكن من مجاراة الكرت، خاصة على دقة 1080p. يُنصح بترقية المعالج أو اللعب على دقة 4K لتقليل الضغط عليه.",
+        color: "text-amber-800 dark:text-amber-300",
+        bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+      };
+    } else if (diff > 1) {
+      return {
+        title: "💡 تنبيه أداء: كرت الشاشة أضعف من المعالج.",
+        desc: "الأداء سيكون ممتازاً في ألعاب الرياضات الإلكترونية (Esports) لاعتمادها على المعالج، لكن الكرت سيحد من الأداء بشكل كبير في ألعاب القصة (AAA) والدقات العالية مثل 1440p و 4K.",
+        color: "text-blue-800 dark:text-blue-300",
+        bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+      };
+    } else {
+      return {
+        title: "🚀 توازن مثالي بين المعالج وكرت الشاشة.",
+        desc: "المعالج والكرت من نفس الفئة تقريباً. ستحصل على أداء مستقر وتستغل كامل قوة الجهاز بدون عنق زجاجة ملحوظ.",
+        color: "text-emerald-800 dark:text-emerald-300",
+        bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+      };
+    }
   }
   return null;
 };
@@ -59,7 +78,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
   const totalPriceRaw = Object.values(parts).reduce((sum, part) => sum + (part?.price || 0), 0);
   const totalPrice = Number(totalPriceRaw.toFixed(2));
   
-  const bottleneckMsg = getBottleneckMessage(parts.CPU, parts.GPU);
+  const bottleneck = getBottleneckMessage(parts.CPU, parts.GPU);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 min-h-[80vh]">
@@ -78,11 +97,26 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
 
         <div className="p-6">
           
-          {bottleneckMsg && (
-            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <p className="text-blue-800 dark:text-blue-300 font-bold text-sm">
-                {bottleneckMsg}
-              </p>
+          {/* صندوق الاختناق بالتصميم الجديد والـ Tooltip */}
+          {bottleneck && (
+            <div className={`mb-6 p-4 border rounded-lg ${bottleneck.bg} flex items-center gap-2 w-fit relative`}>
+              <span className={`font-bold text-sm ${bottleneck.color}`}>
+                {bottleneck.title}
+              </span>
+              
+         <div tabIndex={0} className="relative group cursor-pointer flex items-center justify-center shrink-0 outline-none">
+           <span className={`text-sm font-bold underline cursor-pointer hover:opacity-70 transition-opacity ${bottleneck.color}`}>
+  لماذا؟
+</span>
+  
+          {/* الصندوق العائم (Tooltip) متوافق مع الجوال */}
+          <div className="absolute bottom-full mb-2 right-1/2 translate-x-1/2 w-[80vw] max-w-[260px] sm:w-64 p-3 bg-gray-900 dark:bg-black text-white text-xs leading-relaxed font-semibold rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus:opacity-100 group-focus:visible transition-all duration-200 z-50 shadow-xl pointer-events-none text-center">
+        {/* لاحظ: في ملف شاشة البناء المتغير اسمه result.bottleneck.desc وفي الملفين الأخرى اسمه bottleneck.desc */}
+          {/* استخدم المتغير الصحيح بناءً على الملف، أو استخدم هذا السطر المزدوج ليعمل في كل الملفات تلقائياً: */}
+          {bottleneck.desc}    
+            <div className="absolute top-full right-1/2 translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-black"></div>
+             </div>
+           </div>
             </div>
           )}
 

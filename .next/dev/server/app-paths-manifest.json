@@ -3,6 +3,8 @@
   "/admin/page": "app/admin/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/api/builds/route": "app/api/builds/route.js",
+  "/builder/page": "app/builder/page.js",
   "/components/[id]/page": "app/components/[id]/page.js",
-  "/my-builds/page": "app/my-builds/page.js"
+  "/my-builds/page": "app/my-builds/page.js",
+  "/page": "app/page.js"
 }
