@@ -1,12 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, updateNews } from './actions';
 import toast from 'react-hot-toast';
 import UpdateCazasouqButton from './components/UpdateCazasouqButton';
 import UpdateAmazonButton from './components/UpdateAmazonButton';
 import UpdatePricesButton from './UpdatePricesButton';
+
+// خريطة الحقول التلقائية بناءً على الفئة
+const categoryFieldsMap: Record<string, { key: string, label: string, type: 'text' | 'number' | 'select', options?: string[] }[]> = {
+  'CPU': [
+    { key: 'socket', label: 'المقبس (Socket)', type: 'select', options: ['AM5', 'AM4', 'LGA1700', 'LGA1200', 'LGA1851'] },
+    { key: 'cores', label: 'عدد الأنوية', type: 'number' },
+    { key: 'threads', label: 'عدد المسارات (Threads)', type: 'number' },
+    { key: 'baseClock', label: 'التردد الأساسي (GHz)', type: 'text' },
+  ],
+  'Motherboard': [
+    { key: 'socket', label: 'المقبس (Socket)', type: 'select', options: ['AM5', 'AM4', 'LGA1700', 'LGA1200', 'LGA1851'] },
+    { key: 'ramType', label: 'نوع الرام المدعوم', type: 'select', options: ['DDR5', 'DDR4'] },
+    { key: 'formFactor', label: 'الحجم (Form Factor)', type: 'select', options: ['ATX', 'Micro-ATX', 'Mini-ITX', 'E-ATX'] },
+  ],
+  'RAM': [
+    { key: 'type', label: 'نوع الرام', type: 'select', options: ['DDR5', 'DDR4'] },
+    { key: 'speed', label: 'السرعة (MHz)', type: 'number' },
+    { key: 'capacity', label: 'السعة الإجمالية (GB)', type: 'select', options: ['8GB', '16GB', '32GB', '64GB', '128GB'] },
+  ],
+  'GPU': [
+    { key: 'lengthMm', label: 'طول الكرت (mm)', type: 'number' },
+    { key: 'vram', label: 'حجم الذاكرة (VRAM)', type: 'select', options: ['8GB', '10GB', '12GB', '16GB', '20GB', '24GB'] },
+  ],
+  'Case': [
+    { key: 'maxGpuLength', label: 'أقصى طول لكرت الشاشة (mm)', type: 'number' },
+    { key: 'formFactor', label: 'حجم الكيس', type: 'select', options: ['Mid Tower', 'Full Tower', 'Micro-ATX Tower', 'Mini-ITX'] },
+  ],
+  'PSU': [
+    { key: 'wattage', label: 'القدرة (Wattage)', type: 'number' },
+    { key: 'rating', label: 'التقييم (80+ Rating)', type: 'select', options: ['80+ Bronze', '80+ Gold', '80+ Platinum', '80+ Titanium', 'None'] },
+  ],
+  'Storage': [
+    { key: 'type', label: 'النوع', type: 'select', options: ['NVMe M.2', 'SATA SSD', 'HDD'] },
+    { key: 'capacity', label: 'السعة', type: 'select', options: ['500GB', '1TB', '2TB', '4TB'] },
+  ]
+};
 
 export default function AdminManager({ categories, components, news }: { categories: any[], components: any[], news: any[] }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news'>('components');
@@ -18,10 +54,17 @@ export default function AdminManager({ categories, components, news }: { categor
   const [specKey, setSpecKey] = useState('');
   const [specValue, setSpecValue] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [selectedCategoryName, setSelectedCategoryName] = useState('');
 
   // متغيرات الفلترة والبحث الخاصة بجدول القطع
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
+
+  // تحديث اسم الفئة عند تغيير الـ ID لمعرفة أي حقول نعرض
+  useEffect(() => {
+    const catName = categories.find(c => c.id.toString() === selectedCategoryId)?.name || '';
+    setSelectedCategoryName(catName);
+  }, [selectedCategoryId, categories]);
 
   const handleAddSpec = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -57,8 +100,6 @@ export default function AdminManager({ categories, components, news }: { categor
     setSelectedCategoryId('');
     setSpecs({});
   };
-
-  const selectedCategoryName = categories.find(c => c.id.toString() === selectedCategoryId)?.name || '';
 
   const handleComponentSubmit = async (formData: FormData) => {
     const loadingToast = toast.loading('جاري الحفظ...');
@@ -146,21 +187,21 @@ export default function AdminManager({ categories, components, news }: { categor
               {editingComponent && <input type="hidden" name="id" value={editingComponent.id} />}
               
               <div className="md:col-span-2">
-                <select name="categoryId" required defaultValue={editingComponent?.categoryId || ''} onChange={(e) => setSelectedCategoryId(e.target.value)} className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="" disabled>-- اختر الفئة --</option>
+                <select name="categoryId" required defaultValue={editingComponent?.categoryId || ''} onChange={(e) => setSelectedCategoryId(e.target.value)} className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 font-bold">
+                  <option value="" disabled>-- اختر الفئة أولاً لتظهر الحقول المخصصة --</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
+
               <input type="text" name="brand" defaultValue={editingComponent?.brand} placeholder="الشركة المصنعة (Brand)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               <input type="text" name="name" defaultValue={editingComponent?.name} placeholder="اسم القطعة (Name)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               <input type="number" step="0.01" name="price" defaultValue={editingComponent?.price} placeholder="السعر (Price)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               <input type="number" name="tdpWattage" defaultValue={editingComponent?.tdpWattage} placeholder="استهلاك الطاقة بالواط (TDP)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               
-              {/* الحقل الجديد: مستوى الأداء */}
               <select name="performanceTier" defaultValue={editingComponent?.performanceTier || ''} className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">مستوى الأداء (اختياري - خاص بالمعالج والكرت)</option>
+                <option value="">مستوى الأداء (خاص بالمعالج والكرت لتقييم عنق الزجاجة)</option>
                 <option value="1">1 - اقتصادي (Entry Level)</option>
                 <option value="2">2 - متوسط (Mid-Range)</option>
                 <option value="3">3 - فوق المتوسط (High-Mid)</option>
@@ -175,18 +216,57 @@ export default function AdminManager({ categories, components, news }: { categor
               
               <textarea name="description" defaultValue={editingComponent?.description || ''} placeholder="وصف تفصيلي للقطعة (اختياري، يظهر في نافذة التفاصيل)" className="md:col-span-2 p-3 h-24 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"></textarea>
 
-              <div className="md:col-span-2 p-4 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800/50 mt-4">
-                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-3">الخصائص التقنية {selectedCategoryName ? `لـ (${selectedCategoryName})` : ''}</label>
-                <div className="flex gap-2 mb-4">
-                  <input type="text" placeholder="اسم الخاصية" value={specKey} onChange={(e) => setSpecKey(e.target.value)} className="flex-1 p-2 border border-gray-300 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" dir="ltr" />
-                  <input type="text" placeholder="القيمة" value={specValue} onChange={(e) => setSpecValue(e.target.value)} className="flex-1 p-2 border border-gray-300 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" dir="ltr" />
-                  <button onClick={handleAddSpec} disabled={!selectedCategoryId} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded">إضافة</button>
+              <div className="md:col-span-2 p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-blue-50/30 dark:bg-slate-800/50 mt-4">
+                <h3 className="block text-lg font-bold text-gray-900 dark:text-white mb-4">
+                  الخصائص التقنية {selectedCategoryName ? `لـ (${selectedCategoryName})` : ''}
+                </h3>
+                
+                {/* الحقول التلقائية بناءً على الفئة المختارة */}
+                {selectedCategoryName && categoryFieldsMap[selectedCategoryName] && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-slate-700">
+                    {categoryFieldsMap[selectedCategoryName].map((field) => (
+                      <div key={field.key} className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">{field.label}</label>
+                        {field.type === 'select' ? (
+                          <select 
+                            value={specs[field.key] || ''}
+                            onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
+                            className="p-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 dir-ltr text-left"
+                            dir="ltr"
+                          >
+                            <option value="">-- غير محدد --</option>
+                            {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                          </select>
+                        ) : (
+                          <input 
+                            type={field.type}
+                            value={specs[field.key] || ''}
+                            onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
+                            className="p-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 dir-ltr text-left"
+                            dir="ltr"
+                            placeholder={field.type === 'number' ? 'أرقام فقط' : ''}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* الحقول اليدوية (الإضافية) */}
+                <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-3 text-sm">مواصفات إضافية يدوية (اختياري)</h4>
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-4">
+                  <input type="text" placeholder="اسم الخاصية (مثال: color)" value={specKey} onChange={(e) => setSpecKey(e.target.value)} className="flex-1 min-w-[150px] p-2 border border-gray-300 dark:border-slate-700 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" dir="ltr" />
+                  <input type="text" placeholder="القيمة (مثال: Black)" value={specValue} onChange={(e) => setSpecValue(e.target.value)} className="flex-1 min-w-[150px] p-2 border border-gray-300 dark:border-slate-700 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" dir="ltr" />
+                  <button onClick={handleAddSpec} disabled={!selectedCategoryId} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:bg-gray-400 text-white font-bold rounded shrink-0">إضافة يدوية</button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                
+                {/* عرض جميع المواصفات الحالية */}
+                <div className="flex flex-wrap gap-2 mt-4 p-3 bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-700 min-h-[50px]">
+                  {Object.keys(specs).length === 0 && <span className="text-gray-500 text-sm">لا توجد خصائص مضافة حالياً.</span>}
                   {Object.entries(specs).map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm font-medium border border-blue-200 dark:border-blue-800">
+                    <div key={key} className="flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 rounded-full text-sm font-medium border border-emerald-200 dark:border-emerald-800/50">
                       <span dir="ltr">{key}: {value as string}</span>
-                      <button onClick={(e) => handleRemoveSpec(key, e)} className="text-blue-600 dark:text-blue-400 hover:text-red-600 font-bold">×</button>
+                      <button onClick={(e) => handleRemoveSpec(key, e)} className="text-emerald-600 dark:text-emerald-400 hover:text-red-600 font-bold ml-2">×</button>
                     </div>
                   ))}
                 </div>

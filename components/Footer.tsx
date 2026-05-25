@@ -13,7 +13,7 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-center md:text-right">
               <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                منصة سعودية لتسهيل بناء أجهزة الـ PC 🇸🇦
+               طُوّر في السعودية 🇸🇦 لخدمة مجتمع اللاعبين العرب
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 جميع الحقوق محفوظة © {new Date().getFullYear()}
