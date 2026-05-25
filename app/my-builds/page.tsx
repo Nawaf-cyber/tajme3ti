@@ -21,16 +21,35 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emer
   />
 );
 
-// دالة لحساب رسالة الاختناق (عنق الزجاجة)
+// الدالة المحدثة لتدعم المربع العائم (Tooltip) والتصاميم الملونة
 const getBottleneckMessage = (parts: any) => {
   const cpu = parts['CPU'];
   const gpu = parts['GPU'];
   
   if (cpu?.performanceTier && gpu?.performanceTier) {
     const diff = cpu.performanceTier - gpu.performanceTier;
-    if (diff < -1) return "⚠️ تنبيه أداء: المعالج أضعف بكثير من كرت الشاشة (عنق زجاجة).";
-    if (diff > 1) return "💡 تنبيه أداء: كرت الشاشة أضعف من المعالج، مناسبة للبث والألعاب التنافسية.";
-    return "🚀 توازن مثالي بين المعالج وكرت الشاشة.";
+    if (diff < -1) {
+      return {
+        title: "⚠️ تنبيه أداء: المعالج أضعف بكثير من كرت الشاشة.",
+        desc: "سيشكل المعالج 'عنق زجاجة' ولن يتمكن من مجاراة الكرت، خاصة على دقة 1080p. يُنصح بترقية المعالج أو اللعب على دقة 4K لتقليل الضغط عليه.",
+        color: "text-amber-800 dark:text-amber-300",
+        bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+      };
+    } else if (diff > 1) {
+      return {
+        title: "💡 تنبيه أداء: كرت الشاشة أضعف من المعالج.",
+        desc: "الأداء سيكون ممتازاً في ألعاب الرياضات الإلكترونية (Esports) لاعتمادها على المعالج، لكن الكرت سيحد من الأداء بشكل كبير في ألعاب القصة (AAA) والدقات العالية مثل 1440p و 4K.",
+        color: "text-blue-800 dark:text-blue-300",
+        bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+      };
+    } else {
+      return {
+        title: "🚀 توازن مثالي بين المعالج وكرت الشاشة.",
+        desc: "المعالج والكرت من نفس الفئة تقريباً. ستحصل على أداء مستقر وتستغل كامل قوة الجهاز بدون عنق زجاجة ملحوظ.",
+        color: "text-emerald-800 dark:text-emerald-300",
+        bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+      };
+    }
   }
   return null;
 };
@@ -75,6 +94,7 @@ export default function MyBuildsPage() {
       toast.error('حدث خطأ أثناء الحذف');
     }
   };
+
   const handleShare = (id: string) => {
     const url = `${window.location.origin}/build/${id}`;
     navigator.clipboard.writeText(url);
@@ -104,7 +124,7 @@ export default function MyBuildsPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {builds.map((build) => {
-            const bottleneckMsg = getBottleneckMessage(build.parts);
+            const bottleneck = getBottleneckMessage(build.parts);
             
             return (
               <div key={build.id} className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 flex flex-col justify-between">
@@ -112,15 +132,27 @@ export default function MyBuildsPage() {
                   <h3 className="font-bold text-xl mb-1 text-blue-700 dark:text-blue-400">{build.name}</h3>
                   <p className="text-sm text-gray-500 mb-4">{new Date(build.createdAt).toLocaleDateString('ar-SA')}</p>
                   
-                  {/* حل مشكلة الفواصل هنا باستخدام toFixed(2) */}
                   <div className="mb-4 text-gray-800 dark:text-gray-200 font-bold flex items-center gap-1">
                     التكلفة الإجمالية: <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">{Number(build.totalPrice).toFixed(2)} <RiyalIcon size="h-3 w-3" /></span>
                   </div>
 
-                  {/* رسالة كشف الاختناق */}
-                  {bottleneckMsg && (
-                    <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-xs font-bold text-blue-800 dark:text-blue-300">
-                      {bottleneckMsg}
+                  {/* صندوق الاختناق بتصميمه الجديد */}
+                  {bottleneck && (
+                    <div className={`mb-4 p-3 border rounded-lg ${bottleneck.bg} flex items-center justify-between gap-2 relative`}>
+                      <span className={`font-bold text-xs ${bottleneck.color}`}>
+                        {bottleneck.title}
+                      </span>
+                      
+                      <div className="relative group cursor-pointer flex items-center justify-center shrink-0">
+                        <span className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-base transition-colors">
+                          ℹ️
+                        </span>
+                        
+                        <div className="absolute bottom-full mb-2 right-1/2 translate-x-1/2 w-56 p-3 bg-gray-900 dark:bg-black text-white text-xs leading-relaxed font-semibold rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl pointer-events-none text-center">
+                          {bottleneck.desc}
+                          <div className="absolute top-full right-1/2 translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-black"></div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -184,7 +216,6 @@ export default function MyBuildsPage() {
                       )}
                     </div>
                     
-                    {/* أزرار الشراء تظهر تحت القطعة */}
                     {part && (part.amazonUrl || part.cazasouqUrl) && (
                       <div className="flex gap-2 mt-1 mr-14">
                         {part.amazonUrl && (

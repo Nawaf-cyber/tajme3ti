@@ -25,7 +25,6 @@ type Category = {
   components: Component[];
 };
 
-// نوع جديد ممتد ليتضمن حالة التوافقية وسبب الإخفاء
 type ComponentWithCompatibility = Component & {
   isCompatible: boolean;
   reason?: string;
@@ -84,7 +83,6 @@ const SearchableSelect = ({
 
   return (
     <div className="relative flex-1 min-w-0" ref={wrapperRef}>
-      {/* رأس الاختيار */}
       <div 
         className="p-3 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 cursor-pointer flex justify-between items-center w-full min-h-[50px] gap-2"
         onClick={() => setIsOpen(!isOpen)}
@@ -104,7 +102,6 @@ const SearchableSelect = ({
         <span className="text-gray-500 shrink-0">▼</span>
       </div>
 
-      {/* القائمة */}
       {isOpen && (
         <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl max-h-96 overflow-hidden flex flex-col">
           <div className="p-2 border-b border-gray-100 dark:border-slate-700">
@@ -150,7 +147,6 @@ const SearchableSelect = ({
                         >التفاصيل</button>
                       </div>
                     </div>
-                    {/* هنا يظهر سبب عدم التوافق بوضوح تحت اسم القطعة مباشرة */}
                     {!comp.isCompatible && (
                       <span className="text-[11px] text-red-600 dark:text-red-400 font-bold bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded w-fit">
                         ❌ غير متوافق: {comp.reason}
@@ -186,24 +182,30 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   };
 
   const [selectedComponents, setSelectedComponents] = useState<Record<string, Component | null>>(getInitialSelections);
-  const [result, setResult] = useState<{ status: 'success' | 'error' | 'idle', message: string, bottleneckMsg?: string, totalTdp: number, totalPrice: number }>({ status: 'idle', message: '', totalTdp: 0, totalPrice: 0 });
+  const [result, setResult] = useState<{ 
+    status: 'success' | 'error' | 'idle', 
+    message: string, 
+    bottleneck?: { title: string, desc: string, color: string, bg: string } | null, 
+    totalTdp: number, 
+    totalPrice: number 
+  }>({ status: 'idle', message: '', totalTdp: 0, totalPrice: 0 });
   const [detailsModal, setDetailsModal] = useState<{ comp: Component, categoryName: string } | null>(null);
   
   const [isSaving, setIsSaving] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [buildName, setBuildName] = useState("");
-  const [showIncompatible, setShowIncompatible] = useState(false); // حالة الزر الجديد
+  const [showIncompatible, setShowIncompatible] = useState(false);
   
   const resultRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    checkCompatibility();
+  }, [selectedComponents]);
 
   const handleSelect = (categoryName: string, componentId: string) => {
     const category = categories.find(c => c.name === categoryName);
     const component = category?.components.find(c => c.id === componentId) || null;
-    
-    setSelectedComponents(prev => ({
-      ...prev,
-      [categoryName]: component
-    }));
+    setSelectedComponents(prev => ({ ...prev, [categoryName]: component }));
   };
 
   const parseSpecs = (specsStr: any) => {
@@ -211,7 +213,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     return typeof specsStr === 'string' ? JSON.parse(specsStr) : specsStr;
   };
 
-  // الدالة المطورة: تضيف حالة التوافقية وسبب الإخفاء لكل قطعة بدلاً من حذفها
   const getComponentsWithCompatibility = (categoryName: string, components: Component[]): ComponentWithCompatibility[] => {
     const cpu = selectedComponents['CPU'];
     const mobo = selectedComponents['Motherboard'];
@@ -287,13 +288,17 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
     let totalTdp = 0;
     let totalPrice = 0;
+
     Object.values(selectedComponents).forEach(comp => {
-      if (comp) { totalTdp += comp.tdpWattage; totalPrice += comp.price; }
+      if (comp) {
+        totalTdp += comp.tdpWattage;
+        totalPrice += comp.price;
+      }
     });
     totalPrice = Number(totalPrice.toFixed(2));
 
     if (!cpu || !mobo || !ram || !gpu || !pcCase || !psu) {
-      setResult({ status: 'error', message: 'الرجاء اختيار كافة القطع الأساسية للتحقق.', totalTdp, totalPrice });
+      setResult({ status: 'error', message: 'الرجاء اختيار القطع الأساسية للتحقق.', totalTdp, totalPrice });
       return;
     }
 
@@ -304,35 +309,59 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     const caseSpecs = parseSpecs(pcCase.specs);
     const psuSpecs = parseSpecs(psu.specs);
 
-    // 1. منطق التوافقية (الأخطاء الحرجة)
     if (cpuSpecs?.socket !== moboSpecs?.socket) {
-      setResult({ status: 'error', message: `غير متوافق: المعالج بمقبس ${cpuSpecs?.socket} واللوحة بمقبس ${moboSpecs?.socket}.`, totalTdp, totalPrice });
+      setResult({ status: 'error', message: `عدم توافق: المعالج بمقبس ${cpuSpecs?.socket} واللوحة الأم بمقبس ${moboSpecs?.socket}.`, totalTdp, totalPrice });
       return;
     }
     if (ramSpecs?.type !== moboSpecs?.ramType) {
-      setResult({ status: 'error', message: `غير متوافق: اللوحة تدعم ${moboSpecs?.ramType} والرام من نوع ${ramSpecs?.type}.`, totalTdp, totalPrice });
+      setResult({ status: 'error', message: `عدم توافق: اللوحة الأم تدعم ${moboSpecs?.ramType} والرام من نوع ${ramSpecs?.type}.`, totalTdp, totalPrice });
       return;
     }
     if (parseFloat(gpuSpecs?.lengthMm) > parseFloat(caseSpecs?.maxGpuLength)) {
-      setResult({ status: 'error', message: `غير متوافق: طول الكرت (${gpuSpecs?.lengthMm}mm) يتجاوز مساحة الكيس (${caseSpecs?.maxGpuLength}mm).`, totalTdp, totalPrice });
+      setResult({ status: 'error', message: `عدم توافق: طول الكرت (${gpuSpecs?.lengthMm}mm) أكبر من مساحة الكيس (${caseSpecs?.maxGpuLength}mm).`, totalTdp, totalPrice });
       return;
     }
+
     const requiredWattage = totalTdp + 100;
     if (psuSpecs?.wattage < requiredWattage) {
-      setResult({ status: 'error', message: `تحذير طاقة: مزود الطاقة (${psuSpecs?.wattage}W) غير كافٍ، المطلوب ${requiredWattage}W.`, totalTdp, totalPrice });
+      setResult({ status: 'error', message: `تحذير طاقة: الاستهلاك التقريبي مع هامش الأمان (${requiredWattage} واط) يتجاوز قدرة مزود الطاقة (${psuSpecs?.wattage} واط).`, totalTdp, totalPrice });
       return;
     }
 
-    // 2. منطق الاختناق (نصائح الأداء)
-    let bottleneckMsg = "";
+    let bottleneck = null;
     if (cpu.performanceTier && gpu.performanceTier) {
       const diff = cpu.performanceTier - gpu.performanceTier;
-      if (diff < -1) bottleneckMsg = "⚠️ تنبيه أداء: المعالج أضعف بكثير من الكرت، قد يحدث عنق زجاجة في دقة 1080p.";
-      else if (diff > 1) bottleneckMsg = "💡 تنبيه أداء: الكرت أضعف من المعالج، التجميعة ممتازة للألعاب التنافسية.";
-      else bottleneckMsg = "🚀 توازن مثالي بين المعالج وكرت الشاشة.";
+      if (diff < -1) {
+        bottleneck = {
+          title: "⚠️ تنبيه أداء: المعالج أضعف بكثير من كرت الشاشة.",
+          desc: "سيشكل المعالج 'عنق زجاجة' ولن يتمكن من مجاراة الكرت، خاصة على دقة 1080p. يُنصح بترقية المعالج أو اللعب على دقة 4K لتقليل الضغط عليه.",
+          color: "text-amber-800 dark:text-amber-300",
+          bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+        };
+      } else if (diff > 1) {
+        bottleneck = {
+          title: "💡 تنبيه أداء: كرت الشاشة أضعف من المعالج.",
+          desc: "الأداء سيكون ممتازاً في ألعاب الرياضات الإلكترونية (Esports) لاعتمادها على المعالج، لكن الكرت سيحد من الأداء بشكل كبير في ألعاب القصة (AAA) والدقات العالية مثل 1440p و 4K.",
+          color: "text-blue-800 dark:text-blue-300",
+          bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+        };
+      } else {
+        bottleneck = {
+          title: "🚀 توازن مثالي بين المعالج وكرت الشاشة.",
+          desc: "المعالج والكرت من نفس الفئة تقريباً. ستحصل على أداء مستقر وتستغل كامل قوة الجهاز بدون عنق زجاجة ملحوظ.",
+          color: "text-emerald-800 dark:text-emerald-300",
+          bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+        };
+      }
     }
 
-    setResult({ status: 'success', message: 'تم التوافق! جميع القطع متوافقة تماماً.', bottleneckMsg, totalTdp, totalPrice });
+    setResult({ 
+      status: 'success', 
+      message: 'تم التوافق! جميع القطع متوافقة تماماً.', 
+      bottleneck, 
+      totalTdp, 
+      totalPrice 
+    });
   };
 
   const handleSaveBuildClick = () => {
@@ -423,7 +452,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
       <div className="p-8">
         
-        {/* قسم العنوان وزر التبديل */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 pb-4 border-b border-gray-100 dark:border-slate-800 gap-4">
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">اختر قطع التجميعة</h2>
           <label className="flex items-center gap-2 cursor-pointer bg-gray-50 dark:bg-slate-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-700 transition-colors hover:bg-gray-100 dark:hover:bg-slate-700">
@@ -465,17 +493,16 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                     showIncompatible={showIncompatible}
                   />
                 </div>
+                {selectedComponents[category.name] && 
+                 !getComponentsWithCompatibility(category.name, category.components).find(c => c.id === selectedComponents[category.name]?.id)?.isCompatible && (
+                  <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400 font-bold">
+                    ❌ غير متوافق: {getComponentsWithCompatibility(category.name, category.components).find(c => c.id === selectedComponents[category.name]?.id)?.reason}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
-
-        <button
-          onClick={checkCompatibility}
-          className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl transition-all shadow-md"
-        >
-          تحقق من التوافقية
-        </button>
 
         {result.status !== 'idle' && (
           <div className="mt-8 relative">
@@ -491,12 +518,22 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                     <span className="flex items-center gap-1">💰 التكلفة الإجمالية: <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">{result.totalPrice} <RiyalIcon size="h-4 w-4" /></span></span>
                   </div>
 
-                  {/* صندوق كشف الاختناق */}
-                  {result.bottleneckMsg && (
-                    <div className="mt-5 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <p className="text-blue-800 dark:text-blue-300 font-bold text-sm leading-relaxed whitespace-pre-wrap">
-                        {result.bottleneckMsg}
-                      </p>
+                  {result.bottleneck && (
+                    <div className={`mt-5 p-4 border rounded-lg ${result.bottleneck.bg} flex items-center gap-2 w-fit relative`}>
+                      <span className={`font-bold text-sm ${result.bottleneck.color}`}>
+                        {result.bottleneck.title}
+                      </span>
+                      
+                      <div className="relative group cursor-pointer flex items-center justify-center">
+                        <span className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-lg transition-colors">
+                          ℹ️
+                        </span>
+                        
+                        <div className="absolute bottom-full mb-2 right-1/2 translate-x-1/2 w-64 p-3 bg-gray-900 dark:bg-black text-white text-xs leading-relaxed font-semibold rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl pointer-events-none text-center">
+                          {result.bottleneck.desc}
+                          <div className="absolute top-full right-1/2 translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-black"></div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -608,7 +645,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
               </div>
 
               <div className="flex gap-4 pt-2">
-                {/* تم التأكد أن الزر يعمل سواء القطعة متوافقة أو لا لإتاحة حرية الاختيار من المودال إن أراد */}
                 <button onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors">اختيار القطعة</button>
                 <button onClick={() => setDetailsModal(null)} className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-bold transition-colors">إغلاق</button>
               </div>

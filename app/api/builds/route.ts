@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // هذا السطر هو الذي سيحل المشكلة ويدمر الكاش
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { prisma } from '../../../lib/prisma';
@@ -15,11 +17,8 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' }
     });
 
-    // استخراج جميع معرفات القطع من التجميعات للبحث عنها
     const componentIds = builds.flatMap(b => [b.cpuId, b.gpuId, b.ramId, b.motherboardId, b.caseId, b.psuId, b.storageId]).filter(Boolean) as string[];
     
-    // جلب بيانات القطع من قاعدة البيانات
-    // جلب بيانات القطع من قاعدة البيانات
     const components = await prisma.component.findMany({
       where: { id: { in: componentIds } },
       select: { 
@@ -28,14 +27,14 @@ export async function GET(req: NextRequest) {
         brand: true, 
         price: true, 
         imageUrl: true,
-        amazonUrl: true,    // <-- أضف هذا السطر
-        cazasouqUrl: true   // <-- أضف هذا السطر
+        amazonUrl: true,
+        cazasouqUrl: true,
+        performanceTier: true // تأكدنا من وجودها هنا
       }
     });
 
     const compMap = new Map(components.map(c => [c.id, c]));
 
-    // دمج بيانات القطع مع التجميعات وحساب السعر الإجمالي
     const buildsWithDetails = builds.map(b => ({
       ...b,
       parts: {

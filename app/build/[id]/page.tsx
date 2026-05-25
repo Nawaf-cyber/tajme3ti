@@ -2,6 +2,32 @@ import { prisma } from '../../../lib/prisma';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
+const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
+  <div 
+    className={`${size} ${colorClass} inline-block shrink-0`} 
+    style={{ 
+      maskImage: "url('/riyal.svg')", 
+      WebkitMaskImage: "url('/riyal.svg')", 
+      maskSize: 'contain', 
+      WebkitMaskSize: 'contain', 
+      maskRepeat: 'no-repeat', 
+      WebkitMaskRepeat: 'no-repeat',
+      maskPosition: 'center',
+      WebkitMaskPosition: 'center'
+    }} 
+  />
+);
+
+const getBottleneckMessage = (cpu: any, gpu: any) => {
+  if (cpu?.performanceTier && gpu?.performanceTier) {
+    const diff = cpu.performanceTier - gpu.performanceTier;
+    if (diff < -1) return "⚠️ تنبيه أداء: المعالج أضعف بكثير من كرت الشاشة (عنق زجاجة).";
+    if (diff > 1) return "💡 تنبيه أداء: كرت الشاشة أضعف من المعالج، مناسبة للبث والألعاب التنافسية.";
+    return "🚀 توازن مثالي بين المعالج وكرت الشاشة.";
+  }
+  return null;
+};
+
 export default async function SharedBuildPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -15,7 +41,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
 
   const components = await prisma.component.findMany({
     where: { id: { in: componentIds } },
-    select: { id: true, name: true, brand: true, price: true, imageUrl: true, amazonUrl: true, cazasouqUrl: true }
+    select: { id: true, name: true, brand: true, price: true, imageUrl: true, amazonUrl: true, cazasouqUrl: true, performanceTier: true }
   });
 
   const compMap = new Map(components.map(c => [c.id, c]));
@@ -30,7 +56,10 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
     Storage: build.storageId ? compMap.get(build.storageId) : null,
   };
 
-  const totalPrice = Object.values(parts).reduce((sum, part) => sum + (part?.price || 0), 0);
+  const totalPriceRaw = Object.values(parts).reduce((sum, part) => sum + (part?.price || 0), 0);
+  const totalPrice = Number(totalPriceRaw.toFixed(2));
+  
+  const bottleneckMsg = getBottleneckMessage(parts.CPU, parts.GPU);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 min-h-[80vh]">
@@ -42,12 +71,21 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
               تم الإنشاء في: {new Date(build.createdAt).toLocaleDateString('ar-SA')}
             </p>
           </div>
-          <div className="text-xl font-bold bg-blue-800 dark:bg-slate-700 px-4 py-2 rounded-lg">
-            ${totalPrice}
+          <div className="text-xl font-bold bg-blue-800 dark:bg-slate-700 px-4 py-2 rounded-lg flex items-center gap-1">
+            {totalPrice} <RiyalIcon size="h-5 w-5" colorClass="bg-white" />
           </div>
         </div>
 
         <div className="p-6">
+          
+          {bottleneckMsg && (
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-blue-800 dark:text-blue-300 font-bold text-sm">
+                {bottleneckMsg}
+              </p>
+            </div>
+          )}
+
           <div className="space-y-4">
             {Object.entries(parts).map(([category, part]: [string, any]) => (
               <div key={category} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700 gap-4">
@@ -64,7 +102,11 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                 </div>
                 
                 <div className="flex flex-col items-end gap-2">
-                  {part && <span className="font-bold text-green-600 dark:text-green-400">${part.price}</span>}
+                  {part && (
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      {part.price} <RiyalIcon size="h-3 w-3" />
+                    </span>
+                  )}
                   
                   {part && (part.amazonUrl || part.cazasouqUrl) && (
                     <div className="flex gap-2">
@@ -86,7 +128,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
           </div>
 
           <div className="mt-8 text-center border-t border-gray-200 dark:border-slate-700 pt-6">
-            <Link href="/" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition-colors">
+            <Link href="/" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-sm">
               ابني تجميعتك الخاصة ⚡
             </Link>
           </div>
