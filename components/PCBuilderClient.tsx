@@ -32,7 +32,7 @@ type ComponentWithCompatibility = Component & {
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
-    className={`${size} ${colorClass} inline-block shrink-0`} 
+    className={`${size} ${colorClass} inline-block shrink-0 align-middle`} 
     style={{ 
       maskImage: "url('/riyal.svg')", 
       WebkitMaskImage: "url('/riyal.svg')", 
@@ -45,6 +45,51 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emer
     }} 
   />
 );
+
+const formatTextWithLinks = (text: string) => {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a 
+          key={i} 
+          href={part} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="inline-flex items-center gap-2 mt-3 mb-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-xl transition-all w-fit border border-slate-200 dark:border-slate-700 shadow-sm"
+        >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+          </svg>
+          الموقع الرسمي
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+};
+
+// دالة تحديد لون الشركة للمعالجات وكروت الشاشة فقط
+const getBrandColor = (comp: Component, categoryName: string) => {
+  if (categoryName !== 'CPU' && categoryName !== 'GPU') return 'text-blue-600 dark:text-blue-400';
+  
+  const textToSearch = `${comp.brand} ${comp.name}`.toLowerCase();
+  
+  if (textToSearch.includes('amd') || textToSearch.includes('radeon')) {
+    return 'text-red-600 dark:text-red-500';
+  }
+  if (textToSearch.includes('nvidia') || textToSearch.includes('geforce') || textToSearch.includes('rtx') || textToSearch.includes('gtx')) {
+    return 'text-[#76b900] dark:text-[#8ce600]'; // لون NVIDIA الأخضر
+  }
+  if (textToSearch.includes('intel')) {
+    return 'text-blue-600 dark:text-blue-500'; // لون Intel الأزرق
+  }
+  
+  return 'text-blue-600 dark:text-blue-400'; // الافتراضي
+};
 
 const SearchableSelect = ({ 
   categoryName, 
@@ -84,46 +129,54 @@ const SearchableSelect = ({
   return (
     <div className="relative flex-1 min-w-0" ref={wrapperRef}>
       <div 
-        className="p-3 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 cursor-pointer flex justify-between items-center w-full min-h-[50px] gap-2"
+        className={`p-3.5 border rounded-xl flex justify-between items-center w-full min-h-[56px] gap-2 transition-all cursor-pointer ${
+          isOpen 
+            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-white dark:bg-slate-800' 
+            : 'border-slate-200 dark:border-slate-700/80 bg-slate-50 hover:bg-white dark:bg-[#0B1120] dark:hover:bg-slate-800/80'
+        }`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="whitespace-normal break-words flex-1 text-gray-800 dark:text-gray-100 rtl:text-right text-sm leading-relaxed">
+        <span className="whitespace-normal break-words flex-1 text-slate-800 dark:text-slate-200 text-sm font-bold">
           {selectedComponent ? (
-            <span className="flex items-center gap-1 flex-wrap">
-              {selectedComponent.brand} {selectedComponent.name} - 
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mx-1">
+            <span className="flex items-center gap-1.5 flex-wrap">
+              <span className={getBrandColor(selectedComponent, categoryName)}>{selectedComponent.brand}</span> 
+              <span className="font-extrabold">{selectedComponent.name}</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1 mx-1 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md text-xs border border-emerald-100 dark:border-emerald-800/30">
                 {selectedComponent.price} <RiyalIcon size="h-3 w-3" />
               </span>
             </span>
           ) : (
-            `-- اختر ${categoryName} --`
+            <span className="text-slate-400 dark:text-slate-500 font-medium">اختر {categoryName}...</span>
           )}
         </span>
-        <span className="text-gray-500 shrink-0">▼</span>
+        <svg className={`w-5 h-5 text-slate-400 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180 text-blue-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
       </div>
 
       {isOpen && (
-        <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl max-h-96 overflow-hidden flex flex-col">
-          <div className="p-2 border-b border-gray-100 dark:border-slate-700">
-            <input
-              type="text"
-              className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-md outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-white"
-              placeholder={`ابحث في ${categoryName}...`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-              autoFocus
-            />
+        <div className="absolute z-30 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-[350px] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="p-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+            <div className="relative">
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input
+                type="text"
+                className="w-full pl-3 pr-9 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/50 text-sm text-slate-900 dark:text-white"
+                placeholder="ابحث عن قطعة..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                autoFocus
+              />
+            </div>
           </div>
-          <ul className="flex-1 overflow-y-auto">
+          <ul className="flex-1 overflow-y-auto p-1 custom-scrollbar">
             {displayedComponents.length > 0 ? (
               displayedComponents.map((comp) => (
                 <li 
                   key={comp.id} 
-                  className={`p-3 border-b border-gray-50 dark:border-slate-700/50 last:border-0 transition-all ${
+                  className={`p-3 mb-1 rounded-lg transition-all ${
                     comp.isCompatible 
-                      ? 'hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer' 
-                      : 'bg-red-50/30 dark:bg-red-900/10 cursor-not-allowed'
+                      ? 'hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer' 
+                      : 'bg-rose-50/30 dark:bg-rose-900/10 cursor-not-allowed opacity-75'
                   }`}
                   onClick={() => {
                     if (!comp.isCompatible) return;
@@ -132,31 +185,35 @@ const SearchableSelect = ({
                     setSearchTerm('');
                   }}
                 >
-                  <div className="flex flex-col gap-1">
-                    <div className="flex justify-between items-center w-full">
-                      <span className={`text-sm font-semibold ${comp.isCompatible ? 'text-gray-800 dark:text-gray-200' : 'text-gray-500'}`}>
-                        {comp.brand} {comp.name}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-start w-full gap-2">
+                      <span className={`text-sm font-bold leading-tight ${comp.isCompatible ? 'text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                        <span className={`${getBrandColor(comp, categoryName)} mr-1`}>{comp.brand}</span>
+                        {comp.name}
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold ${comp.isCompatible ? 'text-emerald-600' : 'text-gray-500'}`}>
-                          {comp.price} <RiyalIcon size="h-3 w-3" />
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span className={`text-sm font-black flex items-center gap-1 ${comp.isCompatible ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                          {comp.price} <RiyalIcon size="h-3 w-3" colorClass={comp.isCompatible ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-400'} />
                         </span>
                         <button 
                           onClick={(e) => { e.stopPropagation(); onShowDetails(comp); }}
-                          className="px-2 py-1 text-xs bg-gray-200 dark:bg-slate-600 rounded"
-                        >التفاصيل</button>
+                          className="px-2.5 py-1 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded transition-colors"
+                        >
+                          التفاصيل
+                        </button>
                       </div>
                     </div>
                     {!comp.isCompatible && (
-                      <span className="text-[11px] text-red-600 dark:text-red-400 font-bold bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded w-fit">
-                        ❌ غير متوافق: {comp.reason}
+                      <span className="text-[11px] text-rose-600 dark:text-rose-400 font-bold bg-rose-100/50 dark:bg-rose-900/30 px-2.5 py-1 rounded-md w-fit inline-flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        {comp.reason}
                       </span>
                     )}
                   </div>
                 </li>
               ))
             ) : (
-              <li className="p-4 text-gray-500 text-center text-sm">لا توجد قطع مطابقة</li>
+              <li className="p-6 text-slate-500 text-center text-sm font-bold">لا توجد قطع مطابقة للبحث</li>
             )}
           </ul>
         </div>
@@ -262,7 +319,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const gpuSpecs = parseSpecs(gpu.specs);
         if (specs.maxGpuLength && gpuSpecs.lengthMm && parseFloat(specs.maxGpuLength) < parseFloat(gpuSpecs.lengthMm)) {
           isCompatible = false;
-          reason = `طول الكرت الحالي (${gpuSpecs.lengthMm}mm) يتجاوز أقصى مساحة للكيس (${specs.maxGpuLength}mm)`;
+          reason = `طول الكرت الحالي (${gpuSpecs.lengthMm}mm) يتجاوز مساحة الكيس (${specs.maxGpuLength}mm)`;
         }
       }
       
@@ -270,7 +327,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const caseSpecs = parseSpecs(pcCase.specs);
         if (specs.lengthMm && caseSpecs.maxGpuLength && parseFloat(specs.lengthMm) > parseFloat(caseSpecs.maxGpuLength)) {
           isCompatible = false;
-          reason = `طول الكرت (${specs.lengthMm}mm) لا يتسع داخل الكيس المختار (${caseSpecs.maxGpuLength}mm)`;
+          reason = `طول الكرت (${specs.lengthMm}mm) لا يتسع داخل الكيس (${caseSpecs.maxGpuLength}mm)`;
         }
       }
 
@@ -298,7 +355,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     totalPrice = Number(totalPrice.toFixed(2));
 
     if (!cpu || !mobo || !ram || !gpu || !pcCase || !psu) {
-      setResult({ status: 'error', message: 'الرجاء اختيار القطع الأساسية للتحقق.', totalTdp, totalPrice });
+      setResult({ status: 'error', message: 'الرجاء اختيار جميع القطع الأساسية لإتمام الفحص.', totalTdp, totalPrice });
       return;
     }
 
@@ -324,7 +381,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
     const requiredWattage = totalTdp + 100;
     if (psuSpecs?.wattage < requiredWattage) {
-      setResult({ status: 'error', message: `تحذير طاقة: الاستهلاك التقريبي مع هامش الأمان (${requiredWattage} واط) يتجاوز قدرة مزود الطاقة (${psuSpecs?.wattage} واط).`, totalTdp, totalPrice });
+      setResult({ status: 'error', message: `تحذير طاقة: الاستهلاك التقريبي مع هامش الأمان (${requiredWattage}W) يتجاوز قدرة المزود (${psuSpecs?.wattage}W).`, totalTdp, totalPrice });
       return;
     }
 
@@ -333,31 +390,31 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       const diff = cpu.performanceTier - gpu.performanceTier;
       if (diff < -1) {
         bottleneck = {
-          title: "⚠️ تنبيه أداء: المعالج أضعف بكثير من كرت الشاشة.",
-          desc: "سيشكل المعالج 'عنق زجاجة' ولن يتمكن من مجاراة الكرت، خاصة على دقة 1080p. يُنصح بترقية المعالج أو اللعب على دقة 4K لتقليل الضغط عليه.",
-          color: "text-amber-800 dark:text-amber-300",
-          bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+          title: "⚠️ عنق زجاجة ملحوظ: المعالج أضعف من كرت الشاشة.",
+          desc: "لن يتمكن المعالج من مجاراة سرعة الكرت (خصوصاً على دقة 1080p). يُنصح بترقية المعالج أو اللعب بدقة 4K.",
+          color: "text-amber-800 dark:text-amber-400",
+          bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50"
         };
       } else if (diff > 1) {
         bottleneck = {
           title: "💡 تنبيه أداء: كرت الشاشة أضعف من المعالج.",
-          desc: "الأداء سيكون ممتازاً في ألعاب الرياضات الإلكترونية (Esports) لاعتمادها على المعالج، لكن الكرت سيحد من الأداء بشكل كبير في ألعاب القصة (AAA) والدقات العالية مثل 1440p و 4K.",
-          color: "text-blue-800 dark:text-blue-300",
-          bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+          desc: "الأداء سيكون ممتازاً لألعاب (Esports)، لكن الكرت سيحد من قوة الجهاز في ألعاب القصة (AAA) والدقات العالية.",
+          color: "text-blue-800 dark:text-blue-400",
+          bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50"
         };
       } else {
         bottleneck = {
-          title: "🚀 توازن مثالي بين المعالج وكرت الشاشة.",
-          desc: "المعالج والكرت من نفس الفئة تقريباً. ستحصل على أداء مستقر وتستغل كامل قوة الجهاز بدون عنق زجاجة ملحوظ.",
-          color: "text-emerald-800 dark:text-emerald-300",
-          bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+          title: "🚀 توازن أداء مثالي.",
+          desc: "المعالج والكرت من نفس الفئة تقريباً. ستحصل على أداء مستقر وتستغل كامل قوة الجهاز بدون اختناق.",
+          color: "text-emerald-800 dark:text-emerald-400",
+          bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50"
         };
       }
     }
 
     setResult({ 
       status: 'success', 
-      message: 'تم التوافق! جميع القطع متوافقة تماماً.', 
+      message: 'توافق تام! جميع القطع تعمل معاً بانسجام.', 
       bottleneck, 
       totalTdp, 
       totalPrice 
@@ -426,63 +483,79 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   };
 
   const renderSpecs = (specsStr: any) => {
-    if (!specsStr) return "لا توجد تفاصيل إضافية.";
+    if (!specsStr) return <p className="text-sm text-slate-500 font-medium">لا توجد مواصفات فنية مسجلة.</p>;
     try {
       const parsed = parseSpecs(specsStr);
       return (
-        <ul className="list-disc list-inside space-y-1 mt-2 text-gray-700 dark:text-gray-300">
+        <div className="grid grid-cols-2 gap-3 mt-3">
           {Object.entries(parsed).map(([key, value]) => (
-            <li key={key}><span className="font-semibold capitalize">{key}:</span> {String(value)}</li>
+            <div key={key} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
+              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{key}</span>
+              <span className="block text-sm font-bold text-slate-900 dark:text-slate-200" dir="ltr">{String(value)}</span>
+            </div>
           ))}
-        </ul>
+        </div>
       );
     } catch (e) {
-      return String(specsStr);
+      return <p className="text-sm text-slate-700 dark:text-slate-300">{String(specsStr)}</p>;
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto mt-10 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-800">
-      <div className="bg-gradient-to-r from-blue-900 to-blue-700 dark:from-slate-800 dark:to-slate-900 p-8 text-center text-white rounded-t-2xl">
-        <h1 className="text-3xl font-bold mb-2 flex items-center justify-center gap-3">
-          <span>💻</span> منصة بناء أجهزة الـ PC
+    <div className="max-w-5xl mx-auto my-10 bg-white dark:bg-[#0F172A] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800/80 overflow-hidden">
+      
+      {/* الهيدر العلوي */}
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 p-10 text-center text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <h1 className="text-3xl md:text-4xl font-extrabold mb-3 flex items-center justify-center gap-3 relative z-10">
+          منصة تجميع الـ PC
         </h1>
-        <p className="text-blue-100 dark:text-gray-300 text-sm">اختر القطع، ابحث عنها، وتأكد من توافقها</p>
+        <p className="text-slate-300 font-medium text-sm md:text-base relative z-10">اختر قطعك، تأكد من التوافق الذكي، وابنِ جهاز أحلامك.</p>
       </div>
 
-      <div className="p-8">
+      <div className="p-6 md:p-10">
         
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 pb-4 border-b border-gray-100 dark:border-slate-800 gap-4">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">اختر قطع التجميعة</h2>
-          <label className="flex items-center gap-2 cursor-pointer bg-gray-50 dark:bg-slate-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-700 transition-colors hover:bg-gray-100 dark:hover:bg-slate-700">
-            <input
-              type="checkbox"
-              checked={showIncompatible}
-              onChange={(e) => setShowIncompatible(e.target.checked)}
-              className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 dark:bg-slate-700 dark:border-slate-600 cursor-pointer"
-            />
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 select-none">
-              إظهار القطع غير المتوافقة (لتفسير السبب)
+        {/* شريط الخيارات العلوي */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 pb-6 border-b border-slate-100 dark:border-slate-800/60 gap-4">
+          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+            <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+            لوحة اختيار القطع
+          </h2>
+          <label className="group flex items-center gap-3 cursor-pointer bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/50 transition-all hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm">
+            <div className="relative flex items-center">
+              <input
+                type="checkbox"
+                checked={showIncompatible}
+                onChange={(e) => setShowIncompatible(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="w-10 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
+              <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
+            </div>
+            <span className="text-sm font-bold text-slate-600 dark:text-slate-300 select-none group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+              عرض القطع غير المتوافقة (لتفسير السبب)
             </span>
           </label>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        {/* شبكة القطع */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6 mb-10">
           {categories.map((category) => {
             const compsWithComp = getComponentsWithCompatibility(category.name, category.components);
             return (
-              <div key={category.id} className="flex flex-col gap-2">
-                <label className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-1">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              <div key={category.id} className="flex flex-col gap-2.5">
+                <label className="font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-2 text-sm uppercase tracking-wide ml-1">
                   {category.name}
                 </label>
-                <div className="flex gap-3 items-start w-full min-w-0">
+                <div className="flex gap-3 items-stretch w-full min-w-0">
                   {selectedComponents[category.name]?.imageUrl && (
-                    <img 
-                      src={selectedComponents[category.name]?.imageUrl as string} 
-                      alt={selectedComponents[category.name]?.name}
-                      className="w-14 h-14 rounded-lg object-contain bg-white dark:bg-slate-800 border p-1 shadow-sm shrink-0 mt-1" 
-                    />
+                    <div className="w-16 h-16 rounded-xl bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-700/60 p-1.5 flex items-center justify-center shrink-0 shadow-sm">
+                      <img 
+                        src={selectedComponents[category.name]?.imageUrl as string} 
+                        alt={selectedComponents[category.name]?.name}
+                        className="max-w-full max-h-full object-contain filter drop-shadow-sm" 
+                      />
+                    </div>
                   )}
                   <SearchableSelect 
                     categoryName={category.name}
@@ -493,74 +566,85 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                     showIncompatible={showIncompatible}
                   />
                 </div>
-                {selectedComponents[category.name] && 
-                 !getComponentsWithCompatibility(category.name, category.components).find(c => c.id === selectedComponents[category.name]?.id)?.isCompatible && (
-                  <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400 font-bold">
-                    ❌ غير متوافق: {getComponentsWithCompatibility(category.name, category.components).find(c => c.id === selectedComponents[category.name]?.id)?.reason}
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
 
+        {/* صندوق النتيجة */}
         {result.status !== 'idle' && (
-          <div className="mt-8 relative">
-            <div ref={resultRef} className={`p-6 rounded-xl border ${result.status === 'success' ? 'bg-green-50 dark:bg-slate-800 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border-red-200'}`}>
-              <div className="flex items-start gap-4">
-                <div className="text-2xl">{result.status === 'success' ? '✅' : '❌'}</div>
+          <div className="mt-10 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div ref={resultRef} className={`p-8 rounded-3xl border shadow-sm relative overflow-hidden ${
+              result.status === 'success' 
+                ? 'bg-gradient-to-br from-emerald-50/50 to-white dark:from-emerald-950/20 dark:to-[#0F172A] border-emerald-200 dark:border-emerald-800/50' 
+                : 'bg-gradient-to-br from-rose-50/50 to-white dark:from-rose-950/20 dark:to-[#0F172A] border-rose-200 dark:border-rose-800/50'
+            }`}>
+              
+              <div className="flex flex-col md:flex-row md:items-start gap-6 relative z-10">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                  result.status === 'success' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400'
+                }`}>
+                  {result.status === 'success' ? (
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  ) : (
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                  )}
+                </div>
+
                 <div className="flex-1">
-                  <h3 className={`text-lg font-bold mb-2 ${result.status === 'success' ? 'text-green-800 dark:text-green-400' : 'text-red-800 dark:text-red-400'}`}>
+                  <h3 className={`text-xl font-black mb-3 ${result.status === 'success' ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-800 dark:text-rose-400'}`}>
                     {result.message}
                   </h3>
-                  <div className="mt-4 flex flex-wrap gap-4 text-sm font-bold text-gray-800 dark:text-gray-200">
-                    <span>⚡ الطاقة المطلوبة: {result.totalTdp}W</span>
-                    <span className="flex items-center gap-1">💰 التكلفة الإجمالية: <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">{result.totalPrice} <RiyalIcon size="h-4 w-4" /></span></span>
+                  
+                  <div className="flex flex-wrap gap-3 text-sm font-bold">
+                    <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                      ⚡ الطاقة التقريبية: <span className="text-amber-600 dark:text-amber-400">{result.totalTdp}W</span>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                      💰 التكلفة الإجمالية: 
+                      <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1">
+                        {result.totalPrice} <RiyalIcon size="h-4 w-4" />
+                      </span>
+                    </div>
                   </div>
 
                   {result.bottleneck && (
-                    <div className={`mt-5 p-4 border rounded-lg ${result.bottleneck.bg} flex items-center gap-2 w-fit relative`}>
-                      <span className={`font-bold text-sm ${result.bottleneck.color}`}>
-                        {result.bottleneck.title}
-                      </span>
-                      
-                      <div tabIndex={0} className="relative group cursor-pointer flex items-center justify-center shrink-0 outline-none">
-                           <span className={`text-sm font-bold underline cursor-pointer hover:opacity-70 transition-opacity ${result.bottleneck.color}`}>
-                             لماذا؟    
-                        </span>
-  
-                       {/* الصندوق العائم (Tooltip) متوافق مع الجوال */}
-                     <div className="absolute bottom-full mb-2 right-1/2 translate-x-1/2 w-[80vw] max-w-[260px] sm:w-64 p-3 bg-gray-900 dark:bg-black text-white text-xs leading-relaxed font-semibold rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus:opacity-100 group-focus:visible transition-all duration-200 z-50 shadow-xl pointer-events-none text-center">
-                     {/* لاحظ: في ملف شاشة البناء المتغير اسمه result.bottleneck.desc وفي الملفين الأخرى اسمه bottleneck.desc */}
-                     {/* استخدم المتغير الصحيح بناءً على الملف، أو استخدم هذا السطر المزدوج ليعمل في كل الملفات تلقائياً: */}
-                {result.bottleneck.desc}    
-                     <div className="absolute top-full right-1/2 translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-black"></div>
-                     </div>
+                    <div className={`mt-6 p-5 border rounded-2xl ${result.bottleneck.bg} flex items-start gap-4 relative`}>
+                      <div className="flex-1">
+                        <h4 className={`font-black text-base mb-1 ${result.bottleneck.color}`}>
+                          {result.bottleneck.title}
+                        </h4>
+                        <p className={`text-sm font-medium opacity-90 ${result.bottleneck.color}`}>
+                          {result.bottleneck.desc}
+                        </p>
+                      </div>
                     </div>
-                  </div>
                   )}
 
                   {result.status === 'success' && (
-                    <div className="mt-6 pt-6 border-t border-green-200 dark:border-green-800/50">
-                      <h4 className="font-bold text-green-900 dark:text-green-400 mb-4">🛒 قطع التجميعة المتوافقة:</h4>
-                      <div className="space-y-3">
+                    <div className="mt-8 pt-8 border-t border-emerald-200/50 dark:border-emerald-800/30">
+                      <h4 className="font-extrabold text-emerald-900 dark:text-emerald-500 mb-5 text-sm uppercase tracking-widest">
+                        قائمة القطع المعتمدة:
+                      </h4>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                         {Object.entries(selectedComponents).map(([catName, comp]) => {
                           if (!comp) return null;
                           return (
-                            <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700/50 gap-3">
-                              <div className="text-sm flex-1 whitespace-normal break-words leading-relaxed">
-                                <span className="font-bold text-gray-400 dark:text-gray-500 ml-2 block sm:inline">[{catName}]</span>
-                                <span className="text-gray-900 dark:text-gray-100 font-medium">{comp.brand} {comp.name}</span>
+                            <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 gap-3">
+                              <div className="text-sm flex-1 leading-tight">
+                                <span className="font-bold text-slate-400 dark:text-slate-500 ml-2 text-[11px] uppercase tracking-wider block sm:inline">{catName}</span>
+                                <span className={getBrandColor(comp, catName) + " ml-1"}>{comp.brand}</span>
+                                <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
                               </div>
                               <div className="flex gap-2 export-ignore shrink-0">
                                 {comp.amazonUrl && (
-                                  <a href={comp.amazonUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs rounded-md font-bold transition-colors shadow-sm">
-                                    أمازون
+                                  <a href={comp.amazonUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[11px] rounded-lg font-bold transition-colors shadow-sm">
+                                    Amazon
                                   </a>
                                 )}
                                 {comp.cazasouqUrl && (
-                                  <a href={comp.cazasouqUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-md font-bold transition-colors shadow-sm">
-                                    كازاسوق
+                                  <a href={comp.cazasouqUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[11px] rounded-lg font-bold transition-colors shadow-sm">
+                                    Cazasouq
                                   </a>
                                 )}
                               </div>
@@ -575,18 +659,20 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             </div>
 
             {result.status === 'success' && (
-              <div className="mt-4 flex justify-end gap-3">
+              <div className="mt-6 flex flex-wrap justify-end gap-3">
                 <button 
                   onClick={exportBuildAsImage}
-                  className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-md"
+                  className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm"
                 >
-                  📸 حفظ التجميعة كصورة
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  تصدير صورة
                 </button>
                 <button 
                   onClick={handleSaveBuildClick}
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-md"
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-md shadow-blue-500/20"
                 >
-                  💾 حفظ في حسابي
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                  حفظ التجميعة لحسابي
                 </button>
               </div>
             )}
@@ -594,92 +680,110 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         )}
       </div>
 
+      {/* نافذة التفاصيل */}
       {detailsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-4 border-b dark:border-slate-800 bg-gray-50 dark:bg-slate-800 shrink-0 rounded-t-2xl">
-              <h2 className="font-bold text-xl text-gray-900 dark:text-white">تفاصيل القطعة</h2>
-              <button onClick={() => setDetailsModal(null)} className="text-gray-500 hover:text-red-500 font-bold text-xl transition-colors">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0F172A] rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] shrink-0">
+              <h2 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="w-1.5 h-5 bg-blue-600 rounded-full"></span>
+                تفاصيل القطعة
+              </h2>
+              <button onClick={() => setDetailsModal(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+                <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
-            <div className="p-6 overflow-y-auto">
-              <div className="mb-4">
-                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{detailsModal.comp.brand}</span>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1 whitespace-normal break-words">{detailsModal.comp.name}</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-lg">
-                  <span className="block text-sm text-gray-500 dark:text-gray-400">السعر</span>
-                  <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    {detailsModal.comp.price} <RiyalIcon size="h-4 w-4" />
-                  </span>
+            
+            <div className="p-6 overflow-y-auto custom-scrollbar">
+              <div className="flex gap-5 items-start mb-6">
+                {detailsModal.comp.imageUrl && (
+                  <div className="w-24 h-24 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 p-2 flex items-center justify-center shrink-0">
+                    <img src={detailsModal.comp.imageUrl} alt={detailsModal.comp.name} className="max-w-full max-h-full object-contain filter drop-shadow-sm" />
+                  </div>
+                )}
+                <div>
+                  <span className={`text-xs font-bold uppercase tracking-widest ${getBrandColor(detailsModal.comp, detailsModal.categoryName)}`}>{detailsModal.comp.brand}</span>
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1 leading-tight">{detailsModal.comp.name}</h3>
                 </div>
-                <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-lg">
-                  <span className="block text-sm text-gray-500 dark:text-gray-400">استهلاك الطاقة</span>
-                  <span className="font-bold text-lg dark:text-white">{detailsModal.comp.tdpWattage}W</span>
-                </div>
-              </div>
-              <div className="mb-6">
-                <h4 className="font-bold text-gray-900 dark:text-gray-200 border-b dark:border-slate-700 pb-2 mb-2">المواصفات التقنية:</h4>
-                {renderSpecs(detailsModal.comp.specs)}
-              </div>
-              <div className="mb-6">
-                <h4 className="font-bold text-gray-900 dark:text-gray-200 border-b dark:border-slate-700 pb-2 mb-2">وصف القطعة:</h4>
-                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-line break-words">
-                  {detailsModal.comp.description ? (
-                    detailsModal.comp.description.split(/(https?:\/\/[^\s]+)/g).map((part, index) => 
-                      /(https?:\/\/[^\s]+)/.test(part) ? (
-                        <a 
-                          key={index} 
-                          href={part} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-blue-600 dark:text-blue-400 hover:underline font-bold"
-                        >
-                          {part}
-                        </a>
-                      ) : (
-                        part
-                      )
-                    )
-                  ) : (
-                    "لا يوجد وصف متوفر لهذه القطعة."
-                  )}
-                </p>
               </div>
 
-              <div className="flex gap-4 pt-2">
-                <button onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors">اختيار القطعة</button>
-                <button onClick={() => setDetailsModal(null)} className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-bold transition-colors">إغلاق</button>
+              <div className="grid grid-cols-2 gap-3 mb-8">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">السعر الحالي</span>
+                  <span className="font-black text-xl text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    {detailsModal.comp.price} <RiyalIcon size="h-5 w-5" />
+                  </span>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">الطاقة المطلوبة</span>
+                  <span className="font-black text-xl text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                    {detailsModal.comp.tdpWattage}W
+                  </span>
+                </div>
               </div>
+
+              <div className="mb-8">
+                <h4 className="font-extrabold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <span className="text-blue-500">⚙️</span> المواصفات الفنية
+                </h4>
+                {renderSpecs(detailsModal.comp.specs)}
+              </div>
+
+              <div>
+                <h4 className="font-extrabold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <span className="text-blue-500">📄</span> نظرة عامة
+                </h4>
+                <div className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/30">
+                  {detailsModal.comp.description 
+                    ? formatTextWithLinks(detailsModal.comp.description) 
+                    : "لا يوجد وصف إضافي متوفر لهذه القطعة حالياً."}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] flex gap-3 shrink-0">
+              <button 
+                onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} 
+                className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95"
+              >
+                اعتماد القطعة
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* نافذة حفظ التجميعة */}
       {saveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden">
-            <div className="p-6">
-              <h3 className="font-bold text-xl mb-4 text-gray-900 dark:text-white">تسمية التجميعة</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0F172A] rounded-3xl w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-5 border border-blue-100 dark:border-blue-800/30">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+              </div>
+              <h3 className="font-black text-2xl mb-2 text-slate-900 dark:text-white">حفظ التجميعة</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">أدخل اسماً مميزاً لتجميعتك للرجوع إليها لاحقاً</p>
+              
               <input 
                 type="text" 
                 value={buildName}
                 onChange={(e) => setBuildName(e.target.value)}
-                className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:text-white font-bold mb-6"
-                placeholder="أدخل اسم التجميعة هنا..."
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-900 dark:text-white font-bold mb-8 text-center"
+                placeholder="مثال: تجميعة المونتاج 2026..."
                 autoFocus
               />
-              <div className="flex gap-3">
+              
+              <div className="flex flex-col gap-3">
                 <button 
                   onClick={confirmSaveBuild} 
                   disabled={isSaving}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-bold transition-colors disabled:opacity-50"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold transition-all shadow-md shadow-blue-500/20 disabled:opacity-50 active:scale-95"
                 >
-                  {isSaving ? 'جاري الحفظ...' : 'حفظ'}
+                  {isSaving ? 'جاري الحفظ...' : 'تأكيد الحفظ'}
                 </button>
                 <button 
                   onClick={() => setSaveModalOpen(false)} 
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-white py-2 rounded-lg font-bold transition-colors"
+                  className="w-full bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 py-3 rounded-xl font-bold transition-colors"
                 >
                   إلغاء
                 </button>
