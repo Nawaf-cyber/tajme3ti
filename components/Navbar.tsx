@@ -14,7 +14,8 @@ export default function Navbar() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <nav className="bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-lg border-b border-slate-200/60 dark:border-slate-800/60 shadow-sm sticky top-0 z-50 transition-colors duration-300">
+    // التعديل هنا: إضافة w-full و overflow-x-hidden للحاوية
+    <nav className="w-full bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-lg border-b border-slate-200/60 dark:border-slate-800/60 shadow-sm sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
