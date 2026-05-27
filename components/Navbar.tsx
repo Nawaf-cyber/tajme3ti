@@ -14,19 +14,24 @@ export default function Navbar() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <nav className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 shadow-sm sticky top-0 z-50 transition-colors duration-200">
+    <nav className="bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-lg border-b border-slate-200/60 dark:border-slate-800/60 shadow-sm sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
           {/* الشعار */}
-          <Link href="/" className="flex items-center gap-2 font-black text-xl text-blue-900 dark:text-blue-400 hover:text-blue-700 transition-colors">
-            <span className="text-2xl">⚡</span> PC Builder
+          <Link href="/" className="flex items-center gap-2.5 font-black text-xl text-slate-900 dark:text-white group">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white transform group-hover:rotate-12 transition-transform shadow-md shadow-blue-600/20">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <span className="tracking-tight">PC Builder</span>
           </Link>
           
-          {/* زر القائمة (الشخطات) للجوال */}
+          {/* زر القائمة (Mobile Toggle) */}
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none"
+            className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {isMobileMenuOpen ? (
@@ -37,113 +42,146 @@ export default function Navbar() {
             </svg>
           </button>
 
-          {/* عناصر الشاشة الكبيرة (تختفي في الجوال) */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/news" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold transition-colors flex items-center gap-1">
-              <span>📰</span> الأخبار
+          {/* عناصر الشاشة الكبيرة */}
+          <div className="hidden md:flex items-center gap-2">
+            
+            <Link href="/news" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-2 rounded-xl transition-all flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15" /></svg>
+              الأخبار
             </Link>
 
             {session?.user?.email === "admin@pcbuilder.com" && (
-              <Link href="/admin/suggestions" className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 px-3 py-2 rounded-lg transition-colors">
-                ⚙️ إدارة الاقتراحات
+              <Link href="/admin/suggestions" className="text-sm font-bold text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 px-3 py-2 rounded-xl transition-all flex items-center gap-1.5">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                إدارة الاقتراحات
               </Link>
             )}
 
-            <div className="flex items-center gap-4">
-              {mounted && (
-                <button
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="p-2 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
-                  title="تغيير المظهر"
-                >
-                  {theme === 'dark' ? '☀️' : '🌙'}
-                </button>
-              )}
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-2"></div>
 
-              {session ? (
-                <>
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-                    {session.user?.email}
-                  </span>
+            {mounted && (
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title={theme === 'dark' ? 'تفعيل الوضع المضيء' : 'تفعيل الوضع الليلي'}
+              >
+                {theme === 'dark' ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                )}
+              </button>
+            )}
 
-                  <Link href="/my-builds" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 px-4 py-2 rounded-lg transition-colors border border-blue-200 dark:border-blue-800">
-                    تجميعاتي
+            {session ? (
+              <div className="flex items-center gap-2 ml-2">
+                
+                {session.user?.role === 'ADMIN' && (
+                  <Link href="/admin" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 rounded-xl transition-colors">
+                    لوحة الإدارة
                   </Link>
-                  
-                  {session.user?.role === 'ADMIN' && (
-                    <Link href="/admin" className="text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-800">
-                      لوحة الإدارة
-                    </Link>
-                  )}
+                )}
 
-                  <button 
-                    onClick={() => signOut({ callbackUrl: '/' })} 
-                    className="text-sm font-bold text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
-                  >
-                    تسجيل خروج
-                  </button>
-                </>
-              ) : (
-                <Link href="/login" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-white dark:hover:text-white hover:bg-blue-600 dark:hover:bg-blue-600 px-5 py-2 rounded-lg transition-colors border-2 border-blue-600 dark:border-blue-500">
-                  دخول
+                <Link href="/my-builds" className="text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-4 py-2 rounded-xl transition-colors border border-blue-100 dark:border-blue-800/30 flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                  تجميعاتي
                 </Link>
-              )}
-            </div>
+
+                <div className="relative group ml-1">
+                  <button className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:ring-2 hover:ring-blue-500/50 transition-all">
+                    <span className="text-sm font-bold uppercase">{session.user?.email?.[0] || 'U'}</span>
+                  </button>
+                  {/* Tooltip للمستخدم وتسجيل الخروج */}
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top translate-y-2 group-hover:translate-y-0">
+                    <div className="p-3 border-b border-slate-100 dark:border-slate-700">
+                      <p className="text-xs text-slate-400 mb-0.5">مسجل الدخول كـ</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{session.user?.email}</p>
+                    </div>
+                    <div className="p-1.5">
+                      <button 
+                        onClick={() => signOut({ callbackUrl: '/' })} 
+                        className="w-full text-right flex items-center gap-2 text-sm font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 px-3 py-2 rounded-lg transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        تسجيل الخروج
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            ) : (
+              <Link href="/login" className="ml-2 text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 px-5 py-2.5 rounded-xl transition-all shadow-sm active:scale-95">
+                تسجيل الدخول
+              </Link>
+            )}
           </div>
         </div>
 
-        {/* القائمة المنسدلة للجوال (تظهر فقط عند تفعيل الزر) */}
+        {/* القائمة المنسدلة للجوال */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200 dark:border-slate-800 flex flex-col gap-4">
-            <Link href="/news" onClick={() => setIsMobileMenuOpen(false)} className="text-gray-600 dark:text-gray-300 font-semibold flex items-center gap-2 px-2">
-              <span>📰</span> الأخبار
+          <div className="md:hidden py-4 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-col gap-2 animate-in slide-in-from-top-4 duration-200">
+            
+            <Link href="/news" onClick={() => setIsMobileMenuOpen(false)} className="text-sm text-slate-700 dark:text-slate-200 font-bold flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors">
+              <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15" /></svg>
+              الأخبار
             </Link>
 
             {session?.user?.email === "admin@pcbuilder.com" && (
-              <Link href="/admin/suggestions" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold text-amber-600 dark:text-amber-500 px-2">
-                ⚙️ إدارة الاقتراحات
+              <Link href="/admin/suggestions" onClick={() => setIsMobileMenuOpen(false)} className="text-sm text-amber-600 dark:text-amber-500 font-bold flex items-center gap-3 px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-900/10 rounded-xl transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                إدارة الاقتراحات
               </Link>
             )}
 
-            <div className="flex items-center justify-between px-2">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                المظهر:
-              </span>
+            <div className="w-full h-px bg-slate-100 dark:bg-slate-800/60 my-2"></div>
+
+            <div className="flex items-center justify-between px-4 py-2">
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">مظهر الموقع</span>
               {mounted && (
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="p-2 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200"
+                  className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-2 text-sm font-bold"
                 >
-                  {theme === 'dark' ? '☀️' : '🌙'}
+                  {theme === 'dark' ? (
+                    <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg> مضيء</>
+                  ) : (
+                    <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg> ليلي</>
+                  )}
                 </button>
               )}
             </div>
 
-            {session ? (
-              <div className="flex flex-col gap-3 px-2 mt-2 border-t border-gray-100 dark:border-slate-700 pt-4">
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-300 truncate w-full text-center">
-                  {session.user?.email}
-                </span>
+            <div className="w-full h-px bg-slate-100 dark:bg-slate-800/60 my-2"></div>
 
-                <Link href="/my-builds" onClick={() => setIsMobileMenuOpen(false)} className="text-center text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-4 py-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                  تجميعاتي
+            {session ? (
+              <div className="flex flex-col gap-2">
+                <div className="px-4 py-2">
+                  <p className="text-xs text-slate-400 mb-0.5">مسجل الدخول كـ</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{session.user?.email}</p>
+                </div>
+
+                <Link href="/my-builds" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-4 py-3.5 rounded-xl border border-blue-100 dark:border-blue-800/30 flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                  تجميعاتي المحفوظة
                 </Link>
                 
                 {session.user?.role === 'ADMIN' && (
-                  <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="text-center text-sm font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-3 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                  <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-4 py-3.5 rounded-xl flex items-center justify-center gap-2">
                     لوحة الإدارة
                   </Link>
                 )}
 
                 <button 
                   onClick={() => signOut({ callbackUrl: '/' })} 
-                  className="text-sm font-bold text-white bg-red-600 hover:bg-red-700 px-4 py-3 rounded-lg"
+                  className="mt-2 text-sm font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 px-4 py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors"
                 >
-                  تسجيل خروج
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  تسجيل الخروج
                 </button>
               </div>
             ) : (
-              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-center text-sm font-bold text-blue-600 dark:text-blue-400 bg-transparent border-2 border-blue-600 dark:border-blue-500 px-5 py-3 rounded-lg mt-2">
+              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="mt-4 text-center text-sm font-bold text-white bg-slate-900 dark:bg-blue-600 px-4 py-3.5 rounded-xl">
                 تسجيل الدخول
               </Link>
             )}
