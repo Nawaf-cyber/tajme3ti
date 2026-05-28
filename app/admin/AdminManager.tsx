@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import UpdateCazasouqButton from './components/UpdateCazasouqButton';
 import UpdateAmazonButton from './components/UpdateAmazonButton';
 import UpdatePricesButton from './UpdatePricesButton';
+import UpdateSingleButton from './components/UpdateSingleButton';
 
 // خريطة الحقول التلقائية بناءً على الفئة
 const categoryFieldsMap: Record<string, { key: string, label: string, type: 'text' | 'number' | 'select', options?: string[] }[]> = {
@@ -348,6 +349,7 @@ export default function AdminManager({ categories, components, news }: { categor
                           </div>
                         </td>
                         <td className="p-4 flex gap-2">
+                          <UpdateSingleButton id={comp.id} name={comp.name} />
                           <button onClick={() => startEditComponent(comp)} className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium rounded-lg hover:bg-blue-200 transition-colors">
                             تعديل
                           </button>

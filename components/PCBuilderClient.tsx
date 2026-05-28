@@ -30,7 +30,7 @@ type ComponentWithCompatibility = Component & {
   reason?: string;
 };
 
-const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
+const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-700 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
     className={`${size} ${colorClass} inline-block shrink-0 align-middle`} 
     style={{ 
@@ -48,47 +48,61 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emer
 
 const formatTextWithLinks = (text: string) => {
   if (!text) return null;
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
+  
+  const regex = /(\[red\].*?\[\/red\]|\[green\].*?\[\/green\]|\[blue\].*?\[\/blue\]|\[yellow\].*?\[\/yellow\]|https?:\/\/[^\s]+)/g;
+  const parts = text.split(regex);
   
   return parts.map((part, i) => {
-    if (part.match(urlRegex)) {
+    if (!part) return null;
+    
+    if (part.match(/^https?:\/\/[^\s]+/)) {
       return (
         <a 
           key={i} 
           href={part} 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="inline-flex items-center gap-2 mt-3 mb-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-xl transition-all w-fit border border-slate-200 dark:border-slate-700 shadow-sm"
+          className="inline-flex items-center gap-2 mt-3 mb-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-bold text-xs rounded-xl transition-all w-fit border border-slate-200 dark:border-slate-700 shadow-sm"
         >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-          </svg>
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
           الموقع الرسمي
         </a>
       );
     }
+    
+    if (part.startsWith('[red]') && part.endsWith('[/red]')) {
+      return <span key={i} className="text-rose-600 dark:text-rose-400 font-bold">{part.slice(5, -6)}</span>;
+    }
+    if (part.startsWith('[green]') && part.endsWith('[/green]')) {
+      return <span key={i} className="text-emerald-700 dark:text-emerald-400 font-bold">{part.slice(7, -8)}</span>;
+    }
+    if (part.startsWith('[blue]') && part.endsWith('[/blue]')) {
+      return <span key={i} className="text-blue-700 dark:text-blue-400 font-bold">{part.slice(6, -7)}</span>;
+    }
+    if (part.startsWith('[yellow]') && part.endsWith('[/yellow]')) {
+      return <span key={i} className="text-amber-700 dark:text-amber-400 font-bold">{part.slice(8, -9)}</span>;
+    }
+    
     return <span key={i}>{part}</span>;
   });
 };
 
-// دالة تحديد لون الشركة للمعالجات وكروت الشاشة فقط
 const getBrandColor = (comp: Component, categoryName: string) => {
-  if (categoryName !== 'CPU' && categoryName !== 'GPU') return 'text-blue-600 dark:text-blue-400';
+  if (categoryName !== 'CPU' && categoryName !== 'GPU') return 'text-blue-700 dark:text-blue-400';
   
   const textToSearch = `${comp.brand} ${comp.name}`.toLowerCase();
   
   if (textToSearch.includes('amd') || textToSearch.includes('radeon')) {
-    return 'text-red-600 dark:text-red-500';
+    return 'text-red-700 dark:text-red-500';
   }
   if (textToSearch.includes('nvidia') || textToSearch.includes('geforce') || textToSearch.includes('rtx') || textToSearch.includes('gtx')) {
-    return 'text-[#76b900] dark:text-[#8ce600]'; // لون NVIDIA الأخضر
+    return 'text-emerald-700 dark:text-[#8ce600]'; 
   }
   if (textToSearch.includes('intel')) {
-    return 'text-blue-600 dark:text-blue-500'; // لون Intel الأزرق
+    return 'text-blue-700 dark:text-blue-500'; 
   }
   
-  return 'text-blue-600 dark:text-blue-400'; // الافتراضي
+  return 'text-slate-800 dark:text-slate-200'; 
 };
 
 const SearchableSelect = ({ 
@@ -132,24 +146,24 @@ const SearchableSelect = ({
         className={`p-3.5 border rounded-xl flex justify-between items-center w-full min-h-[56px] gap-2 transition-all cursor-pointer ${
           isOpen 
             ? 'border-blue-500 ring-2 ring-blue-500/20 bg-white dark:bg-slate-800' 
-            : 'border-slate-200 dark:border-slate-700/80 bg-slate-50 hover:bg-white dark:bg-[#0B1120] dark:hover:bg-slate-800/80'
+            : 'border-slate-300 dark:border-slate-700/80 bg-slate-50 hover:bg-white dark:bg-[#0B1120] dark:hover:bg-slate-800/80'
         }`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="whitespace-normal break-words flex-1 text-slate-800 dark:text-slate-200 text-sm font-bold">
+        <span className="whitespace-normal break-words flex-1 text-slate-900 dark:text-slate-200 text-sm font-bold">
           {selectedComponent ? (
             <span className="flex items-center gap-1.5 flex-wrap">
               <span className={getBrandColor(selectedComponent, categoryName)}>{selectedComponent.brand}</span> 
               <span className="font-extrabold">{selectedComponent.name}</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1 mx-1 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md text-xs border border-emerald-100 dark:border-emerald-800/30">
+              <span className="text-emerald-700 dark:text-emerald-400 font-black flex items-center gap-1 mx-1 bg-emerald-100/50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md text-xs border border-emerald-200 dark:border-emerald-800/30">
                 {selectedComponent.price} <RiyalIcon size="h-3 w-3" />
               </span>
             </span>
           ) : (
-            <span className="text-slate-400 dark:text-slate-500 font-medium">اختر {categoryName}...</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">اختر {categoryName}...</span>
           )}
         </span>
-        <svg className={`w-5 h-5 text-slate-400 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180 text-blue-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        <svg className={`w-5 h-5 text-slate-500 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180 text-blue-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
       </div>
 
       {isOpen && (
@@ -159,7 +173,7 @@ const SearchableSelect = ({
               <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               <input
                 type="text"
-                className="w-full pl-3 pr-9 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/50 text-sm text-slate-900 dark:text-white"
+                className="w-full pl-3 pr-9 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400"
                 placeholder="ابحث عن قطعة..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -168,15 +182,15 @@ const SearchableSelect = ({
               />
             </div>
           </div>
-          <ul className="flex-1 overflow-y-auto p-1 custom-scrollbar">
+          <ul className="flex-1 overflow-y-auto p-2 custom-scrollbar">
             {displayedComponents.length > 0 ? (
               displayedComponents.map((comp) => (
                 <li 
                   key={comp.id} 
-                  className={`p-3 mb-1 rounded-lg transition-all ${
+                  className={`p-3 mb-1 rounded-lg transition-all border ${
                     comp.isCompatible 
-                      ? 'hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer' 
-                      : 'bg-rose-50/30 dark:bg-rose-900/10 cursor-not-allowed opacity-75'
+                      ? 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer' 
+                      : 'border-rose-200 bg-rose-50 dark:border-rose-900/30 dark:bg-rose-900/10 cursor-not-allowed opacity-90'
                   }`}
                   onClick={() => {
                     if (!comp.isCompatible) return;
@@ -187,25 +201,25 @@ const SearchableSelect = ({
                 >
                   <div className="flex flex-col gap-2">
                     <div className="flex justify-between items-start w-full gap-2">
-                      <span className={`text-sm font-bold leading-tight ${comp.isCompatible ? 'text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                      <span className={`text-sm font-bold leading-tight ${comp.isCompatible ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
                         <span className={`${getBrandColor(comp, categoryName)} mr-1`}>{comp.brand}</span>
                         {comp.name}
                       </span>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <span className={`text-sm font-black flex items-center gap-1 ${comp.isCompatible ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
-                          {comp.price} <RiyalIcon size="h-3 w-3" colorClass={comp.isCompatible ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-400'} />
+                        <span className={`text-sm font-black flex items-center gap-1 ${comp.isCompatible ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
+                          {comp.price} <RiyalIcon size="h-3 w-3" colorClass={comp.isCompatible ? 'bg-emerald-700 dark:bg-emerald-400' : 'bg-slate-500'} />
                         </span>
                         <button 
                           onClick={(e) => { e.stopPropagation(); onShowDetails(comp); }}
-                          className="px-2.5 py-1 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded transition-colors"
+                          className="px-2.5 py-1 text-[10px] font-bold bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded transition-colors"
                         >
                           التفاصيل
                         </button>
                       </div>
                     </div>
                     {!comp.isCompatible && (
-                      <span className="text-[11px] text-rose-600 dark:text-rose-400 font-bold bg-rose-100/50 dark:bg-rose-900/30 px-2.5 py-1 rounded-md w-fit inline-flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                      <span className="text-[11px] text-rose-700 dark:text-rose-400 font-extrabold bg-rose-100 dark:bg-rose-900/40 px-2.5 py-1 rounded-md w-fit inline-flex items-center gap-1 border border-rose-200 dark:border-rose-800/50">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                         {comp.reason}
                       </span>
                     )}
@@ -392,22 +406,22 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         bottleneck = {
           title: "⚠️ عنق زجاجة ملحوظ: المعالج أضعف من كرت الشاشة.",
           desc: "لن يتمكن المعالج من مجاراة سرعة الكرت (خصوصاً على دقة 1080p). يُنصح بترقية المعالج أو اللعب بدقة 4K.",
-          color: "text-amber-800 dark:text-amber-400",
-          bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50"
+          color: "text-amber-900 dark:text-amber-400",
+          bg: "bg-amber-100 dark:bg-amber-900/20 border-amber-300 dark:border-amber-800/50"
         };
       } else if (diff > 1) {
         bottleneck = {
           title: "💡 تنبيه أداء: كرت الشاشة أضعف من المعالج.",
           desc: "الأداء سيكون ممتازاً لألعاب (Esports)، لكن الكرت سيحد من قوة الجهاز في ألعاب القصة (AAA) والدقات العالية.",
-          color: "text-blue-800 dark:text-blue-400",
-          bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50"
+          color: "text-blue-900 dark:text-blue-400",
+          bg: "bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-800/50"
         };
       } else {
         bottleneck = {
           title: "🚀 توازن أداء مثالي.",
           desc: "المعالج والكرت من نفس الفئة تقريباً. ستحصل على أداء مستقر وتستغل كامل قوة الجهاز بدون اختناق.",
-          color: "text-emerald-800 dark:text-emerald-400",
-          bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50"
+          color: "text-emerald-900 dark:text-emerald-400",
+          bg: "bg-emerald-100 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-800/50"
         };
       }
     }
@@ -489,8 +503,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       return (
         <div className="grid grid-cols-2 gap-3 mt-3">
           {Object.entries(parsed).map(([key, value]) => (
-            <div key={key} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{key}</span>
+            <div key={key} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/50">
+              <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{key}</span>
               <span className="block text-sm font-bold text-slate-900 dark:text-slate-200" dir="ltr">{String(value)}</span>
             </div>
           ))}
@@ -516,12 +530,12 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       <div className="p-6 md:p-10">
         
         {/* شريط الخيارات العلوي */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 pb-6 border-b border-slate-100 dark:border-slate-800/60 gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 pb-6 border-b border-slate-200 dark:border-slate-800/60 gap-4">
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
             <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
             لوحة اختيار القطع
           </h2>
-          <label className="group flex items-center gap-3 cursor-pointer bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/50 transition-all hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm">
+          <label className="group flex items-center gap-3 cursor-pointer bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/50 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-sm">
             <div className="relative flex items-center">
               <input
                 type="checkbox"
@@ -530,9 +544,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 className="peer sr-only"
               />
               <div className="w-10 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
-              <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
+              <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4 shadow-sm"></div>
             </div>
-            <span className="text-sm font-bold text-slate-600 dark:text-slate-300 select-none group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 select-none group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
               عرض القطع غير المتوافقة (لتفسير السبب)
             </span>
           </label>
@@ -544,7 +558,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             const compsWithComp = getComponentsWithCompatibility(category.name, category.components);
             return (
               <div key={category.id} className="flex flex-col gap-2.5">
-                <label className="font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-2 text-sm uppercase tracking-wide ml-1">
+                <label className="font-extrabold text-slate-800 dark:text-slate-300 flex items-center gap-2 text-sm uppercase tracking-wide ml-1">
                   {category.name}
                 </label>
                 <div className="flex gap-3 items-stretch w-full min-w-0">
@@ -576,13 +590,13 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           <div className="mt-10 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div ref={resultRef} className={`p-8 rounded-3xl border shadow-sm relative overflow-hidden ${
               result.status === 'success' 
-                ? 'bg-gradient-to-br from-emerald-50/50 to-white dark:from-emerald-950/20 dark:to-[#0F172A] border-emerald-200 dark:border-emerald-800/50' 
-                : 'bg-gradient-to-br from-rose-50/50 to-white dark:from-rose-950/20 dark:to-[#0F172A] border-rose-200 dark:border-rose-800/50'
+                ? 'bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-950/20 dark:to-[#0F172A] border-emerald-200 dark:border-emerald-800/50' 
+                : 'bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-950/20 dark:to-[#0F172A] border-rose-200 dark:border-rose-800/50'
             }`}>
               
               <div className="flex flex-col md:flex-row md:items-start gap-6 relative z-10">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
-                  result.status === 'success' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400'
+                  result.status === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-200 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400'
                 }`}>
                   {result.status === 'success' ? (
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
@@ -592,24 +606,24 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 </div>
 
                 <div className="flex-1">
-                  <h3 className={`text-xl font-black mb-3 ${result.status === 'success' ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-800 dark:text-rose-400'}`}>
+                  <h3 className={`text-xl font-black mb-3 ${result.status === 'success' ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-900 dark:text-rose-400'}`}>
                     {result.message}
                   </h3>
                   
                   <div className="flex flex-wrap gap-3 text-sm font-bold">
-                    <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                      ⚡ الطاقة التقريبية: <span className="text-amber-600 dark:text-amber-400">{result.totalTdp}W</span>
+                    <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 shadow-sm">
+                      ⚡ الطاقة التقريبية: <span className="text-amber-700 dark:text-amber-400">{result.totalTdp}W</span>
                     </div>
-                    <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                    <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 shadow-sm">
                       💰 التكلفة الإجمالية: 
-                      <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1">
+                      <span className="text-emerald-700 dark:text-emerald-400 font-black flex items-center gap-1">
                         {result.totalPrice} <RiyalIcon size="h-4 w-4" />
                       </span>
                     </div>
                   </div>
 
                   {result.bottleneck && (
-                    <div className={`mt-6 p-5 border rounded-2xl ${result.bottleneck.bg} flex items-start gap-4 relative`}>
+                    <div className={`mt-6 p-5 border rounded-2xl ${result.bottleneck.bg} flex items-start gap-4 relative shadow-sm`}>
                       <div className="flex-1">
                         <h4 className={`font-black text-base mb-1 ${result.bottleneck.color}`}>
                           {result.bottleneck.title}
@@ -630,9 +644,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                         {Object.entries(selectedComponents).map(([catName, comp]) => {
                           if (!comp) return null;
                           return (
-                            <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 gap-3">
+                            <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 gap-3">
                               <div className="text-sm flex-1 leading-tight">
-                                <span className="font-bold text-slate-400 dark:text-slate-500 ml-2 text-[11px] uppercase tracking-wider block sm:inline">{catName}</span>
+                                <span className="font-bold text-slate-500 dark:text-slate-400 ml-2 text-[11px] uppercase tracking-wider block sm:inline">{catName}</span>
                                 <span className={getBrandColor(comp, catName) + " ml-1"}>{comp.brand}</span>
                                 <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
                               </div>
@@ -662,7 +676,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
               <div className="mt-6 flex flex-wrap justify-end gap-3">
                 <button 
                   onClick={exportBuildAsImage}
-                  className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm"
+                  className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm border border-slate-200 dark:border-slate-700"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                   تصدير صورة
@@ -684,12 +698,12 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       {detailsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#0F172A] rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] shrink-0">
+            <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] shrink-0">
               <h2 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
                 <span className="w-1.5 h-5 bg-blue-600 rounded-full"></span>
                 تفاصيل القطعة
               </h2>
-              <button onClick={() => setDetailsModal(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+              <button onClick={() => setDetailsModal(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-colors">
                 <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -697,7 +711,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             <div className="p-6 overflow-y-auto custom-scrollbar">
               <div className="flex gap-5 items-start mb-6">
                 {detailsModal.comp.imageUrl && (
-                  <div className="w-24 h-24 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 p-2 flex items-center justify-center shrink-0">
+                  <div className="w-24 h-24 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-2 flex items-center justify-center shrink-0">
                     <img src={detailsModal.comp.imageUrl} alt={detailsModal.comp.name} className="max-w-full max-h-full object-contain filter drop-shadow-sm" />
                   </div>
                 )}
@@ -708,15 +722,15 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-8">
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">السعر الحالي</span>
-                  <span className="font-black text-xl text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                    {detailsModal.comp.price} <RiyalIcon size="h-5 w-5" />
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">السعر الحالي</span>
+                  <span className="font-black text-xl text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                    {detailsModal.comp.price} <RiyalIcon size="h-5 w-5" colorClass="bg-emerald-700 dark:bg-emerald-400" />
                   </span>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">الطاقة المطلوبة</span>
-                  <span className="font-black text-xl text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">الطاقة المطلوبة</span>
+                  <span className="font-black text-xl text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                     {detailsModal.comp.tdpWattage}W
                   </span>
                 </div>
@@ -724,16 +738,16 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
               <div className="mb-8">
                 <h4 className="font-extrabold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                  <span className="text-blue-500">⚙️</span> المواصفات الفنية
+                  <span className="text-blue-600">⚙️</span> المواصفات الفنية
                 </h4>
                 {renderSpecs(detailsModal.comp.specs)}
               </div>
 
               <div>
                 <h4 className="font-extrabold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                  <span className="text-blue-500">📄</span> نظرة عامة
+                  <span className="text-blue-600">📄</span> نظرة عامة
                 </h4>
-                <div className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/30">
+                <div className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed font-medium bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/30">
                   {detailsModal.comp.description 
                     ? formatTextWithLinks(detailsModal.comp.description) 
                     : "لا يوجد وصف إضافي متوفر لهذه القطعة حالياً."}
@@ -741,7 +755,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
               </div>
             </div>
 
-            <div className="p-5 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] flex gap-3 shrink-0">
+            <div className="p-5 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] flex gap-3 shrink-0">
               <button 
                 onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} 
                 className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95"
@@ -768,7 +782,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 type="text" 
                 value={buildName}
                 onChange={(e) => setBuildName(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-900 dark:text-white font-bold mb-8 text-center"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-900 dark:text-white font-bold mb-8 text-center placeholder-slate-400"
                 placeholder="مثال: تجميعة المونتاج 2026..."
                 autoFocus
               />
@@ -783,7 +797,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 </button>
                 <button 
                   onClick={() => setSaveModalOpen(false)} 
-                  className="w-full bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 py-3 rounded-xl font-bold transition-colors"
+                  className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-transparent dark:hover:bg-slate-800 text-slate-700 dark:text-slate-400 py-3 rounded-xl font-bold transition-colors border border-slate-200 dark:border-transparent"
                 >
                   إلغاء
                 </button>

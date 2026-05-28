@@ -1,16 +1,6 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/admin/page": "app/admin/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/api/builds/route": "app/api/builds/route.js",
-  "/api/get-components/route": "app/api/get-components/route.js",
-  "/api/setup/route": "app/api/setup/route.js",
-  "/api/update-amazon/route": "app/api/update-amazon/route.js",
-  "/api/update-cazasouq/route": "app/api/update-cazasouq/route.js",
-  "/build/[id]/page": "app/build/[id]/page.js",
-  "/components/[id]/page": "app/components/[id]/page.js",
-  "/components/page": "app/components/page.js",
-  "/login/page": "app/login/page.js",
-  "/my-builds/page": "app/my-builds/page.js",
-  "/page": "app/page.js"
+  "/api/update-single/route": "app/api/update-single/route.js",
+  "/components/[id]/page": "app/components/[id]/page.js"
 }

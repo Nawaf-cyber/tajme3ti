@@ -24,7 +24,9 @@ model Component {
   name        String   
   price       Float    @default(0)
   amazonPrice   Float?  // سعر أمازون
+  amazonInStock   Boolean @default(true)
   cazasouqPrice Float?  // سعر كازاسوق
+  cazasouqInStock Boolean @default(true)
   tdpWattage  Int      @default(0)
   specs       Json     
   imageUrl    String?  
