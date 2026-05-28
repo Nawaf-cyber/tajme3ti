@@ -34,7 +34,6 @@ const formatTextWithLinks = (text: string) => {
           rel="noopener noreferrer" 
           className="inline-flex items-center gap-2.5 mt-3 mb-1 px-5 py-2.5 bg-gradient-to-br from-white to-slate-50 border border-slate-200 dark:from-[#111A30] dark:to-[#0F172A] dark:border-slate-800 rounded-xl text-blue-600 dark:text-blue-400 font-extrabold text-sm shadow-sm hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 hover:shadow-blue-500/10 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 w-fit"
         >
-          {/* أيقونة عالمية أنيقة (Global Link Icon) */}
           <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
           </svg>
@@ -82,11 +81,9 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
           </Link>
         </nav>
 
-        {/* تمت إزالة overflow-hidden من هنا لتجنب حبس نافذة التكبير */}
         <div className="relative bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 md:p-10 shadow-sm flex flex-col lg:flex-row gap-10 items-center">
           <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/5 blur-3xl rounded-full pointer-events-none"></div>
           
-          {/* تم رفع z-index إلى 100 هنا */}
           <div className="w-full lg:w-1/2 flex justify-center relative z-[100]">
             <div className="w-full max-w-[450px] aspect-square bg-slate-100/50 dark:bg-[#0B1120]/50 rounded-2xl flex items-center justify-center p-8 lg:p-12 border border-slate-200/50 dark:border-slate-700/30">
               <ImageZoom 
@@ -96,7 +93,6 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             </div>
           </div>
 
-          {/* تمت إزالة relative z-10 من هنا لكي لا يتداخل مع الصورة */}
           <div className="w-full lg:w-1/2 flex flex-col justify-center">
             <div className="flex items-center gap-3 mb-4">
               <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md text-xs font-bold uppercase tracking-widest">
@@ -111,9 +107,9 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               {comp.name}
             </h1>
             
-            <div className="flex flex-wrap items-end gap-4 mb-8 pb-8 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex flex-wrap items-end gap-4 mb-4 pb-6 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-1">السعر الحالي</p>
+                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-1">أقل سعر حالي</p>
                 <div className="text-4xl md:text-5xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
                   {comp.price} <RiyalIcon size="h-9 w-9" />
                 </div>
@@ -126,18 +122,42 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               )}
             </div>
 
+            {/* قائمة مقارنة الأسعار الجديدة */}
             {(comp.amazonUrl || comp.cazasouqUrl) && (
-              <div className="flex flex-col sm:flex-row gap-4 relative z-0">
-                {comp.amazonUrl && (
-                  <a href={comp.amazonUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-bold rounded-xl transition-transform hover:-translate-y-1 shadow-lg shadow-slate-900/20 dark:shadow-white/10">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M15.545 15.688c-1.323 1.096-3.21 1.637-5.32 1.637-2.613 0-4.636-.723-5.714-2.036-.088-.108-.073-.242.032-.338l1.41-1.28c.113-.104.267-.09.366.027.674.802 2.052 1.343 3.868 1.343 2.053 0 3.238-.568 3.238-1.545 0-2.31-6.177-1.125-6.177-4.57 0-1.63 1.252-2.923 3.65-2.923 1.765 0 3.327.568 4.29 1.433.11.098.118.243.023.344l-1.332 1.397c-.097.102-.248.1-.346-.006-.61-.655-1.636-1.002-2.67-1.002-1.323 0-2.072.486-2.072 1.18 0 2.04 6.178.89 6.178 4.673 0 1.615-1.22 2.812-3.414 2.812-.008 0 .002.002-.005 0zm6.273-5.234c.05-.125-.015-.27-.145-.316l-1.46-.516c-.11-.038-.236.007-.294.11-1.056 1.838-2.887 3.016-5.46 3.633-.133.032-.198.172-.143.298l.582 1.335c.05.114.185.166.305.132 3.197-.884 5.485-2.483 6.615-4.676z"/></svg>
-                    شراء من Amazon
+              <div className="flex flex-col gap-3 mt-4 w-full relative z-0">
+                <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">مقارنة الأسعار في المتاجر:</h3>
+
+                {comp.amazonUrl && comp.amazonPrice && (
+                  <a 
+                    href={comp.amazonUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#0F172A]/50 border border-slate-200 dark:border-slate-700/50 hover:border-[#FF9900]/80 rounded-xl transition-all group shadow-sm"
+                  >
+                    <span className="font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white flex items-center gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF9900] shadow-[0_0_8px_#FF9900]/60"></span>
+                      Amazon
+                    </span>
+                    <span className="font-black text-lg text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500 transition-colors">
+                      {comp.amazonPrice} ر.س
+                    </span>
                   </a>
                 )}
-                {comp.cazasouqUrl && (
-                  <a href={comp.cazasouqUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-3 px-8 py-4 bg-[#FF9900] hover:bg-[#E68A00] text-white font-bold rounded-xl transition-transform hover:-translate-y-1 shadow-lg shadow-[#FF9900]/20">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
-                    شراء من Cazasouq
+
+                {comp.cazasouqUrl && comp.cazasouqPrice && (
+                  <a 
+                    href={comp.cazasouqUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#0F172A]/50 border border-slate-200 dark:border-slate-700/50 hover:border-purple-500/80 rounded-xl transition-all group shadow-sm"
+                  >
+                    <span className="font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white flex items-center gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_#A855F7]/60"></span>
+                      CazaSouq
+                    </span>
+                    <span className="font-black text-lg text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500 transition-colors">
+                      {comp.cazasouqPrice} ر.س
+                    </span>
                   </a>
                 )}
               </div>
@@ -185,7 +205,6 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
           </div>
 
         </div>
-
       </div>
     </div>
   );
