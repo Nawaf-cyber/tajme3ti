@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "../../lib/prisma";
 import AdminManager from "./AdminManager";
 import Link from 'next/link';
+import { getCronStatus } from "./actions"; // 1. استيراد دالة جلب الحالة من الـ actions
 
 // ضع إيميلك أو إيميلات الإدارة هنا
-const ADMIN_EMAILS = ["admin@pcbuilder.com"];
+const ADMIN_EMAILS = ["admin@pcbuilder.com", "admin2@pcbuilder.com"];
 
 export default async function AdminDashboard() {
   const session = await getServerSession();
@@ -31,6 +32,9 @@ export default async function AdminDashboard() {
     orderBy: { createdAt: 'desc' }
   });
 
+  // 2. جلب حالة التحديث التلقائي من قاعدة البيانات (سيرفر سايد)
+  const cronStatus = await getCronStatus();
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
@@ -41,7 +45,8 @@ export default async function AdminDashboard() {
           </span>
         </div>
         
-        <AdminManager categories={categories} components={components} news={news} />
+        {/* 3. تمرير القيمة المستخرجة كمستند أساسي إلى المكون الإداري */}
+        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} />
       </div>
     </main>
   );

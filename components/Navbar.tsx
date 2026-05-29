@@ -14,7 +14,6 @@ export default function Navbar() {
   useEffect(() => setMounted(true), []);
 
   return (
-    // التعديل هنا: إضافة w-full و overflow-x-hidden للحاوية
     <nav className="w-full bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-lg border-b border-slate-200/60 dark:border-slate-800/60 shadow-sm sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -93,7 +92,7 @@ export default function Navbar() {
                     <span className="text-sm font-bold uppercase">{session.user?.email?.[0] || 'U'}</span>
                   </button>
                   {/* Tooltip للمستخدم وتسجيل الخروج */}
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top translate-y-2 group-hover:translate-y-0">
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top translate-y-2 group-hover:translate-y-0">
                     <div className="p-3 border-b border-slate-100 dark:border-slate-700">
                       <p className="text-xs text-slate-400 mb-0.5">مسجل الدخول كـ</p>
                       <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{session.user?.email}</p>

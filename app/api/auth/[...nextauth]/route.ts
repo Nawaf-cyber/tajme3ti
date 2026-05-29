@@ -33,6 +33,9 @@ const handler = NextAuth({
           where: { email: credentials.email }
         });
 
+        // سطر فحص البيانات المرجوعة من قاعدة البيانات
+        console.log("User data from DB:", user);
+
         if (!user || !user.password) return null;
 
         const isPasswordValid = await compare(credentials.password, user.password);
@@ -48,6 +51,7 @@ const handler = NextAuth({
       if (user) {
         // @ts-ignore
         token.role = user.role;
+        // @ts-ignore
         token.id = user.id;
       }
       return token;

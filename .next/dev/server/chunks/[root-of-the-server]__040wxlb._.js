@@ -199,6 +199,8 @@ const handler = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules
                         email: credentials.email
                     }
                 });
+                // سطر فحص البيانات المرجوعة من قاعدة البيانات
+                console.log("User data from DB:", user);
                 if (!user || !user.password) return null;
                 const isPasswordValid = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$bcryptjs$2f$index$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["compare"])(credentials.password, user.password);
                 if (!isPasswordValid) return null;
@@ -216,6 +218,7 @@ const handler = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules
             if (user) {
                 // @ts-ignore
                 token.role = user.role;
+                // @ts-ignore
                 token.id = user.id;
             }
             return token;

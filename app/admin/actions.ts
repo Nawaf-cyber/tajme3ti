@@ -3,6 +3,30 @@
 import { prisma } from '../../lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+export async function getCronStatus() {
+  try {
+    const setting = await prisma.systemSetting.findUnique({ where: { id: "default" } });
+    return setting ? setting.cronEnabled : false;
+  } catch (error) {
+    console.error("Failed to fetch cron status:", error);
+    return false;
+  }
+}
+
+export async function toggleCronStatus(enabled: boolean) {
+  try {
+    await prisma.systemSetting.upsert({
+      where: { id: "default" },
+      update: { cronEnabled: enabled },
+      create: { id: "default", cronEnabled: enabled },
+    });
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function addComponent(formData: FormData) {
   const categoryId = formData.get('categoryId') as string;
   const brand = formData.get('brand') as string;

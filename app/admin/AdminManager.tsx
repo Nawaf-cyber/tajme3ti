@@ -8,6 +8,7 @@ import UpdateCazasouqButton from './components/UpdateCazasouqButton';
 import UpdateAmazonButton from './components/UpdateAmazonButton';
 import UpdatePricesButton from './UpdatePricesButton';
 import UpdateSingleButton from './components/UpdateSingleButton';
+import CronControlToggle from './components/CronControlToggle'; // 1. استيراد مكون الزر
 
 // خريطة الحقول التلقائية بناءً على الفئة
 const categoryFieldsMap: Record<string, { key: string, label: string, type: 'text' | 'number' | 'select', options?: string[] }[]> = {
@@ -45,7 +46,8 @@ const categoryFieldsMap: Record<string, { key: string, label: string, type: 'tex
   ]
 };
 
-export default function AdminManager({ categories, components, news }: { categories: any[], components: any[], news: any[] }) {
+// 2. تحديث الدالة لاستقبال المتغير الجديد cronStatus
+export default function AdminManager({ categories, components, news, cronStatus }: { categories: any[], components: any[], news: any[], cronStatus: boolean }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news'>('components');
   
   const [editingComponent, setEditingComponent] = useState<any>(null);
@@ -175,9 +177,12 @@ export default function AdminManager({ categories, components, news }: { categor
         
       </div>
       
-        <div className="mb-6 flex gap-2">
-          <UpdatePricesButton />
-        </div>
+      {/* 3. إضافة الزر الجديد هنا بجانب زر التحديث القديم */}
+      <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
+        <UpdatePricesButton />
+        <CronControlToggle initialStatus={cronStatus} />
+      </div>
+
       {activeTab === 'components' && (
         <div className="flex flex-col gap-8 animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 transition-colors duration-200">
