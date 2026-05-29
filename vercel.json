@@ -8,12 +8,6 @@
       "path": "/api/update-cazasouq",
       "schedule": "30 0 * * *"
     }
-  ],
-    "crons": [
-    {
-      "path": "/api/cron/update-all",
-      "schedule": "0 * * * *"
-    }
   ]
 
 }
