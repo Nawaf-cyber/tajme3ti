@@ -1,13 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/update-amazon",
+      "path": "/api/cron/update-all",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/update-cazasouq",
-      "schedule": "30 0 * * *"
     }
   ]
-
 }
