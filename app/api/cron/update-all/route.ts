@@ -31,6 +31,7 @@ export async function GET(req: Request) {
     });
 
     let updatedCount = 0;
+    let updatedNames: string[] = []; // إضافة هذا السطر
 
     // 3. حلقة السحب والتحديث
     for (const comp of components) {
@@ -129,11 +130,15 @@ export async function GET(req: Request) {
       });
 
       updatedCount++;
+      updatedNames.push(comp.name); // إضافة هذا السطر (تأكد أن حقل الاسم في Prisma هو name)
     }
+    
+    console.log(`[Cron Job] تم تحديث ${updatedCount} قطعة بنجاح:`, updatedNames.join(" ، "));
 
     return NextResponse.json({ 
       success: true, 
-      message: `تم تحديث بيانات ${updatedCount} قطعة بنجاح.` 
+      message: `تم تحديث بيانات ${updatedCount} قطعة بنجاح.` ,
+      updatedNames // إرجاع أسماء القطع التي تم تحديثها (يمكنك تعديل هذا حسب الحاجة)
     });
 
   } catch (error: any) {

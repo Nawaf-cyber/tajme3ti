@@ -9,6 +9,7 @@ import UpdateAmazonButton from './components/UpdateAmazonButton';
 import UpdatePricesButton from './UpdatePricesButton';
 import UpdateSingleButton from './components/UpdateSingleButton';
 import CronControlToggle from './components/CronControlToggle'; // 1. استيراد مكون الزر
+import ManualUpdateButton from "./components/ManualUpdateButton";
 
 // خريطة الحقول التلقائية بناءً على الفئة
 const categoryFieldsMap: Record<string, { key: string, label: string, type: 'text' | 'number' | 'select', options?: string[] }[]> = {
@@ -181,7 +182,10 @@ export default function AdminManager({ categories, components, news, cronStatus 
       <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
         <UpdatePricesButton />
         <CronControlToggle initialStatus={cronStatus} />
+        
       </div>
+      {/* الزر اليدوي الجديد */}
+      <ManualUpdateButton />
 
       {activeTab === 'components' && (
         <div className="flex flex-col gap-8 animate-in fade-in duration-300">
