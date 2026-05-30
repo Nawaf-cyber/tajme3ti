@@ -27,6 +27,9 @@ model Component {
   amazonInStock   Boolean @default(true)
   cazasouqPrice Float?  // سعر كازاسوق
   cazasouqInStock Boolean @default(true)
+  microlessUrl     String?
+  microlessPrice   Float?
+  microlessInStock Boolean?  @default(true)
   tdpWattage  Int      @default(0)
   specs       Json     
   imageUrl    String?  

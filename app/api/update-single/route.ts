@@ -17,9 +17,11 @@ export async function POST(req: Request) {
     
     let finalAmazonPrice = comp.amazonPrice || Infinity;
     let finalCazasouqPrice = comp.cazasouqPrice || Infinity;
+    let finalMicrolessPrice = comp.microlessPrice || Infinity;
     
     let amazonInStock = true;
     let cazasouqInStock = true;
+    let microlessInStock = true;
     
     let errors: string[] = [];
 
@@ -27,16 +29,15 @@ export async function POST(req: Request) {
     if (comp.amazonUrl) {
       try {
         const targetUrl = encodeURIComponent(comp.amazonUrl);
-        const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}`;
+        const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
         const res = await fetch(url, { cache: 'no-store' });
         
         if (res.ok) {
           const html = await res.text();
           const $ = cheerio.load(html);
           
-          // فحص التوفر في أمازون
           const amzAvailability = $('#availability').text().toLowerCase();
-          if (amzAvailability.includes('currently unavailable') || amzAvailability.includes('غير متوفر')) {
+          if (amzAvailability.includes('currently unavailable') || amzAvailability.includes('غير متوفر') || amzAvailability.includes('لا يتوفر')) {
             amazonInStock = false;
           }
 
@@ -72,7 +73,6 @@ export async function POST(req: Request) {
           const html = await res.text();
           const $ = cheerio.load(html);
           
-          // فحص التوفر في كازاسوق (بحث عن كلمات نفاذ الكمية في زر الإضافة أو الصفحة)
           const buttonText = $('button[name="add"], .add-to-cart, .product-form__submit').text().toLowerCase();
           const outOfStockKeywords = ['نفدت', 'نفذت', 'sold out', 'out of stock', 'غير متوفر'];
           const isOutOfStock = outOfStockKeywords.some(keyword => buttonText.includes(keyword) || html.toLowerCase().includes(keyword));
@@ -107,14 +107,68 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. حساب السعر الأقل
-    // تجاهل سعر المتجر إذا كان غير متوفر أثناء حساب السعر الأقل
+    // 3. الدخول وسحب سعر مايكروليس
+    if (comp.microlessUrl) {
+      try {
+        const targetUrl = encodeURIComponent(comp.microlessUrl);
+        // إضافة premium=true لضمان استخدام بروكسي سكني سعودي وتجنب تغير العملة للدرهم
+        const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
+        const res = await fetch(url, { cache: 'no-store' });
+        
+        if (res.ok) {
+          const html = await res.text();
+          const $ = cheerio.load(html);
+          const htmlLower = html.toLowerCase();
+          
+          // -- 1. فحص التوفر بدقة --
+          // نعتمد على بيانات Schema الدقيقة المخفية، أو وجود زر "إضافة للسلة"
+          const metaAvailability = $('meta[property="product:availability"]').attr('content') || '';
+          
+          if (metaAvailability.includes('out of stock') || metaAvailability.includes('oos')) {
+            microlessInStock = false;
+          } else {
+            const hasAddToCart = htmlLower.includes('add to cart') || htmlLower.includes('إضافة إلى العربة');
+            if (!hasAddToCart && (htmlLower.includes('notify me') || htmlLower.includes('no longer available'))) {
+              microlessInStock = false;
+            } else {
+              microlessInStock = true;
+            }
+          }
+
+          // -- 2. فحص السعر بدقة --
+          // نستهدف الميتا داتا أولاً لأنها لا تتأثر بالمنتجات المقترحة (Related Products)
+          let priceText = $('meta[property="product:price:amount"]').attr('content');
+          
+          if (!priceText) {
+            priceText = $('.product-details .price, .product-info .amount, .product-price').first().text();
+          }
+
+          let cleanedPrice = parseFloat((priceText || '').replace(/,/g, '').replace(/[^0-9.]/g, ''));
+          
+          // لو لسبب ما سحب الموقع السعر بالدرهم الإماراتي (AED)، نعدله للريال (ضرب 1.022)
+          if (htmlLower.includes('aed') && !htmlLower.includes('sar')) {
+            cleanedPrice = cleanedPrice * 1.022;
+          }
+
+          if (!isNaN(cleanedPrice) && cleanedPrice > 0) {
+            finalMicrolessPrice = parseFloat(cleanedPrice.toFixed(2));
+          } else {
+            errors.push('لم يتم العثور على سعر صالح في مايكروليس.');
+          }
+        } else {
+          errors.push(`فشل اتصال سيرفر مايكروليس: ${res.status}`);
+        }
+      } catch (e: any) {
+        errors.push(`خطأ في مايكروليس: ${e.message}`);
+      }
+    }
+
+    // 4. حساب السعر الأقل للمتاجر الثلاثة
     let validAmazonPrice = amazonInStock ? finalAmazonPrice : Infinity;
     let validCazasouqPrice = cazasouqInStock ? finalCazasouqPrice : Infinity;
+    let validMicrolessPrice = microlessInStock ? finalMicrolessPrice : Infinity;
     
-    let lowestPrice = Math.min(validAmazonPrice, validCazasouqPrice);
-    
-    // إذا كان كلاهما غير متوفر، نحتفظ بآخر سعر مسجل كمرجع
+    let lowestPrice = Math.min(validAmazonPrice, validCazasouqPrice, validMicrolessPrice);
     const validLowestPrice = lowestPrice !== Infinity ? lowestPrice : comp.price;
 
     await prisma.component.update({
@@ -122,8 +176,10 @@ export async function POST(req: Request) {
       data: {
         amazonPrice: finalAmazonPrice !== Infinity ? finalAmazonPrice : comp.amazonPrice,
         cazasouqPrice: finalCazasouqPrice !== Infinity ? finalCazasouqPrice : comp.cazasouqPrice,
+        microlessPrice: finalMicrolessPrice !== Infinity ? finalMicrolessPrice : comp.microlessPrice,
         amazonInStock,
         cazasouqInStock,
+        microlessInStock,
         price: validLowestPrice
       }
     });
@@ -133,6 +189,7 @@ export async function POST(req: Request) {
       price: validLowestPrice,
       amazonInStock,
       cazasouqInStock,
+      microlessInStock,
       errors: errors.length > 0 ? errors : undefined 
     });
 

@@ -23,7 +23,8 @@ export async function GET(req: Request) {
       where: { 
         OR: [
           { amazonUrl: { contains: "http" } },
-          { cazasouqUrl: { contains: "http" } }
+          { cazasouqUrl: { contains: "http" } },
+          { microlessUrl: { contains: "http" } }
         ]
       },
       orderBy: { updatedAt: 'asc' }, // الترتيب تصاعدياً (الأقدم أولاً)
@@ -37,8 +38,11 @@ export async function GET(req: Request) {
     for (const comp of components) {
       let finalAmazonPrice = comp.amazonPrice || Infinity;
       let finalCazasouqPrice = comp.cazasouqPrice || Infinity;
+      let finalMicrolessPrice = comp.microlessPrice || Infinity;
+
       let amazonInStock = comp.amazonInStock ?? true;
       let cazasouqInStock = comp.cazasouqInStock ?? true;
+      let microlessInStock = comp.microlessInStock ?? true;
 
       // تحديث أمازون
       if (comp.amazonUrl) {
@@ -113,16 +117,77 @@ export async function GET(req: Request) {
         }
       }
 
-      // حساب السعر الأقل بناءً على توفر المخزون
+      // تحديث مايكروليس
+      if (comp.microlessUrl) {
+        try {
+          const targetUrl = encodeURIComponent(comp.microlessUrl);
+          // premium و country_code=sa ضرورية لمنع الموقع من تغيير العملة للدرهم الإماراتي
+          const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
+          const res = await fetch(url, { cache: 'no-store' });
+          
+          if (res.ok) {
+            const html = await res.text();
+            const $ = cheerio.load(html);
+            const htmlLower = html.toLowerCase();
+            
+            // 1. فحص التوفر بدقة
+            const metaAvailability = $('meta[property="product:availability"]').attr('content') || '';
+            
+            if (metaAvailability.includes('out of stock') || metaAvailability.includes('oos')) {
+              microlessInStock = false;
+            } else {
+              const hasAddToCart = htmlLower.includes('add to cart') || htmlLower.includes('إضافة إلى العربة');
+              if (!hasAddToCart && (htmlLower.includes('notify me') || htmlLower.includes('no longer available'))) {
+                microlessInStock = false;
+              } else {
+                microlessInStock = true;
+              }
+            }
+
+            // 2. فحص السعر بدقة
+            let priceText = $('meta[property="product:price:amount"]').attr('content');
+            if (!priceText) {
+              priceText = $('.product-details .price, .product-info .amount, .product-price').first().text();
+            }
+
+            let cleanedPrice = parseFloat((priceText || '').replace(/,/g, '').replace(/[^0-9.]/g, ''));
+            
+            // تصحيح العملة لو تم تحويلها للدرهم بالخطأ
+            if (htmlLower.includes('aed') && !htmlLower.includes('sar')) {
+              cleanedPrice = cleanedPrice * 1.022;
+            }
+
+            if (!isNaN(cleanedPrice) && cleanedPrice > 0) {
+              finalMicrolessPrice = parseFloat(cleanedPrice.toFixed(2));
+            }
+          }
+        } catch (e) {
+          // تجاهل
+        }
+      }
+
+      // حساب السعر الأقل بناءً على توفر المخزون للمتاجر الثلاثة
       let validAmazonPrice = amazonInStock ? finalAmazonPrice : Infinity;
       let validCazasouqPrice = cazasouqInStock ? finalCazasouqPrice : Infinity;
-      let lowestPrice = Math.min(validAmazonPrice, validCazasouqPrice);
+      let validMicrolessPrice = microlessInStock ? finalMicrolessPrice : Infinity;
+      
+      let lowestPrice = Math.min(validAmazonPrice, validCazasouqPrice, validMicrolessPrice);
       const validLowestPrice = lowestPrice !== Infinity ? lowestPrice : comp.price;
 
-      // التحقق إذا السعر الجديد أقل من السعر القديم
+      // 1. تنبيه نزول السعر (Deal Alert)
       let alertTag = "";
       if (validLowestPrice < comp.price && validLowestPrice !== Infinity) {
-        alertTag = " 📉 **سعر لقطة!** <@&رقم_الرتبة>"; // استبدل رقم_الرتبة بـ ID الرتبة في ديسكورد
+        alertTag = " 📉 **سعر لقطة!** <@&1510204041588900023>"; 
+      }
+
+      // 2. تنبيه إعادة التوفر في المخزون (Restock Alert)
+      let restockTag = "";
+      const amazonRestocked = (comp.amazonInStock === false && amazonInStock === true && finalAmazonPrice !== Infinity);
+      const cazaRestocked = (comp.cazasouqInStock === false && cazasouqInStock === true && finalCazasouqPrice !== Infinity);
+      const microRestocked = (comp.microlessInStock === false && microlessInStock === true && finalMicrolessPrice !== Infinity);
+
+      if (amazonRestocked || cazaRestocked || microRestocked) {
+        restockTag = " 📦 **توفرت من جديد!** <@&1510206266243416127>"; 
       }
 
       // تحديث قاعدة البيانات
@@ -131,8 +196,10 @@ export async function GET(req: Request) {
         data: {
           amazonPrice: finalAmazonPrice !== Infinity ? finalAmazonPrice : comp.amazonPrice,
           cazasouqPrice: finalCazasouqPrice !== Infinity ? finalCazasouqPrice : comp.cazasouqPrice,
+          microlessPrice: finalMicrolessPrice !== Infinity ? finalMicrolessPrice : comp.microlessPrice,
           amazonInStock,
           cazasouqInStock,
+          microlessInStock,
           price: validLowestPrice
         }
       });
@@ -141,7 +208,6 @@ export async function GET(req: Request) {
       let stores: string[] = [];
       
       if (comp.amazonUrl) {
-        // تنظيف رابط أمازون من التتبع وحل مشكلة الحروف العربية
         let cleanAmzUrl = comp.amazonUrl.trim();
         if (cleanAmzUrl.includes('/ref=')) cleanAmzUrl = cleanAmzUrl.split('/ref=')[0];
         if (cleanAmzUrl.includes('?')) cleanAmzUrl = cleanAmzUrl.split('?')[0];
@@ -155,7 +221,6 @@ export async function GET(req: Request) {
       }
       
       if (comp.cazasouqUrl) {
-        // تنظيف رابط كازاسوق وتشفيره
         let cleanCazaUrl = comp.cazasouqUrl.trim();
         if (cleanCazaUrl.includes('?')) cleanCazaUrl = cleanCazaUrl.split('?')[0];
         cleanCazaUrl = encodeURI(decodeURI(cleanCazaUrl));
@@ -167,9 +232,22 @@ export async function GET(req: Request) {
         }
       }
 
+      if (comp.microlessUrl) {
+        let cleanMicroUrl = comp.microlessUrl.trim();
+        if (cleanMicroUrl.includes('?')) cleanMicroUrl = cleanMicroUrl.split('?')[0];
+        cleanMicroUrl = encodeURI(decodeURI(cleanMicroUrl));
+
+        if (microlessInStock && finalMicrolessPrice !== Infinity) {
+          stores.push(`[مايكروليس: ${finalMicrolessPrice} ريال](${cleanMicroUrl})`);
+        } else {
+          stores.push(`[مايكروليس: غير متوفر ❌](${cleanMicroUrl})`);
+        }
+      }
+
       updatedCount++;
+      // دمج التاغات مع اسم القطعة
       updatedItems.push({
-        name: `${comp.name}${alertTag}`,
+        name: `${comp.name}${alertTag}${restockTag}`,
         storeLinks: stores
       });
     }

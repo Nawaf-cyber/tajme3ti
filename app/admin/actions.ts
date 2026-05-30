@@ -38,6 +38,7 @@ export async function addComponent(formData: FormData) {
   const imageUrl = formData.get('imageUrl') as string || null;
   const amazonUrl = formData.get('amazonUrl') as string || null;
   const cazasouqUrl = formData.get('cazasouqUrl') as string || null;
+  const microlessUrl = formData.get('microlessUrl') as string || null;
   
   // معالجة آمنة لحقل مستوى الأداء
   const ptRaw = formData.get('performanceTier') as string;
@@ -45,7 +46,7 @@ export async function addComponent(formData: FormData) {
 
   await prisma.component.create({
     data: { 
-      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, performanceTier 
+      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, performanceTier, microlessUrl
     }
   });
 
@@ -65,7 +66,7 @@ export async function updateComponent(formData: FormData) {
   const imageUrl = formData.get('imageUrl') as string || null;
   const amazonUrl = formData.get('amazonUrl') as string || null;
   const cazasouqUrl = formData.get('cazasouqUrl') as string || null;
-  
+  const microlessUrl = formData.get('microlessUrl') as string || null;
   // معالجة آمنة لحقل مستوى الأداء
   const ptRaw = formData.get('performanceTier') as string;
   const performanceTier = (ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null;
@@ -73,7 +74,7 @@ export async function updateComponent(formData: FormData) {
   await prisma.component.update({
     where: { id },
     data: { 
-      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, performanceTier 
+      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, performanceTier, microlessUrl
     }
   });
 
