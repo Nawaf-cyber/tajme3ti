@@ -58,10 +58,11 @@ export async function GET(req: Request) {
               amazonInStock = true;
             }
 
-            let priceText = $('.a-price .a-offscreen').first().text() || 
-                            $('#corePriceDisplay_desktop_feature_div .a-price-whole').first().text() || 
-                            $('#corePrice_feature_div .a-price-whole').first().text() || 
-                            $('.apexPriceToPay .a-offscreen').first().text();
+            let priceText = $('#corePriceDisplay_desktop_feature_div .a-price-whole').first().text();
+            if (!priceText) priceText = $('#corePrice_feature_div .a-price-whole').first().text();
+            if (!priceText) priceText = $('.apexPriceToPay .a-offscreen').first().text();
+            if (!priceText) priceText = $('#priceblock_ourprice').text();
+            if (!priceText) priceText = $('.a-price[data-a-size="xl"] .a-offscreen').first().text();
             
             const cleanedPrice = parseFloat(priceText.replace(/,/g, '').replace(/[^0-9.]/g, ''));
             if (!isNaN(cleanedPrice) && cleanedPrice > 0) {
