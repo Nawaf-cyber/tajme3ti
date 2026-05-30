@@ -129,13 +129,23 @@ export async function GET(req: Request) {
         }
       });
 
-      // تجهيز الروابط والأسعار للديسكورد
+      // تجهيز الروابط والأسعار للديسكورد (مع إظهار حالة التوفر بشكل صريح)
       let stores: string[] = [];
-      if (comp.amazonUrl && amazonInStock && finalAmazonPrice !== Infinity) {
-        stores.push(`[أمازون: ${finalAmazonPrice} ريال](${comp.amazonUrl})`);
+      
+      if (comp.amazonUrl) {
+        if (amazonInStock && finalAmazonPrice !== Infinity) {
+          stores.push(`[أمازون: ${finalAmazonPrice} ريال](${comp.amazonUrl})`);
+        } else {
+          stores.push(`[أمازون: غير متوفر ❌](${comp.amazonUrl})`);
+        }
       }
-      if (comp.cazasouqUrl && cazasouqInStock && finalCazasouqPrice !== Infinity) {
-        stores.push(`[كازاسوق: ${finalCazasouqPrice} ريال](${comp.cazasouqUrl})`);
+      
+      if (comp.cazasouqUrl) {
+        if (cazasouqInStock && finalCazasouqPrice !== Infinity) {
+          stores.push(`[كازاسوق: ${finalCazasouqPrice} ريال](${comp.cazasouqUrl})`);
+        } else {
+          stores.push(`[كازاسوق: غير متوفر ❌](${comp.cazasouqUrl})`);
+        }
       }
 
       updatedCount++;
@@ -153,12 +163,15 @@ export async function GET(req: Request) {
     if (updatedCount > 0 && process.env.DISCORD_WEBHOOK_URL) {
       try {
         const descriptionText = `تم فحص وتحديث **${updatedCount}** قطعة.\n\n` + 
-          updatedItems.map(item => `**${item.name}**\n↳ ${item.storeLinks.length > 0 ? item.storeLinks.join(" | ") : "غير متوفر في المخزون حالياً"}`).join("\n\n");
+          updatedItems.map(item => {
+            const linksText = item.storeLinks.length > 0 ? item.storeLinks.join(" | ") : "لا توجد روابط مضافة لهذه القطعة ⚠️";
+            return `**${item.name}**\n↳ ${linksText}`;
+          }).join("\n\n");
 
         const discordPayload = {
           embeds: [
             {
-              title: "✅ تم تحديث الأسعار بنجاح",
+              title: "✅ تم تحديث الأسعار والتوفر",
               description: descriptionText,
               color: 3066993, // لون أخضر
               timestamp: new Date().toISOString()
