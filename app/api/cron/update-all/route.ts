@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     });
 
     let updatedCount = 0;
-    let updatedNames: string[] = []; // إضافة هذا السطر
+    let updatedItems: { name: string; storeLinks: string[] }[] = []; // التعديل هنا لتخزين تفاصيل القطع والمتاجر
 
     // 3. حلقة السحب والتحديث
     for (const comp of components) {
@@ -129,40 +129,57 @@ export async function GET(req: Request) {
         }
       });
 
+      // تجهيز الروابط والأسعار للديسكورد
+      let stores: string[] = [];
+      if (comp.amazonUrl && amazonInStock && finalAmazonPrice !== Infinity) {
+        stores.push(`[أمازون: ${finalAmazonPrice} ريال](${comp.amazonUrl})`);
+      }
+      if (comp.cazasouqUrl && cazasouqInStock && finalCazasouqPrice !== Infinity) {
+        stores.push(`[كازاسوق: ${finalCazasouqPrice} ريال](${comp.cazasouqUrl})`);
+      }
+
       updatedCount++;
-      updatedNames.push(comp.name); // إضافة هذا السطر (تأكد أن حقل الاسم في Prisma هو name)
+      updatedItems.push({
+        name: comp.name,
+        storeLinks: stores
+      });
     }
     
+    // استخراج الأسماء لطباعتها في الـ Console وإرجاعها للـ API
+    const updatedNames = updatedItems.map(item => item.name);
     console.log(`[Cron Job] تم تحديث ${updatedCount} قطعة بنجاح:`, updatedNames.join(" ، "));
 
-    // إرسال إشعار للديسكورد
-if (updatedCount > 0 && process.env.DISCORD_WEBHOOK_URL) {
-  try {
-    const discordPayload = {
-      embeds: [
-        {
-          title: "✅ تم تحديث الأسعار بنجاح",
-          description: `تم فحص وتحديث **${updatedCount}** قطعة.\n\n**قائمة القطع المحدثة:**\n${updatedNames.map(n => `• ${n}`).join("\n")}`,
-          color: 3066993, // لون أخضر
-          timestamp: new Date().toISOString()
-        }
-      ]
-    };
+    // إرسال إشعار للديسكورد بالتنسيق الجديد
+    if (updatedCount > 0 && process.env.DISCORD_WEBHOOK_URL) {
+      try {
+        const descriptionText = `تم فحص وتحديث **${updatedCount}** قطعة.\n\n` + 
+          updatedItems.map(item => `**${item.name}**\n↳ ${item.storeLinks.length > 0 ? item.storeLinks.join(" | ") : "غير متوفر في المخزون حالياً"}`).join("\n\n");
 
-    await fetch(process.env.DISCORD_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(discordPayload)
-    });
-  } catch (error) {
-    console.error("فشل إرسال إشعار الديسكورد:", error);
-  }
-}
+        const discordPayload = {
+          embeds: [
+            {
+              title: "✅ تم تحديث الأسعار بنجاح",
+              description: descriptionText,
+              color: 3066993, // لون أخضر
+              timestamp: new Date().toISOString()
+            }
+          ]
+        };
+
+        await fetch(process.env.DISCORD_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(discordPayload)
+        });
+      } catch (error) {
+        console.error("فشل إرسال إشعار الديسكورد:", error);
+      }
+    }
 
     return NextResponse.json({ 
       success: true, 
       message: `تم تحديث بيانات ${updatedCount} قطعة بنجاح.` ,
-      updatedNames // إرجاع أسماء القطع التي تم تحديثها (يمكنك تعديل هذا حسب الحاجة)
+      updatedNames
     });
 
   } catch (error: any) {
