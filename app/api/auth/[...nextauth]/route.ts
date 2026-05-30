@@ -1,14 +1,13 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "../../../../lib/prisma";
 import { compare } from "bcryptjs";
 
-const handler = NextAuth({
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   providers: [
-    // 1. تسجيل الدخول عبر Google
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
@@ -18,8 +17,6 @@ const handler = NextAuth({
         }
       }
     }),
-
-    // 2. تسجيل الدخول القديم (البريد الإلكتروني وكلمة المرور)
     CredentialsProvider({
       name: "Login",
       credentials: {
@@ -32,9 +29,6 @@ const handler = NextAuth({
         const user = await prisma.user.findUnique({
           where: { email: credentials.email }
         });
-
-        // سطر فحص البيانات المرجوعة من قاعدة البيانات
-        console.log("User data from DB:", user);
 
         if (!user || !user.password) return null;
 
@@ -49,9 +43,7 @@ const handler = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        // @ts-ignore
         token.role = user.role;
-        // @ts-ignore
         token.id = user.id;
       }
       return token;
@@ -70,6 +62,8 @@ const handler = NextAuth({
     strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET || "fallback_secret_key_for_development",
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

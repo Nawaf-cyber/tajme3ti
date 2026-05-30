@@ -1,19 +1,20 @@
-export const dynamic = 'force-dynamic'; // هذا السطر هو الذي سيحل المشكلة ويدمر الكاش
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '../../../lib/prisma';
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || "fallback_secret_key_for_development" });
+  const session = await getServerSession(authOptions);
 
-  if (!token || !token.id) {
+  if (!session || !session.user || !(session.user as any).id) {
     return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
   }
 
   try {
     const builds = await prisma.savedBuild.findMany({
-      where: { userId: token.id as string },
+      where: { userId: (session.user as any).id as string },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
         imageUrl: true,
         amazonUrl: true,
         cazasouqUrl: true,
-        performanceTier: true // تأكدنا من وجودها هنا
+        performanceTier: true 
       }
     });
 
@@ -57,9 +58,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || "fallback_secret_key_for_development" });
+  const session = await getServerSession(authOptions);
 
-  if (!token || !token.id) {
+  if (!session || !session.user || !(session.user as any).id) {
     return NextResponse.json({ message: 'يجب تسجيل الدخول لحفظ التجميعة' }, { status: 401 });
   }
 
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
 
     const newBuild = await prisma.savedBuild.create({
       data: {
-        userId: token.id as string,
+        userId: (session.user as any).id as string,
         name: name || "تجميعة مخصصة",
         cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId
       }
