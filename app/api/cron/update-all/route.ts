@@ -135,6 +135,30 @@ export async function GET(req: Request) {
     
     console.log(`[Cron Job] تم تحديث ${updatedCount} قطعة بنجاح:`, updatedNames.join(" ، "));
 
+    // إرسال إشعار للديسكورد
+if (updatedCount > 0 && process.env.DISCORD_WEBHOOK_URL) {
+  try {
+    const discordPayload = {
+      embeds: [
+        {
+          title: "✅ تم تحديث الأسعار بنجاح",
+          description: `تم فحص وتحديث **${updatedCount}** قطعة.\n\n**قائمة القطع المحدثة:**\n${updatedNames.map(n => `• ${n}`).join("\n")}`,
+          color: 3066993, // لون أخضر
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
+
+    await fetch(process.env.DISCORD_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(discordPayload)
+    });
+  } catch (error) {
+    console.error("فشل إرسال إشعار الديسكورد:", error);
+  }
+}
+
     return NextResponse.json({ 
       success: true, 
       message: `تم تحديث بيانات ${updatedCount} قطعة بنجاح.` ,
