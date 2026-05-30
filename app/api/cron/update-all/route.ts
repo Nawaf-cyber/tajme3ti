@@ -16,7 +16,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "التحديث التلقائي معطل حالياً من لوحة التحكم." }, { status: 200 });
     }
 
-    const SCRAPER_API_KEY = "dbd6d15311b2604075c1aa72ae26849d";
+    const SCRAPER_API_KEY = "cbefd79855776832088f89e006209b25";
     
     // 2. سحب أقدم 10 قطع لم يتم تحديثها لتجنب Timeout
     const components = await prisma.component.findMany({
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     });
 
     let updatedCount = 0;
-    let updatedItems: { name: string; storeLinks: string[] }[] = []; // التعديل هنا لتخزين تفاصيل القطع والمتاجر
+    let updatedItems: { name: string; storeLinks: string[] }[] = []; 
 
     // 3. حلقة السحب والتحديث
     for (const comp of components) {
@@ -44,7 +44,7 @@ export async function GET(req: Request) {
       if (comp.amazonUrl) {
         try {
           const targetUrl = encodeURIComponent(comp.amazonUrl);
-          const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}`;
+          const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
           const res = await fetch(url, { cache: 'no-store' });
           
           if (res.ok) {
@@ -52,13 +52,14 @@ export async function GET(req: Request) {
             const $ = cheerio.load(html);
             
             const amzAvailability = $('#availability').text().toLowerCase();
-            if (amzAvailability.includes('currently unavailable') || amzAvailability.includes('غير متوفر')) {
+            if (amzAvailability.includes('currently unavailable') || amzAvailability.includes('غير متوفر') || amzAvailability.includes('لا يتوفر')) {
               amazonInStock = false;
             } else {
               amazonInStock = true;
             }
 
-            let priceText = $('#corePriceDisplay_desktop_feature_div .a-price-whole').first().text() || 
+            let priceText = $('.a-price .a-offscreen').first().text() || 
+                            $('#corePriceDisplay_desktop_feature_div .a-price-whole').first().text() || 
                             $('#corePrice_feature_div .a-price-whole').first().text() || 
                             $('.apexPriceToPay .a-offscreen').first().text();
             
@@ -68,7 +69,7 @@ export async function GET(req: Request) {
             }
           }
         } catch (e) {
-          // تجاهل أخطاء القطعة الواحدة للانتقال للتي تليها
+          // تجاهل
         }
       }
 
@@ -117,6 +118,12 @@ export async function GET(req: Request) {
       let lowestPrice = Math.min(validAmazonPrice, validCazasouqPrice);
       const validLowestPrice = lowestPrice !== Infinity ? lowestPrice : comp.price;
 
+      // التحقق إذا السعر الجديد أقل من السعر القديم
+      let alertTag = "";
+      if (validLowestPrice < comp.price && validLowestPrice !== Infinity) {
+        alertTag = " 📉 **سعر لقطة!** <@&رقم_الرتبة>"; // استبدل رقم_الرتبة بـ ID الرتبة في ديسكورد
+      }
+
       // تحديث قاعدة البيانات
       await prisma.component.update({
         where: { id: comp.id },
@@ -129,52 +136,66 @@ export async function GET(req: Request) {
         }
       });
 
-      // تجهيز الروابط والأسعار للديسكورد (مع إظهار حالة التوفر بشكل صريح)
+      // تجهيز الروابط والأسعار للديسكورد (مع تقصير الروابط وتشفيرها)
       let stores: string[] = [];
       
       if (comp.amazonUrl) {
+        // تنظيف رابط أمازون من التتبع وحل مشكلة الحروف العربية
+        let cleanAmzUrl = comp.amazonUrl.trim();
+        if (cleanAmzUrl.includes('/ref=')) cleanAmzUrl = cleanAmzUrl.split('/ref=')[0];
+        if (cleanAmzUrl.includes('?')) cleanAmzUrl = cleanAmzUrl.split('?')[0];
+        cleanAmzUrl = encodeURI(decodeURI(cleanAmzUrl));
+
         if (amazonInStock && finalAmazonPrice !== Infinity) {
-          stores.push(`[أمازون: ${finalAmazonPrice} ريال](${comp.amazonUrl})`);
+          stores.push(`[أمازون: ${finalAmazonPrice} ريال](${cleanAmzUrl})`);
         } else {
-          stores.push(`[أمازون: غير متوفر ❌](${comp.amazonUrl})`);
+          stores.push(`[أمازون: غير متوفر ❌](${cleanAmzUrl})`);
         }
       }
       
       if (comp.cazasouqUrl) {
+        // تنظيف رابط كازاسوق وتشفيره
+        let cleanCazaUrl = comp.cazasouqUrl.trim();
+        if (cleanCazaUrl.includes('?')) cleanCazaUrl = cleanCazaUrl.split('?')[0];
+        cleanCazaUrl = encodeURI(decodeURI(cleanCazaUrl));
+
         if (cazasouqInStock && finalCazasouqPrice !== Infinity) {
-          stores.push(`[كازاسوق: ${finalCazasouqPrice} ريال](${comp.cazasouqUrl})`);
+          stores.push(`[كازاسوق: ${finalCazasouqPrice} ريال](${cleanCazaUrl})`);
         } else {
-          stores.push(`[كازاسوق: غير متوفر ❌](${comp.cazasouqUrl})`);
+          stores.push(`[كازاسوق: غير متوفر ❌](${cleanCazaUrl})`);
         }
       }
 
       updatedCount++;
       updatedItems.push({
-        name: comp.name,
+        name: `${comp.name}${alertTag}`,
         storeLinks: stores
       });
     }
     
-    // استخراج الأسماء لطباعتها في الـ Console وإرجاعها للـ API
     const updatedNames = updatedItems.map(item => item.name);
     console.log(`[Cron Job] تم تحديث ${updatedCount} قطعة بنجاح:`, updatedNames.join(" ، "));
 
-    // إرسال إشعار للديسكورد بالتنسيق الجديد
-    // إرسال إشعار للديسكورد بالتنسيق الجديد
+    // إرسال إشعار للديسكورد
     if (updatedCount > 0 && process.env.DISCORD_WEBHOOK_URL) {
       try {
-        const descriptionText = `تم فحص وتحديث **${updatedCount}** قطعة.\n\n` + 
+        let descriptionText = `تم فحص وتحديث **${updatedCount}** قطعة.\n\n` + 
           updatedItems.map(item => {
-            const linksText = item.storeLinks.length > 0 ? item.storeLinks.join(" | ") : "لا توجد روابط مضافة لهذه القطعة ⚠️";
+            const linksText = item.storeLinks.length > 0 ? item.storeLinks.join(" | ") : "لا توجد روابط ⚠️";
             return `**${item.name}**\n↳ ${linksText}`;
           }).join("\n\n");
+
+        // حماية إلزامية: قص النص إذا تجاوز حد ديسكورد (4096 حرف)
+        if (descriptionText.length > 4000) {
+          descriptionText = descriptionText.substring(0, 4000) + "\n\n**... (تم قص باقي الرسالة لتجاوز حد أحرف ديسكورد)**";
+        }
 
         const discordPayload = {
           embeds: [
             {
               title: "✅ تم تحديث الأسعار والتوفر",
               description: descriptionText,
-              color: 3066993, // لون أخضر
+              color: 3066993,
               timestamp: new Date().toISOString()
             }
           ]

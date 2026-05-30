@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     
     if (!amazonUrl) return NextResponse.json({ error: "لا يوجد رابط" }, { status: 400 });
 
-    const SCRAPER_API_KEY = "dbd6d15311b2604075c1aa72ae26849d"; 
+    const SCRAPER_API_KEY = "cbefd79855776832088f89e006209b25"; 
     const targetUrl = encodeURIComponent(amazonUrl);
     const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}`;
 

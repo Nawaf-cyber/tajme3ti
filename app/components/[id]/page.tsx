@@ -146,55 +146,55 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
     <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">مقارنة الأسعار في المتاجر:</h3>
 
     {/* زر أمازون */}
-    {comp.amazonUrl && comp.amazonPrice && (
+    {comp.amazonUrl && (
       <a 
         href={comp.amazonUrl} 
         target="_blank" 
         rel="noopener noreferrer" 
         className={`flex items-center justify-between p-4 border rounded-xl transition-all group shadow-sm ${
-          !comp.amazonInStock 
+          !comp.amazonInStock || !comp.amazonPrice
             ? 'bg-slate-100 dark:bg-[#0B1120] border-slate-200 dark:border-slate-800 opacity-60 grayscale' 
             : 'bg-slate-50 dark:bg-[#0F172A]/50 border-slate-200 dark:border-slate-700/50 hover:border-[#FF9900]/80'
         }`}
       >
         <span className="font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white flex items-center gap-2.5">
-          <span className={`w-2.5 h-2.5 rounded-full ${comp.amazonInStock ? 'bg-[#FF9900] shadow-[0_0_8px_#FF9900]/60' : 'bg-rose-500 shadow-[0_0_8px_#F43F5E]/60'}`}></span>
+          <span className={`w-2.5 h-2.5 rounded-full ${comp.amazonInStock && comp.amazonPrice ? 'bg-[#FF9900] shadow-[0_0_8px_#FF9900]/60' : 'bg-rose-500 shadow-[0_0_8px_#F43F5E]/60'}`}></span>
           Amazon
-          {!comp.amazonInStock && (
+          {(!comp.amazonInStock || !comp.amazonPrice) && (
             <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-800/50">
               غير متوفر
             </span>
           )}
         </span>
-        <span className={`font-black text-lg ${comp.amazonInStock ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
-          {comp.amazonPrice} ر.س
+        <span className={`font-black text-lg ${comp.amazonInStock && comp.amazonPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
+          {comp.amazonPrice ? `${comp.amazonPrice} ر.س` : '---'}
         </span>
       </a>
     )}
 
     {/* زر كازاسوق */}
-    {comp.cazasouqUrl && comp.cazasouqPrice && (
+    {comp.cazasouqUrl && (
       <a 
         href={comp.cazasouqUrl} 
         target="_blank" 
         rel="noopener noreferrer" 
         className={`flex items-center justify-between p-4 border rounded-xl transition-all group shadow-sm ${
-          !comp.cazasouqInStock 
+          !comp.cazasouqInStock || !comp.cazasouqPrice
             ? 'bg-slate-100 dark:bg-[#0B1120] border-slate-200 dark:border-slate-800 opacity-60 grayscale' 
             : 'bg-slate-50 dark:bg-[#0F172A]/50 border-slate-200 dark:border-slate-700/50 hover:border-purple-500/80'
         }`}
       >
         <span className="font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white flex items-center gap-2.5">
-          <span className={`w-2.5 h-2.5 rounded-full ${comp.cazasouqInStock ? 'bg-purple-500 shadow-[0_0_8px_#A855F7]/60' : 'bg-rose-500 shadow-[0_0_8px_#F43F5E]/60'}`}></span>
+          <span className={`w-2.5 h-2.5 rounded-full ${comp.cazasouqInStock && comp.cazasouqPrice ? 'bg-purple-500 shadow-[0_0_8px_#A855F7]/60' : 'bg-rose-500 shadow-[0_0_8px_#F43F5E]/60'}`}></span>
           CazaSouq
-          {!comp.cazasouqInStock && (
+          {(!comp.cazasouqInStock || !comp.cazasouqPrice) && (
             <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-800/50">
               غير متوفر
             </span>
           )}
         </span>
-        <span className={`font-black text-lg ${comp.cazasouqInStock ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
-          {comp.cazasouqPrice} ر.س
+        <span className={`font-black text-lg ${comp.cazasouqInStock && comp.cazasouqPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
+          {comp.cazasouqPrice ? `${comp.cazasouqPrice} ر.س` : '---'}
         </span>
       </a>
     )}

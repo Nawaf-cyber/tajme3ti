@@ -16,54 +16,45 @@ export default function UpdatePricesButton() {
       if (!listRes.ok) throw new Error('فشل جلب البيانات من السيرفر');
       const { components } = await listRes.json();
 
-      const amazonTargets = components.filter((c: any) => c.amazonUrl);
-      const cazaTargets = components.filter((c: any) => c.cazasouqUrl);
+      // تصفية القطع التي تمتلك رابطاً واحداً على الأقل
+      const targets = components.filter((c: any) => c.amazonUrl || c.cazasouqUrl);
 
-      let amzUpdated = 0;
-      let cazaUpdated = 0;
+      if (targets.length === 0) {
+        toast.success('لا توجد قطع بروابط متاجر لتحديثها', { id: toastId });
+        setLoading(false);
+        return;
+      }
 
-      // 2. حلقة تحديث أمازون
-      toast.loading('جاري تحديث أمازون...', { id: toastId });
-      for (let i = 0; i < amazonTargets.length; i++) {
-        setStatusText(`أمازون: ${i + 1} / ${amazonTargets.length}`);
+      let updatedCount = 0;
+      let failedCount = 0;
+
+      // 2. حلقة التحديث باستخدام مسار update-single الدقيق
+      for (let i = 0; i < targets.length; i++) {
+        setStatusText(`جاري التحديث: ${i + 1} / ${targets.length}`);
+        toast.loading(`تحديث: ${targets[i].name || 'قطعة'}...`, { id: toastId });
+
         try {
-          const res = await fetch('/api/update-amazon', {
+          // استدعاء نفس API التحديث المفرد الدقيق
+          // تنويه: تأكد أن المسار هنا يطابق مسار ملف update-single لديك
+          const res = await fetch('/api/update-single', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              id: amazonTargets[i].id, 
-              amazonUrl: amazonTargets[i].amazonUrl,
-              cazasouqPrice: amazonTargets[i].cazasouqPrice
-            })
+            body: JSON.stringify({ id: targets[i].id })
           });
-          if (res.ok) amzUpdated++;
+
+          if (res.ok) {
+            updatedCount++;
+          } else {
+            failedCount++;
+          }
         } catch (e) {
-          console.error('Amazon Error:', e);
+          console.error(`خطأ في تحديث ${targets[i].name}:`, e);
+          failedCount++;
         }
       }
 
-      // 3. حلقة تحديث كازاسوق
-      toast.loading('جاري تحديث كازاسوق...', { id: toastId });
-      for (let i = 0; i < cazaTargets.length; i++) {
-        setStatusText(`كازاسوق: ${i + 1} / ${cazaTargets.length}`);
-        try {
-          const res = await fetch('/api/update-cazasouq', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              id: cazaTargets[i].id, 
-              cazasouqUrl: cazaTargets[i].cazasouqUrl,
-              amazonPrice: cazaTargets[i].amazonPrice // إرسال سعر أمازون للمقارنة وضبط الدينار
-            })
-          });
-          if (res.ok) cazaUpdated++;
-        } catch (e) {
-          console.error('Cazasouq Error:', e);
-        }
-      }
-
-      // 4. إنهاء العملية
-      toast.success(`تم التحديث! (أمازون: ${amzUpdated} | كازاسوق: ${cazaUpdated})`, { 
+      // 3. إنهاء العملية
+      toast.success(`تم الانتهاء! (نجاح: ${updatedCount} | فشل: ${failedCount})`, { 
         id: toastId, 
         duration: 5000 
       });
