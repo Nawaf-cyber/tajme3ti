@@ -160,6 +160,7 @@ export async function GET(req: Request) {
     console.log(`[Cron Job] تم تحديث ${updatedCount} قطعة بنجاح:`, updatedNames.join(" ، "));
 
     // إرسال إشعار للديسكورد بالتنسيق الجديد
+    // إرسال إشعار للديسكورد بالتنسيق الجديد
     if (updatedCount > 0 && process.env.DISCORD_WEBHOOK_URL) {
       try {
         const descriptionText = `تم فحص وتحديث **${updatedCount}** قطعة.\n\n` + 
@@ -179,11 +180,16 @@ export async function GET(req: Request) {
           ]
         };
 
-        await fetch(process.env.DISCORD_WEBHOOK_URL, {
+        const discordRes = await fetch(process.env.DISCORD_WEBHOOK_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(discordPayload)
         });
+
+        if (!discordRes.ok) {
+          const errText = await discordRes.text();
+          console.error(`[Discord Error] Status: ${discordRes.status} - Details: ${errText}`);
+        }
       } catch (error) {
         console.error("فشل إرسال إشعار الديسكورد:", error);
       }
