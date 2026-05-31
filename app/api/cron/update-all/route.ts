@@ -79,23 +79,48 @@ export async function GET(req: Request) {
       }
 
       // تحديث كازاسوق
+      // 2. تحديث كازاسوق
       if (comp.cazasouqUrl) {
         try {
           const targetUrl = encodeURIComponent(comp.cazasouqUrl);
-          const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}`;
+          const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
           const res = await fetch(url, { cache: 'no-store' });
           
           if (res.ok) {
             const html = await res.text();
             const $ = cheerio.load(html);
             
-            const buttonText = $('button[name="add"], .add-to-cart, .product-form__submit').text().toLowerCase();
-            const outOfStockKeywords = ['نفدت', 'نفذت', 'sold out', 'out of stock', 'غير متوفر'];
-            const isOutOfStock = outOfStockKeywords.some(keyword => buttonText.includes(keyword) || html.toLowerCase().includes(keyword));
-            
-            cazasouqInStock = !isOutOfStock;
+            // -- 1. فحص التوفر --
+            const hasAddToCartBtn = $('#button-cart').length > 0 || 
+                                    $('button, a').filter(function() {
+                                      const text = $(this).text().trim();
+                                      return text === 'اضافة للسلة' || text === 'أضف للسلة' || text === 'اشتر الآن';
+                                    }).length > 0;
 
-            const priceText = $('.price, .product-price, .price-item, .amount').first().text();
+            const isOutOfStockExplicit = $('button, span, div').filter(function() {
+               const text = $(this).text().trim();
+               return text === 'نفدت الكمية' || text === 'غير متوفر';
+            }).length > 0;
+
+            if (hasAddToCartBtn) {
+              cazasouqInStock = true;
+            } else if (isOutOfStockExplicit) {
+              cazasouqInStock = false;
+            } else {
+              cazasouqInStock = html.includes('اضافة للسلة') || html.includes('اشتر الآن');
+            }
+
+            // -- 2. فحص السعر بدقة (تم التحديث هنا لتجنب التقاط 170) --
+            // نستهدف حصرياً القسم الذي يحتوي على معلومات المنتج الأساسية
+            let productContainer = $('#product, .product-info, .product-details').first();
+            
+            // إذا لم يجد القسم المحدد، يبحث في كامل الصفحة كإجراء احتياطي
+            if (productContainer.length === 0) productContainer = $('body');
+
+            let priceText = productContainer.find('.price-new').first().text();
+            if (!priceText) priceText = productContainer.find('h2').filter(function() { return $(this).text().includes('ر.س') || $(this).text().includes('SAR'); }).first().text();
+            if (!priceText) priceText = productContainer.find('.product-price, .price-normal').first().text();
+
             let cleanedPrice = parseFloat(priceText.replace(/,/g, '').replace(/[^0-9.]/g, ''));
 
             const isBHD = priceText.toLowerCase().includes('bhd') || priceText.includes('د.ب') || priceText.toLowerCase().includes('bd');
@@ -103,17 +128,27 @@ export async function GET(req: Request) {
               cleanedPrice = cleanedPrice * 10;
             } else if (cleanedPrice > 0) {
               const amzPriceForComparison = finalAmazonPrice !== Infinity ? finalAmazonPrice : (comp.amazonPrice || 0);
+              // تصحيح السعر إذا كان أصغر من 20% من سعر أمازون (احتمال أنه سحب سعر خاطئ)
               if (amzPriceForComparison > 0 && cleanedPrice < (amzPriceForComparison * 0.2)) {
                 cleanedPrice = cleanedPrice * 10;
               }
             }
 
-            if (!isNaN(cleanedPrice) && cleanedPrice > 0) {
-              finalCazasouqPrice = cleanedPrice;
+            // الحماية الأخيرة: إذا كان السعر المستخرج 170 (وهو رقم الشذوذ الذي ظهر)، نتجاهله
+            if (!isNaN(cleanedPrice) && cleanedPrice > 0 && cleanedPrice !== 170) {
+              finalCazasouqPrice = parseFloat(cleanedPrice.toFixed(2));
+            } else if (cleanedPrice === 170) {
+               // محاولة أخيرة للبحث عن السعر الحقيقي إذا التقط 170
+               let alternativePriceText = $('h2').filter(function() { return $(this).text().includes('ر.س') && !$(this).text().includes('170'); }).first().text();
+               let alternativeCleanedPrice = parseFloat(alternativePriceText.replace(/,/g, '').replace(/[^0-9.]/g, ''));
+               if (!isNaN(alternativeCleanedPrice) && alternativeCleanedPrice > 0) {
+                   finalCazasouqPrice = alternativeCleanedPrice;
+               }
             }
+
           }
         } catch (e) {
-          // تجاهل
+          // تجاهل في ملف الشامل
         }
       }
 

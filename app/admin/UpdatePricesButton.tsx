@@ -16,8 +16,8 @@ export default function UpdatePricesButton() {
       if (!listRes.ok) throw new Error('فشل جلب البيانات من السيرفر');
       const { components } = await listRes.json();
 
-      // تصفية القطع التي تمتلك رابطاً واحداً على الأقل
-      const targets = components.filter((c: any) => c.amazonUrl || c.cazasouqUrl);
+      // تصفية القطع التي تمتلك رابطاً واحداً على الأقل (تمت إضافة مايكروليس)
+      const targets = components.filter((c: any) => c.amazonUrl || c.cazasouqUrl || c.microlessUrl);
 
       if (targets.length === 0) {
         toast.success('لا توجد قطع بروابط متاجر لتحديثها', { id: toastId });
@@ -34,8 +34,6 @@ export default function UpdatePricesButton() {
         toast.loading(`تحديث: ${targets[i].name || 'قطعة'}...`, { id: toastId });
 
         try {
-          // استدعاء نفس API التحديث المفرد الدقيق
-          // تنويه: تأكد أن المسار هنا يطابق مسار ملف update-single لديك
           const res = await fetch('/api/update-single', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
