@@ -25,7 +25,8 @@ export default function BulkImportPage() {
         });
 
         if (response.ok) {
-          setStatus('✅ تم رفع جميع القطع بنجاح!');
+          const resData = await response.json();
+          setStatus(`✅ ${resData.message}`);
         } else {
           setStatus('❌ حدث خطأ أثناء الرفع.');
         }

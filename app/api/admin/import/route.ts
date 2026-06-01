@@ -1,41 +1,48 @@
 import { NextResponse } from 'next/server';
 import { prisma } from "../../../../lib/prisma";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: Request) {
   try {
     const data = await req.json();
+    let updatedCount = 0;
+    let notFoundCount = 0;
 
     for (const item of data) {
-      const category = await prisma.category.findFirst({
-        where: { name: item.categoryName }
-      });
-
-      if (category) {
-        let parsedSpecs = {};
-        if (item.specs) {
-          try { parsedSpecs = typeof item.specs === 'string' ? JSON.parse(item.specs) : item.specs; } 
-          catch (e) { parsedSpecs = {}; }
-        }
-
-        await prisma.component.create({
-          data: {
-            categoryId: category.id,
-            brand: item.brand || "غير محدد",
-            name: item.name,
-            price: parseFloat(item.price) || 0,
-            tdpWattage: parseInt(item.tdpWattage) || 0,
-            specs: parsedSpecs,
-            description: item.description || null, // إضافة الوصف هنا
-            imageUrl: item.imageUrl || null,
-            amazonUrl: item.amazonUrl || null,
-            cazasouqUrl: item.cazasouqUrl || null,
-          }
+      if (item.id) {
+        const exists = await prisma.component.findUnique({
+          where: { id: item.id }
         });
+
+        if (exists) {
+          await prisma.component.update({
+            where: { id: item.id },
+            data: {
+              // تم إزالة categoryId لتجنب تعارض المفاتيح الأجنبية (Foreign Key)
+              brand: item.brand || exists.brand,
+              tdpWattage: item.tdpWattage !== undefined ? item.tdpWattage : exists.tdpWattage,
+              performanceTier: item.performanceTier || exists.performanceTier,
+              description: item.description || exists.description,
+              specs: item.specs ? item.specs : exists.specs 
+            }
+          });
+          updatedCount++;
+        } else {
+          notFoundCount++;
+        }
       }
     }
 
-    return NextResponse.json({ message: "تم رفع جميع القطع بنجاح" });
-  } catch (error) {
-    return NextResponse.json({ error: "حدث خطأ أثناء الرفع المجمع" }, { status: 500 });
+    revalidatePath('/admin');
+    revalidatePath('/admin/components');
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `تم تحديث ${updatedCount} قطعة بنجاح! (لم يتم العثور على ${notFoundCount})` 
+    });
+
+  } catch (error: any) {
+    console.error("Import Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

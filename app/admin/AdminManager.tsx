@@ -10,6 +10,7 @@ import UpdatePricesButton from './UpdatePricesButton';
 import UpdateSingleButton from './components/UpdateSingleButton';
 import CronControlToggle from './components/CronControlToggle'; // 1. استيراد مكون الزر
 import ManualUpdateButton from "./components/ManualUpdateButton";
+import ExportComponentsButton from './ExportComponentsButton';
 
 // خريطة الحقول التلقائية بناءً على الفئة
 const categoryFieldsMap: Record<string, { key: string, label: string, type: 'text' | 'number' | 'select', options?: string[] }[]> = {
@@ -175,6 +176,7 @@ export default function AdminManager({ categories, components, news, cronStatus 
           className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-sm">
           <span>➕</span> إضافة تجميعة جاهزة
         </Link>
+        <ExportComponentsButton />
         
       </div>
       
