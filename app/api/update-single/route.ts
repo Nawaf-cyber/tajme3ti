@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const comp = await prisma.component.findUnique({ where: { id } });
     if (!comp) return NextResponse.json({ error: "القطعة غير موجودة" }, { status: 404 });
 
-    const SCRAPER_API_KEY = "f5b7de96f707ccf2b622fb377162dfb3";
+    const SCRAPER_API_KEY = "f2fcd7691521c09ce71f537490081300";
     
     let finalAmazonPrice = comp.amazonPrice || Infinity;
     let finalCazasouqPrice = comp.cazasouqPrice || Infinity;

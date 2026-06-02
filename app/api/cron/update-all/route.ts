@@ -28,7 +28,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "التحديث التلقائي معطل حالياً من لوحة التحكم." }, { status: 200 });
     }
 
-    const SCRAPER_API_KEY = "f5b7de96f707ccf2b622fb377162dfb3"; 
+    const SCRAPER_API_KEY = "f2fcd7691521c09ce71f537490081300"; 
     
     const searchConditions = { 
       OR: [

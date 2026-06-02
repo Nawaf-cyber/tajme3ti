@@ -49,13 +49,32 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-700 dark:bg-emer
 const formatTextWithLinks = (text: string) => {
   if (!text) return null;
   
-  const regex = /(\[red\].*?\[\/red\]|\[green\].*?\[\/green\]|\[blue\].*?\[\/blue\]|\[yellow\].*?\[\/yellow\]|https?:\/\/[^\s]+)/g;
+  // تمت إضافة صيغة الماركداون للروابط المخصصة في بداية البحث
+  const regex = /(\[[^\]]+\]\([^\)]+\)|\[red\].*?\[\/red\]|\[green\].*?\[\/green\]|\[blue\].*?\[\/blue\]|\[yellow\].*?\[\/yellow\]|https?:\/\/[^\s]+)/g;
   const parts = text.split(regex);
   
   return parts.map((part, i) => {
     if (!part) return null;
-    
-    if (part.match(/^https?:\/\/[^\s]+/)) {
+
+    // 1. معالجة الروابط المخصصة بصيغة [الاسم](الرابط)
+    const mdLinkMatch = part.match(/^\[([^\]]+)\]\(([^\)]+)\)$/);
+    if (mdLinkMatch) {
+      const [, linkText, linkUrl] = mdLinkMatch;
+      return (
+        <a 
+          key={i} 
+          href={linkUrl} 
+          target={linkUrl.startsWith('http') ? "_blank" : "_self"} 
+          rel={linkUrl.startsWith('http') ? "noopener noreferrer" : ""} 
+          className="text-blue-600 dark:text-blue-400 font-bold underline hover:text-blue-800 dark:hover:text-blue-300 transition-colors mx-1"
+        >
+          {linkText}
+        </a>
+      );
+    }
+
+    // 2. معالجة الروابط الخام (لزر الموقع الرسمي)
+    if (part.match(/^https?:\/\/[^\s]+$/)) {
       return (
         <a 
           key={i} 
@@ -70,19 +89,13 @@ const formatTextWithLinks = (text: string) => {
       );
     }
     
-    if (part.startsWith('[red]') && part.endsWith('[/red]')) {
-      return <span key={i} className="text-rose-600 dark:text-rose-400 font-bold">{part.slice(5, -6)}</span>;
-    }
-    if (part.startsWith('[green]') && part.endsWith('[/green]')) {
-      return <span key={i} className="text-emerald-700 dark:text-emerald-400 font-bold">{part.slice(7, -8)}</span>;
-    }
-    if (part.startsWith('[blue]') && part.endsWith('[/blue]')) {
-      return <span key={i} className="text-blue-700 dark:text-blue-400 font-bold">{part.slice(6, -7)}</span>;
-    }
-    if (part.startsWith('[yellow]') && part.endsWith('[/yellow]')) {
-      return <span key={i} className="text-amber-700 dark:text-amber-400 font-bold">{part.slice(8, -9)}</span>;
-    }
+    // 3. معالجة الألوان
+    if (part.startsWith('[red]') && part.endsWith('[/red]')) return <span key={i} className="text-rose-600 dark:text-rose-400 font-bold">{part.slice(5, -6)}</span>;
+    if (part.startsWith('[green]') && part.endsWith('[/green]')) return <span key={i} className="text-emerald-600 dark:text-emerald-400 font-bold">{part.slice(7, -8)}</span>;
+    if (part.startsWith('[blue]') && part.endsWith('[/blue]')) return <span key={i} className="text-blue-600 dark:text-blue-400 font-bold">{part.slice(6, -7)}</span>;
+    if (part.startsWith('[yellow]') && part.endsWith('[/yellow]')) return <span key={i} className="text-amber-600 dark:text-amber-400 font-bold">{part.slice(8, -9)}</span>;
     
+    // 4. النص العادي
     return <span key={i}>{part}</span>;
   });
 };
