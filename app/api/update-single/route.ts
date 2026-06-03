@@ -62,88 +62,81 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. تحديث كازاسوق
-      if (comp.cazasouqUrl) {
-        try {
-          const targetUrl = encodeURIComponent(comp.cazasouqUrl);
-          const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}`;
-          const res = await fetch(url, { cache: 'no-store' });
+    // 2. تحديث كازاسوق (بالنظام الصارم الجديد)
+    if (comp.cazasouqUrl) {
+      try {
+        const targetUrl = encodeURIComponent(comp.cazasouqUrl);
+        const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}`;
+        const res = await fetch(url, { cache: 'no-store' });
+        
+        if (res.ok) {
+          const html = await res.text();
+          const $ = cheerio.load(html);
           
-          if (res.ok) {
-            const html = await res.text();
-            const $ = cheerio.load(html);
-            
-            // -- 1. فحص التوفر --
-            const hasAddToCartBtn = $('#button-cart').length > 0 || 
-                                    $('button, a').filter(function() {
-                                      const text = $(this).text().trim();
-                                      return text === 'اضافة للسلة' || text === 'أضف للسلة' || text === 'اشتر الآن';
-                                    }).length > 0;
+          // -- 1. فحص التوفر الصارم --
+          // تحويل كامل الصفحة إلى نص متصل مقروء لتفادي الأكواد المخفية وتجاهل زر الشراء الخاطئ
+          const plainText = $('body').text().replace(/\s+/g, ' ');
 
-            const isOutOfStockExplicit = $('button, span, div').filter(function() {
-               const text = $(this).text().trim();
-               return text === 'نفدت الكمية' || text === 'غير متوفر';
-            }).length > 0;
+          // أولوية مطلقة لكلمات نفاد الكمية
+          const isOutOfStockExplicit = plainText.includes('غير متوفر حالياً') || 
+                                       plainText.includes('تنبيه بالتوافر') || 
+                                       plainText.includes('نفدت الكمية');
 
-            if (hasAddToCartBtn) {
-              cazasouqInStock = true;
-            } else if (isOutOfStockExplicit) {
-              cazasouqInStock = false;
-            } else {
-              cazasouqInStock = html.includes('اضافة للسلة') || html.includes('اشتر الآن');
-            }
-
-            // -- 2. فحص السعر (تصحيح الاندماج وحظر 170) --
-            let priceText = '';
-            
-            // استهداف h2 تحديداً لأن كازاسوق يضع السعر الرئيسي داخله دائماً
-            let mainPriceEl = $('#content ul.list-unstyled h2, .product-info h2').first();
-            
-            if (mainPriceEl.length > 0) {
-               priceText = mainPriceEl.text();
-            } else {
-               priceText = $('.price-new, .price, .product-price').not(':contains("170")').first().text();
-            }
-
-            // السر هنا: استخراج أول رقم فقط لمنع دمج السعر مع الضريبة
-            let cleanedPrice = 0;
-            const match = priceText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
-            if (match) {
-              cleanedPrice = parseFloat(match[0].replace(/,/g, ''));
-            }
-
-            // حماية إضافية لتخطي الرقم 170 إذا التقطه بالخطأ
-            if (cleanedPrice === 170) {
-                let altText = $('h2').filter(function() { return $(this).text().match(/\d/) && !$(this).text().includes('170'); }).first().text();
-                const altMatch = altText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
-                if (altMatch) cleanedPrice = parseFloat(altMatch[0].replace(/,/g, ''));
-            }
-
-            // نفس معادلة الضرب المعتمدة لديك
-            const isBHD = priceText.toLowerCase().includes('bhd') || priceText.includes('د.ب') || priceText.toLowerCase().includes('bd');
-            
-            if (isBHD) {
-              cleanedPrice = cleanedPrice * 10;
-            } else if (cleanedPrice > 0) {
-              const amzPrice = finalAmazonPrice !== Infinity ? finalAmazonPrice : (comp.amazonPrice || 0);
-              if (amzPrice > 0 && cleanedPrice < (amzPrice * 0.2)) {
-                cleanedPrice = cleanedPrice * 10;
-              }
-            }
-
-            // الاعتماد والتسجيل
-            if (!isNaN(cleanedPrice) && cleanedPrice > 0 && cleanedPrice !== 170) {
-              finalCazasouqPrice = cleanedPrice;
-            } else {
-              if (typeof errors !== 'undefined') errors.push('لم يتم العثور على سعر صالح أو السعر المستخرج 170.');
-            }
+          if (isOutOfStockExplicit) {
+            cazasouqInStock = false;
           } else {
-            if (typeof errors !== 'undefined') errors.push(`فشل اتصال سيرفر كازاسوق: ${res.status}`);
+            cazasouqInStock = plainText.includes('اضافة للسلة') || 
+                              plainText.includes('أضف للسلة') || 
+                              plainText.includes('اشتر الان') ||
+                              plainText.includes('اشتر الآن');
           }
-        } catch (e: any) {
-          if (typeof errors !== 'undefined') errors.push(`خطأ في كازاسوق: ${e.message}`);
+
+          // -- 2. فحص السعر --
+          let priceText = '';
+          let mainPriceEl = $('#content ul.list-unstyled h2, .product-info h2, .product-price').first();
+          
+          if (mainPriceEl.length > 0) {
+             priceText = mainPriceEl.text();
+          } else {
+             priceText = $('.price-new, .price').not(':contains("170")').first().text();
+          }
+
+          let cleanedPrice = 0;
+          const match = priceText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
+          if (match) {
+            cleanedPrice = parseFloat(match[0].replace(/,/g, ''));
+          }
+
+          // حماية إضافية لتخطي الرقم 170
+          if (cleanedPrice === 170) {
+              let altText = $('h2').filter(function() { return $(this).text().match(/\d/) && !$(this).text().includes('170'); }).first().text();
+              const altMatch = altText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
+              if (altMatch) cleanedPrice = parseFloat(altMatch[0].replace(/,/g, ''));
+          }
+
+          const isBHD = priceText.toLowerCase().includes('bhd') || priceText.includes('د.ب') || priceText.toLowerCase().includes('bd');
+          
+          if (isBHD) {
+            cleanedPrice = cleanedPrice * 10;
+          } else if (cleanedPrice > 0) {
+            const amzPrice = finalAmazonPrice !== Infinity ? finalAmazonPrice : (comp.amazonPrice || 0);
+            if (amzPrice > 0 && cleanedPrice < (amzPrice * 0.2)) {
+              cleanedPrice = cleanedPrice * 10;
+            }
+          }
+
+          if (!isNaN(cleanedPrice) && cleanedPrice > 0 && cleanedPrice !== 170) {
+            finalCazasouqPrice = cleanedPrice;
+          } else {
+            errors.push('لم يتم العثور على سعر صالح أو السعر المستخرج 170 في كازاسوق.');
+          }
+        } else {
+          errors.push(`فشل اتصال سيرفر كازاسوق: ${res.status}`);
         }
+      } catch (e: any) {
+        errors.push(`خطأ في كازاسوق: ${e.message}`);
       }
+    }
 
     // 3. الدخول وسحب سعر مايكروليس
     if (comp.microlessUrl) {
