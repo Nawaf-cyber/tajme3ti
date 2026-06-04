@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 type Component = {
   id: string;
@@ -15,6 +16,10 @@ type Component = {
   imageUrl?: string | null;
   amazonUrl?: string | null;
   cazasouqUrl?: string | null;
+  microlessUrl?: string | null;
+  amazonInStock?: boolean | null;
+  cazasouqInStock?: boolean | null;
+  microlessInStock?: boolean | null;
   description?: string | null;
   performanceTier?: number | null;
 };
@@ -49,14 +54,12 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-700 dark:bg-emer
 const formatTextWithLinks = (text: string) => {
   if (!text) return null;
   
-  // تمت إضافة صيغة الماركداون للروابط المخصصة في بداية البحث
   const regex = /(\[[^\]]+\]\([^\)]+\)|\[red\].*?\[\/red\]|\[green\].*?\[\/green\]|\[blue\].*?\[\/blue\]|\[yellow\].*?\[\/yellow\]|https?:\/\/[^\s]+)/g;
   const parts = text.split(regex);
   
   return parts.map((part, i) => {
     if (!part) return null;
 
-    // 1. معالجة الروابط المخصصة بصيغة [الاسم](الرابط)
     const mdLinkMatch = part.match(/^\[([^\]]+)\]\(([^\)]+)\)$/);
     if (mdLinkMatch) {
       const [, linkText, linkUrl] = mdLinkMatch;
@@ -73,7 +76,6 @@ const formatTextWithLinks = (text: string) => {
       );
     }
 
-    // 2. معالجة الروابط الخام (لزر الموقع الرسمي)
     if (part.match(/^https?:\/\/[^\s]+$/)) {
       return (
         <a 
@@ -89,13 +91,11 @@ const formatTextWithLinks = (text: string) => {
       );
     }
     
-    // 3. معالجة الألوان
     if (part.startsWith('[red]') && part.endsWith('[/red]')) return <span key={i} className="text-rose-600 dark:text-rose-400 font-bold">{part.slice(5, -6)}</span>;
     if (part.startsWith('[green]') && part.endsWith('[/green]')) return <span key={i} className="text-emerald-600 dark:text-emerald-400 font-bold">{part.slice(7, -8)}</span>;
     if (part.startsWith('[blue]') && part.endsWith('[/blue]')) return <span key={i} className="text-blue-600 dark:text-blue-400 font-bold">{part.slice(6, -7)}</span>;
     if (part.startsWith('[yellow]') && part.endsWith('[/yellow]')) return <span key={i} className="text-amber-600 dark:text-amber-400 font-bold">{part.slice(8, -9)}</span>;
     
-    // 4. النص العادي
     return <span key={i}>{part}</span>;
   });
 };
@@ -123,6 +123,7 @@ const SearchableSelect = ({
   components, 
   selectedComponent, 
   onSelect, 
+  onRemove,
   onShowDetails,
   showIncompatible
 }: { 
@@ -130,11 +131,13 @@ const SearchableSelect = ({
   components: ComponentWithCompatibility[], 
   selectedComponent: Component | null, 
   onSelect: (id: string) => void,
+  onRemove: () => void,
   onShowDetails: (comp: Component) => void,
   showIncompatible: boolean
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc'>('default');
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -147,14 +150,22 @@ const SearchableSelect = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const searched = components.filter(c => 
+  let processed = components.filter(c => 
     `${c.brand} ${c.name}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
-  const displayedComponents = showIncompatible ? searched : searched.filter(c => c.isCompatible);
+
+  if (sortBy === 'price-asc') {
+    processed.sort((a, b) => a.price - b.price);
+  } else if (sortBy === 'price-desc') {
+    processed.sort((a, b) => b.price - a.price);
+  }
+
+  const displayedComponents = showIncompatible 
+    ? [...processed].sort((a, b) => Number(b.isCompatible) - Number(a.isCompatible))
+    : processed.filter(c => c.isCompatible);
 
   return (
-    <div className="relative flex-1 min-w-0" ref={wrapperRef}>
+    <div className={`relative flex-1 min-w-0 transition-all ${isOpen ? 'z-50' : 'z-10'}`} ref={wrapperRef}>
       <div 
         className={`p-3.5 border rounded-xl flex justify-between items-center w-full min-h-[56px] gap-2 transition-all cursor-pointer ${
           isOpen 
@@ -176,23 +187,57 @@ const SearchableSelect = ({
             <span className="text-slate-500 dark:text-slate-400 font-medium">اختر {categoryName}...</span>
           )}
         </span>
+
+        {selectedComponent && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            className="p-1.5 hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 rounded-lg transition-colors shrink-0"
+            title="إزالة القطعة"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
+        )}
+
         <svg className={`w-5 h-5 text-slate-500 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180 text-blue-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
       </div>
 
       {isOpen && (
-        <div className="absolute z-30 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-[350px] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-[350px] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="p-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
-            <div className="relative">
+            <div className="relative mb-2">
               <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               <input
                 type="text"
                 className="w-full pl-3 pr-9 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400"
-                placeholder="ابحث عن قطعة..."
+                placeholder={`ابحث في ${categoryName}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
                 autoFocus
               />
+            </div>
+            
+            <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1">
+              <button 
+                onClick={(e) => { e.stopPropagation(); setSortBy('default'); }}
+                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg whitespace-nowrap transition-colors ${sortBy === 'default' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+              >
+                الافتراضي
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setSortBy('price-asc'); }}
+                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 ${sortBy === 'price-asc' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
+                الأرخص
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setSortBy('price-desc'); }}
+                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 ${sortBy === 'price-desc' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
+                الأغلى
+              </button>
             </div>
           </div>
           <ul className="flex-1 overflow-y-auto p-2 custom-scrollbar">
@@ -200,24 +245,31 @@ const SearchableSelect = ({
               displayedComponents.map((comp) => (
                 <li 
                   key={comp.id} 
-                  className={`p-3 mb-1 rounded-lg transition-all border ${
+                  className={`p-3 mb-1 rounded-lg transition-all border cursor-pointer ${
                     comp.isCompatible 
-                      ? 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer' 
-                      : 'border-rose-200 bg-rose-50 dark:border-rose-900/30 dark:bg-rose-900/10 cursor-not-allowed opacity-90'
+                      ? 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-700/50' 
+                      : 'border-rose-200 bg-rose-50 hover:bg-rose-100 dark:border-rose-900/30 dark:bg-rose-900/10 dark:hover:bg-rose-900/30 opacity-95'
                   }`}
                   onClick={() => {
-                    if (!comp.isCompatible) return;
                     onSelect(comp.id);
                     setIsOpen(false);
                     setSearchTerm('');
+                    setSortBy('default');
                   }}
                 >
                   <div className="flex flex-col gap-2">
                     <div className="flex justify-between items-start w-full gap-2">
-                      <span className={`text-sm font-bold leading-tight ${comp.isCompatible ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
-                        <span className={`${getBrandColor(comp, categoryName)} mr-1`}>{comp.brand}</span>
-                        {comp.name}
-                      </span>
+                      <div className="flex items-center gap-2 flex-1">
+                        {comp.imageUrl && (
+                          <div className="w-8 h-8 rounded bg-white dark:bg-slate-900 p-0.5 shrink-0 border border-slate-200 dark:border-slate-700/50">
+                            <img src={comp.imageUrl} alt="" className="w-full h-full object-contain" />
+                          </div>
+                        )}
+                        <span className={`text-sm font-bold leading-tight ${comp.isCompatible ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                          <span className={`${getBrandColor(comp, categoryName)} mr-1`}>{comp.brand}</span>
+                          {comp.name}
+                        </span>
+                      </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
                         <span className={`text-sm font-black flex items-center gap-1 ${comp.isCompatible ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
                           {comp.price} <RiyalIcon size="h-3 w-3" colorClass={comp.isCompatible ? 'bg-emerald-700 dark:bg-emerald-400' : 'bg-slate-500'} />
@@ -231,9 +283,9 @@ const SearchableSelect = ({
                       </div>
                     </div>
                     {!comp.isCompatible && (
-                      <span className="text-[11px] text-rose-700 dark:text-rose-400 font-extrabold bg-rose-100 dark:bg-rose-900/40 px-2.5 py-1 rounded-md w-fit inline-flex items-center gap-1 border border-rose-200 dark:border-rose-800/50">
+                      <span className="text-[11px] mt-1 text-rose-700 dark:text-rose-400 font-extrabold bg-rose-100 dark:bg-rose-900/40 px-2.5 py-1 rounded-md w-fit inline-flex items-center gap-1 border border-rose-200 dark:border-rose-800/50">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        {comp.reason}
+                        {comp.reason} (سيتم إلغاء المتعارض)
                       </span>
                     )}
                   </div>
@@ -249,23 +301,211 @@ const SearchableSelect = ({
   );
 };
 
-export default function PCBuilderClient({ categories, importedSelections = {} }: { categories: Category[], importedSelections?: Record<string, string> }) {
-  const { data: session } = useSession();
-  
-  const getInitialSelections = () => {
-    const initialState: Record<string, Component | null> = {};
-    categories.forEach(cat => {
-      const importedCompId = importedSelections[cat.id];
-      if (importedCompId) {
-        initialState[cat.name] = cat.components.find(c => c.id === importedCompId) || null;
-      } else {
-        initialState[cat.name] = null;
-      }
-    });
-    return initialState;
+const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }) => {
+  const gpuBasePower: Record<number, number> = {
+    1: 120, 
+    2: 180, 
+    3: 270, 
+    4: 380, 
+    5: 550  
   };
 
-  const [selectedComponents, setSelectedComponents] = useState<Record<string, Component | null>>(getInitialSelections);
+  const baseScore = gpuBasePower[gpuTier] || 120;
+
+  const resMultipliers: Record<string, number> = {
+    '1080p': 1.0,
+    '1440p': 0.70,
+    '4K': 0.45
+  };
+
+  const gameMultipliers: Record<string, any> = {
+    esports: { name: 'Valorant', mult: 3.0, icon: '🎯' },
+    competitive: { name: 'Warzone', mult: 0.9, icon: '🪂' },
+    aaa: { name: 'Cyberpunk', mult: 0.45, icon: '🌃' }
+  };
+
+  const generateDynamicData = () => {
+    const result: any = { data: {} };
+    
+    if (gpuTier >= 5) result.recommended = '4K';
+    else if (gpuTier >= 3) result.recommended = '1440p';
+    else result.recommended = '1080p';
+
+    ['1080p', '1440p', '4K'].forEach(res => {
+      result.data[res] = {};
+      
+      let cpuPenalty = 0;
+      const tierDiff = gpuTier - cpuTier;
+      if (tierDiff > 0) {
+        if (res === '1080p') cpuPenalty = tierDiff * 0.15;
+        if (res === '1440p') cpuPenalty = tierDiff * 0.08;
+        if (res === '4K') cpuPenalty = tierDiff * 0.02;
+      }
+
+      Object.entries(gameMultipliers).forEach(([type, game]) => {
+        const rawFps = baseScore * resMultipliers[res] * game.mult;
+        let finalFps = rawFps * (1 - cpuPenalty);
+
+        finalFps = Math.round(finalFps / 5) * 5;
+        if (finalFps > 500) finalFps = 500;
+
+        let quality = '';
+        if (type === 'aaa') {
+          if (res === '1080p') quality = gpuTier > 3 ? ' (Ultra RT)' : ' (High)';
+          else if (res === '1440p') quality = gpuTier > 3 ? ' (Ultra)' : ' (Med)';
+          else quality = gpuTier >= 4 ? ' (High)' : ' (Low)';
+        }
+
+        result.data[res][type] = {
+          name: game.name + quality,
+          fps: `${finalFps}+`,
+          icon: game.icon
+        };
+      });
+    });
+
+    return result;
+  };
+
+  const tierData = generateDynamicData();
+  const [activeRes, setActiveRes] = useState<string>(tierData.recommended);
+
+  useEffect(() => {
+    setActiveRes(tierData.recommended);
+  }, [cpuTier, gpuTier]);
+
+  return (
+    <div className="mt-6 border border-slate-200 dark:border-slate-700/50 rounded-2xl overflow-hidden bg-white dark:bg-slate-800/30 shadow-sm relative">
+      <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-slate-200 dark:border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
+          <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          الأداء المتوقع في الألعاب
+        </h4>
+        
+        <div className="flex bg-slate-200 dark:bg-slate-900 p-1 rounded-lg">
+          {['1080p', '1440p', '4K'].map(res => {
+            const isRecommended = tierData.recommended === res;
+            return (
+              <button
+                key={res}
+                onClick={() => setActiveRes(res)}
+                title={isRecommended ? "الدقة المثالية لقوة جهازك" : `عرض الأداء على دقة ${res}`}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
+                  activeRes === res
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                {res} {isRecommended && '★'}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-slate-100 dark:divide-slate-700/50 p-2">
+        {Object.entries(tierData.data[activeRes]).map(([type, data]: any) => (
+          <div key={type} className="p-3 text-center flex flex-col items-center justify-center group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors rounded-xl">
+            <span className="text-xl mb-1">{data.icon}</span>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{data.name}</span>
+            <span className="text-lg font-black text-slate-900 dark:text-white group-hover:scale-110 transition-transform">{data.fps}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-slate-50 dark:bg-slate-800/40 p-3 border-t border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          الأرقام تقريبية وتعتمد على إعدادات الجودة وتقنيات (DLSS/FSR).
+        </span>
+        <span className="hidden sm:block text-slate-300 dark:text-slate-700">|</span>
+        <span className="text-[10px] text-blue-500 dark:text-blue-400 font-bold flex items-center gap-1">
+          <span className="text-sm leading-none">★</span> تشير إلى دقة الشاشة المثالية لجهازك.
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default function PCBuilderClient({ categories, importedSelections = {} }: { categories: Category[], importedSelections?: Record<string, string> }) {
+  const { data: session } = useSession();
+  const router = useRouter(); 
+  const [editModeId, setEditModeId] = useState<string | null>(null); 
+  const [buildName, setBuildName] = useState(""); // تم النقل هنا لتفادي أخطاء المدى النطاقي البرمجي
+  const [selectedComponents, setSelectedComponents] = useState<Record<string, Component | null>>({});
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // 1. تأثير التحميل الموحد (يقرأ الرابط ثم الجاهز ثم التخزين المحلي)
+  useEffect(() => {
+    const initializeBuilder = () => {
+      const hasImported = Object.keys(importedSelections || {}).length > 0;
+      const params = new URLSearchParams(window.location.search);
+      
+      const editId = params.get('editId');
+      if (editId) setEditModeId(editId);
+      
+      const editName = params.get('editName');
+      if (editName) setBuildName(editName);
+      
+      const hasUrlParams = categories.some(cat => params.has(cat.name.toLowerCase()));
+
+      let freshSelections: Record<string, Component | null> = {};
+
+      if (hasUrlParams) {
+        categories.forEach(cat => {
+          const compId = params.get(cat.name.toLowerCase());
+          freshSelections[cat.name] = compId ? (cat.components.find(c => c.id === compId) || null) : null;
+        });
+      } else if (hasImported) {
+        categories.forEach(cat => {
+          const id = importedSelections[cat.id];
+          freshSelections[cat.name] = id ? (cat.components.find(c => c.id === id) || null) : null;
+        });
+      } else {
+        const savedBuild = localStorage.getItem('draft_pc_build');
+        if (savedBuild) {
+          try {
+            const parsed = JSON.parse(savedBuild);
+            categories.forEach(cat => {
+              const savedComp = parsed[cat.name];
+              freshSelections[cat.name] = (savedComp?.id) 
+                ? (cat.components.find(c => c.id === savedComp.id) || null) 
+                : null;
+            });
+          } catch (e) {
+            categories.forEach(cat => freshSelections[cat.name] = null);
+          }
+        } else {
+          categories.forEach(cat => freshSelections[cat.name] = null);
+        }
+      }
+
+      setSelectedComponents(freshSelections);
+      setIsLoaded(true);
+    };
+
+    initializeBuilder();
+  }, [categories, importedSelections]);
+
+  // 2. تأثير موحد لحفظ المسودة وتحديث الرابط
+  useEffect(() => {
+    if (!isLoaded) return;
+    
+    localStorage.setItem('draft_pc_build', JSON.stringify(selectedComponents));
+    
+    const params = new URLSearchParams();
+    
+    if (editModeId) params.set('editId', editModeId);
+    if (buildName && editModeId) params.set('editName', buildName);
+
+    Object.entries(selectedComponents).forEach(([cat, comp]) => {
+      if (comp) params.set(cat.toLowerCase(), comp.id);
+    });
+
+    const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
+  }, [selectedComponents, isLoaded, editModeId, buildName]);
+
   const [result, setResult] = useState<{ 
     status: 'success' | 'error' | 'idle', 
     message: string, 
@@ -277,24 +517,85 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   
   const [isSaving, setIsSaving] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
-  const [buildName, setBuildName] = useState("");
   const [showIncompatible, setShowIncompatible] = useState(false);
   
   const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    checkCompatibility();
-  }, [selectedComponents]);
-
-  const handleSelect = (categoryName: string, componentId: string) => {
-    const category = categories.find(c => c.name === categoryName);
-    const component = category?.components.find(c => c.id === componentId) || null;
-    setSelectedComponents(prev => ({ ...prev, [categoryName]: component }));
-  };
+    if (isLoaded) checkCompatibility();
+  }, [selectedComponents, isLoaded]);
 
   const parseSpecs = (specsStr: any) => {
     if (!specsStr) return {};
     return typeof specsStr === 'string' ? JSON.parse(specsStr) : specsStr;
+  };
+
+  const handleSelect = (categoryName: string, componentId: string) => {
+    const category = categories.find(c => c.name === categoryName);
+    const component = category?.components.find(c => c.id === componentId) || null;
+    if (!component) return;
+
+    const specs = parseSpecs(component.specs);
+    
+    let newSelections = { ...selectedComponents, [categoryName]: component };
+    let toastMessage = "";
+
+    if (categoryName === 'CPU' && selectedComponents['Motherboard']) {
+      const moboSpecs = parseSpecs(selectedComponents['Motherboard']!.specs);
+      if (specs.socket && moboSpecs.socket && String(specs.socket) !== String(moboSpecs.socket)) {
+        newSelections['Motherboard'] = null;
+        toastMessage = 'تم إزالة اللوحة الأم السابقة لتغيير مقبس المعالج';
+      }
+    }
+    else if (categoryName === 'Motherboard') {
+      if (selectedComponents['CPU']) {
+        const cpuSpecs = parseSpecs(selectedComponents['CPU']!.specs);
+        if (specs.socket && cpuSpecs.socket && String(specs.socket) !== String(cpuSpecs.socket)) {
+          newSelections['CPU'] = null;
+          toastMessage = 'تم إزالة المعالج السابق لعدم توافقه مع اللوحة الجديدة';
+        }
+      }
+      if (selectedComponents['RAM']) {
+        const ramSpecs = parseSpecs(selectedComponents['RAM']!.specs);
+        if (specs.ramType && ramSpecs.type && String(specs.ramType) !== String(ramSpecs.type)) {
+          newSelections['RAM'] = null;
+          toastMessage = toastMessage 
+            ? toastMessage + ' والرام أيضاً' 
+            : 'تم إزالة الرام السابق لعدم التوافق مع اللوحة الجديدة';
+        }
+      }
+    }
+    else if (categoryName === 'RAM' && selectedComponents['Motherboard']) {
+      const moboSpecs = parseSpecs(selectedComponents['Motherboard']!.specs);
+      if (specs.type && moboSpecs.ramType && String(specs.type) !== String(moboSpecs.ramType)) {
+        newSelections['Motherboard'] = null;
+        toastMessage = 'تم إزالة اللوحة الأم لتغيير نوع الرام';
+      }
+    }
+    else if (categoryName === 'GPU' && selectedComponents['Case']) {
+      const caseSpecs = parseSpecs(selectedComponents['Case']!.specs);
+      if (specs.lengthMm && caseSpecs.maxGpuLength && parseFloat(specs.lengthMm) > parseFloat(caseSpecs.maxGpuLength)) {
+        newSelections['Case'] = null;
+        toastMessage = 'تم إزالة الكيس لأن الكرت الجديد أطول من المساحة المتاحة';
+      }
+    }
+    else if (categoryName === 'Case' && selectedComponents['GPU']) {
+      const gpuSpecs = parseSpecs(selectedComponents['GPU']!.specs);
+      if (specs.maxGpuLength && gpuSpecs.lengthMm && parseFloat(gpuSpecs.lengthMm) > parseFloat(specs.maxGpuLength)) {
+        newSelections['GPU'] = null;
+        toastMessage = 'تم إزالة الكرت لأن الكيس الجديد مساحته أصغر';
+      }
+    }
+
+    setSelectedComponents(newSelections);
+    
+    if (toastMessage) {
+      toast(toastMessage, { icon: '🔄' });
+    }
+  };
+
+  const handleRemove = (categoryName: string) => {
+    setSelectedComponents(prev => ({ ...prev, [categoryName]: null }));
   };
 
   const getComponentsWithCompatibility = (categoryName: string, components: Component[]): ComponentWithCompatibility[] => {
@@ -449,11 +750,13 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   };
 
   const handleSaveBuildClick = () => {
-    if (!session) {
+    if (!session || !session.user) {
       toast.error('يجب تسجيل الدخول أولاً لحفظ التجميعة');
       return;
     }
-    setBuildName("تجميعة " + new Date().toLocaleDateString('ar-SA'));
+    if (!buildName && !editModeId) {
+       setBuildName("تجميعة " + new Date().toLocaleDateString('ar-SA'));
+    }
     setSaveModalOpen(true);
   };
 
@@ -461,6 +764,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     setIsSaving(true);
     try {
       const payload = {
+        id: editModeId, 
         name: buildName || "تجميعة مخصصة",
         cpuId: selectedComponents['CPU']?.id || null,
         gpuId: selectedComponents['GPU']?.id || null,
@@ -477,12 +781,31 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error('فشل الحفظ');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'فشل الحفظ');
+      }
       
-      toast.success('تم حفظ التجميعة بنجاح!');
+      toast.success(editModeId ? 'تم تحديث التجميعة بنجاح!' : 'تم حفظ التجميعة بنجاح!');
       setSaveModalOpen(false);
-    } catch (error) {
-      toast.error('حدث خطأ أثناء حفظ التجميعة');
+
+      // تفريغ الذاكرة وتنظيف الاختيارات تماماً
+      localStorage.removeItem('draft_pc_build');
+      const emptyState: Record<string, Component | null> = {};
+      categories.forEach(cat => emptyState[cat.name] = null);
+      setSelectedComponents(emptyState);
+      setBuildName("");
+
+      if (editModeId) {
+        setEditModeId(null);
+        router.push('/my-builds'); // العودة الإلزامية لصفحة المحفوظات
+      } else {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      
+    } catch (error: any) {
+      console.error("Save error:", error);
+      toast.error(error.message || 'حدث خطأ أثناء حفظ التجميعة');
     } finally {
       setIsSaving(false);
     }
@@ -490,22 +813,33 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
   const exportBuildAsImage = async () => {
     if (!resultRef.current) return;
+    const loadingToast = toast.loading('جاري تجهيز الصورة...');
+    
     try {
-      const filter = (node: HTMLElement) => {
-        return !node.classList?.contains('export-ignore');
+      const filter = (node: HTMLElement | any) => {
+        if (node?.classList && typeof node.classList.contains === 'function') {
+          if (node.classList.contains('export-ignore')) return false;
+        }
+        if (node?.tagName === 'IMG') return false;
+        return true;
       };
 
       const dataUrl = await toPng(resultRef.current, { 
         backgroundColor: '#0f172a',
-        filter: filter as any
+        cacheBust: true,
+        pixelRatio: 2,
+        filter: filter
       }); 
 
       const link = document.createElement("a");
       link.href = dataUrl;
-      link.download = "My-PC-Build.png";
+      link.download = `PC-Build-${new Date().getTime()}.png`;
       link.click();
+      
+      toast.success('تم تصدير الصورة بنجاح!', { id: loadingToast });
     } catch (error) {
       console.error("خطأ في تصدير الصورة:", error);
+      toast.error('تعذر تصدير الصورة بسبب حماية السيرفرات للصور.', { id: loadingToast });
     }
   };
 
@@ -529,10 +863,10 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   };
 
   return (
-    <div className="max-w-5xl mx-auto my-10 bg-white dark:bg-[#0F172A] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800/80 overflow-hidden">
+    <div className="max-w-5xl mx-auto my-10 bg-white dark:bg-[#0F172A] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800/80">
       
       {/* الهيدر العلوي */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 p-10 text-center text-white relative overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 p-10 text-center text-white relative overflow-hidden rounded-t-3xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <h1 className="text-3xl md:text-4xl font-extrabold mb-3 flex items-center justify-center gap-3 relative z-10">
           منصة تجميع الـ PC
@@ -589,6 +923,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                     components={compsWithComp}
                     selectedComponent={selectedComponents[category.name]}
                     onSelect={(id) => handleSelect(category.name, id)}
+                    onRemove={() => handleRemove(category.name)}
                     onShowDetails={(comp) => setDetailsModal({ comp, categoryName: category.name })}
                     showIncompatible={showIncompatible}
                   />
@@ -618,7 +953,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                   )}
                 </div>
 
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <h3 className={`text-xl font-black mb-3 ${result.status === 'success' ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-900 dark:text-rose-400'}`}>
                     {result.message}
                   </h3>
@@ -648,30 +983,56 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                     </div>
                   )}
 
+                  {result.status === 'success' && selectedComponents['CPU']?.performanceTier && selectedComponents['GPU']?.performanceTier && (
+                    <FpsEstimator 
+                      cpuTier={selectedComponents['CPU'].performanceTier} 
+                      gpuTier={selectedComponents['GPU'].performanceTier} 
+                    />
+                  )}
+
                   {result.status === 'success' && (
                     <div className="mt-8 pt-8 border-t border-emerald-200/50 dark:border-emerald-800/30">
                       <h4 className="font-extrabold text-emerald-900 dark:text-emerald-500 mb-5 text-sm uppercase tracking-widest">
                         قائمة القطع المعتمدة:
                       </h4>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3">
                         {Object.entries(selectedComponents).map(([catName, comp]) => {
                           if (!comp) return null;
                           return (
-                            <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 gap-3">
-                              <div className="text-sm flex-1 leading-tight">
-                                <span className="font-bold text-slate-500 dark:text-slate-400 ml-2 text-[11px] uppercase tracking-wider block sm:inline">{catName}</span>
-                                <span className={getBrandColor(comp, catName) + " ml-1"}>{comp.brand}</span>
-                                <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
+                            <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-slate-800/80 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 gap-3 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors group">
+                              <div className="flex items-center gap-3">
+                                {comp.imageUrl ? (
+                                  <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 p-1 flex items-center justify-center shrink-0">
+                                     <img src={comp.imageUrl} alt={comp.name} className="max-w-full max-h-full object-contain export-ignore" />
+                                  </div>
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 flex items-center justify-center shrink-0">
+                                    <span className="text-lg opacity-40">⚙️</span>
+                                  </div>
+                                )}
+                                <div className="text-sm flex-1 leading-tight">
+                                  <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-widest block mb-0.5">{catName}</span>
+                                  <span className={getBrandColor(comp, catName) + " ml-1"}>{comp.brand}</span>
+                                  <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
+                                </div>
                               </div>
-                              <div className="flex gap-2 export-ignore shrink-0">
-                                {comp.amazonUrl && (
-                                  <a href={comp.amazonUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[11px] rounded-lg font-bold transition-colors shadow-sm">
-                                    Amazon
+                              <div className="flex flex-wrap gap-1.5 export-ignore shrink-0 mt-2 sm:mt-0 pl-12 sm:pl-0">
+                                {comp.amazonUrl && comp.amazonInStock === true && (
+                                  <a href={comp.amazonUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                    <span>Amazon</span>
+                                    <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                                   </a>
                                 )}
-                                {comp.cazasouqUrl && (
-                                  <a href={comp.cazasouqUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[11px] rounded-lg font-bold transition-colors shadow-sm">
-                                    Cazasouq
+                                {comp.cazasouqUrl && comp.cazasouqInStock === true && (
+                                  <a href={comp.cazasouqUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                    <span>Cazasouq</span>
+                                    <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                  </a>
+                                )}
+                                {comp.microlessUrl && comp.microlessInStock === true && (
+                                  <a href={comp.microlessUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#0053D9] hover:bg-[#003899] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                    <span>Microless</span>
+                                    <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                                   </a>
                                 )}
                               </div>
@@ -687,19 +1048,32 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
             {result.status === 'success' && (
               <div className="mt-6 flex flex-wrap justify-end gap-3">
+                {/* زر إلغاء التعديل */}
+                {editModeId && (
+                  <button 
+                    onClick={() => {
+                      localStorage.removeItem('draft_pc_build');
+                      window.location.href = '/my-builds'; // توجيه إجباري ينهي التعليق ويفرغ الصفحة بالكامل
+                    }}
+                    className="px-6 py-3 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold rounded-xl transition-all flex items-center gap-2 border border-rose-200 dark:border-rose-900/30"
+                  >
+                    إلغاء التعديل
+                  </button>
+                )}
+                
                 <button 
                   onClick={exportBuildAsImage}
                   className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm border border-slate-200 dark:border-slate-700"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                   تصدير صورة
                 </button>
+                
                 <button 
                   onClick={handleSaveBuildClick}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-md shadow-blue-500/20"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                  حفظ التجميعة لحسابي
+                  {editModeId ? 'حفظ التعديلات' : 'حفظ التجميعة لحسابي'}
                 </button>
               </div>
             )}

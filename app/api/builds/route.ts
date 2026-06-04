@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
         imageUrl: true,
         amazonUrl: true,
         cazasouqUrl: true,
+        microlessUrl: true,       // 👈 تمت الإضافة
+        amazonInStock: true,      // 👈 تمت الإضافة
+        cazasouqInStock: true,    // 👈 تمت الإضافة
+        microlessInStock: true,   // 👈 تمت الإضافة
         performanceTier: true 
       }
     });
@@ -66,17 +70,32 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId } = body;
+    const { id, name, cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId } = body;
+    const userId = (session.user as any).id as string;
 
-    const newBuild = await prisma.savedBuild.create({
-      data: {
-        userId: (session.user as any).id as string,
-        name: name || "تجميعة مخصصة",
-        cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId
+    if (id) {
+      // 1. التحقق من ملكية التجميعة قبل التعديل
+      const existingBuild = await prisma.savedBuild.findUnique({ where: { id } });
+      if (!existingBuild || existingBuild.userId !== userId) {
+        return NextResponse.json({ message: 'غير مصرح بتعديل هذه التجميعة' }, { status: 403 });
       }
-    });
 
-    return NextResponse.json({ message: 'تم الحفظ بنجاح', buildId: newBuild.id }, { status: 201 });
+      // 2. تحديث التجميعة الحالية
+      await prisma.savedBuild.update({
+        where: { id },
+        data: { name: name || existingBuild.name, cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId }
+      });
+      return NextResponse.json({ message: 'تم تعديل التجميعة بنجاح' }, { status: 200 });
+      
+    } else {
+      // 3. إنشاء تجميعة جديدة
+      const newBuild = await prisma.savedBuild.create({
+        data: {
+          userId, name: name || "تجميعة مخصصة", cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId
+        }
+      });
+      return NextResponse.json({ message: 'تم الحفظ بنجاح', buildId: newBuild.id }, { status: 201 });
+    }
   } catch (error) {
     return NextResponse.json({ message: 'خطأ في السيرفر' }, { status: 500 });
   }
