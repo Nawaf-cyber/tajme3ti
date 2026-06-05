@@ -4,6 +4,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '../../../lib/prisma';
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+// إعداد نظام الحماية (10 طلبات في الدقيقة كحد أقصى)
+let ratelimit: Ratelimit | null = null;
+try {
+  ratelimit = new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(10, "1 m"),
+    analytics: true,
+  });
+} catch (error) {
+  console.warn("لم يتم إعداد Upstash Redis بعد.");
+}
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -30,10 +44,10 @@ export async function GET(req: NextRequest) {
         imageUrl: true,
         amazonUrl: true,
         cazasouqUrl: true,
-        microlessUrl: true,       // 👈 تمت الإضافة
-        amazonInStock: true,      // 👈 تمت الإضافة
-        cazasouqInStock: true,    // 👈 تمت الإضافة
-        microlessInStock: true,   // 👈 تمت الإضافة
+        microlessUrl: true,       
+        amazonInStock: true,      
+        cazasouqInStock: true,    
+        microlessInStock: true,   
         performanceTier: true 
       }
     });
@@ -68,10 +82,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'يجب تسجيل الدخول لحفظ التجميعة' }, { status: 401 });
   }
 
+  const userId = (session.user as any).id as string;
+
+  // تطبيق نظام الحماية بناءً على رقم حساب المستخدم
+  if (ratelimit) {
+    const { success } = await ratelimit.limit(`ratelimit_build_${userId}`);
+    if (!success) {
+      return NextResponse.json(
+        { message: 'تجاوزت الحد المسموح به. يرجى الانتظار دقيقة والمحاولة مجدداً.' }, 
+        { status: 429 }
+      );
+    }
+  }
+
   try {
     const body = await req.json();
     const { id, name, cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId } = body;
-    const userId = (session.user as any).id as string;
 
     if (id) {
       // 1. التحقق من ملكية التجميعة قبل التعديل

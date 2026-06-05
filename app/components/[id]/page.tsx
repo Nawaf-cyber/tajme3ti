@@ -22,17 +22,14 @@ const RiyalIcon = ({ size = 'h-6 w-6' }: { size?: string }) => (
 const formatTextWithLinks = (text: string) => {
   if (!text) return null;
   
-  // تمت إضافة صيغة الماركداون للروابط المخصصة في بداية البحث
   const regex = /(\[[^\]]+\]\([^\)]+\)|\[red\].*?\[\/red\]|\[green\].*?\[\/green\]|\[blue\].*?\[\/blue\]|\[yellow\].*?\[\/yellow\]|https?:\/\/[^\s]+)/g;
   const parts = text.split(regex);
   
   return parts.map((part, i) => {
     if (!part) return null;
 
-    // 1. معالجة الروابط المخصصة بصيغة [الاسم](الرابط)
-    const mdLinkMatch = part.match(/^\[([^\]]+)\]\(([^\)]+)\)$/);
-    if (mdLinkMatch) {
-      const [, linkText, linkUrl] = mdLinkMatch;
+    if (part.match(/^\[([^\]]+)\]\(([^\)]+)\)$/)) {
+      const [, linkText, linkUrl] = part.match(/^\[([^\]]+)\]\(([^\)]+)\)$/)!;
       return (
         <a 
           key={i} 
@@ -46,29 +43,27 @@ const formatTextWithLinks = (text: string) => {
       );
     }
 
-    // 2. معالجة الروابط الخام (لزر الموقع الرسمي)
     if (part.match(/^https?:\/\/[^\s]+$/)) {
       return (
-        <a 
-          key={i} 
-          href={part} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="inline-flex items-center gap-2 mt-3 mb-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-bold text-xs rounded-xl transition-all w-fit border border-slate-200 dark:border-slate-700 shadow-sm"
-        >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
-          الموقع الرسمي
-        </a>
+        <span key={i} className="block mt-8 flex justify-end w-full">
+          <a 
+            href={part} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="inline-flex items-center gap-2 px-5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-full transition-all border border-slate-300 dark:border-slate-700 shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+            الموقع الرسمي
+          </a>
+        </span>
       );
     }
     
-    // 3. معالجة الألوان
-    if (part.startsWith('[red]') && part.endsWith('[/red]')) return <span key={i} className="text-rose-600 dark:text-rose-400 font-bold">{part.slice(5, -6)}</span>;
-    if (part.startsWith('[green]') && part.endsWith('[/green]')) return <span key={i} className="text-emerald-600 dark:text-emerald-400 font-bold">{part.slice(7, -8)}</span>;
-    if (part.startsWith('[blue]') && part.endsWith('[/blue]')) return <span key={i} className="text-blue-600 dark:text-blue-400 font-bold">{part.slice(6, -7)}</span>;
-    if (part.startsWith('[yellow]') && part.endsWith('[/yellow]')) return <span key={i} className="text-amber-600 dark:text-amber-400 font-bold">{part.slice(8, -9)}</span>;
+    if (part.startsWith('[red]') && part.endsWith('[/red]')) return <span key={i} className="text-rose-600 dark:text-rose-400 font-black">{part.slice(5, -6)}</span>;
+    if (part.startsWith('[green]') && part.endsWith('[/green]')) return <span key={i} className="text-emerald-600 dark:text-emerald-400 font-black">{part.slice(7, -8)}</span>;
+    if (part.startsWith('[blue]') && part.endsWith('[/blue]')) return <span key={i} className="text-cyan-600 dark:text-cyan-400 font-black">{part.slice(6, -7)}</span>;
+    if (part.startsWith('[yellow]') && part.endsWith('[/yellow]')) return <span key={i} className="text-amber-600 dark:text-amber-400 font-black">{part.slice(8, -9)}</span>;
     
-    // 4. النص العادي
     return <span key={i}>{part}</span>;
   });
 };
@@ -118,7 +113,34 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
           <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/5 blur-3xl rounded-full pointer-events-none"></div>
           
           <div className="w-full lg:w-1/2 flex justify-center relative z-[100]">
-            <div className="w-full max-w-[450px] aspect-square bg-slate-100/50 dark:bg-[#0B1120]/50 rounded-2xl flex items-center justify-center p-8 lg:p-12 border border-slate-200/50 dark:border-slate-700/30">
+            <div className="w-full max-w-[450px] aspect-square bg-white rounded-3xl flex items-center justify-center p-6 shadow-md">
+              <style dangerouslySetInnerHTML={{ __html: `
+                [data-rmiz], [data-rmiz-content] { 
+                  width: 100%; 
+                  height: 100%; 
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                }
+                [data-rmiz-content] img { 
+                  width: 100% !important; 
+                  height: 100% !important; 
+                  object-fit: contain !important; 
+                  mix-blend-mode: multiply; 
+                  transition: transform 0.4s ease;
+                }
+                [data-rmiz-content] img:hover { transform: scale(1.05); }
+                [data-rmiz-overlay], [data-rmiz-modal-overlay] { 
+                  background-color: rgba(15, 23, 42, 0.95) !important;
+                }
+                [data-rmiz-modal-img] { 
+                  background-color: white !important;
+                  padding: 2rem !important;
+                  border-radius: 24px !important;
+                  box-shadow: 0 0 40px rgba(0,0,0,0.5) !important;
+                }
+              `}} />
+
               <ImageZoom 
                 src={comp.imageUrl || `/images/${comp.categoryId}/boxed.png`} 
                 alt={comp.name} 
@@ -128,10 +150,10 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
           <div className="w-full lg:w-1/2 flex flex-col justify-center">
             <div className="flex items-center gap-3 mb-4">
-              <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md text-xs font-bold uppercase tracking-widest">
+              <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold uppercase tracking-widest">
                 {comp.category?.name}
               </span>
-              <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-md text-xs font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800/30">
+              <span className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800/30">
                 {comp.brand}
               </span>
             </div>
@@ -140,16 +162,16 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               {comp.name}
             </h1>
             
-            <div className="flex flex-wrap items-end gap-4 mb-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex flex-wrap items-end gap-5 mb-4 pb-6 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-1">أقل سعر حالي</p>
+                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-2">أقل سعر حالي</p>
                 <div className="text-4xl md:text-5xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
                   {comp.price} <RiyalIcon size="h-9 w-9" />
                 </div>
               </div>
               {sourceText && (
-                <div className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/40 rounded-lg text-emerald-700 dark:text-emerald-400 text-sm font-bold flex items-center gap-2 mb-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <div className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl text-emerald-800 dark:text-emerald-400 text-sm font-extrabold flex items-center gap-2 mb-1 shadow-sm">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981] animate-pulse"></span>
                   {sourceText}
                 </div>
               )}
@@ -157,84 +179,87 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
             {(comp.amazonUrl || comp.cazasouqUrl || comp.microlessUrl) && (
               <div className="flex flex-col gap-3 mt-4 w-full relative z-0">
-                <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">مقارنة الأسعار في المتاجر:</h3>
+                <h3 className="text-sm font-extrabold text-slate-500 dark:text-slate-400 mb-2">مقارنة الأسعار في المتاجر:</h3>
 
-                {/* زر أمازون */}
                 {comp.amazonUrl && (
                   <a 
                     href={comp.amazonUrl} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className={`flex items-center justify-between p-4 border rounded-xl transition-all group shadow-sm ${
+                    className={`flex items-center justify-between p-4 border rounded-2xl transition-all group shadow-sm ${
                       !comp.amazonInStock || !comp.amazonPrice
-                        ? 'bg-slate-100 dark:bg-[#0B1120] border-slate-200 dark:border-slate-800 opacity-60 grayscale' 
-                        : 'bg-slate-50 dark:bg-[#0F172A]/50 border-slate-200 dark:border-slate-700/50 hover:border-[#FF9900]/80'
+                        ? 'bg-slate-100 dark:bg-[#0B1120] border-slate-200 dark:border-slate-800 opacity-60 grayscale cursor-not-allowed' 
+                        : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-[#FF9900] hover:shadow-md hover:-translate-y-0.5'
                     }`}
                   >
-                    <span className="font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white flex items-center gap-2.5">
-                      <span className={`w-2.5 h-2.5 rounded-full ${comp.amazonInStock && comp.amazonPrice ? 'bg-[#FF9900] shadow-[0_0_8px_#FF9900]/60' : 'bg-rose-500 shadow-[0_0_8px_#F43F5E]/60'}`}></span>
-                      Amazon
-                      {(!comp.amazonInStock || !comp.amazonPrice) && (
-                        <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-800/50">
-                          غير متوفر
-                        </span>
-                      )}
-                    </span>
-                    <span className={`font-black text-lg ${comp.amazonInStock && comp.amazonPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-[#FF9900]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <span className={`w-3 h-3 rounded-full ${comp.amazonInStock && comp.amazonPrice ? 'bg-[#FF9900] shadow-[0_0_8px_#FF9900]/60' : 'bg-rose-500'}`}></span>
+                      </div>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-[#FF9900] transition-colors flex flex-col">
+                        Amazon
+                        {(!comp.amazonInStock || !comp.amazonPrice) && (
+                          <span className="text-[10px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>
+                        )}
+                      </span>
+                    </div>
+                    <span className={`font-black text-xl ${comp.amazonInStock && comp.amazonPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
                       {comp.amazonPrice ? `${comp.amazonPrice} ر.س` : '---'}
                     </span>
                   </a>
                 )}
 
-                {/* زر كازاسوق */}
                 {comp.cazasouqUrl && (
                   <a 
                     href={comp.cazasouqUrl} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className={`flex items-center justify-between p-4 border rounded-xl transition-all group shadow-sm ${
+                    className={`flex items-center justify-between p-4 border rounded-2xl transition-all group shadow-sm ${
                       !comp.cazasouqInStock || !comp.cazasouqPrice
-                        ? 'bg-slate-100 dark:bg-[#0B1120] border-slate-200 dark:border-slate-800 opacity-60 grayscale' 
-                        : 'bg-slate-50 dark:bg-[#0F172A]/50 border-slate-200 dark:border-slate-700/50 hover:border-purple-500/80'
+                        ? 'bg-slate-100 dark:bg-[#0B1120] border-slate-200 dark:border-slate-800 opacity-60 grayscale cursor-not-allowed' 
+                        : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-purple-500 hover:shadow-md hover:-translate-y-0.5'
                     }`}
                   >
-                    <span className="font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white flex items-center gap-2.5">
-                      <span className={`w-2.5 h-2.5 rounded-full ${comp.cazasouqInStock && comp.cazasouqPrice ? 'bg-purple-500 shadow-[0_0_8px_#A855F7]/60' : 'bg-rose-500 shadow-[0_0_8px_#F43F5E]/60'}`}></span>
-                      CazaSouq
-                      {(!comp.cazasouqInStock || !comp.cazasouqPrice) && (
-                        <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-800/50">
-                          غير متوفر
-                        </span>
-                      )}
-                    </span>
-                    <span className={`font-black text-lg ${comp.cazasouqInStock && comp.cazasouqPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <span className={`w-3 h-3 rounded-full ${comp.cazasouqInStock && comp.cazasouqPrice ? 'bg-purple-500 shadow-[0_0_8px_#A855F7]/60' : 'bg-rose-500'}`}></span>
+                      </div>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-purple-500 transition-colors flex flex-col">
+                        CazaSouq
+                        {(!comp.cazasouqInStock || !comp.cazasouqPrice) && (
+                          <span className="text-[10px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>
+                        )}
+                      </span>
+                    </div>
+                    <span className={`font-black text-xl ${comp.cazasouqInStock && comp.cazasouqPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
                       {comp.cazasouqPrice ? `${comp.cazasouqPrice} ر.س` : '---'}
                     </span>
                   </a>
                 )}
 
-                {/* زر مايكروليس */}
                 {comp.microlessUrl && (
                   <a 
                     href={comp.microlessUrl} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className={`flex items-center justify-between p-4 border rounded-xl transition-all group shadow-sm ${
+                    className={`flex items-center justify-between p-4 border rounded-2xl transition-all group shadow-sm ${
                       !comp.microlessInStock || !comp.microlessPrice
-                        ? 'bg-slate-100 dark:bg-[#0B1120] border-slate-200 dark:border-slate-800 opacity-60 grayscale' 
-                        : 'bg-slate-50 dark:bg-[#0F172A]/50 border-slate-200 dark:border-slate-700/50 hover:border-red-600/80'
+                        ? 'bg-slate-100 dark:bg-[#0B1120] border-slate-200 dark:border-slate-800 opacity-60 grayscale cursor-not-allowed' 
+                        : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-red-600 hover:shadow-md hover:-translate-y-0.5'
                     }`}
                   >
-                    <span className="font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white flex items-center gap-2.5">
-                      <span className={`w-2.5 h-2.5 rounded-full ${comp.microlessInStock && comp.microlessPrice ? 'bg-red-600 shadow-[0_0_8px_#DC2626]/60' : 'bg-rose-500 shadow-[0_0_8px_#F43F5E]/60'}`}></span>
-                      Microless
-                      {(!comp.microlessInStock || !comp.microlessPrice) && (
-                        <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-800/50">
-                          غير متوفر
-                        </span>
-                      )}
-                    </span>
-                    <span className={`font-black text-lg ${comp.microlessInStock && comp.microlessPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-red-600/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <span className={`w-3 h-3 rounded-full ${comp.microlessInStock && comp.microlessPrice ? 'bg-red-600 shadow-[0_0_8px_#DC2626]/60' : 'bg-rose-500'}`}></span>
+                      </div>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-red-500 transition-colors flex flex-col">
+                        Microless
+                        {(!comp.microlessInStock || !comp.microlessPrice) && (
+                          <span className="text-[10px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>
+                        )}
+                      </span>
+                    </div>
+                    <span className={`font-black text-xl ${comp.microlessInStock && comp.microlessPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
                       {comp.microlessPrice ? `${comp.microlessPrice} ر.س` : '---'}
                     </span>
                   </a>
@@ -246,21 +271,24 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          <div className="lg:col-span-4 flex flex-col gap-4">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white px-2">
+          <div className="lg:col-span-5 flex flex-col gap-4">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white px-2 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
               المواصفات التقنية
             </h3>
-            <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm h-full overflow-hidden">
+            <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm h-full">
               {Object.keys(specs).length === 0 ? (
-                <p className="text-sm text-slate-500 font-medium">لا توجد مواصفات فنية مسجلة.</p>
+                <div className="flex items-center justify-center h-full text-slate-400 font-bold text-sm">
+                  لا توجد مواصفات فنية مسجلة.
+                </div>
               ) : (
-                <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   {Object.entries(specs).map(([key, value]) => (
-                    <div key={key} className="relative pl-4 border-l-4 border-blue-500 dark:border-blue-600">
-                      <span className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
+                    <div key={key} className="bg-slate-50 dark:bg-[#0B1120] p-4 rounded-2xl border border-slate-200 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors group">
+                      <span className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 group-hover:text-blue-500 transition-colors">
                         {key}
                       </span>
-                      <span className="block text-base font-bold text-slate-900 dark:text-slate-200" dir="ltr">
+                      <span className="block text-sm font-black text-slate-900 dark:text-white" dir="ltr">
                         {String(value)}
                       </span>
                     </div>
@@ -270,13 +298,14 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             </div>
           </div>
 
-          <div className="lg:col-span-8 flex flex-col gap-4">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white px-2">
+          <div className="lg:col-span-7 flex flex-col gap-4">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white px-2 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
               نظرة عامة
             </h3>
-            <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 md:p-8 shadow-sm h-full overflow-hidden">
+            <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 md:p-8 shadow-sm h-full">
               <div className="prose prose-slate dark:prose-invert max-w-none">
-                <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap font-medium text-[15px] md:text-base">
+                <p className="text-slate-700 dark:text-slate-300 leading-loose whitespace-pre-wrap font-medium text-[15px] md:text-base">
                   {comp.description ? formatTextWithLinks(comp.description) : "لا يوجد وصف إضافي متاح لهذه القطعة حالياً."}
                 </p>
               </div>

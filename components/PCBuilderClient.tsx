@@ -431,11 +431,10 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   const { data: session } = useSession();
   const router = useRouter(); 
   const [editModeId, setEditModeId] = useState<string | null>(null); 
-  const [buildName, setBuildName] = useState(""); // تم النقل هنا لتفادي أخطاء المدى النطاقي البرمجي
+  const [buildName, setBuildName] = useState(""); 
   const [selectedComponents, setSelectedComponents] = useState<Record<string, Component | null>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 1. تأثير التحميل الموحد (يقرأ الرابط ثم الجاهز ثم التخزين المحلي)
   useEffect(() => {
     const initializeBuilder = () => {
       const hasImported = Object.keys(importedSelections || {}).length > 0;
@@ -487,7 +486,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     initializeBuilder();
   }, [categories, importedSelections]);
 
-  // 2. تأثير موحد لحفظ المسودة وتحديث الرابط
   useEffect(() => {
     if (!isLoaded) return;
     
@@ -507,9 +505,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   }, [selectedComponents, isLoaded, editModeId, buildName]);
 
   const [result, setResult] = useState<{ 
-    status: 'success' | 'error' | 'idle', 
+    status: 'success' | 'error' | 'idle' | 'incomplete', 
     message: string, 
-    bottleneck?: { title: string, desc: string, color: string, bg: string } | null, 
+    bottleneck?: { title: string, desc: string, color: string, bg: string, suggestions?: { category: string, item: Component }[] } | null, 
     totalTdp: number, 
     totalPrice: number 
   }>({ status: 'idle', message: '', totalTdp: 0, totalPrice: 0 });
@@ -683,7 +681,12 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     totalPrice = Number(totalPrice.toFixed(2));
 
     if (!cpu || !mobo || !ram || !gpu || !pcCase || !psu) {
-      setResult({ status: 'error', message: 'الرجاء اختيار جميع القطع الأساسية لإتمام الفحص.', totalTdp, totalPrice });
+      setResult({ 
+        status: 'incomplete', 
+        message: 'أكمل اختيار القطع الأساسية لفتح تقرير التوافق وحساب الأداء.', 
+        totalTdp, 
+        totalPrice 
+      });
       return;
     }
 
@@ -716,19 +719,49 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     let bottleneck = null;
     if (cpu.performanceTier && gpu.performanceTier) {
       const diff = cpu.performanceTier - gpu.performanceTier;
+      let suggestions: { category: string, item: Component }[] = [];
+
       if (diff < -1) {
+        const cpuCategory = categories.find(c => c.name === 'CPU');
+        if (cpuCategory && moboSpecs) {
+          suggestions = cpuCategory.components.filter(c => {
+            const cSpecs = parseSpecs(c.specs);
+            return cSpecs.socket === moboSpecs.socket && 
+                   c.performanceTier !== null && 
+                   c.performanceTier >= gpu.performanceTier! - 1 &&
+                   c.id !== cpu.id;
+          })
+          .sort((a, b) => a.price - b.price).slice(0, 6)
+          .map(item => ({ category: 'CPU', item }));
+        }
+
         bottleneck = {
-          title: "⚠️ عنق زجاجة ملحوظ: المعالج أضعف من كرت الشاشة.",
-          desc: "لن يتمكن المعالج من مجاراة سرعة الكرت (خصوصاً على دقة 1080p). يُنصح بترقية المعالج أو اللعب بدقة 4K.",
+          title: "⚠️ المعالج قد يحد من أداء الكرت في بعض الألعاب، خصوصًا على 1080p و1440p.",
+          desc: "يُنصح بترقية المعالج، أو اللعب بدقة 4K لنقل ثقل المعالجة إلى الكرت وتخفيف الضغط عن المعالج.",
           color: "text-amber-900 dark:text-amber-400",
-          bg: "bg-amber-100 dark:bg-amber-900/20 border-amber-300 dark:border-amber-800/50"
+          bg: "bg-amber-100 dark:bg-amber-900/20 border-amber-300 dark:border-amber-800/50",
+          suggestions
         };
       } else if (diff > 1) {
+        const gpuCategory = categories.find(c => c.name === 'GPU');
+        if (gpuCategory && caseSpecs) {
+          suggestions = gpuCategory.components.filter(c => {
+            const cSpecs = parseSpecs(c.specs);
+            return parseFloat(cSpecs.lengthMm || "0") <= parseFloat(caseSpecs.maxGpuLength || "999") && 
+                   c.performanceTier !== null && 
+                   c.performanceTier >= cpu.performanceTier! - 1 &&
+                   c.id !== gpu.id;
+          })
+          .sort((a, b) => a.price - b.price).slice(0, 6)
+          .map(item => ({ category: 'GPU', item }));
+        }
+
         bottleneck = {
-          title: "💡 تنبيه أداء: كرت الشاشة أضعف من المعالج.",
-          desc: "الأداء سيكون ممتازاً لألعاب (Esports)، لكن الكرت سيحد من قوة الجهاز في ألعاب القصة (AAA) والدقات العالية.",
+          title: "💡 كرت الشاشة سيحد من قوة الجهاز.",
+          desc: "الأداء سيكون ممتازاً وسلساً في ألعاب الشوتر والتنافسية، لكن الكرت سيقلل الفريمات في ألعاب القصة الثقيلة والدقات العالية.",
           color: "text-blue-900 dark:text-blue-400",
-          bg: "bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-800/50"
+          bg: "bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-800/50",
+          suggestions
         };
       } else {
         bottleneck = {
@@ -747,6 +780,22 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       totalTdp, 
       totalPrice 
     });
+  };
+
+  const handleClearBuild = () => {
+    if (!confirm('هل أنت متأكد من تفريغ جميع القطع؟ سيتم مسح اختياراتك والبدء من جديد.')) return;
+    
+    const emptyState: Record<string, Component | null> = {};
+    categories.forEach(cat => emptyState[cat.name] = null);
+    setSelectedComponents(emptyState);
+    
+    setEditModeId(null);
+    setBuildName("");
+    
+    localStorage.removeItem('draft_pc_build');
+    window.history.replaceState({}, '', window.location.pathname);
+    
+    toast.success('تم تفريغ لوحة البناء');
   };
 
   const handleSaveBuildClick = () => {
@@ -789,7 +838,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       toast.success(editModeId ? 'تم تحديث التجميعة بنجاح!' : 'تم حفظ التجميعة بنجاح!');
       setSaveModalOpen(false);
 
-      // تفريغ الذاكرة وتنظيف الاختيارات تماماً
       localStorage.removeItem('draft_pc_build');
       const emptyState: Record<string, Component | null> = {};
       categories.forEach(cat => emptyState[cat.name] = null);
@@ -798,7 +846,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
       if (editModeId) {
         setEditModeId(null);
-        router.push('/my-builds'); // العودة الإلزامية لصفحة المحفوظات
+        window.location.href = '/my-builds';
       } else {
         window.history.replaceState({}, '', window.location.pathname);
       }
@@ -862,6 +910,14 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     }
   };
 
+  if (!isLoaded) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto my-10 bg-white dark:bg-[#0F172A] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800/80">
       
@@ -882,21 +938,33 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
             لوحة اختيار القطع
           </h2>
-          <label className="group flex items-center gap-3 cursor-pointer bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/50 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-sm">
-            <div className="relative flex items-center">
-              <input
-                type="checkbox"
-                checked={showIncompatible}
-                onChange={(e) => setShowIncompatible(e.target.checked)}
-                className="peer sr-only"
-              />
-              <div className="w-10 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
-              <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4 shadow-sm"></div>
-            </div>
-            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 select-none group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-              عرض القطع غير المتوافقة (لتفسير السبب)
-            </span>
-          </label>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <button 
+              onClick={handleClearBuild}
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-rose-500 bg-white hover:bg-rose-50 dark:text-rose-400 dark:bg-slate-800/40 dark:hover:bg-rose-950/40 rounded-xl transition-all border border-slate-200 hover:border-rose-200 dark:border-slate-700/50 dark:hover:border-rose-900/50 shadow-sm"
+              title="مسح جميع القطع والبدء من جديد"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              تفريغ التجميعة
+            </button>
+
+            <label className="group flex items-center gap-3 cursor-pointer bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/50 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-sm">
+              <div className="relative flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showIncompatible}
+                  onChange={(e) => setShowIncompatible(e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="w-10 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
+                <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4 shadow-sm"></div>
+              </div>
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-300 select-none group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                عرض القطع غير المتوافقة (لتفسير السبب)
+              </span>
+            </label>
+          </div>
         </div>
 
         {/* شبكة القطع */}
@@ -936,124 +1004,200 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         {/* صندوق النتيجة */}
         {result.status !== 'idle' && (
           <div className="mt-10 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div ref={resultRef} className={`p-8 rounded-3xl border shadow-sm relative overflow-hidden ${
-              result.status === 'success' 
-                ? 'bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-950/20 dark:to-[#0F172A] border-emerald-200 dark:border-emerald-800/50' 
-                : 'bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-950/20 dark:to-[#0F172A] border-rose-200 dark:border-rose-800/50'
-            }`}>
-              
-              <div className="flex flex-col md:flex-row md:items-start gap-6 relative z-10">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
-                  result.status === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-200 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400'
-                }`}>
-                  {result.status === 'success' ? (
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                  ) : (
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
-                  )}
+            
+            {result.status === 'incomplete' ? (
+              <div className="p-8 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20 text-center flex flex-col items-center justify-center gap-3 shadow-sm">
+                <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 dark:text-slate-500 mb-2 shadow-sm border border-slate-200 dark:border-slate-700">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                 </div>
-
-                <div className="flex-1 min-w-0">
-                  <h3 className={`text-xl font-black mb-3 ${result.status === 'success' ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-900 dark:text-rose-400'}`}>
-                    {result.message}
-                  </h3>
-                  
-                  <div className="flex flex-wrap gap-3 text-sm font-bold">
-                    <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 shadow-sm">
-                      ⚡ الطاقة التقريبية: <span className="text-amber-700 dark:text-amber-400">{result.totalTdp}W</span>
+                <h3 className="text-lg font-extrabold text-slate-700 dark:text-slate-300">{result.message}</h3>
+                
+                {(result.totalPrice > 0 || result.totalTdp > 0) && (
+                  <div className="flex flex-wrap justify-center gap-3 mt-3 text-sm font-bold">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-600 dark:text-slate-400 shadow-sm">
+                      ⚡ الطاقة الحالية: <span className="text-amber-600 dark:text-amber-500">{result.totalTdp}W</span>
                     </div>
-                    <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 shadow-sm">
-                      💰 التكلفة الإجمالية: 
-                      <span className="text-emerald-700 dark:text-emerald-400 font-black flex items-center gap-1">
-                        {result.totalPrice} <RiyalIcon size="h-4 w-4" />
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-600 dark:text-slate-400 shadow-sm">
+                      💰 التكلفة الحالية: 
+                      <span className="text-emerald-600 dark:text-emerald-500 font-black flex items-center gap-1">
+                        {result.totalPrice} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-500" />
                       </span>
                     </div>
                   </div>
+                )}
+              </div>
+            ) : (
+              <div ref={resultRef} className={`p-8 rounded-3xl border shadow-sm relative overflow-hidden ${
+                result.status === 'success' 
+                  ? 'bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-950/20 dark:to-[#0F172A] border-emerald-200 dark:border-emerald-800/50' 
+                  : 'bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-950/20 dark:to-[#0F172A] border-rose-200 dark:border-rose-800/50'
+              }`}>
+                
+                <div className="flex flex-col md:flex-row md:items-start gap-6 relative z-10">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                    result.status === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-200 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400'
+                  }`}>
+                    {result.status === 'success' ? (
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    ) : (
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                    )}
+                  </div>
 
-                  {result.bottleneck && (
-                    <div className={`mt-6 p-5 border rounded-2xl ${result.bottleneck.bg} flex items-start gap-4 relative shadow-sm`}>
-                      <div className="flex-1">
-                        <h4 className={`font-black text-base mb-1 ${result.bottleneck.color}`}>
-                          {result.bottleneck.title}
-                        </h4>
-                        <p className={`text-sm font-medium opacity-90 ${result.bottleneck.color}`}>
-                          {result.bottleneck.desc}
-                        </p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`text-xl font-black mb-3 ${result.status === 'success' ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-900 dark:text-rose-400'}`}>
+                      {result.message}
+                    </h3>
+                    
+                    <div className="flex flex-wrap gap-3 text-sm font-bold">
+                      <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 shadow-sm">
+                        ⚡ الطاقة التقريبية: <span className="text-amber-700 dark:text-amber-400">{result.totalTdp}W</span>
+                      </div>
+                      <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 shadow-sm">
+                        💰 التكلفة الإجمالية: 
+                        <span className="text-emerald-700 dark:text-emerald-400 font-black flex items-center gap-1">
+                          {result.totalPrice} <RiyalIcon size="h-4 w-4" />
+                        </span>
                       </div>
                     </div>
-                  )}
 
-                  {result.status === 'success' && selectedComponents['CPU']?.performanceTier && selectedComponents['GPU']?.performanceTier && (
-                    <FpsEstimator 
-                      cpuTier={selectedComponents['CPU'].performanceTier} 
-                      gpuTier={selectedComponents['GPU'].performanceTier} 
-                    />
-                  )}
+                    {result.bottleneck && (
+                      <div className={`mt-6 p-5 border rounded-2xl ${result.bottleneck.bg} flex flex-col relative shadow-sm`}>
+                        <div className="flex items-start gap-4">
+                          <div className="flex-1">
+                            <h4 className={`font-black text-base mb-1 ${result.bottleneck.color}`}>
+                              {result.bottleneck.title}
+                            </h4>
+                            <p className={`text-sm font-medium opacity-90 ${result.bottleneck.color}`}>
+                              {result.bottleneck.desc}
+                            </p>
+                          </div>
+                        </div>
 
-                  {result.status === 'success' && (
-                    <div className="mt-8 pt-8 border-t border-emerald-200/50 dark:border-emerald-800/30">
-                      <h4 className="font-extrabold text-emerald-900 dark:text-emerald-500 mb-5 text-sm uppercase tracking-widest">
-                        قائمة القطع المعتمدة:
-                      </h4>
-                      <div className="grid grid-cols-1 gap-3">
-                        {Object.entries(selectedComponents).map(([catName, comp]) => {
-                          if (!comp) return null;
-                          return (
-                            <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-slate-800/80 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 gap-3 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors group">
-                              <div className="flex items-center gap-3">
-                                {comp.imageUrl ? (
-                                  <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 p-1 flex items-center justify-center shrink-0">
-                                     <img src={comp.imageUrl} alt={comp.name} className="max-w-full max-h-full object-contain export-ignore" />
+                        {/* قسم الاقتراحات */}
+                        {result.bottleneck.suggestions && result.bottleneck.suggestions.length > 0 && (
+                          <div className="mt-6 pt-5 border-t border-current/15 w-full">
+                            <span className={`text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2 ${result.bottleneck.color} opacity-90`}>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                              خيارات الترقية المقترحة:
+                            </span>
+                            
+                            {/* حاوية التمرير */}
+                            <div className="flex gap-4 overflow-x-auto pb-4 snap-x custom-scrollbar">
+                              {result.bottleneck.suggestions.map((sug, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => handleSelect(sug.category, sug.item.id)}
+                                  className="group flex flex-col text-right p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-700/60 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-400 dark:hover:border-blue-500/50 min-w-[260px] max-w-[260px] shrink-0 snap-center relative overflow-hidden"
+                                >
+                                  {/* خط علوي جمالي يظهر عند التمرير */}
+                                  <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                  
+                                  <div className="flex justify-between items-start w-full mb-3">
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${getBrandColor(sug.item, sug.category)} bg-slate-50 dark:bg-slate-800/80 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700/50`}>
+                                      {sug.item.brand}
+                                    </span>
+                                    <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md">
+                                      {sug.category}
+                                    </span>
                                   </div>
-                                ) : (
-                                  <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 flex items-center justify-center shrink-0">
-                                    <span className="text-lg opacity-40">⚙️</span>
+
+                                  <span className="text-sm font-extrabold line-clamp-2 leading-relaxed mb-4 text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" title={sug.item.name}>
+                                    {sug.item.name}
+                                  </span>
+                                  
+                                  <div className="mt-auto flex justify-between items-end w-full pt-3 border-t border-slate-100 dark:border-slate-800">
+                                    <div>
+                                      <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-0.5">السعر</span>
+                                      <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm flex items-center gap-1">
+                                        {sug.item.price} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                                      </span>
+                                    </div>
+                                    
+                                    <span className="text-[11px] font-black flex items-center gap-1.5 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 group-hover:bg-blue-600 group-hover:text-white px-3 py-2 rounded-xl transition-all">
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                      استبدال
+                                    </span>
                                   </div>
-                                )}
-                                <div className="text-sm flex-1 leading-tight">
-                                  <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-widest block mb-0.5">{catName}</span>
-                                  <span className={getBrandColor(comp, catName) + " ml-1"}>{comp.brand}</span>
-                                  <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {result.status === 'success' && selectedComponents['CPU']?.performanceTier && selectedComponents['GPU']?.performanceTier && (
+                      <FpsEstimator 
+                        cpuTier={selectedComponents['CPU'].performanceTier} 
+                        gpuTier={selectedComponents['GPU'].performanceTier} 
+                      />
+                    )}
+
+                    {result.status === 'success' && (
+                      <div className="mt-8 pt-8 border-t border-emerald-200/50 dark:border-emerald-800/30">
+                        <h4 className="font-extrabold text-emerald-900 dark:text-emerald-500 mb-5 text-sm uppercase tracking-widest">
+                          قائمة القطع المعتمدة:
+                        </h4>
+                        <div className="grid grid-cols-1 gap-3">
+                          {Object.entries(selectedComponents).map(([catName, comp]) => {
+                            if (!comp) return null;
+                            return (
+                              <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-slate-800/80 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 gap-3 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors group">
+                                <div className="flex items-center gap-3">
+                                  {comp.imageUrl ? (
+                                    <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 p-1 flex items-center justify-center shrink-0">
+                                       <img src={comp.imageUrl} alt={comp.name} className="max-w-full max-h-full object-contain export-ignore" />
+                                    </div>
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 flex items-center justify-center shrink-0">
+                                      <span className="text-lg opacity-40">⚙️</span>
+                                    </div>
+                                  )}
+                                  <div className="text-sm flex-1 leading-tight">
+                                    <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-widest block mb-0.5">{catName}</span>
+                                    <span className={getBrandColor(comp, catName) + " ml-1"}>{comp.brand}</span>
+                                    <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 export-ignore shrink-0 mt-2 sm:mt-0 pl-12 sm:pl-0">
+                                  {comp.amazonUrl && comp.amazonInStock === true && (
+                                    <a href={comp.amazonUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                      <span>Amazon</span>
+                                      <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                    </a>
+                                  )}
+                                  {comp.cazasouqUrl && comp.cazasouqInStock === true && (
+                                    <a href={comp.cazasouqUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                      <span>Cazasouq</span>
+                                      <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                    </a>
+                                  )}
+                                  {comp.microlessUrl && comp.microlessInStock === true && (
+                                    <a href={comp.microlessUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#0053D9] hover:bg-[#003899] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                      <span>Microless</span>
+                                      <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                    </a>
+                                  )}
                                 </div>
                               </div>
-                              <div className="flex flex-wrap gap-1.5 export-ignore shrink-0 mt-2 sm:mt-0 pl-12 sm:pl-0">
-                                {comp.amazonUrl && comp.amazonInStock === true && (
-                                  <a href={comp.amazonUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                    <span>Amazon</span>
-                                    <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                  </a>
-                                )}
-                                {comp.cazasouqUrl && comp.cazasouqInStock === true && (
-                                  <a href={comp.cazasouqUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                    <span>Cazasouq</span>
-                                    <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                  </a>
-                                )}
-                                {comp.microlessUrl && comp.microlessInStock === true && (
-                                  <a href={comp.microlessUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#0053D9] hover:bg-[#003899] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                    <span>Microless</span>
-                                    <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {result.status === 'success' && (
               <div className="mt-6 flex flex-wrap justify-end gap-3">
-                {/* زر إلغاء التعديل */}
                 {editModeId && (
                   <button 
                     onClick={() => {
                       localStorage.removeItem('draft_pc_build');
-                      window.location.href = '/my-builds'; // توجيه إجباري ينهي التعليق ويفرغ الصفحة بالكامل
+                      window.location.href = '/my-builds';
                     }}
                     className="px-6 py-3 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold rounded-xl transition-all flex items-center gap-2 border border-rose-200 dark:border-rose-900/30"
                   >
@@ -1065,6 +1209,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                   onClick={exportBuildAsImage}
                   className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm border border-slate-200 dark:border-slate-700"
                 >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                   تصدير صورة
                 </button>
                 

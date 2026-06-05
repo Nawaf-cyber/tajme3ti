@@ -6,7 +6,7 @@ import Link from 'next/link';
 export default function BulkImportPage() {
   const [status, setStatus] = useState<string>('');
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -24,11 +24,17 @@ export default function BulkImportPage() {
           body: JSON.stringify(json),
         });
 
+        const resData = await response.json();
+
         if (response.ok) {
-          const resData = await response.json();
-          setStatus(`✅ ${resData.message}`);
+          let finalStatus = `✅ ${resData.message}`;
+          // إضافة عرض الأخطاء إن وجدت
+          if (resData.errors && resData.errors.length > 0) {
+            finalStatus += `\n\nتفاصيل الفشل:\n- ${resData.errors.join('\n- ')}`;
+          }
+          setStatus(finalStatus);
         } else {
-          setStatus('❌ حدث خطأ أثناء الرفع.');
+          setStatus(`❌ حدث خطأ: ${resData.error || resData.message}`);
         }
       } catch (error) {
         setStatus('❌ صيغة الملف غير صحيحة. يرجى التأكد من أنه ملف JSON سليم.');
