@@ -809,19 +809,27 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     setSaveModalOpen(true);
   };
 
-  const confirmSaveBuild = async () => {
+ const confirmSaveBuild = async () => {
     setIsSaving(true);
     try {
+      // 1. استخراج الـ ID بدون التحسس لحالة الأحرف
+      const getComponentId = (searchCategory: string) => {
+        const key = Object.keys(selectedComponents).find(
+          (k) => k.toLowerCase() === searchCategory.toLowerCase()
+        );
+        return key && selectedComponents[key] ? selectedComponents[key]!.id : null;
+      };
+
       const payload = {
         id: editModeId, 
         name: buildName || "تجميعة مخصصة",
-        cpuId: selectedComponents['CPU']?.id || null,
-        gpuId: selectedComponents['GPU']?.id || null,
-        ramId: selectedComponents['RAM']?.id || null,
-        motherboardId: selectedComponents['Motherboard']?.id || null,
-        caseId: selectedComponents['Case']?.id || null,
-        psuId: selectedComponents['PSU']?.id || null,
-        storageId: selectedComponents['Storage']?.id || null,
+        cpuId: getComponentId('CPU'),
+        gpuId: getComponentId('GPU'),
+        ramId: getComponentId('RAM'),
+        motherboardId: getComponentId('Motherboard'),
+        caseId: getComponentId('Case'),
+        psuId: getComponentId('PSU'),
+        storageId: getComponentId('Storage'),
       };
 
       const res = await fetch('/api/builds', {
@@ -830,9 +838,16 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         body: JSON.stringify(payload)
       });
 
+      // 2. معالجة الأخطاء بأمان لمنع انهيار الواجهة
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'فشل الحفظ');
+        let errorMessage = 'فشل الحفظ بسبب خطأ داخلي في السيرفر.';
+        try {
+          const errorData = await res.json();
+          if (errorData.message) errorMessage = errorData.message;
+        } catch (e) {
+          console.error("السيرفر لم يرجع JSON صالح (انهيار 500).", e);
+        }
+        throw new Error(errorMessage);
       }
       
       toast.success(editModeId ? 'تم تحديث التجميعة بنجاح!' : 'تم حفظ التجميعة بنجاح!');
