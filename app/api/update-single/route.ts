@@ -62,33 +62,44 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. تحديث كازاسوق (بالنظام الصارم الجديد)
+    // 2. تحديث كازاسوق (بالنظام الصارم الجديد - يدعم الإنجليزي والعربي)
     if (comp.cazasouqUrl) {
       try {
         const targetUrl = encodeURIComponent(comp.cazasouqUrl);
-        const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}`;
+        // تم إضافة country_code=sa لإجبار الموقع على الفتح بالسعودية
+        const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&country_code=sa`;
         const res = await fetch(url, { cache: 'no-store' });
         
         if (res.ok) {
           const html = await res.text();
           const $ = cheerio.load(html);
           
-          // -- 1. فحص التوفر الصارم --
-          // تحويل كامل الصفحة إلى نص متصل مقروء لتفادي الأكواد المخفية وتجاهل زر الشراء الخاطئ
-          const plainText = $('body').text().replace(/\s+/g, ' ');
+          // تحويل النص للحروف الصغيرة ليسهل البحث بالإنجليزي، والعربي لن يتأثر
+          const plainText = $('body').text().replace(/\s+/g, ' ').toLowerCase();
 
-          // أولوية مطلقة لكلمات نفاد الكمية
+          // 1. فحص نفاد الكمية صراحة (عربي + إنجليزي)
           const isOutOfStockExplicit = plainText.includes('غير متوفر حالياً') || 
                                        plainText.includes('تنبيه بالتوافر') || 
-                                       plainText.includes('نفدت الكمية');
+                                       plainText.includes('نفدت الكمية') ||
+                                       plainText.includes('out of stock') ||
+                                       plainText.match(/التوفر:\s*0/) ||
+                                       plainText.match(/availability:\s*0/);
 
           if (isOutOfStockExplicit) {
             cazasouqInStock = false;
           } else {
-            cazasouqInStock = plainText.includes('اضافة للسلة') || 
-                              plainText.includes('أضف للسلة') || 
+            // 2. فحص التوفر (عربي + إنجليزي)
+            const hasStockNumberAr = plainText.match(/التوفر:\s*([1-9][0-9]*)/);
+            const hasStockNumberEn = plainText.match(/availability:\s*([1-9][0-9]*)/);
+
+            cazasouqInStock = !!hasStockNumberAr || !!hasStockNumberEn || 
+                              plainText.includes('اضافة للسلة') || 
+                              plainText.includes('إضافة للسلة') || 
                               plainText.includes('اشتر الان') ||
-                              plainText.includes('اشتر الآن');
+                              plainText.includes('اشتر الآن') ||
+                              plainText.includes('add to cart') ||
+                              plainText.includes('buy now') ||
+                              plainText.includes('in stock');
           }
 
           // -- 2. فحص السعر --
@@ -107,7 +118,6 @@ export async function POST(req: Request) {
             cleanedPrice = parseFloat(match[0].replace(/,/g, ''));
           }
 
-          // حماية إضافية لتخطي الرقم 170
           if (cleanedPrice === 170) {
               let altText = $('h2').filter(function() { return $(this).text().match(/\d/) && !$(this).text().includes('170'); }).first().text();
               const altMatch = altText.match(/\d+(?:,\d+)*(?:\.\d+)?/);

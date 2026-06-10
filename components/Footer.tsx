@@ -17,7 +17,7 @@ export default function Footer() {
                 طُوّر في السعودية <span className="text-base">🇸🇦</span> لخدمة مجتمع اللاعبين العرب
               </p>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2 font-mono">
-                جميع الحقوق محفوظة © {new Date().getFullYear()} PC Builder
+                جميع الحقوق محفوظة © {new Date().getFullYear()} تجميعتي | tajme3ti 
               </p>
             </div>
 

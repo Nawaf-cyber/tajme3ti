@@ -32,14 +32,14 @@ const getBrandColor = (brand: string) => {
 export default function ComponentsClient({ components, categories }: { components: any[], categories: any[] }) {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(15000);
+  const [maxPrice, setMaxPrice] = useState(20000);
   
-  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== 15000;
+  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== 20000;
 
   const handleClearFilters = () => {
     setSearch('');
     setSelectedCat('all');
-    setMaxPrice(15000);
+    setMaxPrice(20000);
   };
 
   // منطق الفلترة
@@ -125,7 +125,7 @@ export default function ComponentsClient({ components, categories }: { component
             <input 
               type="range" 
               min="0" 
-              max="15000"
+              max="20000"
               step="100"
               value={maxPrice}
               onChange={(e) => setMaxPrice(Number(e.target.value))}
@@ -133,7 +133,7 @@ export default function ComponentsClient({ components, categories }: { component
             />
             <div className="flex justify-between text-[10px] text-slate-400 mt-3 font-bold uppercase tracking-wider">
               <span>0</span>
-              <span>15,000</span>
+              <span>20,000</span>
             </div>
           </div>
 

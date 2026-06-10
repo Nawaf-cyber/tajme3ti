@@ -19,13 +19,13 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           
           {/* الشعار */}
-          <Link href="/" className="flex items-center gap-2.5 font-black text-xl text-slate-900 dark:text-white group">
+          <Link href="/" className="flex items-center gap-2.5 font-black text-2xl text-slate-900 dark:text-white group">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white transform group-hover:rotate-12 transition-transform shadow-md shadow-blue-600/20">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
               </svg>
             </div>
-            <span className="tracking-tight">PC Builder</span>
+            <span className="tracking-tight">تجميعتي</span>
           </Link>
           
           {/* زر القائمة (Mobile Toggle) */}

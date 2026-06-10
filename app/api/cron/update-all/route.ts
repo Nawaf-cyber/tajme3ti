@@ -74,7 +74,6 @@ export async function GET(req: Request) {
           try {
             const targetUrl = encodeURIComponent(comp.amazonUrl!);
             const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
-            // استخدام fetchWithTimeout بدلاً من fetch
             const res = await fetchWithTimeout(url, { cache: 'no-store' });
             
             if (res.ok) {
@@ -108,44 +107,53 @@ export async function GET(req: Request) {
           }
         }
 
-        // تحديث كازاسوق
+        // تحديث كازاسوق (بالنظام الصارم الجديد)
         if (hasValidCaza) {
           try {
             const targetUrl = encodeURIComponent(comp.cazasouqUrl!);
-            const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}`;
-            // استخدام fetchWithTimeout
+            // تم إضافة country_code=sa
+            const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&country_code=sa`;
             const res = await fetchWithTimeout(url, { cache: 'no-store' });
             
             if (res.ok) {
               const html = await res.text();
               const $ = cheerio.load(html);
               
-              const hasAddToCartBtn = $('#button-cart').length > 0 || 
-                                      $('button, a').filter(function() {
-                                        const text = $(this).text().trim();
-                                        return text === 'اضافة للسلة' || text === 'أضف للسلة' || text === 'اشتر الآن';
-                                      }).length > 0;
+              const plainText = $('body').text().replace(/\s+/g, ' ').toLowerCase();
 
-              const isOutOfStockExplicit = $('button, span, div').filter(function() {
-                 const text = $(this).text().trim();
-                 return text === 'نفدت الكمية' || text === 'غير متوفر';
-              }).length > 0;
+              // 1. فحص نفاد الكمية صراحة
+              const isOutOfStockExplicit = plainText.includes('غير متوفر حالياً') || 
+                                           plainText.includes('تنبيه بالتوافر') || 
+                                           plainText.includes('نفدت الكمية') ||
+                                           plainText.includes('out of stock') ||
+                                           plainText.match(/التوفر:\s*0/) ||
+                                           plainText.match(/availability:\s*0/);
 
-              if (hasAddToCartBtn) {
-                cazasouqInStock = true;
-              } else if (isOutOfStockExplicit) {
+              if (isOutOfStockExplicit) {
                 cazasouqInStock = false;
               } else {
-                cazasouqInStock = html.includes('اضافة للسلة') || html.includes('اشتر الآن');
+                // 2. فحص التوفر
+                const hasStockNumberAr = plainText.match(/التوفر:\s*([1-9][0-9]*)/);
+                const hasStockNumberEn = plainText.match(/availability:\s*([1-9][0-9]*)/);
+
+                cazasouqInStock = !!hasStockNumberAr || !!hasStockNumberEn || 
+                                  plainText.includes('اضافة للسلة') || 
+                                  plainText.includes('إضافة للسلة') || 
+                                  plainText.includes('اشتر الان') ||
+                                  plainText.includes('اشتر الآن') ||
+                                  plainText.includes('add to cart') ||
+                                  plainText.includes('buy now') ||
+                                  plainText.includes('in stock');
               }
 
+              // -- فحص السعر --
               let priceText = '';
-              let mainPriceEl = $('#content ul.list-unstyled h2, .product-info h2').first();
+              let mainPriceEl = $('#content ul.list-unstyled h2, .product-info h2, .product-price').first();
               
               if (mainPriceEl.length > 0) {
                  priceText = mainPriceEl.text();
               } else {
-                 priceText = $('.price-new, .price, .product-price').not(':contains("170")').first().text();
+                 priceText = $('.price-new, .price').not(':contains("170")').first().text();
               }
 
               let cleanedPrice = 0;
@@ -155,7 +163,7 @@ export async function GET(req: Request) {
               }
 
               if (cleanedPrice === 170) {
-                  let altText = $('h2').filter(function() { return $(this).text().match(/\d/) && !$(this).text().includes('170'); }).first().text();
+                  let altText = $('h2').filter(function() { return !!$(this).text().match(/\d/) && !$(this).text().includes('170'); }).first().text();
                   const altMatch = altText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
                   if (altMatch) cleanedPrice = parseFloat(altMatch[0].replace(/,/g, ''));
               }
@@ -174,7 +182,7 @@ export async function GET(req: Request) {
               if (!isNaN(cleanedPrice) && cleanedPrice > 0 && cleanedPrice !== 170) {
                 finalCazasouqPrice = cleanedPrice;
               } else {
-                allErrors.push(`كازاسوق (${comp.name}): السعر المستخرج 170 أو غير صالح.`);
+                allErrors.push(`كازاسوق (${comp.name}): لم يتم العثور على سعر صالح أو السعر المستخرج 170.`);
               }
             } else {
               allErrors.push(`كازاسوق (${comp.name}): فشل الاتصال ${res.status}`);
@@ -189,7 +197,6 @@ export async function GET(req: Request) {
           try {
             const targetUrl = encodeURIComponent(comp.microlessUrl!);
             const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
-            // استخدام fetchWithTimeout
             const res = await fetchWithTimeout(url, { cache: 'no-store' });
             
             if (res.ok) {

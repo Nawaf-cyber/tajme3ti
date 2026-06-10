@@ -203,8 +203,12 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                         )}
                       </span>
                     </div>
-                    <span className={`font-black text-xl ${comp.amazonInStock && comp.amazonPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
-                      {comp.amazonPrice ? `${comp.amazonPrice} ر.س` : '---'}
+                    <span className={`font-black text-xl flex items-center gap-1.5 ${comp.amazonInStock && comp.amazonPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
+                      {comp.amazonPrice ? (
+                        <>
+                          {comp.amazonPrice} <RiyalIcon size="h-5 w-5" />
+                        </>
+                      ) : '---'}
                     </span>
                   </a>
                 )}
@@ -231,8 +235,12 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                         )}
                       </span>
                     </div>
-                    <span className={`font-black text-xl ${comp.cazasouqInStock && comp.cazasouqPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
-                      {comp.cazasouqPrice ? `${comp.cazasouqPrice} ر.س` : '---'}
+                    <span className={`font-black text-xl flex items-center gap-1.5 ${comp.cazasouqInStock && comp.cazasouqPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
+                      {comp.cazasouqPrice ? (
+                        <>
+                          {comp.cazasouqPrice} <RiyalIcon size="h-5 w-5" />
+                        </>
+                      ) : '---'}
                     </span>
                   </a>
                 )}
@@ -259,8 +267,12 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                         )}
                       </span>
                     </div>
-                    <span className={`font-black text-xl ${comp.microlessInStock && comp.microlessPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
-                      {comp.microlessPrice ? `${comp.microlessPrice} ر.س` : '---'}
+                    <span className={`font-black text-xl flex items-center gap-1.5 ${comp.microlessInStock && comp.microlessPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
+                      {comp.microlessPrice ? (
+                        <>
+                          {comp.microlessPrice} <RiyalIcon size="h-5 w-5" />
+                        </>
+                      ) : '---'}
                     </span>
                   </a>
                 )}

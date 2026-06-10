@@ -27,6 +27,13 @@ export async function toggleCronStatus(enabled: boolean) {
   }
 }
 
+// دالة مساعدة لتحويل السعر بأمان وتجنب خطأ NaN
+const parsePriceSafely = (val: FormDataEntryValue | null) => {
+  if (!val) return null;
+  const parsed = parseFloat(val.toString());
+  return isNaN(parsed) ? null : parsed;
+};
+
 export async function addComponent(formData: FormData) {
   const categoryId = formData.get('categoryId') as string;
   const brand = formData.get('brand') as string;
@@ -40,13 +47,22 @@ export async function addComponent(formData: FormData) {
   const cazasouqUrl = formData.get('cazasouqUrl') as string || null;
   const microlessUrl = formData.get('microlessUrl') as string || null;
   
-  // معالجة آمنة لحقل مستوى الأداء
   const ptRaw = formData.get('performanceTier') as string;
   const performanceTier = (ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null;
 
+  // الحقول اليدوية الجديدة (الأسعار والتوفر)
+  const amazonPrice = parsePriceSafely(formData.get('amazonPrice'));
+  const cazasouqPrice = parsePriceSafely(formData.get('cazasouqPrice'));
+  const microlessPrice = parsePriceSafely(formData.get('microlessPrice'));
+
+  const amazonInStock = formData.get('amazonInStock') === 'true';
+  const cazasouqInStock = formData.get('cazasouqInStock') === 'true';
+  const microlessInStock = formData.get('microlessInStock') === 'true';
+
   await prisma.component.create({
     data: { 
-      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, performanceTier, microlessUrl
+      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, performanceTier, microlessUrl,
+      amazonPrice, cazasouqPrice, microlessPrice, amazonInStock, cazasouqInStock, microlessInStock
     }
   });
 
@@ -67,14 +83,24 @@ export async function updateComponent(formData: FormData) {
   const amazonUrl = formData.get('amazonUrl') as string || null;
   const cazasouqUrl = formData.get('cazasouqUrl') as string || null;
   const microlessUrl = formData.get('microlessUrl') as string || null;
-  // معالجة آمنة لحقل مستوى الأداء
+  
   const ptRaw = formData.get('performanceTier') as string;
   const performanceTier = (ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null;
+
+  // الحقول اليدوية الجديدة (الأسعار والتوفر)
+  const amazonPrice = parsePriceSafely(formData.get('amazonPrice'));
+  const cazasouqPrice = parsePriceSafely(formData.get('cazasouqPrice'));
+  const microlessPrice = parsePriceSafely(formData.get('microlessPrice'));
+
+  const amazonInStock = formData.get('amazonInStock') === 'true';
+  const cazasouqInStock = formData.get('cazasouqInStock') === 'true';
+  const microlessInStock = formData.get('microlessInStock') === 'true';
 
   await prisma.component.update({
     where: { id },
     data: { 
-      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, performanceTier, microlessUrl
+      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, performanceTier, microlessUrl,
+      amazonPrice, cazasouqPrice, microlessPrice, amazonInStock, cazasouqInStock, microlessInStock
     }
   });
 

@@ -8,7 +8,7 @@ import UpdateCazasouqButton from './components/UpdateCazasouqButton';
 import UpdateAmazonButton from './components/UpdateAmazonButton';
 import UpdatePricesButton from './UpdatePricesButton';
 import UpdateSingleButton from './components/UpdateSingleButton';
-import CronControlToggle from './components/CronControlToggle'; // 1. استيراد مكون الزر
+import CronControlToggle from './components/CronControlToggle';
 import ManualUpdateButton from "./components/ManualUpdateButton";
 import ExportComponentsButton from './ExportComponentsButton';
 
@@ -48,7 +48,6 @@ const categoryFieldsMap: Record<string, { key: string, label: string, type: 'tex
   ]
 };
 
-// 2. تحديث الدالة لاستقبال المتغير الجديد cronStatus
 export default function AdminManager({ categories, components, news, cronStatus }: { categories: any[], components: any[], news: any[], cronStatus: boolean }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news'>('components');
   
@@ -61,11 +60,15 @@ export default function AdminManager({ categories, components, news, cronStatus 
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedCategoryName, setSelectedCategoryName] = useState('');
 
+  // 1. إضافة متغيرات حالة التوفر اليدوي
+  const [amazonInStock, setAmazonInStock] = useState(true);
+  const [cazasouqInStock, setCazasouqInStock] = useState(true);
+  const [microlessInStock, setMicrolessInStock] = useState(true);
+
   // متغيرات الفلترة والبحث الخاصة بجدول القطع
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
 
-  // تحديث اسم الفئة عند تغيير الـ ID لمعرفة أي حقول نعرض
   useEffect(() => {
     const catName = categories.find(c => c.id.toString() === selectedCategoryId)?.name || '';
     setSelectedCategoryName(catName);
@@ -91,6 +94,11 @@ export default function AdminManager({ categories, components, news, cronStatus 
     setEditingComponent(comp);
     setSelectedCategoryId(comp.categoryId);
     setSpecs(comp.specs || {});
+    // 2. تحديث التوفر عند التعديل
+    setAmazonInStock(comp.amazonInStock ?? true);
+    setCazasouqInStock(comp.cazasouqInStock ?? true);
+    setMicrolessInStock(comp.microlessInStock ?? true);
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -104,6 +112,10 @@ export default function AdminManager({ categories, components, news, cronStatus 
     setEditingNews(null);
     setSelectedCategoryId('');
     setSpecs({});
+    // 3. إعادة الضبط
+    setAmazonInStock(true);
+    setCazasouqInStock(true);
+    setMicrolessInStock(true);
   };
 
   const handleComponentSubmit = async (formData: FormData) => {
@@ -138,7 +150,6 @@ export default function AdminManager({ categories, components, news, cronStatus 
     }
   };
 
-  // تطبيق الفلترة على القطع
   const filteredComponents = components.filter(comp => {
     const matchesSearch = 
       comp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -180,13 +191,10 @@ export default function AdminManager({ categories, components, news, cronStatus 
         
       </div>
       
-      {/* 3. إضافة الزر الجديد هنا بجانب زر التحديث القديم */}
       <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
         <UpdatePricesButton />
         <CronControlToggle initialStatus={cronStatus} />
-        
       </div>
-      {/* الزر اليدوي الجديد */}
       <ManualUpdateButton />
 
       {activeTab === 'components' && (
@@ -226,14 +234,91 @@ export default function AdminManager({ categories, components, news, cronStatus 
               <input type="url" name="amazonUrl" defaultValue={editingComponent?.amazonUrl || ''} placeholder="رابط أمازون (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
               <input type="url" name="cazasouqUrl" defaultValue={editingComponent?.cazasouqUrl || ''} placeholder="رابط كازاسوق (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
               <input type="url" name="microlessUrl" defaultValue={editingComponent?.microlessUrl || ''} placeholder="رابط مايكروليس (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
+              
               <textarea name="description" defaultValue={editingComponent?.description || ''} placeholder="وصف تفصيلي للقطعة (اختياري، يظهر في نافذة التفاصيل)" className="md:col-span-2 p-3 h-24 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"></textarea>
 
-              <div className="md:col-span-2 p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-blue-50/30 dark:bg-slate-800/50 mt-4">
+              {/* وحدة التوفر والأسعار اليدوية للمتاجر */}
+<div className="md:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-blue-200 dark:border-blue-900/50 mt-2">
+  <h4 className="text-sm font-black text-blue-700 dark:text-blue-400 mb-4 flex items-center gap-2">
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+    التوفر والأسعار اليدوية للمتاجر (تجاوز فحص Scraper)
+  </h4>
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    
+    {/* أمازون */}
+    <div className="flex flex-col gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+      <label className="flex items-center gap-3 cursor-pointer group">
+        <input 
+          type="checkbox" 
+          checked={amazonInStock} 
+          onChange={(e) => setAmazonInStock(e.target.checked)} 
+          className="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 transition-colors"
+        />
+        <span className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">متوفر في أمازون</span>
+      </label>
+      <input 
+        type="number" 
+        step="0.01" 
+        name="amazonPrice" 
+        defaultValue={editingComponent?.amazonPrice || ''} 
+        placeholder="سعر أمازون (ريال)" 
+        disabled={!amazonInStock}
+        className="w-full p-2.5 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+      />
+    </div>
+
+    {/* كازاسوق */}
+    <div className="flex flex-col gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+      <label className="flex items-center gap-3 cursor-pointer group">
+        <input 
+          type="checkbox" 
+          checked={cazasouqInStock} 
+          onChange={(e) => setCazasouqInStock(e.target.checked)} 
+          className="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 transition-colors"
+        />
+        <span className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">متوفر في كازاسوق</span>
+      </label>
+      <input 
+        type="number" 
+        step="0.01" 
+        name="cazasouqPrice" 
+        defaultValue={editingComponent?.cazasouqPrice || ''} 
+        placeholder="سعر كازاسوق (ريال)" 
+        disabled={!cazasouqInStock}
+        className="w-full p-2.5 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+      />
+    </div>
+
+    {/* مايكروليس */}
+    <div className="flex flex-col gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+      <label className="flex items-center gap-3 cursor-pointer group">
+        <input 
+          type="checkbox" 
+          checked={microlessInStock} 
+          onChange={(e) => setMicrolessInStock(e.target.checked)} 
+          className="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 transition-colors"
+        />
+        <span className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">متوفر في مايكروليس</span>
+      </label>
+      <input 
+        type="number" 
+        step="0.01" 
+        name="microlessPrice" 
+        defaultValue={editingComponent?.microlessPrice || ''} 
+        placeholder="سعر مايكروليس (ريال)" 
+        disabled={!microlessInStock}
+        className="w-full p-2.5 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+      />
+    </div>
+
+  </div>
+</div>
+
+              <div className="md:col-span-2 p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 mt-4">
                 <h3 className="block text-lg font-bold text-gray-900 dark:text-white mb-4">
                   الخصائص التقنية {selectedCategoryName ? `لـ (${selectedCategoryName})` : ''}
                 </h3>
                 
-                {/* الحقول التلقائية بناءً على الفئة المختارة */}
                 {selectedCategoryName && categoryFieldsMap[selectedCategoryName] && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-slate-700">
                     {categoryFieldsMap[selectedCategoryName].map((field) => (
@@ -264,7 +349,6 @@ export default function AdminManager({ categories, components, news, cronStatus 
                   </div>
                 )}
 
-                {/* الحقول اليدوية (الإضافية) */}
                 <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-3 text-sm">مواصفات إضافية يدوية (اختياري)</h4>
                 <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-4">
                   <input type="text" placeholder="اسم الخاصية (مثال: color)" value={specKey} onChange={(e) => setSpecKey(e.target.value)} className="flex-1 min-w-[150px] p-2 border border-gray-300 dark:border-slate-700 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" dir="ltr" />
@@ -272,7 +356,6 @@ export default function AdminManager({ categories, components, news, cronStatus 
                   <button onClick={handleAddSpec} disabled={!selectedCategoryId} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:bg-gray-400 text-white font-bold rounded shrink-0">إضافة يدوية</button>
                 </div>
                 
-                {/* عرض جميع المواصفات الحالية */}
                 <div className="flex flex-wrap gap-2 mt-4 p-3 bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-700 min-h-[50px]">
                   {Object.keys(specs).length === 0 && <span className="text-gray-500 text-sm">لا توجد خصائص مضافة حالياً.</span>}
                   {Object.entries(specs).map(([key, value]) => (
@@ -284,7 +367,11 @@ export default function AdminManager({ categories, components, news, cronStatus 
                 </div>
               </div>
 
+              {/* 5. إرسال حالة التوفر للملف actions.ts */}
               <input type="hidden" name="specs" value={JSON.stringify(specs)} />
+              <input type="hidden" name="amazonInStock" value={amazonInStock.toString()} />
+              <input type="hidden" name="cazasouqInStock" value={cazasouqInStock.toString()} />
+              <input type="hidden" name="microlessInStock" value={microlessInStock.toString()} />
               
               <div className="md:col-span-2 flex gap-4 mt-2">
                 <button type="submit" className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm">
@@ -302,7 +389,6 @@ export default function AdminManager({ categories, components, news, cronStatus 
           <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">إدارة القطع الحالية</h2>
             
-            {/* شريط البحث والفلترة */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <input
                 type="text"
