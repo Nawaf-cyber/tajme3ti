@@ -121,14 +121,14 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {latestComponents.map((comp) => (
               <Link href={`/components/${comp.id}`} key={comp.id} className="group bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden hover:border-blue-400/50 dark:hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5 transition-all">
-                <div className="h-40 bg-slate-50 dark:bg-slate-900/50 p-6 flex items-center justify-center border-b border-slate-100 dark:border-slate-800/50 relative">
+                <div className="h-40 bg-slate-50 dark:bg-white p-6 flex items-center justify-center border-b border-slate-100 dark:border-slate-200 relative">
                   <img 
                     src={comp.imageUrl || `/images/${comp.categoryId}/boxed.png`} 
                     alt={comp.name} 
-                    className="max-w-full max-h-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-500"
+                    className="max-w-full max-h-full object-contain filter drop-shadow-sm mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-4 left-4">
-                    <span className="px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest rounded-lg shadow-sm">
+                    <span className="px-2.5 py-1 bg-white dark:bg-slate-100 border border-slate-200 text-[10px] font-black text-slate-600 uppercase tracking-widest rounded-lg shadow-sm">
                       {comp.category?.name}
                     </span>
                   </div>
@@ -137,8 +137,8 @@ export default async function HomePage() {
                   <p className="text-xs text-slate-400 dark:text-slate-500 mb-1 font-bold">{comp.brand}</p>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight line-clamp-1 mb-4">{comp.name}</h3>
                   <div className="font-black text-lg text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      {comp.price} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                    <div className="flex items-center justify-center gap-1 leading-none">
+                      {parseFloat(Number(comp.price).toFixed(2))} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                     </div>
                   </div>
                 </div>
@@ -172,8 +172,8 @@ export default async function HomePage() {
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 line-clamp-3 leading-loose font-medium">{build.description}</p>
                 </div>
                 <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800/80">
-                  <div className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                    {build.price} <RiyalIcon size="h-4 w-4" colorClass="bg-slate-900 dark:bg-white" />
+                  <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 leading-none">
+                    {parseFloat(Number(build.price).toFixed(2))} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                   </div>
                   <Link href="/prebuilds" className="text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-white px-5 py-2.5 rounded-xl transition-colors">
                     استعراض
