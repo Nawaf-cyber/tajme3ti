@@ -35,6 +35,47 @@ type ComponentWithCompatibility = Component & {
   reason?: string;
 };
 
+// دالة التسويق بالعمولة الذكية (تقص الروابط الطويلة وتضيف الأكواد)
+const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'cazasouq' | 'microless') => {
+  if (!url) return '#';
+  
+  switch(store) {
+    case 'amazon':
+      if (url.includes('amazon.sa') || url.includes('amazon.com')) {
+        // فلترة الرابط تلقائياً لاستخراج مسار القطعة فقط (ASIN) وتجاهل باقي الرموز
+        const match = url.match(/(https?:\/\/[^\/]+\/(?:[^\/]+\/)?(?:dp|gp\/product)\/[A-Z0-9]{10})/i);
+        
+        if (match) {
+          // إذا تم العثور على الرابط النظيف، يتم دمج كود العمولة معه مباشرة
+          return `${match[1]}?tag=tajmee3ti-21`;
+        }
+        
+        // مسار احتياطي
+        return url.includes('?') ? `${url}&tag=tajmee3ti-21` : `${url}?tag=tajmee3ti-21`;
+      }
+      return url;
+      
+    case 'cazasouq':
+      if (url.includes('cazasouq.com')) {
+        const cazasouqAffId = ''; // ضع رقمك هنا بعد الموافقة
+        if (!cazasouqAffId) return url;
+        return url.includes('?') ? `${url}&aff=${cazasouqAffId}` : `${url}?aff=${cazasouqAffId}`;
+      }
+      return url;
+      
+    case 'microless':
+      if (url.includes('microless.com')) {
+        const microlessAffId = ''; // ضع رقمك هنا بعد الموافقة
+        if (!microlessAffId) return url;
+        return url.includes('?') ? `${url}&aff_id=${microlessAffId}` : `${url}?aff_id=${microlessAffId}`;
+      }
+      return url;
+      
+    default:
+      return url;
+  }
+};
+
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-700 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
     className={`${size} ${colorClass} inline-block shrink-0 align-middle`} 
@@ -507,6 +548,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   const [result, setResult] = useState<{ 
     status: 'success' | 'error' | 'idle' | 'incomplete', 
     message: string, 
+    missingCategories?: string[],
     bottleneck?: { title: string, desc: string, color: string, bg: string, suggestions?: { category: string, item: Component }[] } | null, 
     totalTdp: number, 
     totalPrice: number 
@@ -680,22 +722,26 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     });
     totalPrice = Number(totalPrice.toFixed(2));
 
-    if (!cpu || !mobo || !ram || !gpu || !pcCase || !psu) {
+    const requiredCategories = ['CPU', 'Motherboard', 'RAM', 'GPU', 'Case', 'PSU', 'Storage'];
+    const missingCategories = requiredCategories.filter(cat => !selectedComponents[cat]);
+
+    if (missingCategories.length > 0) {
       setResult({ 
         status: 'incomplete', 
-        message: 'أكمل اختيار القطع الأساسية لفتح تقرير التوافق وحساب الأداء.', 
+        message: 'أكمل اختيار القطع التالية لفتح تقرير التوافق:', 
+        missingCategories,
         totalTdp, 
         totalPrice 
       });
       return;
     }
 
-    const cpuSpecs = parseSpecs(cpu.specs);
-    const moboSpecs = parseSpecs(mobo.specs);
-    const ramSpecs = parseSpecs(ram.specs);
-    const gpuSpecs = parseSpecs(gpu.specs);
-    const caseSpecs = parseSpecs(pcCase.specs);
-    const psuSpecs = parseSpecs(psu.specs);
+    const cpuSpecs = parseSpecs(cpu!.specs);
+    const moboSpecs = parseSpecs(mobo!.specs);
+    const ramSpecs = parseSpecs(ram!.specs);
+    const gpuSpecs = parseSpecs(gpu!.specs);
+    const caseSpecs = parseSpecs(pcCase!.specs);
+    const psuSpecs = parseSpecs(psu!.specs);
 
     if (cpuSpecs?.socket !== moboSpecs?.socket) {
       setResult({ status: 'error', message: `عدم توافق: المعالج بمقبس ${cpuSpecs?.socket} واللوحة الأم بمقبس ${moboSpecs?.socket}.`, totalTdp, totalPrice });
@@ -717,8 +763,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     }
 
     let bottleneck = null;
-    if (cpu.performanceTier && gpu.performanceTier) {
-      const diff = cpu.performanceTier - gpu.performanceTier;
+    if (cpu!.performanceTier && gpu!.performanceTier) {
+      const diff = cpu!.performanceTier - gpu!.performanceTier;
       let suggestions: { category: string, item: Component }[] = [];
 
       if (diff < -1) {
@@ -728,8 +774,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             const cSpecs = parseSpecs(c.specs);
             return cSpecs.socket === moboSpecs.socket && 
                    c.performanceTier !== null && 
-                   c.performanceTier >= gpu.performanceTier! - 1 &&
-                   c.id !== cpu.id;
+                   c.performanceTier >= gpu!.performanceTier! - 1 &&
+                   c.id !== cpu!.id;
           })
           .sort((a, b) => a.price - b.price).slice(0, 6)
           .map(item => ({ category: 'CPU', item }));
@@ -749,8 +795,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             const cSpecs = parseSpecs(c.specs);
             return parseFloat(cSpecs.lengthMm || "0") <= parseFloat(caseSpecs.maxGpuLength || "999") && 
                    c.performanceTier !== null && 
-                   c.performanceTier >= cpu.performanceTier! - 1 &&
-                   c.id !== gpu.id;
+                   c.performanceTier >= cpu!.performanceTier! - 1 &&
+                   c.id !== gpu!.id;
           })
           .sort((a, b) => a.price - b.price).slice(0, 6)
           .map(item => ({ category: 'GPU', item }));
@@ -812,7 +858,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
  const confirmSaveBuild = async () => {
     setIsSaving(true);
     try {
-      // 1. استخراج الـ ID بدون التحسس لحالة الأحرف
       const getComponentId = (searchCategory: string) => {
         const key = Object.keys(selectedComponents).find(
           (k) => k.toLowerCase() === searchCategory.toLowerCase()
@@ -838,7 +883,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         body: JSON.stringify(payload)
       });
 
-      // 2. معالجة الأخطاء بأمان لمنع انهيار الواجهة
       if (!res.ok) {
         let errorMessage = 'فشل الحفظ بسبب خطأ داخلي في السيرفر.';
         try {
@@ -1021,14 +1065,25 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           <div className="mt-10 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
             
             {result.status === 'incomplete' ? (
-              <div className="p-8 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20 text-center flex flex-col items-center justify-center gap-3 shadow-sm">
-                <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 dark:text-slate-500 mb-2 shadow-sm border border-slate-200 dark:border-slate-700">
+              <div className="p-8 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20 text-center flex flex-col items-center justify-center gap-4 shadow-sm">
+                <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-sm border border-slate-200 dark:border-slate-700">
                   <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                 </div>
                 <h3 className="text-lg font-extrabold text-slate-700 dark:text-slate-300">{result.message}</h3>
                 
+                {/* عرض القطع الناقصة */}
+                {result.missingCategories && result.missingCategories.length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-2 mt-1">
+                    {result.missingCategories.map(cat => (
+                      <span key={cat} className="px-3 py-1.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-rose-200 dark:border-rose-800/50">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
                 {(result.totalPrice > 0 || result.totalTdp > 0) && (
-                  <div className="flex flex-wrap justify-center gap-3 mt-3 text-sm font-bold">
+                  <div className="flex flex-wrap justify-center gap-3 mt-4 text-sm font-bold">
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-600 dark:text-slate-400 shadow-sm">
                       ⚡ الطاقة الحالية: <span className="text-amber-600 dark:text-amber-500">{result.totalTdp}W</span>
                     </div>
@@ -1158,42 +1213,48 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                           {Object.entries(selectedComponents).map(([catName, comp]) => {
                             if (!comp) return null;
                             return (
-                              <div key={catName} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-slate-800/80 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 gap-3 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors group">
-                                <div className="flex items-center gap-3">
-                                  {comp.imageUrl ? (
-                                    <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 p-1 flex items-center justify-center shrink-0">
-                                       <img src={comp.imageUrl} alt={comp.name} className="max-w-full max-h-full object-contain export-ignore" />
-                                    </div>
-                                  ) : (
-                                    <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 flex items-center justify-center shrink-0">
-                                      <span className="text-lg opacity-40">⚙️</span>
-                                    </div>
-                                  )}
-                                  <div className="text-sm flex-1 leading-tight">
-                                    <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-widest block mb-0.5">{catName}</span>
-                                    <span className={getBrandColor(comp, catName) + " ml-1"}>{comp.brand}</span>
-                                    <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
+                              <div key={catName} className="flex p-4 bg-white dark:bg-slate-800/80 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 gap-4 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors group items-start sm:items-center">
+                                {comp.imageUrl ? (
+                                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 p-2 flex items-center justify-center shrink-0">
+                                     <img src={comp.imageUrl} alt={comp.name} className="max-w-full max-h-full object-contain export-ignore" />
                                   </div>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5 export-ignore shrink-0 mt-2 sm:mt-0 pl-12 sm:pl-0">
-                                  {comp.amazonUrl && comp.amazonInStock === true && (
-                                    <a href={comp.amazonUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                      <span>Amazon</span>
-                                      <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                    </a>
-                                  )}
-                                  {comp.cazasouqUrl && comp.cazasouqInStock === true && (
-                                    <a href={comp.cazasouqUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                      <span>Cazasouq</span>
-                                      <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                    </a>
-                                  )}
-                                  {comp.microlessUrl && comp.microlessInStock === true && (
-                                    <a href={comp.microlessUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#0053D9] hover:bg-[#003899] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                      <span>Microless</span>
-                                      <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                    </a>
-                                  )}
+                                ) : (
+                                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 flex items-center justify-center shrink-0">
+                                    <span className="text-2xl opacity-40">⚙️</span>
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                  <div className="text-sm leading-tight">
+                                    <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-widest block mb-1">{catName}</span>
+                                    <span className={getBrandColor(comp, catName) + " ml-1"}>{comp.brand}</span>
+                                    <span className="text-slate-900 dark:text-white font-bold line-clamp-1">{comp.name}</span>
+                                  </div>
+
+                                  <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                                    <span className="font-black text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
+                                      {comp.price} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-700 dark:bg-emerald-400" />
+                                    </span>
+                                    <div className="flex flex-wrap gap-1.5 export-ignore">
+                                      {comp.amazonUrl && comp.amazonInStock === true && (
+                                        <a href={getAffiliateUrl(comp.amazonUrl, 'amazon')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                          <span>Amazon</span>
+                                          <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                        </a>
+                                      )}
+                                      {comp.cazasouqUrl && comp.cazasouqInStock === true && (
+                                        <a href={getAffiliateUrl(comp.cazasouqUrl, 'cazasouq')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                          <span>Cazasouq</span>
+                                          <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                        </a>
+                                      )}
+                                      {comp.microlessUrl && comp.microlessInStock === true && (
+                                        <a href={getAffiliateUrl(comp.microlessUrl, 'microless')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#0053D9] hover:bg-[#003899] text-white text-[10px] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                          <span>Microless</span>
+                                          <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -1309,46 +1370,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
               >
                 اعتماد القطعة
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة حفظ التجميعة */}
-      {saveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#0F172A] rounded-3xl w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-5 border border-blue-100 dark:border-blue-800/30">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-              </div>
-              <h3 className="font-black text-2xl mb-2 text-slate-900 dark:text-white">حفظ التجميعة</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">أدخل اسماً مميزاً لتجميعتك للرجوع إليها لاحقاً</p>
-              
-              <input 
-                type="text" 
-                value={buildName}
-                onChange={(e) => setBuildName(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-900 dark:text-white font-bold mb-8 text-center placeholder-slate-400"
-                placeholder="مثال: تجميعة المونتاج 2026..."
-                autoFocus
-              />
-              
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={confirmSaveBuild} 
-                  disabled={isSaving}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold transition-all shadow-md shadow-blue-500/20 disabled:opacity-50 active:scale-95"
-                >
-                  {isSaving ? 'جاري الحفظ...' : 'تأكيد الحفظ'}
-                </button>
-                <button 
-                  onClick={() => setSaveModalOpen(false)} 
-                  className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-transparent dark:hover:bg-slate-800 text-slate-700 dark:text-slate-400 py-3 rounded-xl font-bold transition-colors border border-slate-200 dark:border-transparent"
-                >
-                  إلغاء
-                </button>
-              </div>
             </div>
           </div>
         </div>

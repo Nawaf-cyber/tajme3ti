@@ -4,10 +4,21 @@ import { Providers } from '../components/Providers';
 import Navbar from '../components/Navbar';
 import { Toaster } from 'react-hot-toast';
 import Footer from '../components/Footer';
+import Script from 'next/script';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className="overflow-x-hidden">
+      <head>
+        {/* سكربت Google AdSense */}
+        <Script
+          async
+         src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3317971310305945"
+         crossOrigin="anonymous"
+        strategy="lazyOnload"
+        />
+      </head>
+      
       {/* التعديل هنا: استخدام خلفية هادئة #F5F7FA للوضع الفاتح ولون نص slate-800 */}
       <body className="bg-[#F5F7FA] dark:bg-[#0B1120] text-slate-800 dark:text-gray-100 transition-colors duration-300 overflow-x-hidden w-full relative" suppressHydrationWarning>
         <Providers>

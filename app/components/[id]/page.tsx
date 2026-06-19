@@ -3,6 +3,40 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ImageZoom from '../ImageZoom';
 
+// دالة التسويق بالعمولة الذكية
+const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'cazasouq' | 'microless') => {
+  if (!url) return '#';
+  
+  switch(store) {
+    case 'amazon':
+      if (url.includes('amazon.sa') || url.includes('amazon.com')) {
+        const match = url.match(/(https?:\/\/[^\/]+\/(?:[^\/]+\/)?(?:dp|gp\/product)\/[A-Z0-9]{10})/i);
+        if (match) return `${match[1]}?tag=tajmee3ti-21`;
+        return url.includes('?') ? `${url}&tag=tajmee3ti-21` : `${url}?tag=tajmee3ti-21`;
+      }
+      return url;
+      
+    case 'cazasouq':
+      if (url.includes('cazasouq.com')) {
+        const cazasouqAffId = ''; // ضع رقمك هنا بعد الموافقة
+        if (!cazasouqAffId) return url;
+        return url.includes('?') ? `${url}&aff=${cazasouqAffId}` : `${url}?aff=${cazasouqAffId}`;
+      }
+      return url;
+      
+    case 'microless':
+      if (url.includes('microless.com')) {
+        const microlessAffId = ''; // ضع رقمك هنا بعد الموافقة
+        if (!microlessAffId) return url;
+        return url.includes('?') ? `${url}&aff_id=${microlessAffId}` : `${url}?aff_id=${microlessAffId}`;
+      }
+      return url;
+      
+    default:
+      return url;
+  }
+};
+
 const RiyalIcon = ({ size = 'h-6 w-6' }: { size?: string }) => (
   <div 
     className={`${size} bg-emerald-500 inline-block align-middle`} 
@@ -183,7 +217,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
                 {comp.amazonUrl && (
                   <a 
-                    href={comp.amazonUrl} 
+                    href={getAffiliateUrl(comp.amazonUrl, 'amazon')} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className={`flex items-center justify-between p-4 border rounded-2xl transition-all group shadow-sm ${
@@ -215,7 +249,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
                 {comp.cazasouqUrl && (
                   <a 
-                    href={comp.cazasouqUrl} 
+                    href={getAffiliateUrl(comp.cazasouqUrl, 'cazasouq')} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className={`flex items-center justify-between p-4 border rounded-2xl transition-all group shadow-sm ${
@@ -247,7 +281,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
                 {comp.microlessUrl && (
                   <a 
-                    href={comp.microlessUrl} 
+                    href={getAffiliateUrl(comp.microlessUrl, 'microless')} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className={`flex items-center justify-between p-4 border rounded-2xl transition-all group shadow-sm ${

@@ -153,3 +153,30 @@ export async function deleteNews(formData: FormData) {
   revalidatePath('/admin');
   revalidatePath('/news');
 }
+
+export async function updateSettings(formData: FormData) {
+  try {
+    const amazon = formData.get('amazon_affiliate')?.toString() || '';
+    const cazasouq = formData.get('cazasouq_affiliate')?.toString() || '';
+    const microless = formData.get('microless_affiliate')?.toString() || '';
+
+    const settings = [
+      { key: 'amazon_affiliate', value: amazon },
+      { key: 'cazasouq_affiliate', value: cazasouq },
+      { key: 'microless_affiliate', value: microless }
+    ];
+
+    for (const setting of settings) {
+      await prisma.setting.upsert({
+        where: { key: setting.key },
+        update: { value: setting.value },
+        create: { key: setting.key, value: setting.value }
+      });
+    }
+
+    revalidatePath('/admin'); // تحديث مسار الإدارة لإظهار القيم الجديدة
+  } catch (error: any) {
+    console.error("خطأ قاعدة البيانات أثناء حفظ العمولات:", error);
+    throw new Error("فشل الحفظ في قاعدة البيانات");
+  }
+}
