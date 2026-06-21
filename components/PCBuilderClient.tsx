@@ -703,6 +703,146 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     });
   };
 
+  const handleAutoFill = (tier: 'economy' | 'mid' | 'high') => {
+    const cpu = selectedComponents['CPU'];
+    const gpu = selectedComponents['GPU'];
+
+    if (!cpu || !gpu) {
+      toast.error('يرجى اختيار المعالج وكرت الشاشة أولاً لتفعيل الاستكمال الذكي');
+      return;
+    }
+
+    const cpuSpecs = parseSpecs(cpu.specs);
+    const gpuSpecs = parseSpecs(gpu.specs);
+    const requiredWattage = (cpu.tdpWattage || 0) + (gpu.tdpWattage || 0) + 200;
+    const requiredGpuLength = parseFloat(gpuSpecs.lengthMm || "320");
+    const maxCoreTier = Math.max(cpu.performanceTier || 1, gpu.performanceTier || 1);
+
+    let newSelections = { ...selectedComponents };
+    const getCategoryComponents = (name: string) => categories.find(c => c.name === name)?.components || [];
+
+    // دالة مساعدة لفرز واختيار القطعة بناءً على الفئة السعرية
+    const pickComponent = (filtered: any[], fallback: any[]) => {
+      const validArray = filtered.length > 0 ? filtered : fallback;
+      if (validArray.length === 0) return null;
+      return tier === 'high' 
+        ? validArray.sort((a, b) => b.price - a.price)[0] // الأغلى للفئة العليا
+        : validArray.sort((a, b) => a.price - b.price)[0]; // الأرخص للمتوسط والاقتصادي
+    };
+
+    // 1. اللوحة الأم
+    const mobos = getCategoryComponents('Motherboard');
+    const compatibleMobos = mobos.filter(mb => String(parseSpecs(mb.specs).socket) === String(cpuSpecs.socket));
+    let filteredMobos = compatibleMobos.filter(mb => {
+      const chipset = String(parseSpecs(mb.specs).chipset || '').toUpperCase();
+      if (tier === 'economy') return chipset.includes('H610') || chipset.includes('A620') || chipset.includes('B450') || chipset.includes('B550');
+      if (tier === 'mid') return chipset.includes('B760') || chipset.includes('B650');
+      if (tier === 'high') return chipset.includes('Z790') || chipset.includes('X670') || chipset.includes('Z690');
+      return true;
+    });
+    newSelections['Motherboard'] = pickComponent(filteredMobos, compatibleMobos);
+
+    const moboSpecs = newSelections['Motherboard'] ? parseSpecs(newSelections['Motherboard']!.specs) : null;
+
+    // 2. الذاكرة العشوائية
+    if (moboSpecs) {
+      const rams = getCategoryComponents('RAM');
+      const compatibleRams = rams.filter(ram => String(parseSpecs(ram.specs).type) === String(moboSpecs.ramType));
+      let filteredRams = compatibleRams.filter(ram => {
+        const cap = parseFloat(parseSpecs(ram.specs).capacity || "16");
+        if (tier === 'economy') return cap <= 16;
+        if (tier === 'mid') return cap === 32;
+        if (tier === 'high') return cap >= 32;
+        return true;
+      });
+      newSelections['RAM'] = pickComponent(filteredRams, compatibleRams);
+    }
+
+    // 3. مزود الطاقة
+    const psus = getCategoryComponents('PSU');
+    const compatiblePsus = psus.filter(psu => parseFloat(parseSpecs(psu.specs).wattage || "0") >= requiredWattage);
+    let filteredPsus = compatiblePsus.filter(psu => {
+      const eff = String(parseSpecs(psu.specs).efficiency || '').toLowerCase();
+      if (tier === 'economy') return eff.includes('bronze') || eff.includes('white');
+      return eff.includes('gold') || eff.includes('platinum') || eff.includes('titanium');
+    });
+    newSelections['PSU'] = pickComponent(filteredPsus, compatiblePsus);
+
+    // 4. التخزين
+    const storages = getCategoryComponents('Storage');
+    let filteredStorages = storages.filter(st => {
+      const specs = parseSpecs(st.specs);
+      const isGen4 = String(specs.type || '').toLowerCase().includes('gen4');
+      const capacityStr = String(specs.capacity || '').toUpperCase();
+      const isLarge = capacityStr.includes('2TB') || capacityStr.includes('4TB');
+      
+      if (tier === 'economy') return !isGen4 && !isLarge;
+      if (tier === 'mid') return isGen4 && !isLarge;
+      if (tier === 'high') return isGen4 && isLarge;
+      return true;
+    });
+    newSelections['Storage'] = pickComponent(filteredStorages, storages);
+
+    // 5. الصندوق
+    const cases = getCategoryComponents('Case');
+    const compatibleCases = cases.filter(c => parseFloat(parseSpecs(c.specs).maxGpuLength || "999") >= requiredGpuLength);
+    let filteredCases = compatibleCases.filter(c => {
+      if (tier === 'economy') return c.price <= 350;
+      if (tier === 'mid') return c.price > 350 && c.price <= 650;
+      if (tier === 'high') return c.price > 650;
+      return true;
+    });
+    newSelections['Case'] = pickComponent(filteredCases, compatibleCases);
+
+    setSelectedComponents(newSelections);
+    
+    if (tier === 'economy' && maxCoreTier >= 4) {
+      toast.error('تحذير: اختيار قطع اقتصادية مع كرت/معالج فئة عليا سيسبب عنق زجاجة ومشاكل حرارة.', { duration: 6000, icon: '⚠️' });
+    } else if (tier === 'high' && maxCoreTier <= 2) {
+      toast.error('ملاحظة: اختيار قطع عليا لمعالج/كرت اقتصادي يعتبر إهداراً للمال.', { duration: 6000, icon: '💡' });
+    } else {
+      const tierName = tier === 'economy' ? 'الاقتصادية' : tier === 'mid' ? 'المتوسطة' : 'العليا';
+      toast.success(`تم التحديث بقطع من الفئة ${tierName}`, { icon: '✨' });
+    }
+  };
+
+  const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: number }) => {
+  const percentage = psuWattage > 0 ? Math.min((totalTdp / psuWattage) * 100, 100) : 0;
+  
+  let colorClass = 'bg-emerald-500';
+  if (percentage > 85) colorClass = 'bg-rose-500';
+  else if (percentage > 70) colorClass = 'bg-amber-500';
+
+  return (
+    <div className="w-full mt-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
+      <div className="flex justify-between items-center text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+        <span className="flex items-center gap-1">⚡ استهلاك القطع: {totalTdp}W</span>
+        <span>سعة المزود: {psuWattage ? `${psuWattage}W` : 'لم يحدد'}</span>
+      </div>
+      <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+        <div className={`h-full ${colorClass} transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
+      </div>
+      {percentage > 85 && (
+        <p className="text-[10px] text-rose-500 mt-2 font-bold">الاستهلاك مرتفع جداً. يُنصح بمزود طاقة بسعة أكبر لضمان استقرار الجهاز وهامش كسر السرعة.</p>
+      )}
+    </div>
+  );
+};
+
+const handleCopyText = () => {
+    let text = "💻 تجميعتي المخصصة:\n\n";
+    Object.entries(selectedComponents).forEach(([cat, comp]) => {
+      if (comp) text += `▪️ ${cat}: ${comp.brand} ${comp.name}\n`;
+    });
+    
+    const totalPrice = Object.values(selectedComponents).reduce((sum, comp) => sum + (comp ? comp.price : 0), 0);
+    text += `\n💰 التكلفة الإجمالية: ${totalPrice.toFixed(2)} ريال\n`;
+    text += `🔗 تفاصيل أكثر: ${window.location.href}`;
+
+    navigator.clipboard.writeText(text);
+    toast.success('تم نسخ مواصفات التجميعة!', { icon: '📋' });
+  };
+
   const checkCompatibility = () => {
     const cpu = selectedComponents['CPU'];
     const mobo = selectedComponents['Motherboard'];
@@ -992,13 +1132,30 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       <div className="p-6 md:p-10">
         
         {/* شريط الخيارات العلوي */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 pb-6 border-b border-slate-200 dark:border-slate-800/60 gap-4">
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-            <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
-            لوحة اختيار القطع
-          </h2>
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 pb-6 border-b border-slate-200 dark:border-slate-800/60 gap-4">
           
-          <div className="flex flex-wrap items-center gap-3">
+          {/* اليمين: العنوان وأزرار الاستكمال */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2 shrink-0">
+              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+              لوحة اختيار القطع
+            </h2>
+            
+            {selectedComponents['CPU'] && selectedComponents['GPU'] && (
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/50 animate-in fade-in zoom-in-95 duration-300">
+                <span className="text-xs font-black text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1">
+                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  إكمال تلقائي:
+                </span>
+                <button onClick={() => handleAutoFill('economy')} className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 dark:text-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg shadow-sm transition-all border border-slate-200 dark:border-slate-600">اقتصادي</button>
+                <button onClick={() => handleAutoFill('mid')} className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg shadow-sm transition-all border border-blue-200 dark:border-blue-800/50">متوسط</button>
+                <button onClick={() => handleAutoFill('high')} className="px-3 py-1.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 rounded-lg shadow-sm transition-all border border-purple-200 dark:border-purple-800/50">عالي</button>
+              </div>
+            )}
+          </div>
+
+          {/* اليسار: التفريغ والعرض */}
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button 
               onClick={handleClearBuild}
               className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-rose-500 bg-white hover:bg-rose-50 dark:text-rose-400 dark:bg-slate-800/40 dark:hover:bg-rose-950/40 rounded-xl transition-all border border-slate-200 hover:border-rose-200 dark:border-slate-700/50 dark:hover:border-rose-900/50 shadow-sm"
@@ -1130,6 +1287,12 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                         </span>
                       </div>
                     </div>
+
+                    {/* إضافة شريط الطاقة هنا */}
+                    <PowerMeter 
+                      totalTdp={result.totalTdp} 
+                      psuWattage={selectedComponents['PSU'] ? parseFloat(parseSpecs(selectedComponents['PSU'].specs).wattage || "0") : 0} 
+                    />
 
                     {result.bottleneck && (
                       <div className={`mt-6 p-5 border rounded-2xl ${result.bottleneck.bg} flex flex-col relative shadow-sm`}>
@@ -1281,6 +1444,13 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                   </button>
                 )}
                 
+                <button 
+                  onClick={handleCopyText}
+                  className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm border border-slate-200 dark:border-slate-700"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                  نسخ كنص
+                </button>
                 <button 
                   onClick={exportBuildAsImage}
                   className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm border border-slate-200 dark:border-slate-700"
