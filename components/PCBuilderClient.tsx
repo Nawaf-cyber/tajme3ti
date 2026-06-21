@@ -35,29 +35,22 @@ type ComponentWithCompatibility = Component & {
   reason?: string;
 };
 
-// دالة التسويق بالعمولة الذكية (تقص الروابط الطويلة وتضيف الأكواد)
+// دالة التسويق بالعمولة الذكية
 const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'cazasouq' | 'microless') => {
   if (!url) return '#';
   
   switch(store) {
     case 'amazon':
       if (url.includes('amazon.sa') || url.includes('amazon.com')) {
-        // فلترة الرابط تلقائياً لاستخراج مسار القطعة فقط (ASIN) وتجاهل باقي الرموز
         const match = url.match(/(https?:\/\/[^\/]+\/(?:[^\/]+\/)?(?:dp|gp\/product)\/[A-Z0-9]{10})/i);
-        
-        if (match) {
-          // إذا تم العثور على الرابط النظيف، يتم دمج كود العمولة معه مباشرة
-          return `${match[1]}?tag=tajmee3ti-21`;
-        }
-        
-        // مسار احتياطي
+        if (match) return `${match[1]}?tag=tajmee3ti-21`;
         return url.includes('?') ? `${url}&tag=tajmee3ti-21` : `${url}?tag=tajmee3ti-21`;
       }
       return url;
       
     case 'cazasouq':
       if (url.includes('cazasouq.com')) {
-        const cazasouqAffId = ''; // ضع رقمك هنا بعد الموافقة
+        const cazasouqAffId = ''; 
         if (!cazasouqAffId) return url;
         return url.includes('?') ? `${url}&aff=${cazasouqAffId}` : `${url}?aff=${cazasouqAffId}`;
       }
@@ -65,7 +58,7 @@ const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'caza
       
     case 'microless':
       if (url.includes('microless.com')) {
-        const microlessAffId = ''; // ضع رقمك هنا بعد الموافقة
+        const microlessAffId = ''; 
         if (!microlessAffId) return url;
         return url.includes('?') ? `${url}&aff_id=${microlessAffId}` : `${url}?aff_id=${microlessAffId}`;
       }
@@ -157,6 +150,30 @@ const getBrandColor = (comp: Component, categoryName: string) => {
   }
   
   return 'text-slate-800 dark:text-slate-200'; 
+};
+
+// مكون شريط الطاقة
+const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: number }) => {
+  const percentage = psuWattage > 0 ? Math.min((totalTdp / psuWattage) * 100, 100) : 0;
+  
+  let colorClass = 'bg-emerald-500';
+  if (percentage > 85) colorClass = 'bg-rose-500';
+  else if (percentage > 70) colorClass = 'bg-amber-500';
+
+  return (
+    <div className="w-full mt-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
+      <div className="flex justify-between items-center text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+        <span className="flex items-center gap-1">⚡ استهلاك القطع: {totalTdp}W</span>
+        <span>سعة المزود: {psuWattage ? `${psuWattage}W` : 'لم يحدد'}</span>
+      </div>
+      <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+        <div className={`h-full ${colorClass} transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
+      </div>
+      {percentage > 85 && (
+        <p className="text-[10px] text-rose-500 mt-2 font-bold">الاستهلاك مرتفع جداً. يُنصح بمزود طاقة بسعة أكبر لضمان استقرار الجهاز وهامش كسر السرعة.</p>
+      )}
+    </div>
+  );
 };
 
 const SearchableSelect = ({ 
@@ -553,8 +570,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     totalTdp: number, 
     totalPrice: number 
   }>({ status: 'idle', message: '', totalTdp: 0, totalPrice: 0 });
-  const [detailsModal, setDetailsModal] = useState<{ comp: Component, categoryName: string } | null>(null);
   
+  const [detailsModal, setDetailsModal] = useState<{ comp: Component, categoryName: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [showIncompatible, setShowIncompatible] = useState(false);
@@ -721,16 +738,14 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     let newSelections = { ...selectedComponents };
     const getCategoryComponents = (name: string) => categories.find(c => c.name === name)?.components || [];
 
-    // دالة مساعدة لفرز واختيار القطعة بناءً على الفئة السعرية
     const pickComponent = (filtered: any[], fallback: any[]) => {
       const validArray = filtered.length > 0 ? filtered : fallback;
       if (validArray.length === 0) return null;
       return tier === 'high' 
-        ? validArray.sort((a, b) => b.price - a.price)[0] // الأغلى للفئة العليا
-        : validArray.sort((a, b) => a.price - b.price)[0]; // الأرخص للمتوسط والاقتصادي
+        ? validArray.sort((a, b) => b.price - a.price)[0] 
+        : validArray.sort((a, b) => a.price - b.price)[0]; 
     };
 
-    // 1. اللوحة الأم
     const mobos = getCategoryComponents('Motherboard');
     const compatibleMobos = mobos.filter(mb => String(parseSpecs(mb.specs).socket) === String(cpuSpecs.socket));
     let filteredMobos = compatibleMobos.filter(mb => {
@@ -744,7 +759,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
     const moboSpecs = newSelections['Motherboard'] ? parseSpecs(newSelections['Motherboard']!.specs) : null;
 
-    // 2. الذاكرة العشوائية
     if (moboSpecs) {
       const rams = getCategoryComponents('RAM');
       const compatibleRams = rams.filter(ram => String(parseSpecs(ram.specs).type) === String(moboSpecs.ramType));
@@ -758,7 +772,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       newSelections['RAM'] = pickComponent(filteredRams, compatibleRams);
     }
 
-    // 3. مزود الطاقة
     const psus = getCategoryComponents('PSU');
     const compatiblePsus = psus.filter(psu => parseFloat(parseSpecs(psu.specs).wattage || "0") >= requiredWattage);
     let filteredPsus = compatiblePsus.filter(psu => {
@@ -768,7 +781,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     });
     newSelections['PSU'] = pickComponent(filteredPsus, compatiblePsus);
 
-    // 4. التخزين
     const storages = getCategoryComponents('Storage');
     let filteredStorages = storages.filter(st => {
       const specs = parseSpecs(st.specs);
@@ -783,7 +795,6 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     });
     newSelections['Storage'] = pickComponent(filteredStorages, storages);
 
-    // 5. الصندوق
     const cases = getCategoryComponents('Case');
     const compatibleCases = cases.filter(c => parseFloat(parseSpecs(c.specs).maxGpuLength || "999") >= requiredGpuLength);
     let filteredCases = compatibleCases.filter(c => {
@@ -806,30 +817,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     }
   };
 
-  const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: number }) => {
-  const percentage = psuWattage > 0 ? Math.min((totalTdp / psuWattage) * 100, 100) : 0;
-  
-  let colorClass = 'bg-emerald-500';
-  if (percentage > 85) colorClass = 'bg-rose-500';
-  else if (percentage > 70) colorClass = 'bg-amber-500';
-
-  return (
-    <div className="w-full mt-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
-      <div className="flex justify-between items-center text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
-        <span className="flex items-center gap-1">⚡ استهلاك القطع: {totalTdp}W</span>
-        <span>سعة المزود: {psuWattage ? `${psuWattage}W` : 'لم يحدد'}</span>
-      </div>
-      <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-        <div className={`h-full ${colorClass} transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
-      </div>
-      {percentage > 85 && (
-        <p className="text-[10px] text-rose-500 mt-2 font-bold">الاستهلاك مرتفع جداً. يُنصح بمزود طاقة بسعة أكبر لضمان استقرار الجهاز وهامش كسر السرعة.</p>
-      )}
-    </div>
-  );
-};
-
-const handleCopyText = () => {
+  const handleCopyText = () => {
     let text = "💻 تجميعتي المخصصة:\n\n";
     Object.entries(selectedComponents).forEach(([cat, comp]) => {
       if (comp) text += `▪️ ${cat}: ${comp.brand} ${comp.name}\n`;
@@ -841,6 +829,11 @@ const handleCopyText = () => {
 
     navigator.clipboard.writeText(text);
     toast.success('تم نسخ مواصفات التجميعة!', { icon: '📋' });
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('تم نسخ رابط التجميعة للمشاركة!', { icon: '🔗' });
   };
 
   const checkCompatibility = () => {
@@ -995,7 +988,7 @@ const handleCopyText = () => {
     setSaveModalOpen(true);
   };
 
- const confirmSaveBuild = async () => {
+  const confirmSaveBuild = async () => {
     setIsSaving(true);
     try {
       const getComponentId = (searchCategory: string) => {
@@ -1288,7 +1281,6 @@ const handleCopyText = () => {
                       </div>
                     </div>
 
-                    {/* إضافة شريط الطاقة هنا */}
                     <PowerMeter 
                       totalTdp={result.totalTdp} 
                       psuWattage={selectedComponents['PSU'] ? parseFloat(parseSpecs(selectedComponents['PSU'].specs).wattage || "0") : 0} 
@@ -1544,6 +1536,34 @@ const handleCopyText = () => {
           </div>
         </div>
       )}
+
+      {/* شريط الملخص العائم للجوال */}
+      {result.status === 'success' && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] lg:hidden flex justify-between items-center animate-in slide-in-from-bottom-full duration-300">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">التكلفة الإجمالية</span>
+            <span className="font-black text-emerald-600 dark:text-emerald-400 text-lg flex items-center gap-1">
+              {result.totalPrice} <RiyalIcon size="h-4 w-4" />
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={handleCopyLink}
+              className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold border border-slate-200 dark:border-slate-700 shadow-sm"
+              title="نسخ الرابط"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+            </button>
+            <button 
+              onClick={handleSaveBuildClick} 
+              className="px-6 py-2.5 bg-blue-600 active:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md"
+            >
+              حفظ
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
