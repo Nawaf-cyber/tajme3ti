@@ -9,18 +9,17 @@ import Script from 'next/script';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className="overflow-x-hidden">
-      <head>
-        {/* سكربت Google AdSense */}
+      
+      <body className="bg-[#F5F7FA] dark:bg-[#0B1120] text-slate-800 dark:text-gray-100 transition-colors duration-300 overflow-x-hidden w-full relative" suppressHydrationWarning>
+        
+        {/* سكربت Google AdSense (تم نقله هنا لتجنب أخطاء الـ Hydration) */}
         <Script
           async
-         src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3317971310305945"
-         crossOrigin="anonymous"
-        strategy="lazyOnload"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3317971310305945"
+          crossOrigin="anonymous"
+          strategy="lazyOnload"
         />
-      </head>
-      
-      {/* التعديل هنا: استخدام خلفية هادئة #F5F7FA للوضع الفاتح ولون نص slate-800 */}
-      <body className="bg-[#F5F7FA] dark:bg-[#0B1120] text-slate-800 dark:text-gray-100 transition-colors duration-300 overflow-x-hidden w-full relative" suppressHydrationWarning>
+
         <Providers>
           <div className="flex flex-col min-h-screen overflow-x-hidden w-full">
             <Navbar />

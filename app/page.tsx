@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import { prisma } from '../lib/prisma';
+import AutoBuildsSection from '../components/AutoBuildsSection';
+
+export const revalidate = 86400; // مهم: لتحديث الأسعار في الصفحة الرئيسية تلقائياً كل 24 ساعة
 
 export default async function HomePage() {
   const latestComponents = await prisma.component.findMany({
@@ -147,6 +150,9 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      {/* 2. قسم التجميعات المقترحة (الآلي الجديد بدلاً من القديم اليدوي) */}
+      <AutoBuildsSection />
 
       {/* 3. قسم التجميعات الجاهزة */}
       <section className="max-w-7xl mx-auto px-4 pb-20">
