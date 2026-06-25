@@ -3,14 +3,12 @@ import { prisma } from '../lib/prisma';
 import CountdownTimer from './CountdownTimer';
 
 export default async function AutoBuildsSection() {
-  // جلب القطع من قاعدة البيانات
   const categories = await prisma.category.findMany({
     include: { components: true }
   });
 
   const getCat = (name: string) => categories.find(c => c.name === name)?.components || [];
 
-  // ترتيب القطع من الأرخص للأغلى
   const cpus = getCat('CPU').sort((a, b) => a.price - b.price);
   const gpus = getCat('GPU').sort((a, b) => a.price - b.price);
   const mobos = getCat('Motherboard').sort((a, b) => a.price - b.price);
@@ -24,76 +22,115 @@ export default async function AutoBuildsSection() {
     try { return typeof specsStr === 'string' ? JSON.parse(specsStr) : specsStr; } catch(e) { return {}; }
   };
 
+  const getRandom = (arr: any[]) => arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : null;
+
   const createTierBuild = (tier: 'economy' | 'mid' | 'high') => {
-    let cpu, gpu;
+    // 1. تصفية المعالجات التي لها لوحة أم متوافقة فقط (لمنع خطأ الصفر)
+    const cpusWithMobos = cpus.filter(cpu => {
+      const socket = String(parseSpecs(cpu.specs).socket);
+      return mobos.some(mb => String(parseSpecs(mb.specs).socket) === socket);
+    });
+
+    if (cpusWithMobos.length === 0 || gpus.length === 0) return null;
+
+    // 2. تقسيم صارم وآمن حتى لقواعد البيانات الصغيرة
+    const getTierSlice = (arr: any[], t: 'economy' | 'mid' | 'high') => {
+      const len = arr.length;
+      if (len <= 2) {
+        if (t === 'economy') return [arr[0]];
+        if (t === 'high') return [arr[len - 1]];
+        return arr;
+      }
+      
+      if (t === 'economy') return arr.slice(0, Math.max(1, Math.floor(len * 0.4))); // أرخص 40%
+      if (t === 'high') return arr.slice(Math.floor(len * 0.6), len); // أغلى 40%
+      
+      // الفئة المتوسطة: نستبعد الأرخص جداً والأغلى جداً
+      const start = Math.floor(len * 0.25);
+      const end = Math.ceil(len * 0.75);
+      return arr.slice(start, Math.max(start + 1, end)); 
+    };
+
+    let validGpus = getTierSlice(gpus, tier);
+    let gpu = getRandom(validGpus) || validGpus[0];
     
-    if (tier === 'economy') {
-      cpu = cpus[0];
-      gpu = gpus[0];
-    } else if (tier === 'high') {
-      cpu = cpus[cpus.length - 1]; 
-      gpu = gpus[gpus.length - 1];
-    } else {
-      cpu = cpus[Math.floor(cpus.length / 2)]; 
-      gpu = gpus[Math.floor(gpus.length / 2)];
-    }
+    let validCpus = getTierSlice(cpusWithMobos, tier);
+    let cpu = getRandom(validCpus) || validCpus[0];
 
     if(!cpu || !gpu) return null;
 
+    const gpuPrice = gpu.price;
     const cpuSpecs = parseSpecs(cpu.specs);
-    const reqWattage = (cpu.tdpWattage || 0) + (gpu.tdpWattage || 0) + 200;
+    const reqWattage = (cpu.tdpWattage || 65) + (gpu.tdpWattage || 200) + 100;
     const reqGpuLength = parseFloat(parseSpecs(gpu.specs).lengthMm || "320");
 
+    // 3. اللوحة الأم
     const compMobos = mobos.filter(mb => String(parseSpecs(mb.specs).socket) === String(cpuSpecs.socket));
-    let mobo = compMobos.find(mb => {
+    let filteredMobos = compMobos.filter(mb => {
       const chipset = String(parseSpecs(mb.specs).chipset || '').toUpperCase();
-      if (tier === 'economy') return chipset.includes('H610') || chipset.includes('A620') || chipset.includes('B450') || chipset.includes('B550');
-      if (tier === 'mid') return chipset.includes('B760') || chipset.includes('B650');
-      if (tier === 'high') return chipset.includes('Z790') || chipset.includes('X670') || chipset.includes('Z690');
+      const isBasic = chipset.includes('H610') || chipset.includes('A620') || chipset.includes('A520') || chipset.includes('B450') || chipset.includes('H510');
+      const isMid = chipset.includes('B760') || chipset.includes('B660') || chipset.includes('B650') || chipset.includes('B550');
+      
+      if (tier === 'economy') return (isBasic || isMid) && mb.price <= (gpuPrice * 0.8);
+      if (tier === 'mid') return isMid && mb.price <= (gpuPrice * 1.5);
       return true;
-    }) || compMobos[0];
+    });
+    if (filteredMobos.length === 0) filteredMobos = compMobos;
+    let mobo = getRandom(filteredMobos) || filteredMobos[0];
 
-    let ram;
+    // 4. الرام
+    let ram = null;
     if (mobo) {
       const moboSpecs = parseSpecs(mobo.specs);
       const compRams = rams.filter(r => String(parseSpecs(r.specs).type) === String(moboSpecs.ramType));
-      ram = compRams.find(r => {
-        const cap = parseFloat(parseSpecs(r.specs).capacity || "16");
-        if (tier === 'economy') return cap <= 16;
-        if (tier === 'mid') return cap === 32;
-        if (tier === 'high') return cap >= 32;
-        return true;
-      }) || compRams[0];
+      
+      if (compRams.length > 0) {
+        let filteredRams = compRams.filter(r => {
+          const cap = parseFloat(parseSpecs(r.specs).capacity || "16");
+          if (tier === 'economy') return cap <= 16 && r.price <= (gpuPrice * 0.6);
+          if (tier === 'mid') return cap >= 16 && cap <= 32 && r.price <= gpuPrice;
+          if (tier === 'high') return cap >= 32;
+          return true;
+        });
+        if (filteredRams.length === 0) filteredRams = compRams;
+        ram = getRandom(filteredRams) || filteredRams[0];
+      }
     }
 
+    // 5. مزود الطاقة
     const compPsus = psus.filter(p => parseFloat(parseSpecs(p.specs).wattage || "0") >= reqWattage);
-    let psu = compPsus.find(p => {
-      const eff = String(parseSpecs(p.specs).efficiency || '').toLowerCase();
-      if (tier === 'economy') return eff.includes('bronze') || eff.includes('white');
-      return eff.includes('gold') || eff.includes('platinum') || eff.includes('titanium');
-    }) || compPsus[0];
-
-    let storage = storages.find(st => {
-      const specs = parseSpecs(st.specs);
-      const isGen4 = String(specs.type || '').toLowerCase().includes('gen4');
-      const capStr = String(specs.capacity || '').toUpperCase();
-      const isLarge = capStr.includes('2TB') || capStr.includes('4TB');
-      if (tier === 'economy') return !isGen4 && !isLarge;
-      if (tier === 'mid') return isGen4 && !isLarge;
-      if (tier === 'high') return isGen4 && isLarge;
+    let filteredPsus = compPsus.filter(p => {
+      const psuW = parseFloat(parseSpecs(p.specs).wattage || "0");
+      if (tier === 'economy') return psuW <= (reqWattage + 250) && p.price <= (gpuPrice * 0.6);
+      if (tier === 'mid') return psuW <= (reqWattage + 350) && p.price <= gpuPrice;
       return true;
-    }) || storages[0];
+    });
+    if (filteredPsus.length === 0 && compPsus.length > 0) filteredPsus = compPsus;
+    let psu = getRandom(filteredPsus) || filteredPsus[0] || psus[0];
 
+    // 6. التخزين
+    let filteredStorages = storages.filter(st => {
+      const capStr = String(parseSpecs(st.specs).capacity || '').toUpperCase();
+      if (tier === 'economy') return (capStr.includes('500GB') || capStr.includes('1TB')) && st.price <= (gpuPrice * 0.6);
+      if (tier === 'mid') return capStr.includes('1TB') || capStr.includes('2TB');
+      if (tier === 'high') return capStr.includes('2TB') || capStr.includes('4TB');
+      return true;
+    });
+    if (filteredStorages.length === 0) filteredStorages = storages;
+    let storage = getRandom(filteredStorages) || filteredStorages[0];
+
+    // 7. الكيس
     const compCases = cases.filter(c => parseFloat(parseSpecs(c.specs).maxGpuLength || "999") >= reqGpuLength);
-    let pcase = compCases.find(c => {
-      if (tier === 'economy') return c.price <= 350;
-      if (tier === 'mid') return c.price > 350 && c.price <= 650;
-      if (tier === 'high') return c.price > 650;
+    let filteredCases = compCases.filter(c => {
+      if (tier === 'economy') return c.price <= 450 && c.price <= (gpuPrice * 0.6);
+      if (tier === 'mid') return c.price <= 800;
       return true;
-    }) || compCases[0];
+    });
+    if (filteredCases.length === 0 && compCases.length > 0) filteredCases = compCases;
+    let pcase = getRandom(filteredCases) || filteredCases[0] || cases[0];
 
+    // التجميع والنتيجة
     const selected = { cpu, gpu, motherboard: mobo, ram, psu, storage, case: pcase };
-    
     let totalPrice = 0;
     let queryParams = new URLSearchParams();
     
@@ -104,10 +141,7 @@ export default async function AutoBuildsSection() {
       }
     });
 
-    return {
-      price: totalPrice.toFixed(2),
-      params: queryParams.toString()
-    };
+    return { price: totalPrice.toFixed(2), params: queryParams.toString() };
   };
 
   const ecoBuild = createTierBuild('economy');
@@ -163,20 +197,18 @@ export default async function AutoBuildsSection() {
   return (
     <section className="max-w-7xl mx-auto px-4 pb-20 mt-10">
       
-      {/* العنوان والعداد الزمني مدمجان بنفس عرض الأقسام الأخرى */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10 border-b border-slate-200 dark:border-slate-800/60 pb-6">
         <div>
           <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
             تجميعات مقترحة ومحدثة تلقائياً
           </h2>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2">
-            هذه التجميعات تم اختيارها برمجياً لضمان التوافق التام وأفضل قيمة مقابل السعر.
+            يتم توليد تجميعات متوافقة بشكل ديناميكي لضمان تنوع الخيارات مع كل تحديث.
           </p>
         </div>
         <CountdownTimer />
       </div>
 
-      {/* البطاقات الملونة */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {displayBuilds.map((build) => (
           <div 

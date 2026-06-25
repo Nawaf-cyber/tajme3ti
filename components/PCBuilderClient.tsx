@@ -721,100 +721,118 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   };
 
   const handleAutoFill = (tier: 'economy' | 'mid' | 'high') => {
-    const cpu = selectedComponents['CPU'];
-    const gpu = selectedComponents['GPU'];
-
-    if (!cpu || !gpu) {
-      toast.error('يرجى اختيار المعالج وكرت الشاشة أولاً لتفعيل الاستكمال الذكي');
-      return;
-    }
-
-    const cpuSpecs = parseSpecs(cpu.specs);
-    const gpuSpecs = parseSpecs(gpu.specs);
-    const requiredWattage = (cpu.tdpWattage || 0) + (gpu.tdpWattage || 0) + 200;
-    const requiredGpuLength = parseFloat(gpuSpecs.lengthMm || "320");
-    const maxCoreTier = Math.max(cpu.performanceTier || 1, gpu.performanceTier || 1);
-
     let newSelections = { ...selectedComponents };
-    const getCategoryComponents = (name: string) => categories.find(c => c.name === name)?.components || [];
+    
+    // سحب القطع مرتبة حسب السعر
+    const getCategoryComponents = (name: string) => [...(categories.find(c => c.name === name)?.components || [])].sort((a, b) => a.price - b.price);
 
-    const pickComponent = (filtered: any[], fallback: any[]) => {
-      const validArray = filtered.length > 0 ? filtered : fallback;
-      if (validArray.length === 0) return null;
-      return tier === 'high' 
-        ? validArray.sort((a, b) => b.price - a.price)[0] 
-        : validArray.sort((a, b) => a.price - b.price)[0]; 
+    const cpus = getCategoryComponents('CPU');
+    const gpus = getCategoryComponents('GPU');
+    const mobos = getCategoryComponents('Motherboard');
+    const rams = getCategoryComponents('RAM');
+    const psus = getCategoryComponents('PSU');
+    const storages = getCategoryComponents('Storage');
+    const cases = getCategoryComponents('Case');
+
+    // دالة لتقسيم القطع لشرائح حسب الفئة السعرية والأداء
+    const getTierSlice = (arr: any[], t: 'economy' | 'mid' | 'high') => {
+      if (arr.length <= 3) return arr;
+      const third = Math.floor(arr.length / 3);
+      if (t === 'economy') return arr.slice(0, third + Math.floor(third/2)); // النصف الأرخص
+      if (t === 'mid') return arr.slice(third, arr.length - third); // الوسط
+      return arr.slice(arr.length - Math.floor(third * 1.5)); // النصف الأغلى
     };
 
-    const mobos = getCategoryComponents('Motherboard');
-    const compatibleMobos = mobos.filter(mb => String(parseSpecs(mb.specs).socket) === String(cpuSpecs.socket));
-    let filteredMobos = compatibleMobos.filter(mb => {
-      const chipset = String(parseSpecs(mb.specs).chipset || '').toUpperCase();
-      if (tier === 'economy') return chipset.includes('H610') || chipset.includes('A620') || chipset.includes('B450') || chipset.includes('B550');
-      if (tier === 'mid') return chipset.includes('B760') || chipset.includes('B650');
-      if (tier === 'high') return chipset.includes('Z790') || chipset.includes('X670') || chipset.includes('Z690');
-      return true;
-    });
-    newSelections['Motherboard'] = pickComponent(filteredMobos, compatibleMobos);
-
-    const moboSpecs = newSelections['Motherboard'] ? parseSpecs(newSelections['Motherboard']!.specs) : null;
-
-    if (moboSpecs) {
-      const rams = getCategoryComponents('RAM');
-      const compatibleRams = rams.filter(ram => String(parseSpecs(ram.specs).type) === String(moboSpecs.ramType));
-      let filteredRams = compatibleRams.filter(ram => {
-        const cap = parseFloat(parseSpecs(ram.specs).capacity || "16");
-        if (tier === 'economy') return cap <= 16;
-        if (tier === 'mid') return cap === 32;
-        if (tier === 'high') return cap >= 32;
-        return true;
-      });
-      newSelections['RAM'] = pickComponent(filteredRams, compatibleRams);
+    // 1. اختيار كرت الشاشة (الأساس)
+    let validGpus = getTierSlice(gpus, tier);
+    let gpu = tier === 'high' ? validGpus[validGpus.length - 1] : validGpus[Math.floor(validGpus.length / 3)];
+    if (tier === 'economy') gpu = validGpus[0];
+    
+    if (!gpu) {
+      toast.error('لا توجد كروت شاشة كافية في قاعدة البيانات.');
+      return;
     }
+    newSelections['GPU'] = gpu;
+    const gpuPrice = gpu.price;
+    const reqGpuLength = parseFloat(parseSpecs(gpu.specs).lengthMm || "320");
 
-    const psus = getCategoryComponents('PSU');
-    const compatiblePsus = psus.filter(psu => parseFloat(parseSpecs(psu.specs).wattage || "0") >= requiredWattage);
-    let filteredPsus = compatiblePsus.filter(psu => {
-      const eff = String(parseSpecs(psu.specs).efficiency || '').toLowerCase();
-      if (tier === 'economy') return eff.includes('bronze') || eff.includes('white');
-      return eff.includes('gold') || eff.includes('platinum') || eff.includes('titanium');
-    });
-    newSelections['PSU'] = pickComponent(filteredPsus, compatiblePsus);
+    // 2. اختيار المعالج
+    let validCpus = getTierSlice(cpus, tier);
+    let cpu = tier === 'high' ? validCpus[validCpus.length - 1] : validCpus[Math.floor(validCpus.length / 3)];
+    if (tier === 'economy') cpu = validCpus[0];
+    newSelections['CPU'] = cpu;
 
-    const storages = getCategoryComponents('Storage');
-    let filteredStorages = storages.filter(st => {
-      const specs = parseSpecs(st.specs);
-      const isGen4 = String(specs.type || '').toLowerCase().includes('gen4');
-      const capacityStr = String(specs.capacity || '').toUpperCase();
-      const isLarge = capacityStr.includes('2TB') || capacityStr.includes('4TB');
+    const cpuSpecs = parseSpecs(cpu.specs);
+    const reqWattage = (cpu.tdpWattage || 65) + (gpu.tdpWattage || 200) + 100; // الاستهلاك الفعلي + هامش 100W
+
+    // 3. اختيار اللوحة الأم
+    const compMobos = mobos.filter(mb => String(parseSpecs(mb.specs).socket) === String(cpuSpecs.socket));
+    let filteredMobos = compMobos.filter(mb => {
+      const chipset = String(parseSpecs(mb.specs).chipset || '').toUpperCase();
+      const isBasic = chipset.includes('H610') || chipset.includes('A620') || chipset.includes('A520') || chipset.includes('B450');
+      const isMid = chipset.includes('B760') || chipset.includes('B660') || chipset.includes('B650') || chipset.includes('B550');
       
-      if (tier === 'economy') return !isGen4 && !isLarge;
-      if (tier === 'mid') return isGen4 && !isLarge;
-      if (tier === 'high') return isGen4 && isLarge;
-      return true;
+      // القيود الصارمة للقيمة
+      if (tier === 'economy') return (isBasic || isMid) && mb.price <= (gpuPrice * 0.6); // اللوحة لا تتجاوز 60% من سعر الكرت
+      if (tier === 'mid') return isMid && mb.price <= gpuPrice;
+      return true; // الفئة العليا بدون قيود
     });
-    newSelections['Storage'] = pickComponent(filteredStorages, storages);
+    if (filteredMobos.length === 0) filteredMobos = compMobos;
+    newSelections['Motherboard'] = tier === 'high' ? filteredMobos[filteredMobos.length - 1] : filteredMobos[0];
 
-    const cases = getCategoryComponents('Case');
-    const compatibleCases = cases.filter(c => parseFloat(parseSpecs(c.specs).maxGpuLength || "999") >= requiredGpuLength);
-    let filteredCases = compatibleCases.filter(c => {
-      if (tier === 'economy') return c.price <= 350;
-      if (tier === 'mid') return c.price > 350 && c.price <= 650;
-      if (tier === 'high') return c.price > 650;
+    // 4. اختيار الرام
+    const moboSpecs = parseSpecs(newSelections['Motherboard']!.specs);
+    const compRams = rams.filter(r => String(parseSpecs(r.specs).type) === String(moboSpecs.ramType));
+    let filteredRams = compRams.filter(r => {
+      const cap = parseFloat(parseSpecs(r.specs).capacity || "16");
+      // منع الرامات الأغلى من الكرت
+      if (tier !== 'high' && r.price > (gpuPrice * 0.45)) return false; 
+
+      if (tier === 'economy') return cap <= 32;
+      if (tier === 'mid') return cap >= 32;
       return true;
     });
-    newSelections['Case'] = pickComponent(filteredCases, compatibleCases);
+    if (filteredRams.length === 0) filteredRams = compRams.filter(r => r.price <= gpuPrice);
+    if (filteredRams.length === 0) filteredRams = compRams;
+    newSelections['RAM'] = tier === 'high' ? filteredRams[filteredRams.length - 1] : filteredRams[0];
+
+    // 5. اختيار مزود الطاقة (PSU)
+    const compPsus = psus.filter(p => parseFloat(parseSpecs(p.specs).wattage || "0") >= reqWattage);
+    let filteredPsus = compPsus.filter(p => {
+      const psuW = parseFloat(parseSpecs(p.specs).wattage || "0");
+      // حماية من مزودات 1000W لتجميعة تستهلك 350W
+      if (tier === 'economy') return psuW <= (reqWattage + 200) && p.price <= (gpuPrice * 0.5);
+      if (tier === 'mid') return psuW <= (reqWattage + 300);
+      return true;
+    });
+    if (filteredPsus.length === 0) filteredPsus = compPsus;
+    newSelections['PSU'] = tier === 'high' ? filteredPsus[filteredPsus.length - 1] : filteredPsus[0];
+
+    // 6. اختيار التخزين
+    let filteredStorages = storages.filter(st => {
+      const capStr = String(parseSpecs(st.specs).capacity || '').toUpperCase();
+      if (tier !== 'high' && st.price > (gpuPrice * 0.4)) return false;
+      if (tier === 'economy') return capStr.includes('1TB') || capStr.includes('500GB');
+      if (tier === 'mid') return capStr.includes('1TB') || capStr.includes('2TB');
+      return true;
+    });
+    if (filteredStorages.length === 0) filteredStorages = storages;
+    newSelections['Storage'] = tier === 'high' ? filteredStorages[filteredStorages.length - 1] : filteredStorages[0];
+
+    // 7. اختيار الكيس
+    const compCases = cases.filter(c => parseFloat(parseSpecs(c.specs).maxGpuLength || "999") >= reqGpuLength);
+    let filteredCases = compCases.filter(c => {
+      if (tier !== 'high' && c.price > (gpuPrice * 0.4)) return false;
+      if (tier === 'economy') return c.price <= 350;
+      if (tier === 'mid') return c.price <= 700;
+      return true;
+    });
+    if (filteredCases.length === 0) filteredCases = compCases;
+    newSelections['Case'] = tier === 'high' ? filteredCases[filteredCases.length - 1] : filteredCases[0];
 
     setSelectedComponents(newSelections);
-    
-    if (tier === 'economy' && maxCoreTier >= 4) {
-      toast.error('تحذير: اختيار قطع اقتصادية مع كرت/معالج فئة عليا سيسبب عنق زجاجة ومشاكل حرارة.', { duration: 6000, icon: '⚠️' });
-    } else if (tier === 'high' && maxCoreTier <= 2) {
-      toast.error('ملاحظة: اختيار قطع عليا لمعالج/كرت اقتصادي يعتبر إهداراً للمال.', { duration: 6000, icon: '💡' });
-    } else {
-      const tierName = tier === 'economy' ? 'الاقتصادية' : tier === 'mid' ? 'المتوسطة' : 'العليا';
-      toast.success(`تم التحديث بقطع من الفئة ${tierName}`, { icon: '✨' });
-    }
+    const tierName = tier === 'economy' ? 'الاقتصادية' : tier === 'mid' ? 'المتوسطة' : 'العليا';
+    toast.success(`تم بناء تجميعة كاملة من الفئة ${tierName} بنجاح!`, { icon: '✨' });
   };
 
   const handleCopyText = () => {
@@ -1135,15 +1153,15 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             </h2>
             
             {selectedComponents['CPU'] && selectedComponents['GPU'] && (
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/50 animate-in fade-in zoom-in-95 duration-300">
-                <span className="text-xs font-black text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1">
-                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                  إكمال تلقائي:
-                </span>
-                <button onClick={() => handleAutoFill('economy')} className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 dark:text-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg shadow-sm transition-all border border-slate-200 dark:border-slate-600">اقتصادي</button>
-                <button onClick={() => handleAutoFill('mid')} className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg shadow-sm transition-all border border-blue-200 dark:border-blue-800/50">متوسط</button>
-                <button onClick={() => handleAutoFill('high')} className="px-3 py-1.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 rounded-lg shadow-sm transition-all border border-purple-200 dark:border-purple-800/50">عالي</button>
-              </div>
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/50">
+              <span className="text-xs font-black text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                تجميع تلقائي:
+              </span>
+              <button onClick={() => handleAutoFill('economy')} className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 dark:text-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg shadow-sm transition-all border border-slate-200 dark:border-slate-600">اقتصادي</button>
+              <button onClick={() => handleAutoFill('mid')} className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg shadow-sm transition-all border border-blue-200 dark:border-blue-800/50">متوسط</button>
+              <button onClick={() => handleAutoFill('high')} className="px-3 py-1.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 rounded-lg shadow-sm transition-all border border-purple-200 dark:border-purple-800/50">عالي</button>
+            </div>
             )}
           </div>
 
@@ -1560,6 +1578,63 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             >
               حفظ
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* نافذة حفظ التجميعة */}
+      {saveModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0F172A] rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] shrink-0">
+              <h2 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="w-1.5 h-5 bg-blue-600 rounded-full"></span>
+                {editModeId ? 'تحديث التجميعة' : 'حفظ التجميعة'}
+              </h2>
+              <button onClick={() => setSaveModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-colors">
+                <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                اسم التجميعة:
+              </label>
+              <input
+                type="text"
+                value={buildName}
+                onChange={(e) => setBuildName(e.target.value)}
+                placeholder="مثال: تجميعة الألعاب، تجميعة المونتاج..."
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-900 dark:text-white font-medium"
+                autoFocus
+              />
+              <p className="text-xs text-slate-500 mt-3 font-medium">
+                ستتمكن من الرجوع لهذه التجميعة لاحقاً وتعديلها من صفحة حسابك.
+              </p>
+            </div>
+
+            <div className="p-5 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] flex gap-3">
+              <button 
+                onClick={() => setSaveModalOpen(false)} 
+                className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-all"
+              >
+                إلغاء
+              </button>
+              <button 
+                onClick={confirmSaveBuild} 
+                disabled={isSaving || !buildName.trim()}
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all shadow-md shadow-blue-500/20 flex justify-center items-center gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  'تأكيد الحفظ'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
