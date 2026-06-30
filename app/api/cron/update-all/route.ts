@@ -20,6 +20,13 @@ async function fetchWithTimeout(url: string, options: any = {}, timeout = 10000)
 }
 
 export async function GET(req: Request) {
+  // حماية المسار: يجب أن يحمل الطلب سر الكرون في الـ Authorization header
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization') || '';
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
+  }
+
   try {
     const setting = await prisma.systemSetting.findUnique({ where: { id: "default" } });
     const isCronEnabled = setting ? setting.cronEnabled : false;
@@ -28,7 +35,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "التحديث التلقائي معطل حالياً من لوحة التحكم." }, { status: 200 });
     }
 
-    const SCRAPER_API_KEY = "f2fcd7691521c09ce71f537490081300"; 
+    const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
+    if (!SCRAPER_API_KEY) {
+      return NextResponse.json({ error: "SCRAPER_API_KEY غير مضبوط في متغيرات البيئة." }, { status: 500 });
+    }
     
     const searchConditions = { 
       OR: [

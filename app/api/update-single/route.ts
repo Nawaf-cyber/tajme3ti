@@ -1,6 +1,7 @@
 import { prisma } from "../../../lib/prisma";
 import { NextResponse } from "next/server";
 import * as cheerio from 'cheerio';
+import { getToken } from 'next-auth/jwt';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,8 @@ export async function POST(req: Request) {
     const comp = await prisma.component.findUnique({ where: { id } });
     if (!comp) return NextResponse.json({ error: "القطعة غير موجودة" }, { status: 404 });
 
-    const SCRAPER_API_KEY = "f2fcd7691521c09ce71f537490081300";
+    const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
+    if (!SCRAPER_API_KEY) return NextResponse.json({ error: "SCRAPER_API_KEY غير مضبوط" }, { status: 500 });
     
     let finalAmazonPrice = comp.amazonPrice || Infinity;
     let finalCazasouqPrice = comp.cazasouqPrice || Infinity;

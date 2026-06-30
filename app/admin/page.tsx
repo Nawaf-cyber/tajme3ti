@@ -6,20 +6,18 @@ import { prisma } from "../../lib/prisma";
 import AdminManager from "./AdminManager";
 import Link from 'next/link';
 import { getCronStatus } from "./actions"; // 1. استيراد دالة جلب الحالة من الـ actions
-
-// ضع إيميلك أو إيميلات الإدارة هنا
-const ADMIN_EMAILS = ["admin@pcbuilder.com", "admin2@pcbuilder.com"];
+import { authOptions } from "../api/auth/[...nextauth]/route";
 
 export default async function AdminDashboard() {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
 
   // 1. التحقق من تسجيل الدخول
   if (!session) {
     redirect("/api/auth/signin?callbackUrl=/admin");
   }
 
-  // 2. التحقق من الصلاحية (هل الإيميل ضمن قائمة الإدارة؟)
-  if (!session.user?.email || !ADMIN_EMAILS.includes(session.user.email)) {
+  // 2. التحقق من الصلاحية اعتماداً على الدور (role) من قاعدة البيانات
+  if ((session.user as any)?.role !== 'ADMIN') {
     redirect("/"); // طرد المستخدم العادي للصفحة الرئيسية
   }
 

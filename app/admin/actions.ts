@@ -2,6 +2,16 @@
 
 import { prisma } from '../../lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../api/auth/[...nextauth]/route';
+
+// حارس صلاحية: يرفع استثناءً إن لم يكن المستخدم أدمن
+async function assertAdmin() {
+  const session = await getServerSession(authOptions);
+  if ((session?.user as any)?.role !== 'ADMIN') {
+    throw new Error('غير مصرح: هذه العملية تتطلب صلاحية أدمن.');
+  }
+}
 
 export async function getCronStatus() {
   try {
@@ -14,6 +24,7 @@ export async function getCronStatus() {
 }
 
 export async function toggleCronStatus(enabled: boolean) {
+  await assertAdmin();
   try {
     await prisma.systemSetting.upsert({
       where: { id: "default" },
@@ -35,6 +46,7 @@ const parsePriceSafely = (val: FormDataEntryValue | null) => {
 };
 
 export async function addComponent(formData: FormData) {
+  await assertAdmin();
   const categoryId = formData.get('categoryId') as string;
   const brand = formData.get('brand') as string;
   const name = formData.get('name') as string;
@@ -71,6 +83,7 @@ export async function addComponent(formData: FormData) {
 }
 
 export async function updateComponent(formData: FormData) {
+  await assertAdmin();
   const id = formData.get('id') as string;
   const categoryId = formData.get('categoryId') as string;
   const brand = formData.get('brand') as string;
@@ -109,6 +122,7 @@ export async function updateComponent(formData: FormData) {
 }
 
 export async function deleteComponent(formData: FormData) {
+  await assertAdmin();
   const id = formData.get('id') as string;
   await prisma.component.delete({ where: { id } });
   revalidatePath('/admin');
@@ -116,6 +130,7 @@ export async function deleteComponent(formData: FormData) {
 }
 
 export async function addNews(formData: FormData) {
+  await assertAdmin();
   const title = formData.get('title') as string;
   const summary = formData.get('summary') as string;
   const content = formData.get('content') as string;
@@ -131,6 +146,7 @@ export async function addNews(formData: FormData) {
 }
 
 export async function updateNews(formData: FormData) {
+  await assertAdmin();
   const id = formData.get('id') as string;
   const title = formData.get('title') as string;
   const summary = formData.get('summary') as string;
@@ -148,6 +164,7 @@ export async function updateNews(formData: FormData) {
 }
 
 export async function deleteNews(formData: FormData) {
+  await assertAdmin();
   const id = formData.get('id') as string;
   await prisma.news.delete({ where: { id } });
   revalidatePath('/admin');
@@ -155,6 +172,7 @@ export async function deleteNews(formData: FormData) {
 }
 
 export async function updateSettings(formData: FormData) {
+  await assertAdmin();
   try {
     const amazon = formData.get('amazon_affiliate')?.toString() || '';
     const cazasouq = formData.get('cazasouq_affiliate')?.toString() || '';

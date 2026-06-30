@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from "../../../../lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getToken } from 'next-auth/jwt';
+import { NextRequest } from 'next/server';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // حماية: أدمن فقط
+  const token = await getToken({ req });
+  if (!token || token.role !== 'ADMIN') {
+    return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
+  }
   try {
     const data = await req.json();
     let updatedCount = 0;

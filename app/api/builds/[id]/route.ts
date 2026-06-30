@@ -3,7 +3,7 @@ import { getToken } from 'next-auth/jwt';
 import { prisma } from '../../../../lib/prisma';
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || "fallback_secret_key_for_development" });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
   if (!token || !token.id) {
     return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });

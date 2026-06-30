@@ -1,39 +1,24 @@
 // lib/prisma.ts
-
 import { PrismaClient } from '@prisma/client';
-
-import { Pool } from 'pg';
-
 import { PrismaPg } from '@prisma/adapter-pg';
 
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
+// Prisma 7 (engine type "client") يتطلب adapter.
+// نمرّر connectionString مباشرة للـ adapter — وهو يدير تجميع الاتصالات داخلياً،
+// فلا حاجة لإنشاء Pool يدوي منفصل (الذي كان يفتح قنوات زائدة ويسبب P1017).
+function createPrismaClient() {
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL as string,
+  });
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  });
+}
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-
-
-// دالة لإنشاء الاتصال مع الـ Adapter
-
-const createPrismaClient = () => {
-
-  const connectionString = process.env.DATABASE_URL as string;
-
-  const pool = new Pool({ connectionString });
-
-  const adapter = new PrismaPg(pool);
-
-  return new PrismaClient({ adapter });
-
-};
-
-
-
-// استخدام اتصال موجود في الذاكرة، أو إنشاء واحد جديد
-
+// عميل واحد فقط يُعاد استخدامه عبر كل الطلبات، مثبّت في كل البيئات
+// (وليس في التطوير فقط) لمنع استنزاف اتصالات Neon في الإنتاج (serverless).
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-
-
-// حفظ الاتصال في الذاكرة لبيئة التطوير لمنع تكرار الاتصالات
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+globalForPrisma.prisma = prisma;
