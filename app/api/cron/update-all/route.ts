@@ -1,29 +1,58 @@
 import { prisma } from "../../../../lib/prisma";
 import { NextResponse } from "next/server";
 import * as cheerio from 'cheerio';
+import { getToken } from 'next-auth/jwt';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
-// دالة لحماية الاتصال من التعليق (Timeout بعد 10 ثوانٍ)
-async function fetchWithTimeout(url: string, options: any = {}, timeout = 10000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw error;
+// دالة انتظار بسيطة
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// دالة لحماية الاتصال من التعليق (رُفع الوقت إلى 25 ثانية لأن render=true أبطأ)
+// مع إعادة محاولة تلقائية عند الخطأ 429 (طلبات كثيرة متزامنة)
+async function fetchWithTimeout(url: string, options: any = {}, timeout = 25000) {
+  const maxRetries = 3;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(id);
+      // عند 429: انتظر تصاعدياً ثم أعد المحاولة
+      if (response.status === 429 && attempt < maxRetries) {
+        await sleep(2000 * (attempt + 1)); // 2s ثم 4s ثم 6s
+        continue;
+      }
+      return response;
+    } catch (error) {
+      clearTimeout(id);
+      if (attempt < maxRetries) {
+        await sleep(1500 * (attempt + 1));
+        continue;
+      }
+      throw error;
+    }
   }
+  // لن نصل هنا عملياً، لكن للأمان
+  throw new Error('فشلت كل محاولات الاتصال');
 }
 
 export async function GET(req: Request) {
-  // حماية المسار: يجب أن يحمل الطلب سر الكرون في الـ Authorization header
+  // حماية المسار: يُسمح بالتشغيل في حالتين فقط:
+  // 1) طلب Vercel Cron التلقائي (يحمل Bearer CRON_SECRET في الـ header)
+  // 2) أدمن مسجّل دخول يضغط الزر يدوياً من لوحة التحكم
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = req.headers.get('authorization') || '';
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const isCronRequest = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+  let isAdmin = false;
+  if (!isCronRequest) {
+    const token = await getToken({ req: req as any });
+    isAdmin = !!token && token.role === 'ADMIN';
+  }
+
+  if (!isCronRequest && !isAdmin) {
     return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
   }
 
@@ -35,9 +64,9 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "التحديث التلقائي معطل حالياً من لوحة التحكم." }, { status: 200 });
     }
 
-    const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
-    if (!SCRAPER_API_KEY) {
-      return NextResponse.json({ error: "SCRAPER_API_KEY غير مضبوط في متغيرات البيئة." }, { status: 500 });
+    const SCRAPE_DO_TOKEN = process.env.SCRAPE_DO_TOKEN;
+    if (!SCRAPE_DO_TOKEN) {
+      return NextResponse.json({ error: "SCRAPE_DO_TOKEN غير مضبوط في متغيرات البيئة." }, { status: 500 });
     }
     
     const searchConditions = { 
@@ -55,18 +84,19 @@ export async function GET(req: Request) {
     const components = await prisma.component.findMany({
       where: searchConditions,
       orderBy: { updatedAt: 'asc' }, 
-      take: 10
+      take: 12
     });
 
     let updatedCount = 0;
     let updatedItems: { name: string; storeLinks: string[] }[] = []; 
     let allErrors: string[] = [];
 
-    const chunkSize = 5;
-    for (let i = 0; i < components.length; i += chunkSize) {
-      const chunk = components.slice(i, i + chunkSize);
-
-      await Promise.all(chunk.map(async (comp) => {
+    // معالجة بالتوازي المحدود: 3 قطع في كل دفعة (بدل 15 طلب متزامن سابقاً)
+    // هذا يوازن بين السرعة وتفادي 429، مع اعتماد retry داخل fetchWithTimeout كشبكة أمان
+    const BATCH = 3;
+    for (let b = 0; b < components.length; b += BATCH) {
+      const batch = components.slice(b, b + BATCH);
+      await Promise.all(batch.map(async (comp) => {
         let finalAmazonPrice = comp.amazonPrice || Infinity;
         let finalCazasouqPrice = comp.cazasouqPrice || Infinity;
         let finalMicrolessPrice = comp.microlessPrice || Infinity;
@@ -83,7 +113,9 @@ export async function GET(req: Request) {
         if (hasValidAmz) {
           try {
             const targetUrl = encodeURIComponent(comp.amazonUrl!);
-            const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
+            // القديم (ScraperAPI):
+            // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
+            const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa&render=true`;
             const res = await fetchWithTimeout(url, { cache: 'no-store' });
             
             if (res.ok) {
@@ -121,8 +153,9 @@ export async function GET(req: Request) {
         if (hasValidCaza) {
           try {
             const targetUrl = encodeURIComponent(comp.cazasouqUrl!);
-            // تم إضافة country_code=sa
-            const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&country_code=sa`;
+            // القديم (ScraperAPI):
+            // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&country_code=sa`;
+            const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa`;
             const res = await fetchWithTimeout(url, { cache: 'no-store' });
             
             if (res.ok) {
@@ -206,7 +239,9 @@ export async function GET(req: Request) {
         if (hasValidMicro) {
           try {
             const targetUrl = encodeURIComponent(comp.microlessUrl!);
-            const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
+            // القديم (ScraperAPI):
+            // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
+            const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa&render=true`;
             const res = await fetchWithTimeout(url, { cache: 'no-store' });
             
             if (res.ok) {
@@ -316,6 +351,9 @@ export async function GET(req: Request) {
         });
 
       }));
+
+      // فاصل بسيط بين كل دفعة والتي تليها لتخفيف الضغط على Scrape.do
+      await sleep(600);
     }
     
     const updatedNames = updatedItems.map(item => item.name);

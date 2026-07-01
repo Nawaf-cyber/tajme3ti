@@ -28,6 +28,14 @@ export default function Footer() {
               >
                 <span>💡</span> للاقتراحات
               </button>
+
+              <Link href="/contact" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              اتصل بنا
+              </Link>
+
+              <Link href="/privacy" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                سياسة الخصوصية
+              </Link>
               
               <div className="w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
 

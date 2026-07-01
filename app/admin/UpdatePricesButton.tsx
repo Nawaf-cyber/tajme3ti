@@ -50,8 +50,10 @@ export default function UpdatePricesButton() {
             allCollectedErrors = [...allCollectedErrors, ...data.errors];
           }
 
-          // شروط الإيقاف الحاسمة
-          if (data.updatedNames.length < 10 || (targetTotal > 0 && totalUpdated >= targetTotal)) {
+          // شروط الإيقاف:
+          // 1) وصلنا للإجمالي (كل القطع تحدّثت)
+          // 2) أو الدفعة رجعت فاضية (ما فيه قطع جديدة تُحدّث)
+          if (data.updatedNames.length === 0 || (targetTotal > 0 && totalUpdated >= targetTotal)) {
             hasMore = false;
           }
         } else {

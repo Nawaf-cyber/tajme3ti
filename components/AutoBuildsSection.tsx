@@ -24,6 +24,35 @@ export default async function AutoBuildsSection() {
 
   const getRandom = (arr: any[]) => arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : null;
 
+  // مستويات الأداء (performanceTier من 1 إلى 5) المسموح بها لكل فئة.
+  // هذا هو الأساس الجديد: نعتمد على تصنيف الأداء الحقيقي، وليس ترتيب السعر.
+  const TIER_LEVELS: Record<'economy' | 'mid' | 'high', number[]> = {
+    economy: [1, 2],     // اقتصادي: مستوى 1 و 2
+    mid: [3],            // متوسط: مستوى 3 فقط (الأساسي)
+    high: [4, 5],        // عالي: مستوى 4 و 5
+  };
+
+  // مستويات احتياطية تُستخدم فقط إذا لم تتوفر قطعة بالمستوى الأساسي،
+  // لتوسيع البحث للمستوى المجاور بدل الرجوع لكل القطع عشوائياً.
+  const TIER_FALLBACK: Record<'economy' | 'mid' | 'high', number[]> = {
+    economy: [1, 2, 3],
+    mid: [2, 3, 4],
+    high: [3, 4, 5],
+  };
+
+  // اختيار القطع حسب مستوى الأداء، مع نظام احتياطي متدرّج
+  const pickByTier = (arr: any[], tier: 'economy' | 'mid' | 'high') => {
+    // 1) جرّب المستويات الأساسية أولاً
+    let pool = arr.filter(c => c.performanceTier != null && TIER_LEVELS[tier].includes(c.performanceTier));
+    // 2) إن لم تتوفر، وسّع للمستويات المجاورة
+    if (pool.length === 0) {
+      pool = arr.filter(c => c.performanceTier != null && TIER_FALLBACK[tier].includes(c.performanceTier));
+    }
+    // 3) كحل أخير فقط (لو القطع كلها بدون تصنيف)، استخدم كل القطع
+    if (pool.length === 0) pool = arr;
+    return pool;
+  };
+
   const createTierBuild = (tier: 'economy' | 'mid' | 'high') => {
     // 1. تصفية المعالجات التي لها لوحة أم متوافقة فقط (لمنع خطأ الصفر)
     const cpusWithMobos = cpus.filter(cpu => {
@@ -33,28 +62,11 @@ export default async function AutoBuildsSection() {
 
     if (cpusWithMobos.length === 0 || gpus.length === 0) return null;
 
-    // 2. تقسيم صارم وآمن حتى لقواعد البيانات الصغيرة
-    const getTierSlice = (arr: any[], t: 'economy' | 'mid' | 'high') => {
-      const len = arr.length;
-      if (len <= 2) {
-        if (t === 'economy') return [arr[0]];
-        if (t === 'high') return [arr[len - 1]];
-        return arr;
-      }
-      
-      if (t === 'economy') return arr.slice(0, Math.max(1, Math.floor(len * 0.4))); // أرخص 40%
-      if (t === 'high') return arr.slice(Math.floor(len * 0.6), len); // أغلى 40%
-      
-      // الفئة المتوسطة: نستبعد الأرخص جداً والأغلى جداً
-      const start = Math.floor(len * 0.25);
-      const end = Math.ceil(len * 0.75);
-      return arr.slice(start, Math.max(start + 1, end)); 
-    };
-
-    let validGpus = getTierSlice(gpus, tier);
+    // 2. اختيار الكرت والمعالج حسب مستوى الأداء الحقيقي (وليس السعر)
+    let validGpus = pickByTier(gpus, tier);
     let gpu = getRandom(validGpus) || validGpus[0];
-    
-    let validCpus = getTierSlice(cpusWithMobos, tier);
+
+    let validCpus = pickByTier(cpusWithMobos, tier);
     let cpu = getRandom(validCpus) || validCpus[0];
 
     if(!cpu || !gpu) return null;
@@ -78,21 +90,41 @@ export default async function AutoBuildsSection() {
     if (filteredMobos.length === 0) filteredMobos = compMobos;
     let mobo = getRandom(filteredMobos) || filteredMobos[0];
 
-    // 4. الرام
+    // 4. الرام — سقف صارم للسعة حسب الفئة + احتياطي ذكي لا يتجاوز السقف
     let ram = null;
     if (mobo) {
       const moboSpecs = parseSpecs(mobo.specs);
       const compRams = rams.filter(r => String(parseSpecs(r.specs).type) === String(moboSpecs.ramType));
-      
+
       if (compRams.length > 0) {
+        // سقف السعة لكل فئة (بالجيجابايت) — لا يُتجاوز أبداً
+        const capCap = tier === 'economy' ? 16 : tier === 'mid' ? 32 : 64;
+        const capMin = tier === 'high' ? 32 : tier === 'mid' ? 16 : 0;
+
+        const getCap = (r: any) => parseFloat(parseSpecs(r.specs).capacity || "16");
+
+        // 1) محاولة أساسية: ضمن نطاق الفئة + قيد سعري منطقي
         let filteredRams = compRams.filter(r => {
-          const cap = parseFloat(parseSpecs(r.specs).capacity || "16");
+          const cap = getCap(r);
           if (tier === 'economy') return cap <= 16 && r.price <= (gpuPrice * 0.6);
           if (tier === 'mid') return cap >= 16 && cap <= 32 && r.price <= gpuPrice;
-          if (tier === 'high') return cap >= 32;
-          return true;
+          return cap >= 32 && cap <= 64; // high
         });
+
+        // 2) احتياطي: نخفّف القيد السعري فقط، لكن نُبقي سقف السعة صارماً
+        if (filteredRams.length === 0) {
+          filteredRams = compRams.filter(r => {
+            const cap = getCap(r);
+            return cap >= capMin && cap <= capCap;
+          });
+        }
+
+        // 3) حل أخير: أقرب رام لا تتجاوز السقف (نتجنّب 48GB في المتوسط نهائياً)
+        if (filteredRams.length === 0) {
+          filteredRams = compRams.filter(r => getCap(r) <= capCap);
+        }
         if (filteredRams.length === 0) filteredRams = compRams;
+
         ram = getRandom(filteredRams) || filteredRams[0];
       }
     }

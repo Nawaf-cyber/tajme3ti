@@ -6,7 +6,42 @@ import { getToken } from 'next-auth/jwt';
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
+// دالة انتظار بسيطة
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// جلب مع مهلة زمنية وإعادة محاولة عند 429 (طلبات كثيرة)
+async function fetchSafe(url: string, options: any = {}, timeout = 25000) {
+  const maxRetries = 3;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(id);
+      if (response.status === 429 && attempt < maxRetries) {
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+      return response;
+    } catch (error) {
+      clearTimeout(id);
+      if (attempt < maxRetries) {
+        await sleep(1500 * (attempt + 1));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('فشلت كل محاولات الاتصال');
+}
+
 export async function POST(req: Request) {
+  // حماية: أدمن فقط
+  const token = await getToken({ req: req as any });
+  if (!token || token.role !== 'ADMIN') {
+    return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
+  }
+
   try {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "معرف القطعة مطلوب" }, { status: 400 });
@@ -14,9 +49,9 @@ export async function POST(req: Request) {
     const comp = await prisma.component.findUnique({ where: { id } });
     if (!comp) return NextResponse.json({ error: "القطعة غير موجودة" }, { status: 404 });
 
-    const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
-    if (!SCRAPER_API_KEY) return NextResponse.json({ error: "SCRAPER_API_KEY غير مضبوط" }, { status: 500 });
-    
+    const SCRAPE_DO_TOKEN = process.env.SCRAPE_DO_TOKEN;
+    if (!SCRAPE_DO_TOKEN) return NextResponse.json({ error: "SCRAPE_DO_TOKEN غير مضبوط في متغيرات البيئة" }, { status: 500 });
+
     let finalAmazonPrice = comp.amazonPrice || Infinity;
     let finalCazasouqPrice = comp.cazasouqPrice || Infinity;
     let finalMicrolessPrice = comp.microlessPrice || Infinity;
@@ -31,8 +66,10 @@ export async function POST(req: Request) {
     if (comp.amazonUrl) {
       try {
         const targetUrl = encodeURIComponent(comp.amazonUrl);
-        const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
-        const res = await fetch(url, { cache: 'no-store' });
+        // القديم (ScraperAPI):
+        // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
+        const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa&render=true`;
+        const res = await fetchSafe(url, { cache: 'no-store' });
         
         if (res.ok) {
           const html = await res.text();
@@ -68,9 +105,10 @@ export async function POST(req: Request) {
     if (comp.cazasouqUrl) {
       try {
         const targetUrl = encodeURIComponent(comp.cazasouqUrl);
-        // تم إضافة country_code=sa لإجبار الموقع على الفتح بالسعودية
-        const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&country_code=sa`;
-        const res = await fetch(url, { cache: 'no-store' });
+        // القديم (ScraperAPI):
+        // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&country_code=sa`;
+        const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa`;
+        const res = await fetchSafe(url, { cache: 'no-store' });
         
         if (res.ok) {
           const html = await res.text();
@@ -154,8 +192,10 @@ export async function POST(req: Request) {
     if (comp.microlessUrl) {
       try {
         const targetUrl = encodeURIComponent(comp.microlessUrl);
-        const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
-        const res = await fetch(url, { cache: 'no-store' });
+        // القديم (ScraperAPI):
+        // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
+        const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa&render=true`;
+        const res = await fetchSafe(url, { cache: 'no-store' });
         
         if (res.ok) {
           const html = await res.text();
