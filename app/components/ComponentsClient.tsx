@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
+import { isComponentAvailable } from '../../lib/availability';
 
 // إضافة colorClass للتحكم بلون الشعار حسب مكانه (أزرق للفلتر، أخضر للأسعار)
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -154,8 +155,10 @@ export default function ComponentsClient({ components, categories }: { component
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filtered.map((comp) => (
-              <div key={comp.id} className="group relative bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800/80 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 transition-all duration-300 flex flex-col">
+            {filtered.map((comp) => {
+              const available = isComponentAvailable(comp);
+              return (
+              <div key={comp.id} className={`group relative bg-white dark:bg-[#0F172A] border rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 transition-all duration-300 flex flex-col ${available ? 'border-slate-200 dark:border-slate-800/80' : 'border-amber-300 dark:border-amber-600/50'}`}>
                 
                 {/* قسم الصورة العلوية الموحد */}
                 <div className="relative w-full h-56 bg-white p-6 flex items-center justify-center border-b border-slate-100 dark:border-slate-800">
@@ -167,6 +170,12 @@ export default function ComponentsClient({ components, categories }: { component
                   <span className="absolute top-4 right-4 bg-slate-900/80 backdrop-blur-sm border border-slate-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider shadow-sm">
                     {comp.category?.name}
                   </span>
+                  {!available && (
+                    <span className="absolute top-4 left-4 bg-amber-500/90 backdrop-blur-sm border border-amber-400 text-white text-[10px] font-black px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                      غير متوفر
+                    </span>
+                  )}
                 </div>
 
                 {/* قسم تفاصيل القطعة */}
@@ -184,9 +193,16 @@ export default function ComponentsClient({ components, categories }: { component
                   <div className="flex items-end justify-between mt-2 pt-4 border-t border-slate-100 dark:border-slate-800">
                     <div>
                       <p className="text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">السعر</p>
-                      <span className="font-black text-xl text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                        {comp.price} <RiyalIcon size="h-5 w-5" colorClass="bg-emerald-600 dark:bg-emerald-400" />
-                      </span>
+                      {available ? (
+                        <span className="font-black text-xl text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                          {comp.price} <RiyalIcon size="h-5 w-5" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                        </span>
+                      ) : (
+                        <span className="font-black text-xl text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                          {comp.price} <RiyalIcon size="h-5 w-5" colorClass="bg-amber-600 dark:bg-amber-400" />
+                          <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 mr-1">(غير متوفر حالياً)</span>
+                        </span>
+                      )}
                     </div>
                     
                     {/* زر التفاصيل الجديد (Premium) */}
@@ -201,7 +217,8 @@ export default function ComponentsClient({ components, categories }: { component
                 </div>
 
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
