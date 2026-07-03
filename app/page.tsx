@@ -46,12 +46,48 @@ export default async function HomePage() {
       <div className="absolute inset-0 pointer-events-none z-0" aria-hidden="true">
         {/* الشبكة الخفيفة (الوضع الفاتح) */}
         <div className="absolute inset-0 dark:hidden bg-[linear-gradient(to_right,#8080800A_1px,transparent_1px),linear-gradient(to_bottom,#8080800A_1px,transparent_1px)] bg-[size:44px_44px]"></div>
-        {/* شبكة المسارات (الوضع الداكن) */}
-        <div className="absolute inset-0 hidden dark:block bg-[linear-gradient(to_right,#22d3ee0A_1px,transparent_1px),linear-gradient(to_bottom,#22d3ee0A_1px,transparent_1px)] bg-[size:44px_44px]"></div>
-        {/* توهّجات سيان متوزّعة عمودياً */}
+
+        {/* مسارات اللوحة الأم — نمط متكرّر يغطّي كامل الصفحة (الوضع الداكن) */}
+        <svg className="absolute inset-0 w-full h-full hidden dark:block opacity-60" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs>
+            <pattern id="pcbPattern" width="340" height="280" patternUnits="userSpaceOnUse">
+              {/* شبكة دقيقة */}
+              <path d="M0 0 H340 M0 0 V280" stroke="#22d3ee" strokeWidth="0.5" strokeOpacity="0.06" />
+              {/* المسارات */}
+              <g stroke="#1e3a4a" strokeWidth="1.5" fill="none">
+                <path d="M0 60 H90 L120 90 H200 M200 90 L230 60 H340" />
+                <path d="M0 210 H70 L100 180 H180" />
+                <path d="M340 230 H260 L230 200 H150" />
+                <path d="M45 0 V40 L75 70 V130" />
+                <path d="M300 280 V220 L270 190 V120" />
+                <path d="M180 90 V160 L210 190 H280" />
+              </g>
+              {/* نقاط التوصيل */}
+              <g fill="#164e63">
+                <circle cx="90" cy="60" r="3.5" /><circle cx="200" cy="90" r="3.5" />
+                <circle cx="70" cy="210" r="3.5" /><circle cx="260" cy="230" r="3.5" />
+                <circle cx="75" cy="70" r="3.5" /><circle cx="180" cy="160" r="3.5" />
+                <circle cx="280" cy="190" r="3.5" />
+              </g>
+              {/* نبضات الطاقة المتحركة — تسري في كل خلية عبر الصفحة */}
+              <path className="trace-pulse" d="M0 60 H90 L120 90 H200 M200 90 L230 60 H340" stroke="url(#traceFlow)" strokeWidth="2" fill="none" />
+              <path className="trace-pulse-3" d="M340 230 H260 L230 200 H150" stroke="url(#traceFlow)" strokeWidth="2" fill="none" />
+            </pattern>
+            <linearGradient id="traceFlow" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#0891b2" stopOpacity="0" />
+              <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#0891b2" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#pcbPattern)" />
+        </svg>
+
+        {/* توهّجات سيان متوزّعة عمودياً عبر الصفحة */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-72 bg-cyan-500/8 dark:bg-cyan-500/15 rounded-full blur-[120px] animate-pulse-slow"></div>
-        <div className="absolute top-[900px] -left-20 w-72 h-72 bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[120px]"></div>
-        <div className="absolute top-[1600px] -right-20 w-72 h-72 bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-[120px]"></div>
+        <div className="absolute top-[700px] -left-20 w-72 h-72 bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[120px]"></div>
+        <div className="absolute top-[1300px] -right-20 w-80 h-80 bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-[130px]"></div>
+        <div className="absolute top-[2000px] left-1/3 w-72 h-72 bg-blue-500/5 dark:bg-blue-500/8 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-0 right-1/4 w-80 h-72 bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-[130px]"></div>
       </div>
 
       {/* حاوية المحتوى فوق الخلفية */}
@@ -60,37 +96,6 @@ export default async function HomePage() {
       
       {/* 1. القسم العلوي (Gaming/Tech Hero — مسارات اللوحة) */}
       <section className="relative overflow-hidden py-24 md:py-36 flex flex-col items-center text-center px-4">
-        
-        {/* خلفية مسارات اللوحة الأم (PCB traces) — تظهر في الوضع الداكن */}
-        <svg className="absolute inset-0 w-full h-full opacity-0 dark:opacity-50 pointer-events-none" viewBox="0 0 680 560" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
-          <defs>
-            <linearGradient id="traceFlow" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#0891b2" stopOpacity="0" />
-              <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#0891b2" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <g stroke="#1e3a4a" strokeWidth="1.5">
-            <path d="M0 120 H180 L210 150 H340" />
-            <path d="M680 90 H520 L490 120 H360" />
-            <path d="M0 440 H150 L190 400 H320" />
-            <path d="M680 470 H540 L500 430 H360" />
-            <path d="M90 0 V80 L120 110 V200" />
-            <path d="M600 560 V480 L570 450 V360" />
-            <path d="M40 260 H140 L170 290 H280" />
-            <path d="M640 300 H560 L530 270 H400" />
-          </g>
-          <g fill="#164e63">
-            <circle cx="180" cy="120" r="4" /><circle cx="340" cy="150" r="4" />
-            <circle cx="520" cy="90" r="4" /><circle cx="360" cy="120" r="4" />
-            <circle cx="150" cy="440" r="4" /><circle cx="320" cy="400" r="4" />
-            <circle cx="540" cy="470" r="4" /><circle cx="120" cy="110" r="4" />
-            <circle cx="140" cy="260" r="4" /><circle cx="560" cy="300" r="4" />
-          </g>
-          <path className="trace-pulse" d="M0 120 H180 L210 150 H340" stroke="url(#traceFlow)" strokeWidth="2" />
-          <path className="trace-pulse-2" d="M680 470 H540 L500 430 H360" stroke="url(#traceFlow)" strokeWidth="2" />
-          <path className="trace-pulse-3" d="M40 260 H140 L170 290 H280" stroke="url(#traceFlow)" strokeWidth="2" />
-        </svg>
 
         <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center animate-fade-up">
           
@@ -104,7 +109,7 @@ export default async function HomePage() {
           
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 dark:bg-cyan-950/30 backdrop-blur-sm border border-slate-200 dark:border-cyan-500/30 text-slate-600 dark:text-cyan-300 text-xs font-bold tracking-widest uppercase mb-7 shadow-sm dark:shadow-cyan-500/10">
             <span className="w-2 h-2 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse shadow-[0_0_8px_2px] shadow-cyan-500/50"></span>
-            منصة تجميع الحواسيب الأفضل
+            منصة تجميع الحواسيب الأولى عربياً
           </div>
           
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 dark:text-white tracking-tighter mb-6 leading-[1.05]">
