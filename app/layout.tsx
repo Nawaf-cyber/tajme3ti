@@ -4,6 +4,7 @@ import { Providers } from '../components/Providers';
 import Navbar from '../components/Navbar';
 import { Toaster } from 'react-hot-toast';
 import Footer from '../components/Footer';
+import PCBBackground from '../components/PCBBackground';
 import Script from 'next/script';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -21,7 +22,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
 
         <Providers>
-          <div className="flex flex-col min-h-screen overflow-x-hidden w-full">
+          <PCBBackground />
+          <div className="relative z-10 flex flex-col min-h-screen overflow-x-hidden w-full">
             <Navbar />
             <main className="flex-grow w-full">
               {children}

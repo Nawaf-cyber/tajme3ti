@@ -14,15 +14,18 @@ export default function Navbar() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <nav className="w-full bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-lg border-b border-slate-200/60 dark:border-slate-800/60 shadow-sm sticky top-0 z-50 transition-colors duration-300">
+    <nav className="relative w-full bg-white/70 dark:bg-[#0B1120]/40 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
+      {/* خط سيان سفلي يربط الشريط بهوية الموقع */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
           {/* الشعار */}
           <Link href="/" className="flex items-center gap-2.5 font-black text-2xl text-slate-900 dark:text-white group">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white transform group-hover:rotate-12 transition-transform shadow-md shadow-blue-600/20">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+            <div className="relative w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-white transform group-hover:rotate-12 transition-transform shadow-md shadow-cyan-500/30">
+              <div className="absolute inset-0 bg-cyan-400/40 blur-lg rounded-lg -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                <path d="M13 2L4.5 13.5H11L10 22L18.5 10.5H12L13 2Z" />
               </svg>
             </div>
             <span className="tracking-tight">تجميعتي</span>
@@ -45,13 +48,13 @@ export default function Navbar() {
           {/* عناصر الشاشة الكبيرة */}
           <div className="hidden md:flex items-center gap-2">
             
-            <Link href="/news" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-2 rounded-xl transition-all flex items-center gap-1.5">
+            <Link href="/news" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 px-3 py-2 rounded-xl transition-all flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15" /></svg>
               الأخبار
             </Link>
 
             {session?.user?.email === "admin@pcbuilder.com" && (
-              <Link href="/admin/suggestions" className="text-sm font-bold text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 px-3 py-2 rounded-xl transition-all flex items-center gap-1.5">
+              <Link href="/admin/suggestions" className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 px-3 py-2 rounded-xl transition-all flex items-center gap-1.5">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
                 إدارة الاقتراحات
               </Link>
@@ -82,13 +85,13 @@ export default function Navbar() {
                   </Link>
                 )}
 
-                <Link href="/my-builds" className="text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-4 py-2 rounded-xl transition-colors border border-blue-100 dark:border-blue-800/30 flex items-center gap-1.5">
+                <Link href="/my-builds" className="text-sm font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/40 px-4 py-2 rounded-xl transition-colors border border-cyan-100 dark:border-cyan-800/30 flex items-center gap-1.5">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                   تجميعاتي
                 </Link>
 
                 <div className="relative group ml-1">
-                  <button className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:ring-2 hover:ring-blue-500/50 transition-all">
+                  <button className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:ring-2 hover:ring-cyan-500/50 transition-all">
                     <span className="text-sm font-bold uppercase">{session.user?.email?.[0] || 'U'}</span>
                   </button>
                   {/* Tooltip للمستخدم وتسجيل الخروج */}
@@ -111,7 +114,7 @@ export default function Navbar() {
 
               </div>
             ) : (
-              <Link href="/login" className="ml-2 text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 px-5 py-2.5 rounded-xl transition-all shadow-sm active:scale-95">
+              <Link href="/login" className="ml-2 text-sm font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-5 py-2.5 rounded-xl transition-all shadow-md shadow-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/30 active:scale-95">
                 تسجيل الدخول
               </Link>
             )}
@@ -128,7 +131,7 @@ export default function Navbar() {
             </Link>
 
             {session?.user?.email === "admin@pcbuilder.com" && (
-              <Link href="/admin/suggestions" onClick={() => setIsMobileMenuOpen(false)} className="text-sm text-amber-600 dark:text-amber-500 font-bold flex items-center gap-3 px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-900/10 rounded-xl transition-colors">
+              <Link href="/admin/suggestions" onClick={() => setIsMobileMenuOpen(false)} className="text-sm text-cyan-600 dark:text-cyan-400 font-bold flex items-center gap-3 px-4 py-3 hover:bg-cyan-50 dark:hover:bg-cyan-900/10 rounded-xl transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
                 إدارة الاقتراحات
               </Link>
@@ -161,7 +164,7 @@ export default function Navbar() {
                   <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{session.user?.email}</p>
                 </div>
 
-                <Link href="/my-builds" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-4 py-3.5 rounded-xl border border-blue-100 dark:border-blue-800/30 flex items-center justify-center gap-2">
+                <Link href="/my-builds" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 px-4 py-3.5 rounded-xl border border-cyan-100 dark:border-cyan-800/30 flex items-center justify-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                   تجميعاتي المحفوظة
                 </Link>
@@ -181,7 +184,7 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="mt-4 text-center text-sm font-bold text-white bg-slate-900 dark:bg-blue-600 px-4 py-3.5 rounded-xl">
+              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="mt-4 text-center text-sm font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-3.5 rounded-xl shadow-md shadow-cyan-500/20">
                 تسجيل الدخول
               </Link>
             )}
