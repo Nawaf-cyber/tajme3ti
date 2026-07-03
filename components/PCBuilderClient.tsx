@@ -5,6 +5,7 @@ import { toPng } from 'html-to-image';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { isComponentAvailable } from '../lib/availability';
 
 type Component = {
   id: string;
@@ -240,6 +241,12 @@ const SearchableSelect = ({
               <span className="text-emerald-700 dark:text-emerald-400 font-black flex items-center gap-1 mx-1 bg-emerald-100/50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md text-xs border border-emerald-200 dark:border-emerald-800/30">
                 {selectedComponent.price} <RiyalIcon size="h-3 w-3" />
               </span>
+              {!isComponentAvailable(selectedComponent) && (
+                <span className="text-amber-700 dark:text-amber-400 font-black flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-md text-[11px] border border-amber-200 dark:border-amber-800/40">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  غير متوفر حالياً
+                </span>
+              )}
             </span>
           ) : (
             <span className="text-slate-500 dark:text-slate-400 font-medium">اختر {categoryName}...</span>
@@ -344,6 +351,12 @@ const SearchableSelect = ({
                       <span className="text-[11px] mt-1 text-rose-700 dark:text-rose-400 font-extrabold bg-rose-100 dark:bg-rose-900/40 px-2.5 py-1 rounded-md w-fit inline-flex items-center gap-1 border border-rose-200 dark:border-rose-800/50">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                         {comp.reason} (سيتم إلغاء المتعارض)
+                      </span>
+                    )}
+                    {!isComponentAvailable(comp) && (
+                      <span className="text-[11px] mt-1 text-amber-700 dark:text-amber-400 font-extrabold bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 rounded-md w-fit inline-flex items-center gap-1 border border-amber-200 dark:border-amber-800/50">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        غير متوفر حالياً
                       </span>
                     )}
                   </div>

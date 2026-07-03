@@ -40,65 +40,109 @@ export default async function HomePage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-900 dark:text-slate-100 transition-colors pb-20 font-sans selection:bg-blue-500/20">
-      
-      {/* 1. القسم العلوي (Centered Minimalist Hero) */}
-      <section className="relative overflow-hidden py-24 md:py-32 flex flex-col items-center text-center px-4 border-b border-slate-200/60 dark:border-slate-800/60">
-        
-        {/* خلفية الشبكة الهندسية والإضاءة */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800A_1px,transparent_1px),linear-gradient(to_bottom,#8080800A_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff0A_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0A_1px,transparent_1px)] bg-[size:32px_32px]"></div>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-64 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-[120px] pointer-events-none"></div>
+    <div className="relative min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-900 dark:text-slate-100 transition-colors pb-20 font-sans selection:bg-cyan-500/20 overflow-hidden">
 
-        <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center">
+      {/* ===== خلفية المسارات الممتدة عبر الصفحة كاملة ===== */}
+      <div className="absolute inset-0 pointer-events-none z-0" aria-hidden="true">
+        {/* الشبكة الخفيفة (الوضع الفاتح) */}
+        <div className="absolute inset-0 dark:hidden bg-[linear-gradient(to_right,#8080800A_1px,transparent_1px),linear-gradient(to_bottom,#8080800A_1px,transparent_1px)] bg-[size:44px_44px]"></div>
+        {/* شبكة المسارات (الوضع الداكن) */}
+        <div className="absolute inset-0 hidden dark:block bg-[linear-gradient(to_right,#22d3ee0A_1px,transparent_1px),linear-gradient(to_bottom,#22d3ee0A_1px,transparent_1px)] bg-[size:44px_44px]"></div>
+        {/* توهّجات سيان متوزّعة عمودياً */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-72 bg-cyan-500/8 dark:bg-cyan-500/15 rounded-full blur-[120px] animate-pulse-slow"></div>
+        <div className="absolute top-[900px] -left-20 w-72 h-72 bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[120px]"></div>
+        <div className="absolute top-[1600px] -right-20 w-72 h-72 bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-[120px]"></div>
+      </div>
+
+      {/* حاوية المحتوى فوق الخلفية */}
+      <div className="relative z-10">
+      
+      
+      {/* 1. القسم العلوي (Gaming/Tech Hero — مسارات اللوحة) */}
+      <section className="relative overflow-hidden py-24 md:py-36 flex flex-col items-center text-center px-4">
+        
+        {/* خلفية مسارات اللوحة الأم (PCB traces) — تظهر في الوضع الداكن */}
+        <svg className="absolute inset-0 w-full h-full opacity-0 dark:opacity-50 pointer-events-none" viewBox="0 0 680 560" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="traceFlow" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#0891b2" stopOpacity="0" />
+              <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#0891b2" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <g stroke="#1e3a4a" strokeWidth="1.5">
+            <path d="M0 120 H180 L210 150 H340" />
+            <path d="M680 90 H520 L490 120 H360" />
+            <path d="M0 440 H150 L190 400 H320" />
+            <path d="M680 470 H540 L500 430 H360" />
+            <path d="M90 0 V80 L120 110 V200" />
+            <path d="M600 560 V480 L570 450 V360" />
+            <path d="M40 260 H140 L170 290 H280" />
+            <path d="M640 300 H560 L530 270 H400" />
+          </g>
+          <g fill="#164e63">
+            <circle cx="180" cy="120" r="4" /><circle cx="340" cy="150" r="4" />
+            <circle cx="520" cy="90" r="4" /><circle cx="360" cy="120" r="4" />
+            <circle cx="150" cy="440" r="4" /><circle cx="320" cy="400" r="4" />
+            <circle cx="540" cy="470" r="4" /><circle cx="120" cy="110" r="4" />
+            <circle cx="140" cy="260" r="4" /><circle cx="560" cy="300" r="4" />
+          </g>
+          <path className="trace-pulse" d="M0 120 H180 L210 150 H340" stroke="url(#traceFlow)" strokeWidth="2" />
+          <path className="trace-pulse-2" d="M680 470 H540 L500 430 H360" stroke="url(#traceFlow)" strokeWidth="2" />
+          <path className="trace-pulse-3" d="M40 260 H140 L170 290 H280" stroke="url(#traceFlow)" strokeWidth="2" />
+        </svg>
+
+        <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center animate-fade-up">
           
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold tracking-widest uppercase mb-8 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-            منصة تجميع الحواسيب المتكاملة
+          {/* البرق — عنصر التوقيع */}
+          <div className="relative w-20 h-20 mb-7">
+            <div className="absolute inset-0 bg-cyan-400/30 blur-2xl rounded-full"></div>
+            <svg viewBox="0 0 24 24" fill="currentColor" className="relative w-full h-full text-cyan-500 dark:text-cyan-400 drop-shadow-[0_0_12px_rgba(34,211,238,0.5)]">
+              <path d="M13 2L4.5 13.5H11L10 22L18.5 10.5H12L13 2Z" />
+            </svg>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tight mb-6 leading-[1.15]">
-            صمم حاسوبك <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-blue-400 dark:to-cyan-400">بذكاء ودقة متناهية</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 dark:bg-cyan-950/30 backdrop-blur-sm border border-slate-200 dark:border-cyan-500/30 text-slate-600 dark:text-cyan-300 text-xs font-bold tracking-widest uppercase mb-7 shadow-sm dark:shadow-cyan-500/10">
+            <span className="w-2 h-2 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse shadow-[0_0_8px_2px] shadow-cyan-500/50"></span>
+            منصة تجميع الحواسيب الأفضل
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 dark:text-white tracking-tighter mb-6 leading-[1.05]">
+            جمّع بثقة. <br />
+            <span className="relative text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 dark:from-cyan-400 dark:via-blue-400 dark:to-cyan-300">
+             من أول مرة.
+              <span className="absolute -inset-x-4 -inset-y-2 bg-cyan-500/10 blur-2xl -z-10 dark:bg-cyan-400/20"></span>
+            </span>
           </h1>
           
           <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-2xl font-medium leading-relaxed">
-            تصفح مئات القطع، تحقق من توافق اللوحة الأم والمعالج برمجياً، وتابع أسعار السوق المحلية والعالمية من مكان واحد لاتخاذ القرار الأفضل.
+            نظام يفحص توافق كل قطعة برمجياً، ويقارن أسعار المتاجر. تبني بثقة، بدون أخطاء ولا ندم.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 mb-20 w-full sm:w-auto">
-            <Link href="/builder" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-2xl transition-all shadow-lg shadow-blue-600/20 text-base flex items-center justify-center gap-2 w-full sm:w-auto">
-              ابدأ التجميع الذكي
-              <svg className="w-5 h-5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+          <div className="flex flex-col sm:flex-row gap-4 mb-16 w-full sm:w-auto">
+            <Link href="/builder" className="group relative bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-10 rounded-2xl transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-0.5 text-base flex items-center justify-center gap-2 w-full sm:w-auto overflow-hidden">
+              <span className="relative z-10">ابدأ التجميع الذكي</span>
+              <svg className="w-5 h-5 transform rotate-180 relative z-10 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700"></span>
             </Link>
-            <Link href="/components" className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700 font-bold py-4 px-10 rounded-2xl transition-all text-base shadow-sm w-full sm:w-auto">
+            <Link href="/components" className="bg-white dark:bg-[#0F172A]/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 dark:hover:text-cyan-300 font-bold py-4 px-10 rounded-2xl transition-all duration-300 text-base shadow-sm hover:-translate-y-0.5 w-full sm:w-auto">
               استعراض المكونات
             </Link>
           </div>
 
-          {/* شريط المميزات الأفقي (بديل البطاقات) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 w-full max-w-3xl pt-8 border-t border-slate-200/60 dark:border-slate-800/60">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center mb-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-              </div>
-              <span className="font-extrabold text-slate-900 dark:text-white text-lg">فحص توافق 100%</span>
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">نظام ذكي يمنع تعارض القطع</span>
+          {/* شريط الإحصائيات المدمج */}
+          <div className="flex max-w-2xl w-full bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 rounded-2xl backdrop-blur-sm overflow-hidden shadow-sm">
+            <div className="flex-1 py-5 px-3 border-l border-slate-200 dark:border-slate-800/60">
+              <div className="font-black text-cyan-600 dark:text-cyan-400 text-2xl md:text-3xl tracking-tight" dir="ltr">100%</div>
+              <div className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">فحص توافق دقيق</div>
             </div>
-            
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center mb-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-              </div>
-              <span className="font-extrabold text-slate-900 dark:text-white text-lg">مزامنة حية</span>
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">تحديث فوري لأسعار المتاجر</span>
+            <div className="flex-1 py-5 px-3 border-l border-slate-200 dark:border-slate-800/60">
+              <div className="font-black text-slate-900 dark:text-white text-2xl md:text-3xl tracking-tight" dir="ltr">+{componentsCount}</div>
+              <div className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">قطعة جاهزة</div>
             </div>
-
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center mb-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
-              </div>
-              <span className="font-extrabold text-slate-900 dark:text-white text-lg" dir="ltr">+{componentsCount}</span>
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">قطعة مسجلة وجاهزة للبناء</span>
+            <div className="flex-1 py-5 px-3">
+              <div className="font-black text-emerald-600 dark:text-emerald-400 text-2xl md:text-3xl tracking-tight">حيّة</div>
+              <div className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">أسعار المتاجر</div>
             </div>
           </div>
 
@@ -108,10 +152,11 @@ export default async function HomePage() {
       {/* 2. قسم أحدث القطع */}
       <section className="max-w-7xl mx-auto px-4 py-20">
         <div className="flex justify-between items-center mb-10">
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
+            <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
             أحدث القطع المضافة
           </h2>
-          <Link href="/components" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+          <Link href="/components" className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors">
             عرض الكل &larr;
           </Link>
         </div>
@@ -123,7 +168,7 @@ export default async function HomePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {latestComponents.map((comp) => (
-              <Link href={`/components/${comp.id}`} key={comp.id} className="group bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden hover:border-blue-400/50 dark:hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+              <Link href={`/components/${comp.id}`} key={comp.id} className="group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300">
                 <div className="h-40 bg-slate-50 dark:bg-white p-6 flex items-center justify-center border-b border-slate-100 dark:border-slate-200 relative">
                   <img 
                     src={comp.imageUrl || `/images/${comp.categoryId}/boxed.png`} 
@@ -157,10 +202,11 @@ export default async function HomePage() {
       {/* 3. قسم التجميعات الجاهزة */}
       <section className="max-w-7xl mx-auto px-4 pb-20">
         <div className="flex justify-between items-center mb-10">
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
+            <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
             تجميعات مقترحة جاهزة
           </h2>
-          <Link href="/prebuilds" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+          <Link href="/prebuilds" className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors">
             عرض الكل &larr;
           </Link>
         </div>
@@ -172,7 +218,7 @@ export default async function HomePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {latestPrebuilds.map((build) => (
-              <div key={build.id} className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-3xl p-8 flex flex-col justify-between hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+              <div key={build.id} className="bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl p-8 flex flex-col justify-between hover:shadow-xl hover:shadow-cyan-500/10 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:-translate-y-1 transition-all duration-300">
                 <div>
                   <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3">{build.title}</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 line-clamp-3 leading-loose font-medium">{build.description}</p>
@@ -194,16 +240,17 @@ export default async function HomePage() {
       {/* 4. قسم الأخبار */}
       <section className="max-w-7xl mx-auto px-4 pb-20">
         <div className="flex justify-between items-center mb-10">
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
+            <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
             أحدث الأخبار التقنية
           </h2>
-          <Link href="/news" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+          <Link href="/news" className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors">
             الأرشيف &larr;
           </Link>
         </div>
 
         {latestNews.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-3xl text-slate-500 font-medium">
+          <div className="text-center py-12 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl text-slate-500 font-medium">
             لا توجد أخبار مضافة حالياً.
           </div>
         ) : (
@@ -212,15 +259,15 @@ export default async function HomePage() {
               <Link 
                 href={`/news/${newsItem.id}`} 
                 key={newsItem.id} 
-                className={`group bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex flex-col justify-between hover:border-blue-400/50 dark:hover:border-blue-500/50 hover:shadow-lg transition-all ${
+                className={`group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex flex-col justify-between hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300 ${
                   index === 0 ? 'lg:col-span-2 lg:row-span-2' : ''
                 }`}
               >
                 <div>
-                  <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-3 uppercase tracking-widest bg-slate-50 dark:bg-slate-800/50 w-fit px-2.5 py-1 rounded-lg">
+                  <div className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 mb-3 uppercase tracking-widest bg-cyan-50 dark:bg-cyan-500/10 w-fit px-2.5 py-1 rounded-lg border border-transparent dark:border-cyan-500/20">
                     {new Date(newsItem.createdAt).toLocaleDateString('ar-SA')}
                   </div>
-                  <h3 className={`${index === 0 ? 'text-2xl md:text-3xl' : 'text-base'} font-black text-slate-900 dark:text-white mb-3 line-clamp-2 leading-[1.4] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
+                  <h3 className={`${index === 0 ? 'text-2xl md:text-3xl' : 'text-base'} font-black text-slate-900 dark:text-white mb-3 line-clamp-2 leading-[1.4] group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors`}>
                     {newsItem.title}
                   </h3>
                   {index === 0 && (
@@ -235,6 +282,7 @@ export default async function HomePage() {
         )}
       </section>
 
+      </div>
     </div>
   );
 }

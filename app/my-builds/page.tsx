@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { isComponentAvailable } from '../../lib/availability';
 
 // دالة التسويق بالعمولة الذكية
 const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'cazasouq' | 'microless') => {
@@ -310,6 +311,9 @@ export default function MyBuildsPage() {
               const bottleneck = getBottleneckMessage(build.parts);
               const cpu = build.parts['CPU'];
               const gpu = build.parts['GPU'];
+              const unavailableCount = Object.values(build.parts).filter(
+                (c: any) => c && !isComponentAvailable(c)
+              ).length;
               
               return (
                 <div 
@@ -345,6 +349,15 @@ export default function MyBuildsPage() {
                     {bottleneck && (
                       <div className={`p-2 border rounded-lg ${bottleneck.bg} mb-4`}>
                         <span className={`font-bold text-xs ${bottleneck.color}`}>{bottleneck.title}</span>
+                      </div>
+                    )}
+
+                    {unavailableCount > 0 && (
+                      <div className="p-2 border rounded-lg bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/40 mb-4">
+                        <span className="font-bold text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                          {unavailableCount} من القطع غير متوفرة حالياً
+                        </span>
                       </div>
                     )}
                   </div>
@@ -439,6 +452,12 @@ export default function MyBuildsPage() {
                               <>
                                 <span className={getBrandColor(comp.brand, comp.name, category) + " ml-1"}>{comp.brand}</span>
                                 <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
+                                {!isComponentAvailable(comp) && (
+                                  <span className="mt-1 text-amber-700 dark:text-amber-400 font-black inline-flex items-center gap-1 text-[11px] bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/40 w-fit">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    غير متوفر حالياً
+                                  </span>
+                                )}
                               </>
                             ) : (
                               <span className="text-rose-500 font-bold text-xs">لم يتم الاختيار</span>

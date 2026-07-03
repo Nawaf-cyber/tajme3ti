@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import SavePrebuildButton from './SavePrebuildButton';
 import Link from 'next/link';
+import { isComponentAvailable } from '../../lib/availability';
 
 const RiyalIcon = ({ size = 'h-5 w-5', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
@@ -26,7 +27,16 @@ export default async function PrebuildsPage() {
   const categories = await prisma.category.findMany();
   
   const allComponents = await prisma.component.findMany({
-    select: { id: true, name: true }
+    select: {
+      id: true,
+      name: true,
+      amazonPrice: true,
+      amazonInStock: true,
+      cazasouqPrice: true,
+      cazasouqInStock: true,
+      microlessPrice: true,
+      microlessInStock: true,
+    }
   });
 
   const economic = prebuilds.filter(p => p.budgetType === 'economic');
@@ -74,6 +84,7 @@ export default async function PrebuildsPage() {
                 categoryName: cat.name,
                 componentId: compId,
                 componentName: compDetails?.name || 'غير متوفر',
+                isAvailable: compDetails ? isComponentAvailable(compDetails) : false,
                 shortCode: cat.name.substring(0, 2).toUpperCase()
               };
             }).filter(Boolean);
@@ -102,7 +113,7 @@ export default async function PrebuildsPage() {
                     {buildPartsDisplay.map((part: any, idx: number) => (
                       <div 
                         key={idx} 
-                        className="bg-slate-50 dark:bg-[#151E32]/50 border border-slate-100 dark:border-slate-800/60 p-3 rounded-2xl flex items-center gap-3.5 hover:bg-white dark:hover:bg-[#1A233A] hover:shadow-md transition-all duration-300"
+                        className={`bg-slate-50 dark:bg-[#151E32]/50 border p-3 rounded-2xl flex items-center gap-3.5 hover:bg-white dark:hover:bg-[#1A233A] hover:shadow-md transition-all duration-300 ${part.isAvailable ? 'border-slate-100 dark:border-slate-800/60' : 'border-amber-300 dark:border-amber-600/50'}`}
                       >
                         <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500 dark:text-slate-400 border border-slate-300/50 dark:border-slate-700/50">
                           {part.shortCode}
@@ -114,6 +125,12 @@ export default async function PrebuildsPage() {
                           <span className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate w-full pr-2">
                             {part.componentName}
                           </span>
+                          {!part.isAvailable && (
+                            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-black inline-flex items-center gap-1 mt-0.5">
+                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                              غير متوفر حالياً
+                            </span>
+                          )}
                         </div>
                         {part.componentId && (
                           <Link 
