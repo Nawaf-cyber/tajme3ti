@@ -26,7 +26,7 @@ export default function Footer() {
                 تجميعتي
               </Link>
               <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                منصة عربية تفحص توافق قطع الحاسوب برمجياً وتقارن أسعار المتاجر السعودية لحظياً. نوجّه المجتمع، لا نبيع.
+                منصة عربية تفحص توافق قطع الحاسوب برمجياً وتقارن أسعار المتاجر. نوجّه المجتمع، لا نبيع.
               </p>
             </div>
 
