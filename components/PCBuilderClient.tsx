@@ -104,7 +104,7 @@ const formatTextWithLinks = (text: string) => {
           href={linkUrl} 
           target={linkUrl.startsWith('http') ? "_blank" : "_self"} 
           rel={linkUrl.startsWith('http') ? "noopener noreferrer" : ""} 
-          className="text-blue-600 dark:text-blue-400 font-bold underline hover:text-blue-800 dark:hover:text-blue-300 transition-colors mx-1"
+          className="text-cyan-600 dark:text-cyan-400 font-bold underline hover:text-cyan-800 dark:hover:text-cyan-300 transition-colors mx-1"
         >
           {linkText}
         </a>
@@ -118,7 +118,7 @@ const formatTextWithLinks = (text: string) => {
           href={part} 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="inline-flex items-center gap-2 mt-3 mb-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-bold text-xs rounded-xl transition-all w-fit border border-slate-200 dark:border-slate-700 shadow-sm"
+          className="inline-flex items-center gap-2 mt-3 mb-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-400 font-bold text-xs rounded-xl transition-all w-fit border border-slate-200 dark:border-slate-700 shadow-sm"
         >
           <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
           الموقع الرسمي
@@ -128,7 +128,7 @@ const formatTextWithLinks = (text: string) => {
     
     if (part.startsWith('[red]') && part.endsWith('[/red]')) return <span key={i} className="text-rose-600 dark:text-rose-400 font-bold">{part.slice(5, -6)}</span>;
     if (part.startsWith('[green]') && part.endsWith('[/green]')) return <span key={i} className="text-emerald-600 dark:text-emerald-400 font-bold">{part.slice(7, -8)}</span>;
-    if (part.startsWith('[blue]') && part.endsWith('[/blue]')) return <span key={i} className="text-blue-600 dark:text-blue-400 font-bold">{part.slice(6, -7)}</span>;
+    if (part.startsWith('[blue]') && part.endsWith('[/blue]')) return <span key={i} className="text-cyan-600 dark:text-cyan-400 font-bold">{part.slice(6, -7)}</span>;
     if (part.startsWith('[yellow]') && part.endsWith('[/yellow]')) return <span key={i} className="text-amber-600 dark:text-amber-400 font-bold">{part.slice(8, -9)}</span>;
     
     return <span key={i}>{part}</span>;
@@ -136,7 +136,7 @@ const formatTextWithLinks = (text: string) => {
 };
 
 const getBrandColor = (comp: Component, categoryName: string) => {
-  if (categoryName !== 'CPU' && categoryName !== 'GPU') return 'text-blue-700 dark:text-blue-400';
+  if (categoryName !== 'CPU' && categoryName !== 'GPU') return 'text-cyan-700 dark:text-cyan-400';
   
   const textToSearch = `${comp.brand} ${comp.name}`.toLowerCase();
   
@@ -147,7 +147,7 @@ const getBrandColor = (comp: Component, categoryName: string) => {
     return 'text-emerald-700 dark:text-[#8ce600]'; 
   }
   if (textToSearch.includes('intel')) {
-    return 'text-blue-700 dark:text-blue-500'; 
+    return 'text-cyan-700 dark:text-cyan-500'; 
   }
   
   return 'text-slate-800 dark:text-slate-200'; 
@@ -228,7 +228,7 @@ const SearchableSelect = ({
       <div 
         className={`p-3.5 border rounded-xl flex justify-between items-center w-full min-h-[56px] gap-2 transition-all cursor-pointer ${
           isOpen 
-            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-white dark:bg-slate-800' 
+            ? 'border-cyan-500 ring-2 ring-cyan-500/20 bg-white dark:bg-slate-800' 
             : 'border-slate-300 dark:border-slate-700/80 bg-slate-50 hover:bg-white dark:bg-[#0B1120] dark:hover:bg-slate-800/80'
         }`}
         onClick={() => setIsOpen(!isOpen)}
@@ -263,7 +263,7 @@ const SearchableSelect = ({
           </button>
         )}
 
-        <svg className={`w-5 h-5 text-slate-500 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180 text-blue-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        <svg className={`w-5 h-5 text-slate-500 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180 text-cyan-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
       </div>
 
       {isOpen && (
@@ -273,7 +273,7 @@ const SearchableSelect = ({
               <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               <input
                 type="text"
-                className="w-full pl-3 pr-9 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400"
+                className="w-full pl-3 pr-9 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-cyan-500/50 text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400"
                 placeholder={`ابحث في ${categoryName}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -285,7 +285,7 @@ const SearchableSelect = ({
             <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1">
               <button 
                 onClick={(e) => { e.stopPropagation(); setSortBy('default'); }}
-                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg whitespace-nowrap transition-colors ${sortBy === 'default' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg whitespace-nowrap transition-colors ${sortBy === 'default' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
               >
                 الافتراضي
               </button>
@@ -449,7 +449,7 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
     <div className="mt-6 border border-slate-200 dark:border-slate-700/50 rounded-2xl overflow-hidden bg-white dark:bg-slate-800/30 shadow-sm relative">
       <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-slate-200 dark:border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           الأداء المتوقع في الألعاب
         </h4>
         
@@ -463,7 +463,7 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
                 title={isRecommended ? "الدقة المثالية لقوة جهازك" : `عرض الأداء على دقة ${res}`}
                 className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
                   activeRes === res
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                    ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
@@ -490,7 +490,7 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
           الأرقام تقريبية وتعتمد على إعدادات الجودة وتقنيات (DLSS/FSR).
         </span>
         <span className="hidden sm:block text-slate-300 dark:text-slate-700">|</span>
-        <span className="text-[10px] text-blue-500 dark:text-blue-400 font-bold flex items-center gap-1">
+        <span className="text-[10px] text-cyan-500 dark:text-cyan-400 font-bold flex items-center gap-1">
           <span className="text-sm leading-none">★</span> تشير إلى دقة الشاشة المثالية لجهازك.
         </span>
       </div>
@@ -969,8 +969,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         bottleneck = {
           title: "💡 كرت الشاشة سيحد من قوة الجهاز.",
           desc: "الأداء سيكون ممتازاً وسلساً في ألعاب الشوتر والتنافسية، لكن الكرت سيقلل الفريمات في ألعاب القصة الثقيلة والدقات العالية.",
-          color: "text-blue-900 dark:text-blue-400",
-          bg: "bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-800/50",
+          color: "text-cyan-900 dark:text-cyan-400",
+          bg: "bg-cyan-100 dark:bg-cyan-900/20 border-cyan-300 dark:border-cyan-800/50",
           suggestions
         };
       } else {
@@ -1136,19 +1136,22 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   if (!isLoaded) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto my-10 bg-white dark:bg-[#0F172A] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800/80">
+    <div className="max-w-5xl mx-auto my-10 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800/80">
       
       {/* الهيدر العلوي */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 p-10 text-center text-white relative overflow-hidden rounded-t-3xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <h1 className="text-3xl md:text-4xl font-extrabold mb-3 flex items-center justify-center gap-3 relative z-10">
-          منصة تجميع الـ PC
+      <div className="bg-gradient-to-br from-slate-900 to-[#0B1120] dark:from-slate-900 dark:to-[#0B1120] p-10 text-center text-white relative overflow-hidden rounded-t-3xl border-b border-cyan-500/20">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        {/* خط سيان علوي متوهّج */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"></div>
+        <h1 className="text-3xl md:text-5xl font-black mb-3 flex items-center justify-center gap-3 relative z-10 tracking-tight">
+          منصة تجميع <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">الـ PC</span>
         </h1>
         <p className="text-slate-300 font-medium text-sm md:text-base relative z-10">اختر قطعك، تأكد من التوافق الذكي، وابنِ جهاز أحلامك.</p>
       </div>
@@ -1160,19 +1163,19 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           
           {/* اليمين: العنوان وأزرار الاستكمال */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2 shrink-0">
-              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+            <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3 shrink-0 tracking-tight">
+              <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
               لوحة اختيار القطع
             </h2>
             
             {selectedComponents['CPU'] && selectedComponents['GPU'] && (
               <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/50">
               <span className="text-xs font-black text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1">
-                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 تجميع تلقائي:
               </span>
               <button onClick={() => handleAutoFill('economy')} className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 dark:text-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg shadow-sm transition-all border border-slate-200 dark:border-slate-600">اقتصادي</button>
-              <button onClick={() => handleAutoFill('mid')} className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg shadow-sm transition-all border border-blue-200 dark:border-blue-800/50">متوسط</button>
+              <button onClick={() => handleAutoFill('mid')} className="px-3 py-1.5 text-xs font-bold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900/30 dark:hover:bg-cyan-900/50 rounded-lg shadow-sm transition-all border border-cyan-200 dark:border-cyan-800/50">متوسط</button>
               <button onClick={() => handleAutoFill('high')} className="px-3 py-1.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 rounded-lg shadow-sm transition-all border border-purple-200 dark:border-purple-800/50">عالي</button>
             </div>
             )}
@@ -1197,7 +1200,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                   onChange={(e) => setShowIncompatible(e.target.checked)}
                   className="peer sr-only"
                 />
-                <div className="w-10 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
+                <div className="w-10 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer-checked:bg-cyan-600 transition-colors"></div>
                 <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4 shadow-sm"></div>
               </div>
               <span className="text-sm font-bold text-slate-700 dark:text-slate-300 select-none group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
@@ -1344,10 +1347,10 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                 <button
                                   key={idx}
                                   onClick={() => handleSelect(sug.category, sug.item.id)}
-                                  className="group flex flex-col text-right p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-700/60 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-400 dark:hover:border-blue-500/50 min-w-[260px] max-w-[260px] shrink-0 snap-center relative overflow-hidden"
+                                  className="group flex flex-col text-right p-4 rounded-3xl bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-500/10 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 min-w-[260px] max-w-[260px] shrink-0 snap-center relative overflow-hidden"
                                 >
                                   {/* خط علوي جمالي يظهر عند التمرير */}
-                                  <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                  <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                   
                                   <div className="flex justify-between items-start w-full mb-3">
                                     <span className={`text-[10px] font-black uppercase tracking-widest ${getBrandColor(sug.item, sug.category)} bg-slate-50 dark:bg-slate-800/80 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700/50`}>
@@ -1358,7 +1361,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                     </span>
                                   </div>
 
-                                  <span className="text-sm font-extrabold line-clamp-2 leading-relaxed mb-4 text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" title={sug.item.name}>
+                                  <span className="text-sm font-extrabold line-clamp-2 leading-relaxed mb-4 text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors" title={sug.item.name}>
                                     {sug.item.name}
                                   </span>
                                   
@@ -1370,7 +1373,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                       </span>
                                     </div>
                                     
-                                    <span className="text-[11px] font-black flex items-center gap-1.5 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 group-hover:bg-blue-600 group-hover:text-white px-3 py-2 rounded-xl transition-all">
+                                    <span className="text-[11px] font-black flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 group-hover:bg-cyan-600 group-hover:text-white px-3 py-2 rounded-xl transition-all">
                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                       استبدال
                                     </span>
@@ -1399,7 +1402,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                           {Object.entries(selectedComponents).map(([catName, comp]) => {
                             if (!comp) return null;
                             return (
-                              <div key={catName} className="flex p-4 bg-white dark:bg-slate-800/80 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 gap-4 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors group items-start sm:items-center">
+                              <div key={catName} className="flex p-4 bg-white dark:bg-slate-800/80 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 gap-4 hover:border-cyan-300 dark:hover:border-cyan-500/50 transition-colors group items-start sm:items-center">
                                 {comp.imageUrl ? (
                                   <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 p-2 flex items-center justify-center shrink-0">
                                      <img src={comp.imageUrl} alt={comp.name} className="max-w-full max-h-full object-contain export-ignore" />
@@ -1484,7 +1487,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 
                 <button 
                   onClick={handleSaveBuildClick}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-md shadow-blue-500/20"
+                  className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-md shadow-cyan-500/20"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
                   {editModeId ? 'حفظ التعديلات' : 'حفظ التجميعة لحسابي'}
@@ -1499,9 +1502,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       {detailsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#0F172A] rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] shrink-0">
+            <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-[#0B1120]/60 backdrop-blur-sm shrink-0">
               <h2 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <span className="w-1.5 h-5 bg-blue-600 rounded-full"></span>
+                <span className="w-1.5 h-5 bg-cyan-600 rounded-full"></span>
                 تفاصيل القطعة
               </h2>
               <button onClick={() => setDetailsModal(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-colors">
@@ -1539,14 +1542,14 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
               <div className="mb-8">
                 <h4 className="font-extrabold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                  <span className="text-blue-600">⚙️</span> المواصفات الفنية
+                  <span className="text-cyan-600">⚙️</span> المواصفات الفنية
                 </h4>
                 {renderSpecs(detailsModal.comp.specs)}
               </div>
 
               <div>
                 <h4 className="font-extrabold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                  <span className="text-blue-600">📄</span> نظرة عامة
+                  <span className="text-cyan-600">📄</span> نظرة عامة
                 </h4>
                 <div className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed font-medium bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/30">
                   {detailsModal.comp.description 
@@ -1559,7 +1562,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             <div className="p-5 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] flex gap-3 shrink-0">
               <button 
                 onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} 
-                className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95"
+                className="flex-1 py-3.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-bold transition-all shadow-md shadow-cyan-500/20 active:scale-95"
               >
                 اعتماد القطعة
               </button>
@@ -1587,7 +1590,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             </button>
             <button 
               onClick={handleSaveBuildClick} 
-              className="px-6 py-2.5 bg-blue-600 active:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md"
+              className="px-6 py-2.5 bg-cyan-600 active:bg-cyan-700 text-white text-sm font-bold rounded-xl shadow-md"
             >
               حفظ
             </button>
@@ -1599,9 +1602,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       {saveModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#0F172A] rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] shrink-0">
+            <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-[#0B1120]/60 backdrop-blur-sm shrink-0">
               <h2 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <span className="w-1.5 h-5 bg-blue-600 rounded-full"></span>
+                <span className="w-1.5 h-5 bg-cyan-600 rounded-full"></span>
                 {editModeId ? 'تحديث التجميعة' : 'حفظ التجميعة'}
               </h2>
               <button onClick={() => setSaveModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-colors">
@@ -1618,7 +1621,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 value={buildName}
                 onChange={(e) => setBuildName(e.target.value)}
                 placeholder="مثال: تجميعة الألعاب، تجميعة المونتاج..."
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-900 dark:text-white font-medium"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-cyan-500/50 text-slate-900 dark:text-white font-medium"
                 autoFocus
               />
               <p className="text-xs text-slate-500 mt-3 font-medium">
@@ -1636,7 +1639,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
               <button 
                 onClick={confirmSaveBuild} 
                 disabled={isSaving || !buildName.trim()}
-                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all shadow-md shadow-blue-500/20 flex justify-center items-center gap-2"
+                className="flex-1 py-3 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all shadow-md shadow-cyan-500/20 flex justify-center items-center gap-2"
               >
                 {isSaving ? (
                   <>

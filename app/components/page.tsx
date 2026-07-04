@@ -10,7 +10,7 @@ export default async function ComponentsPage() {
   const categories = await prisma.category.findMany();
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-12 px-4">
+    <div className="min-h-screen py-12 px-4">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-8">تصفح القطع</h1>
         <ComponentsClient components={components} categories={categories} />

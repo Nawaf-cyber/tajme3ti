@@ -184,7 +184,10 @@ export default async function HomePage() {
                   <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 leading-none">
                     {parseFloat(Number(build.price).toFixed(2))} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                   </div>
-                  <Link href="/prebuilds" className="text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-white px-5 py-2.5 rounded-xl transition-colors">
+                  <Link
+                    href="/prebuilds"
+                    className="text-xs font-bold text-slate-900 dark:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-5 py-2.5 rounded-xl transition-colors"
+                  >
                     استعراض
                   </Link>
                 </div>
