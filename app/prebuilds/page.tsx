@@ -3,6 +3,9 @@ import SavePrebuildButton from './SavePrebuildButton';
 import Link from 'next/link';
 import { isComponentAvailable } from '../../lib/availability';
 
+// تحديث حي دائماً — يعرض أحدث حالة التوفّر بلا حاجة redeploy
+export const dynamic = 'force-dynamic';
+
 const RiyalIcon = ({ size = 'h-5 w-5', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
     className={`${size} ${colorClass} inline-block align-middle`} 

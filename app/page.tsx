@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { prisma } from '../lib/prisma';
 import AutoBuildsSection from '../components/AutoBuildsSection';
 
-export const revalidate = 86400; // مهم: لتحديث الأسعار في الصفحة الرئيسية تلقائياً كل 24 ساعة
+export const revalidate = 300; // تحديث كل 5 دقائق — توازن بين السرعة وحداثة الأسعار والصور
 
 export default async function HomePage() {
   const latestComponents = await prisma.component.findMany({
@@ -61,7 +61,7 @@ export default async function HomePage() {
           
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 dark:bg-cyan-950/30 backdrop-blur-sm border border-slate-200 dark:border-cyan-500/30 text-slate-600 dark:text-cyan-300 text-xs font-bold tracking-widest uppercase mb-7 shadow-sm dark:shadow-cyan-500/10">
             <span className="w-2 h-2 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse shadow-[0_0_8px_2px] shadow-cyan-500/50"></span>
-            منصة تجميع الحواسيب الأولى عربياً
+            منصة تجميع الحواسيب 
           </div>
           
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 dark:text-white tracking-tighter mb-6 leading-[1.05]">
@@ -184,10 +184,7 @@ export default async function HomePage() {
                   <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 leading-none">
                     {parseFloat(Number(build.price).toFixed(2))} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                   </div>
-                  <Link
-                    href="/prebuilds"
-                    className="text-xs font-bold text-slate-900 dark:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-5 py-2.5 rounded-xl transition-colors"
-                  >
+                  <Link href="/prebuilds" className="text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-white px-5 py-2.5 rounded-xl transition-colors">
                     استعراض
                   </Link>
                 </div>

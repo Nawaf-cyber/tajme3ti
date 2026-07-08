@@ -1,6 +1,9 @@
 import { prisma } from '../../lib/prisma';
 import ComponentsClient from './ComponentsClient';
 
+// تحديث حي دائماً — يعرض أحدث الأسعار والصور والتوفّر بلا حاجة redeploy
+export const dynamic = 'force-dynamic';
+
 export default async function ComponentsPage() {
   const components = await prisma.component.findMany({
     include: { category: true },
