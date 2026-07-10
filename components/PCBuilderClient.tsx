@@ -1185,7 +1185,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button 
               onClick={handleClearBuild}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-rose-500 bg-white hover:bg-rose-50 dark:text-rose-400 dark:bg-slate-800/40 dark:hover:bg-rose-950/40 rounded-xl transition-all border border-slate-200 hover:border-rose-200 dark:border-slate-700/50 dark:hover:border-rose-900/50 shadow-sm"
+              className="flex items-center gap-2 px-3 py-2.5 text-sm font-bold text-rose-500 bg-white hover:bg-rose-50 dark:text-rose-400 dark:bg-slate-800/40 dark:hover:bg-rose-950/40 rounded-xl transition-all border border-slate-200 hover:border-rose-200 dark:border-slate-700/50 dark:hover:border-rose-900/50 shadow-sm"
               title="مسح جميع القطع والبدء من جديد"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>

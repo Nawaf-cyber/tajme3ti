@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { prisma } from '../lib/prisma';
 import AutoBuildsSection from '../components/AutoBuildsSection';
+import CompareTeaser from '../components/CompareTeaser';
 
 export const revalidate = 300; // تحديث كل 5 دقائق — توازن بين السرعة وحداثة الأسعار والصور
 
@@ -105,6 +106,9 @@ export default async function HomePage() {
 
         </div>
       </section>
+
+        {/* قسم أداة المقارنة */}
+      <CompareTeaser />
 
       {/* 2. قسم أحدث القطع */}
       <section className="max-w-7xl mx-auto px-4 py-20">

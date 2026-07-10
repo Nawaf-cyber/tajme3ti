@@ -1,45 +1,25 @@
 import { prisma } from "../../../lib/prisma";
 import { NextResponse } from "next/server";
 import * as cheerio from 'cheerio';
-import { getToken } from 'next-auth/jwt';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]/route';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
-// دالة انتظار بسيطة
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// جلب مع مهلة زمنية وإعادة محاولة عند 429 (طلبات كثيرة)
-async function fetchSafe(url: string, options: any = {}, timeout = 25000) {
-  const maxRetries = 3;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    try {
-      const response = await fetch(url, { ...options, signal: controller.signal });
-      clearTimeout(id);
-      if (response.status === 429 && attempt < maxRetries) {
-        await sleep(2000 * (attempt + 1));
-        continue;
-      }
-      return response;
-    } catch (error) {
-      clearTimeout(id);
-      if (attempt < maxRetries) {
-        await sleep(1500 * (attempt + 1));
-        continue;
-      }
-      throw error;
-    }
-  }
-  throw new Error('فشلت كل محاولات الاتصال');
-}
-
 export async function POST(req: Request) {
-  // حماية: أدمن فقط
-  const token = await getToken({ req: req as any });
-  if (!token || token.role !== 'ADMIN') {
-    return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
+  // حماية المسار: لوحة الإدارة فقط (يُفحص الدور من قاعدة البيانات)
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
+  if (!email) {
+    return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+  }
+  const currentUser = await prisma.user.findUnique({
+    where: { email },
+    select: { role: true },
+  });
+  if (currentUser?.role !== 'ADMIN') {
+    return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
   try {
@@ -49,9 +29,11 @@ export async function POST(req: Request) {
     const comp = await prisma.component.findUnique({ where: { id } });
     if (!comp) return NextResponse.json({ error: "القطعة غير موجودة" }, { status: 404 });
 
-    const SCRAPE_DO_TOKEN = process.env.SCRAPE_DO_TOKEN;
-    if (!SCRAPE_DO_TOKEN) return NextResponse.json({ error: "SCRAPE_DO_TOKEN غير مضبوط في متغيرات البيئة" }, { status: 500 });
-
+    // ملاحظة: الخدمة المستخدمة هي Scrape.do (token)، لا ScraperAPI.
+    // اسم المتغيّر تاريخي — القيمة هي توكن Scrape.do من dashboard.scrape.do
+    const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
+    if (!SCRAPER_API_KEY) return NextResponse.json({ error: "SCRAPER_API_KEY غير مضبوط" }, { status: 500 });
+    
     let finalAmazonPrice = comp.amazonPrice || Infinity;
     let finalCazasouqPrice = comp.cazasouqPrice || Infinity;
     let finalMicrolessPrice = comp.microlessPrice || Infinity;
@@ -66,10 +48,8 @@ export async function POST(req: Request) {
     if (comp.amazonUrl) {
       try {
         const targetUrl = encodeURIComponent(comp.amazonUrl);
-        // القديم (ScraperAPI):
-        // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
-        const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa&render=true`;
-        const res = await fetchSafe(url, { cache: 'no-store' });
+        const url = `https://api.scrape.do/?token=${SCRAPER_API_KEY}&url=${targetUrl}&super=true`;
+        const res = await fetch(url, { cache: 'no-store' });
         
         if (res.ok) {
           const html = await res.text();
@@ -101,84 +81,87 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. تحديث كازاسوق (بالنظام الصارم الجديد - يدعم الإنجليزي والعربي)
+    // 2. تحديث كازاسوق
     if (comp.cazasouqUrl) {
       try {
         const targetUrl = encodeURIComponent(comp.cazasouqUrl);
-        // القديم (ScraperAPI):
-        // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&country_code=sa`;
-        const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa`;
-        const res = await fetchSafe(url, { cache: 'no-store' });
+        const url = `https://api.scrape.do/?token=${SCRAPER_API_KEY}&url=${targetUrl}`;
+        const res = await fetch(url, { cache: 'no-store' });
         
         if (res.ok) {
           const html = await res.text();
           const $ = cheerio.load(html);
           
-          // تحويل النص للحروف الصغيرة ليسهل البحث بالإنجليزي، والعربي لن يتأثر
-          const plainText = $('body').text().replace(/\s+/g, ' ').toLowerCase();
+          // --- 1. فحص التوفر الدقيق القناص ---
+          let hasAddToCart = false;
+          const cartBtnText = $('#button-cart').text() || $('button').filter(function() { 
+              const t = $(this).text().trim(); 
+              return t === 'اضافة للسلة' || t === 'إضافة للسلة' || t === 'اشتر الآن' || t === 'اشتر الان'; 
+          }).first().text();
 
-          // 1. فحص نفاد الكمية صراحة (عربي + إنجليزي)
-          const isOutOfStockExplicit = plainText.includes('غير متوفر حالياً') || 
-                                       plainText.includes('تنبيه بالتوافر') || 
-                                       plainText.includes('نفدت الكمية') ||
-                                       plainText.includes('out of stock') ||
-                                       plainText.match(/التوفر:\s*0/) ||
-                                       plainText.match(/availability:\s*0/);
-
-          if (isOutOfStockExplicit) {
-            cazasouqInStock = false;
-          } else {
-            // 2. فحص التوفر (عربي + إنجليزي)
-            const hasStockNumberAr = plainText.match(/التوفر:\s*([1-9][0-9]*)/);
-            const hasStockNumberEn = plainText.match(/availability:\s*([1-9][0-9]*)/);
-
-            cazasouqInStock = !!hasStockNumberAr || !!hasStockNumberEn || 
-                              plainText.includes('اضافة للسلة') || 
-                              plainText.includes('إضافة للسلة') || 
-                              plainText.includes('اشتر الان') ||
-                              plainText.includes('اشتر الآن') ||
-                              plainText.includes('add to cart') ||
-                              plainText.includes('buy now') ||
-                              plainText.includes('in stock');
+          if (cartBtnText && cartBtnText.trim().length > 0) {
+              hasAddToCart = true;
           }
 
-          // -- 2. فحص السعر --
-          let priceText = '';
-          let mainPriceEl = $('#content ul.list-unstyled h2, .product-info h2, .product-price').first();
-          
-          if (mainPriceEl.length > 0) {
-             priceText = mainPriceEl.text();
+          const hasNotifyBtn = $('button:contains("تنبيه بالتوافر")').length > 0 || $('.product-info, #content').first().text().includes('تنبيه بالتوافر');
+
+          let availabilityText = '';
+          $('.list-unstyled li, .product-info li, .product-details li').each((i, el) => {
+              const txt = $(el).text();
+              if (txt.includes('التوفر:') || txt.includes('Availability:')) {
+                  availabilityText = txt;
+              }
+          });
+
+          if (hasNotifyBtn || availabilityText.includes('غير متوفر') || availabilityText.includes('نفدت')) {
+              cazasouqInStock = false;
+          } else if (availabilityText.match(/[1-9]\d*/)) {
+              // رقم موجب فقط — "التوفر: 0" لا يعني توفّراً
+              cazasouqInStock = true;
           } else {
-             priceText = $('.price-new, .price').not(':contains("170")').first().text();
+              cazasouqInStock = hasAddToCart;
           }
 
+          // --- 2. استخراج السعر بطريقة محصنة ---
           let cleanedPrice = 0;
-          const match = priceText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
+          $('.price-old, del, strike').remove(); 
+
+          let mainPriceText = $('#content ul.list-unstyled h2, .product-info h2').first().text();
+          if (!mainPriceText || mainPriceText.trim() === '') {
+              mainPriceText = $('.price-new, .product-price, .price').first().text();
+          }
+
+          let match = mainPriceText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
           if (match) {
-            cleanedPrice = parseFloat(match[0].replace(/,/g, ''));
+              cleanedPrice = parseFloat(match[0].replace(/,/g, ''));
           }
 
           if (cleanedPrice === 170) {
-              let altText = $('h2').filter(function() { return $(this).text().match(/\d/) && !$(this).text().includes('170'); }).first().text();
-              const altMatch = altText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
-              if (altMatch) cleanedPrice = parseFloat(altMatch[0].replace(/,/g, ''));
+              let altText = $('h2, .price-new, .product-price').not(':contains("170")').filter(function() { 
+                  return !!$(this).text().match(/\d/); 
+              }).first().text();
+              
+              let altMatch = altText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
+              if (altMatch) {
+                  cleanedPrice = parseFloat(altMatch[0].replace(/,/g, ''));
+              }
           }
 
-          const isBHD = priceText.toLowerCase().includes('bhd') || priceText.includes('د.ب') || priceText.toLowerCase().includes('bd');
-          
-          if (isBHD) {
-            cleanedPrice = cleanedPrice * 10;
-          } else if (cleanedPrice > 0) {
-            const amzPrice = finalAmazonPrice !== Infinity ? finalAmazonPrice : (comp.amazonPrice || 0);
-            if (amzPrice > 0 && cleanedPrice < (amzPrice * 0.2)) {
+          // --- 3. معالجة العملة ---
+          const isBHD = html.toLowerCase().includes('bhd') || html.includes('د.ب') || html.includes('دينار بحريني');
+          if (isBHD && cleanedPrice > 0) {
               cleanedPrice = cleanedPrice * 10;
-            }
+          } else if (cleanedPrice > 0) {
+              const amzPrice = finalAmazonPrice !== Infinity ? finalAmazonPrice : (comp.amazonPrice || 0);
+              if (amzPrice > 0 && cleanedPrice < (amzPrice * 0.2)) {
+                  cleanedPrice = cleanedPrice * 10;
+              }
           }
 
           if (!isNaN(cleanedPrice) && cleanedPrice > 0 && cleanedPrice !== 170) {
-            finalCazasouqPrice = cleanedPrice;
+              finalCazasouqPrice = cleanedPrice;
           } else {
-            errors.push('لم يتم العثور على سعر صالح أو السعر المستخرج 170 في كازاسوق.');
+              errors.push(`لم يتم العثور على سعر صالح في كازاسوق.`);
           }
         } else {
           errors.push(`فشل اتصال سيرفر كازاسوق: ${res.status}`);
@@ -192,10 +175,8 @@ export async function POST(req: Request) {
     if (comp.microlessUrl) {
       try {
         const targetUrl = encodeURIComponent(comp.microlessUrl);
-        // القديم (ScraperAPI):
-        // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
-        const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa&render=true`;
-        const res = await fetchSafe(url, { cache: 'no-store' });
+        const url = `https://api.scrape.do/?token=${SCRAPER_API_KEY}&url=${targetUrl}&super=true`;
+        const res = await fetch(url, { cache: 'no-store' });
         
         if (res.ok) {
           const html = await res.text();

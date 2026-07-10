@@ -1,58 +1,48 @@
 import { prisma } from "../../../../lib/prisma";
 import { NextResponse } from "next/server";
 import * as cheerio from 'cheerio';
-import { getToken } from 'next-auth/jwt';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../auth/[...nextauth]/route';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
-// دالة انتظار بسيطة
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// دالة لحماية الاتصال من التعليق (رُفع الوقت إلى 25 ثانية لأن render=true أبطأ)
-// مع إعادة محاولة تلقائية عند الخطأ 429 (طلبات كثيرة متزامنة)
-async function fetchWithTimeout(url: string, options: any = {}, timeout = 25000) {
-  const maxRetries = 3;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    try {
-      const response = await fetch(url, { ...options, signal: controller.signal });
-      clearTimeout(id);
-      // عند 429: انتظر تصاعدياً ثم أعد المحاولة
-      if (response.status === 429 && attempt < maxRetries) {
-        await sleep(2000 * (attempt + 1)); // 2s ثم 4s ثم 6s
-        continue;
-      }
-      return response;
-    } catch (error) {
-      clearTimeout(id);
-      if (attempt < maxRetries) {
-        await sleep(1500 * (attempt + 1));
-        continue;
-      }
-      throw error;
-    }
+// دالة لحماية الاتصال من التعليق (Timeout بعد 10 ثوانٍ)
+async function fetchWithTimeout(url: string, options: any = {}, timeout = 10000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
   }
-  // لن نصل هنا عملياً، لكن للأمان
-  throw new Error('فشلت كل محاولات الاتصال');
 }
 
 export async function GET(req: Request) {
-  // حماية المسار: يُسمح بالتشغيل في حالتين فقط:
-  // 1) طلب Vercel Cron التلقائي (يحمل Bearer CRON_SECRET في الـ header)
-  // 2) أدمن مسجّل دخول يضغط الزر يدوياً من لوحة التحكم
+  // حماية المسار: يُسمح بالوصول عبر مصدرين فقط —
+  // 1) Vercel Cron: يحمل سر الكرون في الـ Authorization header
+  // 2) لوحة الإدارة: جلسة مستخدم بصلاحية ADMIN (يُفحص الدور من قاعدة البيانات)
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = req.headers.get('authorization') || '';
-  const isCronRequest = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
+  const isValidCron = Boolean(cronSecret) && authHeader === `Bearer ${cronSecret}`;
 
   let isAdmin = false;
-  if (!isCronRequest) {
-    const token = await getToken({ req: req as any });
-    isAdmin = !!token && token.role === 'ADMIN';
+  if (!isValidCron) {
+    const session = await getServerSession(authOptions);
+    const email = session?.user?.email;
+    if (email) {
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: { role: true },
+      });
+      isAdmin = user?.role === 'ADMIN';
+    }
   }
 
-  if (!isCronRequest && !isAdmin) {
+  if (!isValidCron && !isAdmin) {
     return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
   }
 
@@ -64,9 +54,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "التحديث التلقائي معطل حالياً من لوحة التحكم." }, { status: 200 });
     }
 
-    const SCRAPE_DO_TOKEN = process.env.SCRAPE_DO_TOKEN;
-    if (!SCRAPE_DO_TOKEN) {
-      return NextResponse.json({ error: "SCRAPE_DO_TOKEN غير مضبوط في متغيرات البيئة." }, { status: 500 });
+    // ملاحظة: الخدمة المستخدمة هي Scrape.do (token)، لا ScraperAPI.
+    // اسم المتغيّر تاريخي — القيمة هي توكن Scrape.do من dashboard.scrape.do
+    const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
+    if (!SCRAPER_API_KEY) {
+      return NextResponse.json({ error: "SCRAPER_API_KEY غير مضبوط في متغيرات البيئة." }, { status: 500 });
     }
     
     const searchConditions = { 
@@ -81,22 +73,37 @@ export async function GET(req: Request) {
       where: searchConditions
     });
     
+    // خطة ScraperAPI Hobby: 10 طلبات متزامنة، 250k رصيد شهري.
+    // 35 قطعة/تشغيلة × 6 تشغيلات يومياً (كل 4 ساعات) = دورة كاملة يومياً لـ ~200 قطعة.
+    const BATCH_SIZE = 35;
     const components = await prisma.component.findMany({
       where: searchConditions,
       orderBy: { updatedAt: 'asc' }, 
-      take: 12
+      take: BATCH_SIZE
     });
 
     let updatedCount = 0;
     let updatedItems: { name: string; storeLinks: string[] }[] = []; 
     let allErrors: string[] = [];
 
-    // معالجة بالتوازي المحدود: 3 قطع في كل دفعة (بدل 15 طلب متزامن سابقاً)
-    // هذا يوازن بين السرعة وتفادي 429، مع اعتماد retry داخل fetchWithTimeout كشبكة أمان
-    const BATCH = 3;
-    for (let b = 0; b < components.length; b += BATCH) {
-      const batch = components.slice(b, b + BATCH);
-      await Promise.all(batch.map(async (comp) => {
+    // حماية زمنية: نتوقف قبل انتهاء مهلة Vercel (60 ثانية) لنحفظ ما أُنجز.
+    const startTime = Date.now();
+    const TIME_BUDGET_MS = 50000; // 50 ثانية — هامش أمان 10 ثوانٍ
+    let stoppedEarly = false;
+
+    // chunkSize يطابق عدد الطلبات المتزامنة في خطة Hobby (10)
+    const chunkSize = 10;
+    for (let i = 0; i < components.length; i += chunkSize) {
+      // إن اقترب الوقت من الحد، نتوقف بأمان بدل أن تُقطع العملية فجأة
+      if (Date.now() - startTime > TIME_BUDGET_MS) {
+        stoppedEarly = true;
+        allErrors.push(`توقّف مبكر: بقيت ${components.length - i} قطعة لتشغيلة قادمة.`);
+        break;
+      }
+
+      const chunk = components.slice(i, i + chunkSize);
+
+      await Promise.all(chunk.map(async (comp) => {
         let finalAmazonPrice = comp.amazonPrice || Infinity;
         let finalCazasouqPrice = comp.cazasouqPrice || Infinity;
         let finalMicrolessPrice = comp.microlessPrice || Infinity;
@@ -113,9 +120,7 @@ export async function GET(req: Request) {
         if (hasValidAmz) {
           try {
             const targetUrl = encodeURIComponent(comp.amazonUrl!);
-            // القديم (ScraperAPI):
-            // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
-            const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa&render=true`;
+            const url = `https://api.scrape.do/?token=${SCRAPER_API_KEY}&url=${targetUrl}&super=true`;
             const res = await fetchWithTimeout(url, { cache: 'no-store' });
             
             if (res.ok) {
@@ -153,67 +158,80 @@ export async function GET(req: Request) {
         if (hasValidCaza) {
           try {
             const targetUrl = encodeURIComponent(comp.cazasouqUrl!);
-            // القديم (ScraperAPI):
-            // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&country_code=sa`;
-            const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa`;
+            // بروكسي عادي (بلا super) — كازاسوق لا يحتاج حماية متقدمة، فيوفّر الرصيد
+            const url = `https://api.scrape.do/?token=${SCRAPER_API_KEY}&url=${targetUrl}`;
             const res = await fetchWithTimeout(url, { cache: 'no-store' });
             
             if (res.ok) {
               const html = await res.text();
               const $ = cheerio.load(html);
-              
-              const plainText = $('body').text().replace(/\s+/g, ' ').toLowerCase();
 
-              // 1. فحص نفاد الكمية صراحة
-              const isOutOfStockExplicit = plainText.includes('غير متوفر حالياً') || 
-                                           plainText.includes('تنبيه بالتوافر') || 
-                                           plainText.includes('نفدت الكمية') ||
-                                           plainText.includes('out of stock') ||
-                                           plainText.match(/التوفر:\s*0/) ||
-                                           plainText.match(/availability:\s*0/);
+              // فحص التوفّر — ثلاث طبقات بترتيب الثقة:
+              // 1) نفاد صريح (زر "تنبيه بالتوافر" أو نص صريح في صف التوفّر)
+              // 2) رقم توفّر موجب في صف "التوفر:" — أدق مصدر تعطيه الصفحة
+              // 3) زر السلة كإثبات موجب احتياطي
+              // لا نفحص نص الصفحة المجرّد: عبارة "غير متوفر" ترد في أقسام
+              // المنتجات المشابهة وفي سكربتات مخفية حتى لمنتج متوفّر.
+              let hasAddToCart = false;
+              const cartBtnText = $('#button-cart').text() || $('button').filter(function() {
+                const t = $(this).text().trim();
+                return t === 'اضافة للسلة' || t === 'إضافة للسلة' || t === 'اشتر الآن' || t === 'اشتر الان';
+              }).first().text();
 
-              if (isOutOfStockExplicit) {
+              if (cartBtnText && cartBtnText.trim().length > 0) {
+                hasAddToCart = true;
+              }
+
+              const hasNotifyBtn = $('button:contains("تنبيه بالتوافر")').length > 0 ||
+                                   $('.product-info, #content').first().text().includes('تنبيه بالتوافر');
+
+              let availabilityText = '';
+              $('.list-unstyled li, .product-info li, .product-details li').each((i, el) => {
+                const txt = $(el).text();
+                if (txt.includes('التوفر:') || txt.includes('Availability:')) {
+                  availabilityText = txt;
+                }
+              });
+
+              if (hasNotifyBtn || availabilityText.includes('غير متوفر') || availabilityText.includes('نفدت')) {
                 cazasouqInStock = false;
+              } else if (availabilityText.match(/[1-9]\d*/)) {
+                // رقم موجب فقط — "التوفر: 0" لا يعني توفّراً
+                cazasouqInStock = true;
               } else {
-                // 2. فحص التوفر
-                const hasStockNumberAr = plainText.match(/التوفر:\s*([1-9][0-9]*)/);
-                const hasStockNumberEn = plainText.match(/availability:\s*([1-9][0-9]*)/);
-
-                cazasouqInStock = !!hasStockNumberAr || !!hasStockNumberEn || 
-                                  plainText.includes('اضافة للسلة') || 
-                                  plainText.includes('إضافة للسلة') || 
-                                  plainText.includes('اشتر الان') ||
-                                  plainText.includes('اشتر الآن') ||
-                                  plainText.includes('add to cart') ||
-                                  plainText.includes('buy now') ||
-                                  plainText.includes('in stock');
+                cazasouqInStock = hasAddToCart;
               }
 
-              // -- فحص السعر --
-              let priceText = '';
-              let mainPriceEl = $('#content ul.list-unstyled h2, .product-info h2, .product-price').first();
-              
-              if (mainPriceEl.length > 0) {
-                 priceText = mainPriceEl.text();
-              } else {
-                 priceText = $('.price-new, .price').not(':contains("170")').first().text();
-              }
-
+              // -- استخراج السعر --
+              // نحذف الأسعار المشطوبة أولاً حتى لا نلتقط السعر القديم بدل الحالي.
               let cleanedPrice = 0;
-              const match = priceText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
+              $('.price-old, del, strike').remove();
+
+              let mainPriceText = $('#content ul.list-unstyled h2, .product-info h2').first().text();
+              if (!mainPriceText || mainPriceText.trim() === '') {
+                mainPriceText = $('.price-new, .product-price, .price').first().text();
+              }
+
+              const match = mainPriceText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
               if (match) {
                 cleanedPrice = parseFloat(match[0].replace(/,/g, ''));
               }
 
+              // 170 قيمة تتكرر في الصفحة (شحن/عرض) وليست سعر المنتج
               if (cleanedPrice === 170) {
-                  let altText = $('h2').filter(function() { return !!$(this).text().match(/\d/) && !$(this).text().includes('170'); }).first().text();
-                  const altMatch = altText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
-                  if (altMatch) cleanedPrice = parseFloat(altMatch[0].replace(/,/g, ''));
+                const altText = $('h2, .price-new, .product-price').not(':contains("170")').filter(function() {
+                  return !!$(this).text().match(/\d/);
+                }).first().text();
+
+                const altMatch = altText.match(/\d+(?:,\d+)*(?:\.\d+)?/);
+                if (altMatch) {
+                  cleanedPrice = parseFloat(altMatch[0].replace(/,/g, ''));
+                }
               }
 
-              const isBHD = priceText.toLowerCase().includes('bhd') || priceText.includes('د.ب') || priceText.toLowerCase().includes('bd');
-              
-              if (isBHD) {
+              // -- معالجة العملة --
+              const isBHD = html.toLowerCase().includes('bhd') || html.includes('د.ب') || html.includes('دينار بحريني');
+              if (isBHD && cleanedPrice > 0) {
                 cleanedPrice = cleanedPrice * 10;
               } else if (cleanedPrice > 0) {
                 const amzPrice = finalAmazonPrice !== Infinity ? finalAmazonPrice : (comp.amazonPrice || 0);
@@ -225,6 +243,7 @@ export async function GET(req: Request) {
               if (!isNaN(cleanedPrice) && cleanedPrice > 0 && cleanedPrice !== 170) {
                 finalCazasouqPrice = cleanedPrice;
               } else {
+                // تعذُّر قراءة السعر ليس دليل نفاد — نُبقي نتيجة فحص التوفّر كما هي.
                 allErrors.push(`كازاسوق (${comp.name}): لم يتم العثور على سعر صالح أو السعر المستخرج 170.`);
               }
             } else {
@@ -239,9 +258,7 @@ export async function GET(req: Request) {
         if (hasValidMicro) {
           try {
             const targetUrl = encodeURIComponent(comp.microlessUrl!);
-            // القديم (ScraperAPI):
-            // const url = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&premium=true&country_code=sa`;
-            const url = `https://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${targetUrl}&geoCode=sa&render=true`;
+            const url = `https://api.scrape.do/?token=${SCRAPER_API_KEY}&url=${targetUrl}&super=true`;
             const res = await fetchWithTimeout(url, { cache: 'no-store' });
             
             if (res.ok) {
@@ -351,9 +368,6 @@ export async function GET(req: Request) {
         });
 
       }));
-
-      // فاصل بسيط بين كل دفعة والتي تليها لتخفيف الضغط على Scrape.do
-      await sleep(600);
     }
     
     const updatedNames = updatedItems.map(item => item.name);
@@ -391,11 +405,19 @@ export async function GET(req: Request) {
       }
     }
 
+    const elapsedSec = ((Date.now() - startTime) / 1000).toFixed(1);
+
     return NextResponse.json({ 
       success: true, 
       message: `تم تحديث بيانات ${updatedCount} قطعة بنجاح.` ,
       updatedNames,
       totalMatchingCount,
+      // معلومات تشغيلية للمراقبة
+      batchSize: BATCH_SIZE,
+      processed: components.length,
+      elapsedSeconds: elapsedSec,
+      stoppedEarly,
+      estimatedCredits: components.length * 21, // ~21 credit/قطعة (premium لأمازون ومايكروليس)
       errors: allErrors.length > 0 ? allErrors : null
     });
 

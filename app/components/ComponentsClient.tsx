@@ -246,6 +246,15 @@ export default function ComponentsClient({ components, categories }: { component
                       التفاصيل
                       <svg className="w-4 h-4 transition-transform group-hover/btn:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                     </Link>
+                    <Link 
+                      href={`/compare?ids=${comp.id}`}
+                      className="flex items-center justify-center w-9 h-9 bg-slate-100 dark:bg-slate-800 hover:bg-cyan-500 dark:hover:bg-cyan-500 text-slate-600 dark:text-slate-400 hover:text-white rounded-sm transition-all active:scale-95"
+                      title="قارن هذه القطعة"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                      </svg>
+                    </Link>
                   </div>
                 </div>
 
