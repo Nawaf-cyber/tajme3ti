@@ -33,6 +33,7 @@ export default function AboutPage() {
           </p>
           <p> <strong className="text-blue-600 dark:text-blue-400">الشفافية والدعم:</strong> <br /> الروابط المتوفرة هي روابط تابعة (Affiliate). قد نحصل على عمولة بسيطة عند إتمامك للشراء من خلالها، دون أي زيادة في السعر عليك. كما نستخدم إعلانات (مثل Google AdSense) للمساهمة في تغطية تكاليف استضافة وتشغيل الموقع.
           </p>
+          <p> <strong className="text-blue-600 dark:text-blue-400">من انا:</strong> <br /> أنا نواف، أجمّع أجهزة الحاسب وأتابع سوق القطع. بنيت تجميعتي لأني رأيت المستخدم العربي يجمّع جهازه بلا أداة عربية تحميه من أخطاء التوافق والتوازن. أكتب كل دليل في الموقع بنفسي، من واقع تجربة.</p>
           <div className="bg-blue-50 dark:bg-slate-800/50 p-6 rounded-xl border border-blue-100 dark:border-slate-700 mt-8">
             <h3 className="font-bold text-xl text-blue-800 dark:text-blue-400 mb-2">تواصل معنا</h3>
             <p className="text-sm mb-4">

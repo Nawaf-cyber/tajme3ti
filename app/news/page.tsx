@@ -1,12 +1,10 @@
-import { prisma } from '../../lib/prisma';
 import Link from 'next/link';
+import { getNews } from '../../lib/content';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewsPage() {
-  const newsList = await prisma.news.findMany({
-    orderBy: { createdAt: 'desc' }
-  });
+  const newsList = await getNews();
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300 selection:bg-blue-500/20 overflow-x-hidden">

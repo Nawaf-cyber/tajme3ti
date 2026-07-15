@@ -21,6 +21,9 @@ type Component = {
   amazonInStock?: boolean | null;
   cazasouqInStock?: boolean | null;
   microlessInStock?: boolean | null;
+  amazonPrice?: number | null;
+  cazasouqPrice?: number | null;
+  microlessPrice?: number | null;
   description?: string | null;
   performanceTier?: number | null;
 };
@@ -68,6 +71,24 @@ const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'caza
     default:
       return url;
   }
+};
+
+/* ---- عروض المتاجر لقطعة: المتوفّر فقط، الأرخص أولاً ---- */
+type StoreOffer = { store: 'amazon' | 'cazasouq' | 'microless'; label: string; price: number; url: string };
+
+const getStoreOffers = (comp: Component): StoreOffer[] => {
+  const raw: (StoreOffer | null)[] = [
+    comp.amazonInStock === true && comp.amazonUrl && (comp.amazonPrice ?? 0) > 0
+      ? { store: 'amazon', label: 'Amazon', price: comp.amazonPrice!, url: getAffiliateUrl(comp.amazonUrl, 'amazon') }
+      : null,
+    comp.cazasouqInStock === true && comp.cazasouqUrl && (comp.cazasouqPrice ?? 0) > 0
+      ? { store: 'cazasouq', label: 'Cazasouq', price: comp.cazasouqPrice!, url: getAffiliateUrl(comp.cazasouqUrl, 'cazasouq') }
+      : null,
+    comp.microlessInStock === true && comp.microlessUrl && (comp.microlessPrice ?? 0) > 0
+      ? { store: 'microless', label: 'Microless', price: comp.microlessPrice!, url: getAffiliateUrl(comp.microlessUrl, 'microless') }
+      : null,
+  ];
+  return (raw.filter(Boolean) as StoreOffer[]).sort((a, b) => a.price - b.price);
 };
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-700 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
@@ -1395,9 +1416,49 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
                     {result.status === 'success' && (
                       <div className="mt-8 pt-8 border-t border-emerald-200/50 dark:border-emerald-800/30">
-                        <h4 className="font-extrabold text-emerald-900 dark:text-emerald-500 mb-5 text-sm uppercase tracking-widest">
-                          قائمة القطع المعتمدة:
+                        <h4 className="font-extrabold text-emerald-900 dark:text-emerald-500 mb-2 text-sm uppercase tracking-widest">
+                          اشترِ قطعك الآن:
                         </h4>
+
+                        {/* سطر التوفير الجماعي: أرخص متجر لكل قطعة مقابل أغلى العروض */}
+                        {(() => {
+                          const savings = Object.values(selectedComponents).reduce((sum, comp) => {
+                            if (!comp) return sum;
+                            const offers = getStoreOffers(comp);
+                            if (offers.length < 2) return sum;
+                            return sum + (offers[offers.length - 1].price - offers[0].price);
+                          }, 0);
+                          if (savings <= 0) return <div className="mb-5"></div>;
+                          return (
+                            <div className="mb-5 text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
+                              <svg
+                                className="w-3.5 h-3.5 text-emerald-500 shrink-0"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2.5}
+                                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                                />
+                              </svg>
+
+                              <span>اختيار أرخص متجر لكل قطعة يوفّر لك</span>
+
+                              <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1">
+                                {savings.toFixed(0)}
+                                <RiyalIcon
+                                  size="h-3 w-3"
+                                  colorClass="bg-emerald-600 dark:bg-emerald-400"
+                                />
+                              </span>
+
+                              <span>مقارنةً بأغلى العروض المتاحة — رتّبناها لك.</span>
+                            </div>
+                          );
+                        })()}
                         <div className="grid grid-cols-1 gap-3">
                           {Object.entries(selectedComponents).map(([catName, comp]) => {
                             if (!comp) return null;
@@ -1424,23 +1485,33 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                       {comp.price} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-700 dark:bg-emerald-400" />
                                     </span>
                                     <div className="flex flex-wrap gap-1.5 export-ignore">
-                                      {comp.amazonUrl && comp.amazonInStock === true && (
-                                        <a href={getAffiliateUrl(comp.amazonUrl, 'amazon')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                          <span>Amazon</span>
+                                      {getStoreOffers(comp).map((offer, i) => (
+                                        <a
+                                          key={offer.store}
+                                          href={offer.url}
+                                          target="_blank"
+                                          rel="nofollow sponsored noopener noreferrer"
+                                          className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+                                            i === 0
+                                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-300 dark:ring-emerald-500/40'
+                                              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500'
+                                          }`}
+                                        >
+                                          <span>{offer.label}</span>
+                                          <span className="font-black flex items-center gap-0.5">
+                                            {offer.price.toLocaleString('en-US')}
+                                            <RiyalIcon size="h-2.5 w-2.5" colorClass={i === 0 ? 'bg-white' : 'bg-slate-500 dark:bg-slate-400'} />
+                                          </span>
+                                          {i === 0 && getStoreOffers(comp).length > 1 && (
+                                            <span className="bg-white/20 rounded px-1 py-0.5 text-[8px] font-black">الأرخص</span>
+                                          )}
                                           <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                                         </a>
-                                      )}
-                                      {comp.cazasouqUrl && comp.cazasouqInStock === true && (
-                                        <a href={getAffiliateUrl(comp.cazasouqUrl, 'cazasouq')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                          <span>Cazasouq</span>
-                                          <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                        </a>
-                                      )}
-                                      {comp.microlessUrl && comp.microlessInStock === true && (
-                                        <a href={getAffiliateUrl(comp.microlessUrl, 'microless')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#0053D9] hover:bg-[#003899] text-white text-[10px] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                          <span>Microless</span>
-                                          <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                        </a>
+                                      ))}
+                                      {getStoreOffers(comp).length === 0 && (
+                                        <span className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                                          غير متوفر حالياً
+                                        </span>
                                       )}
                                     </div>
                                   </div>

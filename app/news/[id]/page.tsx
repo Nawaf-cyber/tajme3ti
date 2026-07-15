@@ -1,19 +1,20 @@
-import { prisma } from '../../../lib/prisma';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
+import { getArticle } from '../../../lib/content';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewsDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
-  const news = await prisma.news.findUnique({
-    where: { id }
-  });
+  const news = await getArticle(id);
 
   if (!news) {
     return notFound();
   }
+
+  // لو الرابط خبر لكن المحتوى دليل، حوّله لمساره الصحيح (تفادي محتوى مكرّر)
+  if (news.isGuide) redirect(`/guides/${id}`);
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-[#0B1120] pb-20 transition-colors duration-300 overflow-x-hidden selection:bg-blue-500/20">
