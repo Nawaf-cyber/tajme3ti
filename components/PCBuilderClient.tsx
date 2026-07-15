@@ -177,22 +177,64 @@ const getBrandColor = (comp: Component, categoryName: string) => {
 // مكون شريط الطاقة
 const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: number }) => {
   const percentage = psuWattage > 0 ? Math.min((totalTdp / psuWattage) * 100, 100) : 0;
-  
-  let colorClass = 'bg-emerald-500';
-  if (percentage > 85) colorClass = 'bg-rose-500';
-  else if (percentage > 70) colorClass = 'bg-amber-500';
+  const headroom = psuWattage > 0 ? psuWattage - totalTdp : 0;
+  const headroomPct = psuWattage > 0 ? Math.round((headroom / psuWattage) * 100) : 0;
+  // هامش ضيّق: المقياس يمرّ لكن أقل من 20% احتياطاً — تحذير لا خطأ
+  const tightMargin = psuWattage > 0 && percentage > 80 && percentage <= 100;
 
   return (
-    <div className="w-full mt-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
-      <div className="flex justify-between items-center text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
-        <span className="flex items-center gap-1">⚡ استهلاك القطع: {totalTdp}W</span>
-        <span>سعة المزود: {psuWattage ? `${psuWattage}W` : 'لم يحدد'}</span>
+    <div className="w-full mt-4 bg-slate-50 dark:bg-[#0B1120] p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+      <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-1.5">
+        ⚡ استهلاك القطع مقابل سعة المزوّد
+      </h4>
+
+      {/* المسار: مناطق أمان خافتة + تعبئة فعلية + علامة 80% */}
+      <div className="relative h-4 rounded-lg bg-slate-200 dark:bg-slate-800" dir="ltr">
+        {/* مناطق الأمان (خلفية خافتة): أخضر ← أصفر ← أحمر */}
+        <div
+          className="absolute inset-0 rounded-lg opacity-25"
+          style={{ background: 'linear-gradient(90deg,#10b981 0%,#10b981 62%,#f59e0b 80%,#ef4444 100%)' }}
+        ></div>
+        {/* التعبئة الفعلية */}
+        <div
+          className="absolute top-0 left-0 h-full rounded-lg transition-all duration-700"
+          style={{
+            width: `${percentage}%`,
+            background: percentage > 85
+              ? 'linear-gradient(90deg,#10b981 0%,#f59e0b 60%,#ef4444 100%)'
+              : percentage > 70
+              ? 'linear-gradient(90deg,#10b981 0%,#10b981 55%,#f59e0b 100%)'
+              : 'linear-gradient(90deg,#10b981,#34d399)',
+          }}
+        ></div>
+        {/* علامة حدّ الأمان 80% */}
+        {psuWattage > 0 && (
+          <div className="absolute -top-1.5 -bottom-1.5 w-0.5 bg-amber-500" style={{ left: '80%' }}>
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] font-black text-amber-500 whitespace-nowrap">
+              80%
+            </span>
+          </div>
+        )}
       </div>
-      <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-        <div className={`h-full ${colorClass} transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
+
+      <div className="flex justify-between items-center mt-4 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+        <span>{totalTdp}W مستهلكة</span>
+        <span>{psuWattage ? `سعة المزوّد ${psuWattage}W` : 'لم يُحدَّد مزوّد'}</span>
       </div>
-      {percentage > 85 && (
-        <p className="text-[10px] text-rose-500 mt-2 font-bold">الاستهلاك مرتفع جداً. يُنصح بمزود طاقة بسعة أكبر لضمان استقرار الجهاز وهامش كسر السرعة.</p>
+
+      {/* تحذير الهامش الضيّق — التجميعة تمرّ لكن بلا احتياط كافٍ */}
+      {tightMargin && (
+        <div className="mt-4 flex items-start gap-3 p-3.5 rounded-xl bg-amber-500/[0.07] border border-amber-500/40">
+          <span className="w-7 h-7 shrink-0 rounded-lg bg-amber-900/60 text-amber-400 flex items-center justify-center text-sm font-black">!</span>
+          <div className="min-w-0">
+            <p className="text-[13px] font-black text-amber-600 dark:text-amber-400">
+              هامش الطاقة ضيّق: {headroom}W فقط ({headroomPct}%).
+            </p>
+            <p className="text-[11.5px] text-amber-700/80 dark:text-amber-500/70 font-semibold mt-1 leading-relaxed">
+              التجميعة تعمل، لكن مزوّداً أعلى سعةً يمنحك أماناً أطول عمراً ومساحةً للترقية. لا نوصي بهامش أقل من 20%.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -393,6 +435,163 @@ const SearchableSelect = ({
   );
 };
 
+/* ============ خلفيات الألعاب: رسومات أصلية (ظلال + أجواء) ============
+   مرسومة من الصفر — لا لقطات ولا شخصيات محمية. ملكيتها للموقع. */
+
+const CyberpunkArt = () => (
+  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="ga-cyb-sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#2a1650"/><stop offset="0.55" stopColor="#180d33"/><stop offset="1" stopColor="#0d0720"/>
+      </linearGradient>
+      <linearGradient id="ga-cyb-fade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0.45" stopColor="#0d0720" stopOpacity="0"/><stop offset="1" stopColor="#0d0720" stopOpacity="0.92"/>
+      </linearGradient>
+      <radialGradient id="ga-cyb-glow" cx="0.5" cy="0.35" r="0.6">
+        <stop offset="0" stopColor="#e879f9" stopOpacity="0.35"/><stop offset="1" stopColor="#e879f9" stopOpacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="260" height="300" fill="url(#ga-cyb-sky)"/>
+    <ellipse cx="130" cy="100" rx="120" ry="80" fill="url(#ga-cyb-glow)"/>
+    <g opacity="0.85">
+      <rect x="0" y="150" width="30" height="150" fill="#1c1040"/>
+      <rect x="34" y="110" width="36" height="190" fill="#241455"/>
+      <rect x="74" y="135" width="26" height="165" fill="#180d38"/>
+      <rect x="104" y="88" width="40" height="212" fill="#2a1863"/>
+      <rect x="148" y="120" width="30" height="180" fill="#1c1040"/>
+      <rect x="182" y="142" width="26" height="158" fill="#241455"/>
+      <rect x="212" y="105" width="32" height="195" fill="#1f1248"/>
+      <rect x="248" y="130" width="12" height="170" fill="#180d38"/>
+    </g>
+    <rect x="104" y="84" width="40" height="3.5" fill="#e879f9"/>
+    <rect x="34" y="106" width="36" height="3" fill="#fde047"/>
+    <rect x="212" y="101" width="32" height="3" fill="#22d3ee"/>
+    <g fill="#fde047" opacity="0.9">
+      <rect x="8" y="162" width="4" height="5"/><rect x="18" y="180" width="4" height="5"/><rect x="8" y="204" width="4" height="5"/>
+      <rect x="42" y="122" width="4" height="5"/><rect x="56" y="140" width="4" height="5"/><rect x="42" y="164" width="4" height="5"/><rect x="56" y="192" width="4" height="5"/>
+      <rect x="112" y="100" width="5" height="6"/><rect x="128" y="118" width="5" height="6"/><rect x="112" y="146" width="5" height="6"/><rect x="128" y="176" width="5" height="6"/>
+      <rect x="156" y="132" width="4" height="5"/><rect x="166" y="156" width="4" height="5"/>
+      <rect x="220" y="118" width="4" height="5"/><rect x="232" y="142" width="4" height="5"/><rect x="220" y="170" width="4" height="5"/>
+    </g>
+    <g fill="#22d3ee" opacity="0.7">
+      <rect x="88" y="150" width="4" height="5"/><rect x="80" y="176" width="4" height="5"/>
+      <rect x="190" y="154" width="4" height="5"/><rect x="198" y="180" width="4" height="5"/>
+    </g>
+    <rect x="0" y="252" width="260" height="2.5" fill="#e879f9" opacity="0.75"/>
+    <g transform="translate(130,0)">
+      <path d="M-46 300 L-46 262 Q-44 236 -26 228 L-14 223 Q-20 216 -20 205 Q-20 196 -14 190 L-15 181 L-9 186 L-6 176 L-2 185 L4 175 L7 186 L13 180 L12 190 Q18 196 18 205 Q18 216 12 223 L24 228 Q42 236 44 262 L44 300 Z"
+        fill="none" stroke="#e879f9" strokeWidth="3" opacity="0.55" transform="translate(2,-2)"/>
+      <path d="M-46 300 L-46 262 Q-44 236 -26 228 L-14 223 Q-20 216 -20 205 Q-20 196 -14 190 L-15 181 L-9 186 L-6 176 L-2 185 L4 175 L7 186 L13 180 L12 190 Q18 196 18 205 Q18 216 12 223 L24 228 Q42 236 44 262 L44 300 Z"
+        fill="#08040f"/>
+      <path d="M-26 232 Q0 244 26 232" stroke="#fde047" strokeWidth="2" fill="none" opacity="0.8"/>
+    </g>
+    <rect width="260" height="300" fill="url(#ga-cyb-fade)"/>
+  </svg>
+);
+
+const WarzoneArt = () => (
+  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="ga-wz-sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#20351f"/><stop offset="0.55" stopColor="#12210f"/><stop offset="1" stopColor="#0a1408"/>
+      </linearGradient>
+      <linearGradient id="ga-wz-fade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0.45" stopColor="#0a1408" stopOpacity="0"/><stop offset="1" stopColor="#0a1408" stopOpacity="0.92"/>
+      </linearGradient>
+      <radialGradient id="ga-wz-sun" cx="0.72" cy="0.22" r="0.35">
+        <stop offset="0" stopColor="#facc15" stopOpacity="0.4"/><stop offset="1" stopColor="#facc15" stopOpacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="260" height="300" fill="url(#ga-wz-sky)"/>
+    <circle cx="188" cy="66" r="70" fill="url(#ga-wz-sun)"/>
+    <circle cx="188" cy="66" r="17" fill="#facc15" opacity="0.55"/>
+    <g fill="#0d1a0b" opacity="0.9">
+      <path d="M36 40 L74 40 L82 45 L74 50 L36 50 L30 45 Z"/>
+      <rect x="48" y="34" width="5" height="7"/>
+      <rect x="60" y="34" width="5" height="7"/>
+    </g>
+    <g opacity="0.95">
+      <path d="M96 66 Q112 50 128 66 L123 70 Q112 60 101 70 Z" fill="#facc15"/>
+      <line x1="101" y1="70" x2="110" y2="88" stroke="#facc15" strokeWidth="1.2"/>
+      <line x1="123" y1="70" x2="114" y2="88" stroke="#facc15" strokeWidth="1.2"/>
+      <circle cx="112" cy="91" r="3.6" fill="#0d1a0b" stroke="#facc15" strokeWidth="1"/>
+    </g>
+    <g opacity="0.75" transform="translate(46,28) scale(0.72)">
+      <path d="M96 66 Q112 50 128 66 L123 70 Q112 60 101 70 Z" fill="#4ade80"/>
+      <line x1="101" y1="70" x2="110" y2="88" stroke="#4ade80" strokeWidth="1.2"/>
+      <line x1="123" y1="70" x2="114" y2="88" stroke="#4ade80" strokeWidth="1.2"/>
+      <circle cx="112" cy="91" r="3.4" fill="#0d1a0b" stroke="#4ade80" strokeWidth="1"/>
+    </g>
+    <polygon points="0,300 60,150 130,300" fill="#173d1c" opacity="0.55"/>
+    <polygon points="150,300 215,120 300,300" fill="#123317" opacity="0.6"/>
+    <path d="M0 218 Q 130 196 260 222" stroke="#4ade80" strokeWidth="1" fill="none" opacity="0.28"/>
+    <path d="M0 246 Q 130 228 260 248" stroke="#4ade80" strokeWidth="1" fill="none" opacity="0.18"/>
+    <path d="M0 300 L0 270 Q 70 254 140 264 Q 205 272 260 260 L260 300 Z" fill="#061007"/>
+    <g transform="translate(150,0)" fill="#04120a">
+      <path d="M-8 172 Q-8 162 0 160 Q9 162 9 172 L9 178 L-8 178 Z"/>
+      <path d="M-13 178 L11 178 Q17 182 17 196 L15 232 L11 232 L11 264 L4 264 L3 236 L-4 236 L-5 264 L-12 264 L-12 232 L-16 232 L-18 196 Q-18 182 -13 178 Z"/>
+      <path d="M-16 190 L-34 200 L-32 208 L-14 200 Z"/>
+      <path d="M15 192 L30 186 L31 192 L17 199 Z"/>
+      <path d="M-38 197 L34 183 L35 189 L20 193 L20 199 L14 199 L14 194 L-36 204 Z"/>
+      <rect x="-30" y="202" width="4" height="9" transform="rotate(-10 -28 206)"/>
+      <path d="M11 184 L22 186 L22 214 L13 214 Z"/>
+    </g>
+    <ellipse cx="150" cy="262" rx="42" ry="9" fill="#4ade80" opacity="0.14"/>
+    <rect width="260" height="300" fill="url(#ga-wz-fade)"/>
+  </svg>
+);
+
+const ValorantArt = () => (
+  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="ga-val-sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#33121f"/><stop offset="0.55" stopColor="#1e0b14"/><stop offset="1" stopColor="#12070c"/>
+      </linearGradient>
+      <linearGradient id="ga-val-fade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0.45" stopColor="#12070c" stopOpacity="0"/><stop offset="1" stopColor="#12070c" stopOpacity="0.92"/>
+      </linearGradient>
+    </defs>
+    <rect width="260" height="300" fill="url(#ga-val-sky)"/>
+    <polygon points="0,300 78,54 150,300" fill="#ff4655" opacity="0.16"/>
+    <polygon points="104,300 186,26 274,300" fill="#0ee6c3" opacity="0.11"/>
+    <polygon points="-44,300 34,116 96,300" fill="#ff4655" opacity="0.11"/>
+    <line x1="14" y1="20" x2="246" y2="196" stroke="#ff4655" strokeWidth="1.4" opacity="0.32"/>
+    <line x1="60" y1="6" x2="260" y2="160" stroke="#0ee6c3" strokeWidth="1" opacity="0.28"/>
+    <line x1="-10" y1="60" x2="200" y2="220" stroke="#ff4655" strokeWidth="0.8" opacity="0.22"/>
+    <g opacity="0.5" stroke="#ff4655" transform="translate(64,84)">
+      <circle r="24" fill="none" strokeWidth="1.5"/>
+      <circle r="3.5" fill="#ff4655" stroke="none"/>
+      <line x1="0" y1="-34" x2="0" y2="-14" strokeWidth="1.5"/>
+      <line x1="0" y1="14" x2="0" y2="34" strokeWidth="1.5"/>
+      <line x1="-34" y1="0" x2="-14" y2="0" strokeWidth="1.5"/>
+      <line x1="14" y1="0" x2="34" y2="0" strokeWidth="1.5"/>
+    </g>
+    <g transform="translate(158,0)">
+      <g fill="none" stroke="#0ee6c3" strokeWidth="2.5" opacity="0.5" transform="translate(-2,-2)">
+        <path d="M-30 300 L-30 262 Q-28 238 -12 230 L-4 226 Q-10 218 -10 208 Q-10 197 0 194 Q10 197 10 208 Q10 218 4 226 L12 230 Q26 236 28 258 L28 300"/>
+      </g>
+      <g fill="#0a0508">
+        <path d="M-10 208 Q-10 196 0 193 Q10 196 10 208 Q10 219 3 226 L-4 226 Q-10 219 -10 208 Z"/>
+        <path d="M8 199 Q30 188 46 196 Q34 200 26 210 Q20 218 10 216 Z"/>
+        <path d="M-12 230 L12 230 Q22 236 24 256 L22 300 L-22 300 L-26 258 Q-24 238 -12 230 Z"/>
+        <path d="M-12 236 L-30 214 L-25 209 L-8 230 Z"/>
+        <path d="M-30 214 L-46 186 Q-40 190 -35 190 L-27 208 Z"/>
+      </g>
+      <path d="M-31 212 L-48 184 Q-42 188 -37 188 L-28 207 Z" fill="#1a1013" stroke="#ff4655" strokeWidth="1.4" opacity="0.9"/>
+      <line x1="-33" y1="207" x2="-44" y2="189" stroke="#ff8a94" strokeWidth="1" opacity="0.7"/>
+      <path d="M12 232 Q20 237 23 250" stroke="#ff4655" strokeWidth="2" fill="none" opacity="0.7"/>
+    </g>
+    <ellipse cx="158" cy="296" rx="44" ry="8" fill="#ff4655" opacity="0.12"/>
+    <rect width="260" height="300" fill="url(#ga-val-fade)"/>
+  </svg>
+);
+
+const GAME_ART: Record<string, React.FC> = {
+  cyb: CyberpunkArt,
+  wz: WarzoneArt,
+  val: ValorantArt,
+};
+
 const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }) => {
   const gpuBasePower: Record<number, number> = {
     1: 120, 
@@ -410,10 +609,39 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
     '4K': 0.45
   };
 
+  /* ---- هوية بصرية لكل لعبة ----
+     تدرّجات لونية تحاكي هوية كل لعبة بلا صور محمية بحقوق نشر.
+     لو أردت صوراً حقيقية لاحقاً: ضع صورة مرخّصة في public/images/games/
+     واكتب مسارها في bgImage — الكود يعرضها تلقائياً بدل التدرّج.
+     ⚠️ لا تستخدم صوراً من الويب: لقطات الألعاب محمية، وAdSense يفحص ذلك. */
   const gameMultipliers: Record<string, any> = {
-    esports: { name: 'Valorant', mult: 3.0, icon: '🎯' },
-    competitive: { name: 'Warzone', mult: 0.9, icon: '🪂' },
-    aaa: { name: 'Cyberpunk', mult: 0.45, icon: '🌃' }
+    esports: {
+      name: 'Valorant',
+      mult: 3.0,
+      icon: '🎯',
+      bgImage: '',
+      artKind: 'val',
+      cardBorder: 'border-[#ff4655]/40 hover:shadow-[#ff4655]/25',
+      accent: 'text-[#ff6b7d]',
+    },
+    competitive: {
+      name: 'Warzone',
+      mult: 0.9,
+      icon: '🪂',
+      bgImage: '',
+      artKind: 'wz',
+      cardBorder: 'border-green-500/40 hover:shadow-green-500/25',
+      accent: 'text-green-400',
+    },
+    aaa: {
+      name: 'Cyberpunk',
+      mult: 0.45,
+      icon: '🌃',
+      bgImage: '',
+      artKind: 'cyb',
+      cardBorder: 'border-yellow-400/40 hover:shadow-yellow-400/25',
+      accent: 'text-yellow-300',
+    }
   };
 
   const generateDynamicData = () => {
@@ -451,7 +679,11 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
         result.data[res][type] = {
           name: game.name + quality,
           fps: `${finalFps}+`,
-          icon: game.icon
+          icon: game.icon,
+          bgImage: game.bgImage,
+          artKind: game.artKind,
+          cardBorder: game.cardBorder,
+          accent: game.accent
         };
       });
     });
@@ -495,14 +727,40 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
         </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-slate-100 dark:divide-slate-700/50 p-2">
-        {Object.entries(tierData.data[activeRes]).map(([type, data]: any) => (
-          <div key={type} className="p-3 text-center flex flex-col items-center justify-center group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors rounded-xl">
-            <span className="text-xl mb-1">{data.icon}</span>
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{data.name}</span>
-            <span className="text-lg font-black text-slate-900 dark:text-white group-hover:scale-110 transition-transform">{data.fps}</span>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3">
+        {Object.entries(tierData.data[activeRes]).map(([type, data]: any) => {
+          const Art = data.artKind ? GAME_ART[data.artKind] : null;
+          return (
+            <div
+              key={type}
+              className={`relative overflow-hidden text-center flex flex-col justify-end group rounded-2xl border min-h-[190px] pb-4 px-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${data.cardBorder}`}
+            >
+              {/* الخلفية: صورة مرخّصة إن وُفّرت، وإلا الرسم الأصلي */}
+              {data.bgImage ? (
+                <>
+                  <img
+                    src={data.bgImage}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+                </>
+              ) : Art ? (
+                <div className="absolute inset-0 group-hover:scale-[1.03] transition-transform duration-500 origin-bottom">
+                  <Art />
+                </div>
+              ) : null}
+
+              {/* المحتوى */}
+              <div className="relative z-10 flex flex-col items-center">
+                <span className={`text-[11px] font-black uppercase tracking-[0.2em] ${data.accent}`} style={{ textShadow: '0 0 12px currentColor' }}>{data.name}</span>
+                <span className="text-3xl font-black text-white tabular-nums mt-1" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>{data.fps}</span>
+                <span className="text-[9px] font-bold tracking-[0.3em] text-slate-300/80">FPS</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="bg-slate-50 dark:bg-slate-800/40 p-3 border-t border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
@@ -928,21 +1186,40 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     const caseSpecs = parseSpecs(pcCase!.specs);
     const psuSpecs = parseSpecs(psu!.specs);
 
-    if (cpuSpecs?.socket !== moboSpecs?.socket) {
-      setResult({ status: 'error', message: `عدم توافق: المعالج بمقبس ${cpuSpecs?.socket} واللوحة الأم بمقبس ${moboSpecs?.socket}.`, totalTdp, totalPrice });
+    // فحص المقبس — نفرّق بين "متعارض" و"بيانات ناقصة".
+    // القاعدة: عند الجهل نحذّر، لا نؤكّد التوافق. تأكيد التوافق زوراً يهدم ثقة المنصة.
+    const cpuSocket = cpuSpecs?.socket ? String(cpuSpecs.socket).trim() : '';
+    const moboSocket = moboSpecs?.socket ? String(moboSpecs.socket).trim() : '';
+    if (!cpuSocket || !moboSocket) {
+      setResult({ status: 'error', message: `تعذّر التأكّد من توافق المقبس: بيانات المقبس ناقصة على ${!cpuSocket ? 'المعالج' : 'اللوحة الأم'}. لا نستطيع تأكيد التوافق — تحقّق يدوياً قبل الشراء.`, totalTdp, totalPrice });
       return;
     }
-    if (ramSpecs?.type !== moboSpecs?.ramType) {
-      setResult({ status: 'error', message: `عدم توافق: اللوحة الأم تدعم ${moboSpecs?.ramType} والرام من نوع ${ramSpecs?.type}.`, totalTdp, totalPrice });
+    if (cpuSocket !== moboSocket) {
+      setResult({ status: 'error', message: `عدم توافق: المعالج بمقبس ${cpuSocket} واللوحة الأم بمقبس ${moboSocket}.`, totalTdp, totalPrice });
       return;
     }
-    if (parseFloat(gpuSpecs?.lengthMm) > parseFloat(caseSpecs?.maxGpuLength)) {
-      setResult({ status: 'error', message: `عدم توافق: طول الكرت (${gpuSpecs?.lengthMm}mm) أكبر من مساحة الكيس (${caseSpecs?.maxGpuLength}mm).`, totalTdp, totalPrice });
+
+    // فحص نوع الذاكرة — نفس المبدأ
+    const ramType = ramSpecs?.type ? String(ramSpecs.type).trim() : '';
+    const moboRamType = moboSpecs?.ramType ? String(moboSpecs.ramType).trim() : '';
+    if (!ramType || !moboRamType) {
+      setResult({ status: 'error', message: `تعذّر التأكّد من توافق الذاكرة: بيانات النوع ناقصة على ${!ramType ? 'الرام' : 'اللوحة الأم'}. تحقّق يدوياً قبل الشراء.`, totalTdp, totalPrice });
+      return;
+    }
+    if (ramType !== moboRamType) {
+      setResult({ status: 'error', message: `عدم توافق: اللوحة الأم تدعم ${moboRamType} والرام من نوع ${ramType}.`, totalTdp, totalPrice });
+      return;
+    }
+    const gpuLen = parseFloat(gpuSpecs?.lengthMm);
+    const caseMaxGpu = parseFloat(caseSpecs?.maxGpuLength);
+    if (!isNaN(gpuLen) && !isNaN(caseMaxGpu) && gpuLen > caseMaxGpu) {
+      setResult({ status: 'error', message: `عدم توافق: طول الكرت (${gpuLen}mm) أكبر من مساحة الكيس (${caseMaxGpu}mm).`, totalTdp, totalPrice });
       return;
     }
 
     const requiredWattage = totalTdp + 100;
-    if (psuSpecs?.wattage < requiredWattage) {
+    const psuWattage = Number(psuSpecs?.wattage);
+    if (!isNaN(psuWattage) && psuWattage < requiredWattage) {
       setResult({ status: 'error', message: `تحذير طاقة: الاستهلاك التقريبي مع هامش الأمان (${requiredWattage}W) يتجاوز قدرة المزود (${psuSpecs?.wattage}W).`, totalTdp, totalPrice });
       return;
     }
@@ -1302,15 +1579,22 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 )}
               </div>
             ) : (
-              <div ref={resultRef} className={`p-8 rounded-3xl border shadow-sm relative overflow-hidden ${
+              <div ref={resultRef} className={`rounded-3xl border shadow-sm relative overflow-hidden ${
                 result.status === 'success' 
-                  ? 'bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-950/20 dark:to-[#0F172A] border-emerald-200 dark:border-emerald-800/50' 
-                  : 'bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-950/20 dark:to-[#0F172A] border-rose-200 dark:border-rose-800/50'
+                  ? 'bg-white dark:bg-[#0F172A] border-emerald-200 dark:border-emerald-800/40' 
+                  : 'bg-white dark:bg-[#0F172A] border-rose-200 dark:border-rose-800/40'
               }`}>
-                
+                {/* شريط الحالة العلوي */}
+                <div className={`h-1.5 w-full ${
+                  result.status === 'success'
+                    ? 'bg-gradient-to-l from-emerald-500 to-emerald-400'
+                    : 'bg-gradient-to-l from-rose-500 to-rose-400'
+                }`}></div>
+
+                <div className="p-8">
                 <div className="flex flex-col md:flex-row md:items-start gap-6 relative z-10">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
-                    result.status === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-200 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400'
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border-2 ${
+                    result.status === 'success' ? 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-600/50' : 'bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-600/50'
                   }`}>
                     {result.status === 'success' ? (
                       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
@@ -1324,15 +1608,16 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                       {result.message}
                     </h3>
                     
-                    <div className="flex flex-wrap gap-3 text-sm font-bold">
-                      <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 shadow-sm">
-                        ⚡ الطاقة التقريبية: <span className="text-amber-700 dark:text-amber-400">{result.totalTdp}W</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3">
+                        <div className="text-[10px] font-black tracking-widest text-slate-400 dark:text-slate-500 mb-1">التكلفة الإجمالية</div>
+                        <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                          {result.totalPrice} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                        </div>
                       </div>
-                      <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 shadow-sm">
-                        💰 التكلفة الإجمالية: 
-                        <span className="text-emerald-700 dark:text-emerald-400 font-black flex items-center gap-1">
-                          {result.totalPrice} <RiyalIcon size="h-4 w-4" />
-                        </span>
+                      <div className="bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3">
+                        <div className="text-[10px] font-black tracking-widest text-slate-400 dark:text-slate-500 mb-1">الطاقة التقريبية</div>
+                        <div className="text-xl font-black text-amber-600 dark:text-amber-400">{result.totalTdp}W</div>
                       </div>
                     </div>
 
@@ -1420,7 +1705,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                           اشترِ قطعك الآن:
                         </h4>
 
-                        {/* سطر التوفير الجماعي: أرخص متجر لكل قطعة مقابل أغلى العروض */}
+                        {/* سطر التوفير الجماعي (div لا p — RiyalIcon بداخله div) */}
                         {(() => {
                           const savings = Object.values(selectedComponents).reduce((sum, comp) => {
                             if (!comp) return sum;
@@ -1431,31 +1716,12 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                           if (savings <= 0) return <div className="mb-5"></div>;
                           return (
                             <div className="mb-5 text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
-                              <svg
-                                className="w-3.5 h-3.5 text-emerald-500 shrink-0"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2.5}
-                                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                                />
-                              </svg>
-
-                              <span>اختيار أرخص متجر لكل قطعة يوفّر لك</span>
-
+                              <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                              اختيار أرخص متجر لكل قطعة يوفّر لك
                               <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1">
-                                {savings.toFixed(0)}
-                                <RiyalIcon
-                                  size="h-3 w-3"
-                                  colorClass="bg-emerald-600 dark:bg-emerald-400"
-                                />
+                                {savings.toFixed(0)} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                               </span>
-
-                              <span>مقارنةً بأغلى العروض المتاحة — رتّبناها لك.</span>
+                              مقارنةً بأغلى العروض المتاحة — رتّبناها لك.
                             </div>
                           );
                         })()}
@@ -1524,6 +1790,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                     )}
                   </div>
                 </div>
+                </div>{/* /p-8 */}
               </div>
             )}
 
@@ -1543,14 +1810,14 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 
                 <button 
                   onClick={handleCopyText}
-                  className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm border border-slate-200 dark:border-slate-700"
+                  className="px-6 py-3.5 bg-white dark:bg-[#0F172A] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-all flex items-center gap-2 border-[1.5px] border-slate-300 dark:border-slate-700"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
                   نسخ كنص
                 </button>
                 <button 
                   onClick={exportBuildAsImage}
-                  className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm border border-slate-200 dark:border-slate-700"
+                  className="px-6 py-3.5 bg-white dark:bg-[#0F172A] hover:bg-cyan-50 dark:hover:bg-cyan-950/30 text-cyan-600 dark:text-cyan-400 font-bold rounded-xl transition-all flex items-center gap-2 border-[1.5px] border-cyan-500/40 hover:border-cyan-500/70"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                   تصدير صورة
@@ -1558,7 +1825,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 
                 <button 
                   onClick={handleSaveBuildClick}
-                  className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-md shadow-cyan-500/20"
+                  className="flex-1 min-w-[220px] justify-center px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/40 hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
                   {editModeId ? 'حفظ التعديلات' : 'حفظ التجميعة لحسابي'}
