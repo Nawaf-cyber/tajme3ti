@@ -1,6 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useRef, useEffect } from 'react';
+import type { FC } from 'react';
 import { toPng } from 'html-to-image';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
@@ -210,7 +211,7 @@ const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: nu
         {/* علامة حدّ الأمان 80% */}
         {psuWattage > 0 && (
           <div className="absolute -top-1.5 -bottom-1.5 w-0.5 bg-amber-500" style={{ left: '80%' }}>
-            <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] font-black text-amber-500 whitespace-nowrap">
+            <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-black text-amber-500 whitespace-nowrap">
               80%
             </span>
           </div>
@@ -238,6 +239,30 @@ const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: nu
       )}
     </div>
   );
+};
+
+/* ---- أيقونة ورمز مختصر لكل فئة ---- */
+const CATEGORY_META: Record<string, { icon: string; short: string }> = {
+  'CPU':         { icon: '🔲', short: 'CPU' },
+  'Motherboard': { icon: '🔳', short: 'MB' },
+  'GPU':         { icon: '🎮', short: 'GPU' },
+  'RAM':         { icon: '📊', short: 'RAM' },
+  'Storage':     { icon: '💾', short: 'SSD' },
+  'PSU':         { icon: '⚡', short: 'PSU' },
+  'Case':        { icon: '🗄️', short: 'CASE' },
+  'Cooler':      { icon: '❄️', short: 'COOL' },
+};
+const getCatMeta = (name: string) => CATEGORY_META[name] || { icon: '🔧', short: name.slice(0, 4).toUpperCase() };
+
+/* ---- شارة ثانوية: TDP أو المقبس أو السعة — معلومة مفيدة كانت مخفية ---- */
+const getQuickSpec = (comp: Component, categoryName: string): string | null => {
+  const sp: any = (typeof comp.specs === 'string' ? (() => { try { return JSON.parse(comp.specs); } catch { return {}; } })() : comp.specs) || {};
+  if (categoryName === 'Motherboard') return sp.socket || null;
+  if (categoryName === 'RAM') return sp.type || null;
+  if (categoryName === 'PSU') return sp.wattage ? `${sp.wattage}W` : null;
+  if (comp.tdpWattage) return `${comp.tdpWattage}W`;
+  if (categoryName === 'CPU') return sp.socket || null;
+  return null;
 };
 
 const SearchableSelect = ({ 
@@ -287,47 +312,134 @@ const SearchableSelect = ({
     : processed.filter(c => c.isCompatible);
 
   return (
-    <div className={`relative flex-1 min-w-0 transition-all ${isOpen ? 'z-50' : 'z-10'}`} ref={wrapperRef}>
-      <div 
-        className={`p-3.5 border rounded-xl flex justify-between items-center w-full min-h-[56px] gap-2 transition-all cursor-pointer ${
-          isOpen 
-            ? 'border-cyan-500 ring-2 ring-cyan-500/20 bg-white dark:bg-slate-800' 
-            : 'border-slate-300 dark:border-slate-700/80 bg-slate-50 hover:bg-white dark:bg-[#0B1120] dark:hover:bg-slate-800/80'
-        }`}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <span className="whitespace-normal break-words flex-1 text-slate-900 dark:text-slate-200 text-sm font-bold">
-          {selectedComponent ? (
-            <span className="flex items-center gap-1.5 flex-wrap">
-              <span className={getBrandColor(selectedComponent, categoryName)}>{selectedComponent.brand}</span> 
-              <span className="font-extrabold">{selectedComponent.name}</span>
-              <span className="text-emerald-700 dark:text-emerald-400 font-black flex items-center gap-1 mx-1 bg-emerald-100/50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md text-xs border border-emerald-200 dark:border-emerald-800/30">
-                {selectedComponent.price} <RiyalIcon size="h-3 w-3" />
-              </span>
-              {!isComponentAvailable(selectedComponent) && (
-                <span className="text-amber-700 dark:text-amber-400 font-black flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-md text-[11px] border border-amber-200 dark:border-amber-800/40">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                  غير متوفر حالياً
-                </span>
-              )}
-            </span>
-          ) : (
-            <span className="text-slate-500 dark:text-slate-400 font-medium">اختر {categoryName}...</span>
-          )}
-        </span>
+    <div className={`relative w-full min-w-0 transition-all ${isOpen ? 'z-50' : 'z-10'}`} ref={wrapperRef}>
+      {(() => {
+        const meta = getCatMeta(categoryName);
+        const avail = selectedComponent ? isComponentAvailable(selectedComponent) : true;
+        const quickSpec = selectedComponent ? getQuickSpec(selectedComponent, categoryName) : null;
+        const compatCount = components.filter(c => c.isCompatible).length;
 
-        {selectedComponent && (
-          <button 
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="p-1.5 hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 rounded-lg transition-colors shrink-0"
-            title="إزالة القطعة"
+        return (
+          <div
+            className={`relative overflow-hidden rounded-2xl border p-3.5 transition-all ${
+              isOpen
+                ? 'border-cyan-500 ring-2 ring-cyan-500/20 bg-white dark:bg-[#0F172A]'
+                : selectedComponent
+                ? (avail
+                    ? 'border-emerald-500/40 bg-white dark:bg-[#0F172A] hover:border-cyan-500/50 hover:-translate-y-0.5'
+                    : 'border-amber-500/50 bg-white dark:bg-[#0F172A] hover:border-cyan-500/50 hover:-translate-y-0.5')
+                : 'border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-[#0F172A] hover:border-cyan-500/50'
+            }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-          </button>
-        )}
+            {/* الشريط الجانبي الملوّن: أخضر=سليمة، أصفر=تحذير */}
+            {selectedComponent && (
+              <div className={`absolute top-0 right-0 bottom-0 w-[3px] ${avail ? 'bg-gradient-to-b from-emerald-500 to-emerald-400' : 'bg-amber-500'}`}></div>
+            )}
 
-        <svg className={`w-5 h-5 text-slate-500 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180 text-cyan-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-      </div>
+            {/* الرأس: الفئة + شارة الحالة */}
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[13px]">{meta.icon}</span>
+                <span className="text-[11px] font-black tracking-[2px] text-slate-400 dark:text-slate-500">{categoryName}</span>
+              </div>
+              {selectedComponent ? (
+                avail ? (
+                  <span className="text-[9px] font-black px-2.5 py-1 rounded-lg text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700">✓ متوفر</span>
+                ) : (
+                  <span className="text-[9px] font-black px-2.5 py-1 rounded-lg text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700">⚠ غير متوفر</span>
+                )
+              ) : (
+                <span className="text-[9px] font-black px-2.5 py-1 rounded-lg text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/60 border border-dashed border-slate-300 dark:border-slate-700">لم تُختر</span>
+              )}
+            </div>
+
+            {/* الجسم */}
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+              {/* الصورة داخل البطاقة */}
+              {selectedComponent?.imageUrl ? (
+                <div className="w-14 h-14 rounded-xl bg-white border border-slate-200 dark:border-slate-800 p-1 flex items-center justify-center shrink-0">
+                  <img src={selectedComponent.imageUrl as string} alt={selectedComponent.name} className="max-w-full max-h-full object-contain" />
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-[#0B1120] border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center shrink-0 text-slate-400 dark:text-slate-600 text-xl font-light">
+                  ＋
+                </div>
+              )}
+
+              <div className="flex-1 min-w-0">
+                {selectedComponent ? (
+                  <>
+                    <div className={`text-[9px] font-black tracking-[1.5px] mb-0.5 ${getBrandColor(selectedComponent, categoryName)}`}>
+                      {selectedComponent.brand}
+                    </div>
+                    <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-snug truncate">
+                      {selectedComponent.name}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        {selectedComponent.price} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                      </span>
+                      {quickSpec && (
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                          {quickSpec}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[13px] font-bold text-slate-500 dark:text-slate-400">اختر {categoryName}</div>
+                    {compatCount > 0 && (
+                      <div className="mt-1.5">
+                        <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/40 px-2 py-0.5 rounded">
+                          {compatCount} خيار متوافق
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* الإجراءات */}
+              <div className="flex gap-1.5 shrink-0">
+                {selectedComponent && (
+                  <>
+                    <a
+                      href={`/compare?ids=${selectedComponent.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      title="قارن هذه القطعة"
+                      className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                    </a>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                      title="إزالة القطعة"
+                      className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <svg className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180 text-cyan-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+              </div>
+            </div>
+
+            {/* تنبيه عدم التوفّر */}
+            {selectedComponent && !avail && (
+              <div className="mt-3 px-3 py-2 rounded-lg bg-amber-500/[0.08] border border-amber-500/40 text-[10.5px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                نفدت من كل المتاجر — السعر قد يكون قديماً
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {isOpen && (
         <div className="absolute w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-[350px] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
@@ -586,7 +698,7 @@ const ValorantArt = () => (
   </svg>
 );
 
-const GAME_ART: Record<string, React.FC> = {
+const GAME_ART: Record<string, FC> = {
   cyb: CyberpunkArt,
   wz: WarzoneArt,
   val: ValorantArt,
@@ -1513,30 +1625,16 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           {categories.map((category) => {
             const compsWithComp = getComponentsWithCompatibility(category.name, category.components);
             return (
-              <div key={category.id} className="flex flex-col gap-2.5">
-                <label className="font-extrabold text-slate-800 dark:text-slate-300 flex items-center gap-2 text-sm uppercase tracking-wide ml-1">
-                  {category.name}
-                </label>
-                <div className="flex gap-3 items-stretch w-full min-w-0">
-                  {selectedComponents[category.name]?.imageUrl && (
-                    <div className="w-16 h-16 rounded-xl bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-700/60 p-1.5 flex items-center justify-center shrink-0 shadow-sm">
-                      <img 
-                        src={selectedComponents[category.name]?.imageUrl as string} 
-                        alt={selectedComponents[category.name]?.name}
-                        className="max-w-full max-h-full object-contain filter drop-shadow-sm" 
-                      />
-                    </div>
-                  )}
-                  <SearchableSelect 
-                    categoryName={category.name}
-                    components={compsWithComp}
-                    selectedComponent={selectedComponents[category.name]}
-                    onSelect={(id) => handleSelect(category.name, id)}
-                    onRemove={() => handleRemove(category.name)}
-                    onShowDetails={(comp) => setDetailsModal({ comp, categoryName: category.name })}
-                    showIncompatible={showIncompatible}
-                  />
-                </div>
+              <div key={category.id} className="w-full min-w-0">
+                <SearchableSelect 
+                  categoryName={category.name}
+                  components={compsWithComp}
+                  selectedComponent={selectedComponents[category.name]}
+                  onSelect={(id) => handleSelect(category.name, id)}
+                  onRemove={() => handleRemove(category.name)}
+                  onShowDetails={(comp) => setDetailsModal({ comp, categoryName: category.name })}
+                  showIncompatible={showIncompatible}
+                />
               </div>
             );
           })}
