@@ -33,6 +33,16 @@ export default async function AdminDashboard() {
   // 2. جلب حالة التحديث التلقائي من قاعدة البيانات (سيرفر سايد)
   const cronStatus = await getCronStatus();
 
+  /* 3. جلب إعدادات الأفلييت من جدول Setting.
+     كانت مفقودة: updateSettings يحفظ بنجاح، لكن الصفحة لا تقرأ —
+     فتعرض AdminManager قيمتها الافتراضية {} فتبدو الحقول فارغة بعد الحفظ. */
+  const settingRows = await prisma.setting.findMany({
+    where: { key: { in: ['amazon_affiliate', 'cazasouq_affiliate', 'microless_affiliate'] } },
+  });
+  const settings: Record<string, string> = Object.fromEntries(
+    settingRows.map((r) => [r.key, r.value])
+  );
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
@@ -44,7 +54,7 @@ export default async function AdminDashboard() {
         </div>
         
         {/* 3. تمرير القيمة المستخرجة كمستند أساسي إلى المكون الإداري */}
-        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} />
+        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} />
       </div>
     </main>
   );

@@ -1,4 +1,6 @@
 import { prisma } from '../../../lib/prisma';
+import { buildAffiliateUrl, AFFILIATE_LINK_PROPS } from '../../../lib/affiliate';
+import { getAffiliateIds } from '../../../lib/affiliate-server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
@@ -180,6 +182,9 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
   });
 
   if (!build) return notFound();
+
+  // كانت روابط هذه الصفحة بلا معرّف أفلييت إطلاقاً — كل نقرة تضيع
+  const affIds = await getAffiliateIds();
 
   const componentIds = [build.cpuId, build.gpuId, build.ramId, build.motherboardId, build.caseId, build.psuId, build.storageId].filter(Boolean) as string[];
 
@@ -397,17 +402,17 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                     {(part.amazonUrl || part.cazasouqUrl || part.microlessUrl) && (
                       <div className="flex gap-1.5">
                         {part.amazonUrl && (
-                          <a href={part.amazonUrl} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded border border-[#232F3E]/20 font-bold transition-colors">
+                          <a href={buildAffiliateUrl(part.amazonUrl, 'amazon', affIds)} {...AFFILIATE_LINK_PROPS} className="px-2.5 py-1 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded border border-[#232F3E]/20 font-bold transition-colors">
                             Amazon
                           </a>
                         )}
                         {part.cazasouqUrl && (
-                          <a href={part.cazasouqUrl} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 bg-[#FF9900]/10 hover:bg-[#FF9900]/20 text-[#D47E00] dark:text-[#FF9900] text-[10px] rounded border border-[#FF9900]/20 font-bold transition-colors">
+                          <a href={buildAffiliateUrl(part.cazasouqUrl, 'cazasouq', affIds)} {...AFFILIATE_LINK_PROPS} className="px-2.5 py-1 bg-[#FF9900]/10 hover:bg-[#FF9900]/20 text-[#D47E00] dark:text-[#FF9900] text-[10px] rounded border border-[#FF9900]/20 font-bold transition-colors">
                             Cazasouq
                           </a>
                         )}
                         {part.microlessUrl && (
-                          <a href={part.microlessUrl} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-[10px] rounded border border-blue-500/20 font-bold transition-colors">
+                          <a href={buildAffiliateUrl(part.microlessUrl, 'microless', affIds)} {...AFFILIATE_LINK_PROPS} className="px-2.5 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-[10px] rounded border border-blue-500/20 font-bold transition-colors">
                             Microless
                           </a>
                         )}

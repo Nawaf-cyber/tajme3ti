@@ -57,6 +57,15 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
     include: { components: true },
   });
 
+  /* معرّفات الأفلييت من لوحة الإدارة (جدول Setting).
+     تُمرَّر للعميل ليبني روابط العمولة — بدلاً من ثوابت في الكود. */
+  const affRows = await prisma.setting.findMany({
+    where: { key: { in: ['amazon_affiliate', 'cazasouq_affiliate', 'microless_affiliate'] } },
+  });
+  const affiliateIds: Record<string, string> = Object.fromEntries(
+    affRows.map((r) => [r.key, r.value])
+  );
+
   // قراءة التجميعة إذا كان هناك متغير from في الرابط
   let importedSelections: Record<string, string> = {};
   if (from) {
@@ -70,7 +79,7 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="bg-gray-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
-      <PCBuilderClient categories={categories} importedSelections={importedSelections} />
+      <PCBuilderClient categories={categories} importedSelections={importedSelections} affiliateIds={affiliateIds} />
     </main>
   );
 }

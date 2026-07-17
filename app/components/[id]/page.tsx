@@ -2,40 +2,9 @@ import { prisma } from '../../../lib/prisma';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ImageZoom from '../ImageZoom';
+import { buildAffiliateUrl, AFFILIATE_LINK_PROPS } from '../../../lib/affiliate';
+import { getAffiliateIds } from '../../../lib/affiliate-server';
 
-// دالة التسويق بالعمولة الذكية
-const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'cazasouq' | 'microless') => {
-  if (!url) return '#';
-  
-  switch(store) {
-    case 'amazon':
-      if (url.includes('amazon.sa') || url.includes('amazon.com')) {
-        const match = url.match(/(https?:\/\/[^\/]+\/(?:[^\/]+\/)?(?:dp|gp\/product)\/[A-Z0-9]{10})/i);
-        if (match) return `${match[1]}?tag=tajmee3ti-21`;
-        return url.includes('?') ? `${url}&tag=tajmee3ti-21` : `${url}?tag=tajmee3ti-21`;
-      }
-      return url;
-      
-    case 'cazasouq':
-      if (url.includes('cazasouq.com')) {
-        const cazasouqAffId = ''; // ضع رقمك هنا بعد الموافقة
-        if (!cazasouqAffId) return url;
-        return url.includes('?') ? `${url}&aff=${cazasouqAffId}` : `${url}?aff=${cazasouqAffId}`;
-      }
-      return url;
-      
-    case 'microless':
-      if (url.includes('microless.com')) {
-        const microlessAffId = ''; // ضع رقمك هنا بعد الموافقة
-        if (!microlessAffId) return url;
-        return url.includes('?') ? `${url}&aff_id=${microlessAffId}` : `${url}?aff_id=${microlessAffId}`;
-      }
-      return url;
-      
-    default:
-      return url;
-  }
-};
 
 const RiyalIcon = ({ size = 'h-6 w-6' }: { size?: string }) => (
   <div 
@@ -90,8 +59,7 @@ const formatTextWithLinks = (text: string) => {
           <span key={key} className="block mt-8 flex justify-end w-full">
             <a
               href={part}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...AFFILIATE_LINK_PROPS}
               className="inline-flex items-center gap-2 px-5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-full transition-all border border-slate-300 dark:border-slate-700 shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
@@ -150,6 +118,9 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
   });
 
   if (!comp) return notFound();
+
+  // معرّفات الأفلييت من لوحة الإدارة
+  const affIds = await getAffiliateIds();
 
   const specs = typeof comp.specs === 'string' ? JSON.parse(comp.specs) : comp.specs || {};
 
@@ -233,9 +204,8 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
                 {comp.amazonUrl && (
                   <a 
-                    href={getAffiliateUrl(comp.amazonUrl, 'amazon')} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                    href={buildAffiliateUrl(comp.amazonUrl, 'amazon', affIds)} 
+                    {...AFFILIATE_LINK_PROPS} 
                     className={`flex items-center justify-between p-3.5 border-r-2 rounded-sm transition-all group shadow-sm ${
                       !comp.amazonInStock || !comp.amazonPrice
                         ? 'bg-slate-100 dark:bg-[#0B1120]/60 border-r-slate-400 dark:border-r-slate-700 opacity-60 grayscale cursor-not-allowed' 
@@ -265,9 +235,8 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
                 {comp.cazasouqUrl && (
                   <a 
-                    href={getAffiliateUrl(comp.cazasouqUrl, 'cazasouq')} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                    href={buildAffiliateUrl(comp.cazasouqUrl, 'cazasouq', affIds)} 
+                    {...AFFILIATE_LINK_PROPS} 
                     className={`flex items-center justify-between p-3.5 border-r-2 rounded-sm transition-all group shadow-sm ${
                       !comp.cazasouqInStock || !comp.cazasouqPrice
                         ? 'bg-slate-100 dark:bg-[#0B1120]/60 border-r-slate-400 dark:border-r-slate-700 opacity-60 grayscale cursor-not-allowed' 
@@ -297,9 +266,8 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
                 {comp.microlessUrl && (
                   <a 
-                    href={getAffiliateUrl(comp.microlessUrl, 'microless')} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                    href={buildAffiliateUrl(comp.microlessUrl, 'microless', affIds)} 
+                    {...AFFILIATE_LINK_PROPS} 
                     className={`flex items-center justify-between p-3.5 border-r-2 rounded-sm transition-all group shadow-sm ${
                       !comp.microlessInStock || !comp.microlessPrice
                         ? 'bg-slate-100 dark:bg-[#0B1120]/60 border-r-slate-400 dark:border-r-slate-700 opacity-60 grayscale cursor-not-allowed' 

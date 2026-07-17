@@ -1,44 +1,12 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { buildAffiliateUrl, AFFILIATE_LINK_PROPS } from '../../lib/affiliate';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { isComponentAvailable } from '../../lib/availability';
 
-// دالة التسويق بالعمولة الذكية
-const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'cazasouq' | 'microless') => {
-  if (!url) return '#';
-  
-  switch(store) {
-    case 'amazon':
-      if (url.includes('amazon.sa') || url.includes('amazon.com')) {
-        const match = url.match(/(https?:\/\/[^\/]+\/(?:[^\/]+\/)?(?:dp|gp\/product)\/[A-Z0-9]{10})/i);
-        if (match) return `${match[1]}?tag=tajmee3ti-21`;
-        return url.includes('?') ? `${url}&tag=tajmee3ti-21` : `${url}?tag=tajmee3ti-21`;
-      }
-      return url;
-      
-    case 'cazasouq':
-      if (url.includes('cazasouq.com')) {
-        const cazasouqAffId = ''; // ضع رقمك هنا بعد الموافقة
-        if (!cazasouqAffId) return url;
-        return url.includes('?') ? `${url}&aff=${cazasouqAffId}` : `${url}?aff=${cazasouqAffId}`;
-      }
-      return url;
-      
-    case 'microless':
-      if (url.includes('microless.com')) {
-        const microlessAffId = ''; // ضع رقمك هنا بعد الموافقة
-        if (!microlessAffId) return url;
-        return url.includes('?') ? `${url}&aff_id=${microlessAffId}` : `${url}?aff_id=${microlessAffId}`;
-      }
-      return url;
-      
-    default:
-      return url;
-  }
-};
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
   <div 
@@ -472,19 +440,19 @@ export default function MyBuildsPage() {
                             </span>
                             
                             {comp.amazonUrl && comp.amazonInStock !== false && (
-                              <a href={getAffiliateUrl(comp.amazonUrl, 'amazon')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                              <a href={buildAffiliateUrl(comp.amazonUrl, 'amazon')} {...AFFILIATE_LINK_PROPS} className="flex items-center gap-1 px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
                                 <span>Amazon</span>
                                 <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                               </a>
                             )}
                             {comp.cazasouqUrl && comp.cazasouqInStock !== false && (
-                              <a href={getAffiliateUrl(comp.cazasouqUrl, 'cazasouq')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                              <a href={buildAffiliateUrl(comp.cazasouqUrl, 'cazasouq')} {...AFFILIATE_LINK_PROPS} className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
                                 <span>Cazasouq</span>
                                 <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                               </a>
                             )}
                             {comp.microlessUrl && comp.microlessInStock !== false && (
-                              <a href={getAffiliateUrl(comp.microlessUrl, 'microless')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-[#0053D9] hover:bg-[#003899] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                              <a href={buildAffiliateUrl(comp.microlessUrl, 'microless')} {...AFFILIATE_LINK_PROPS} className="flex items-center gap-1 px-3 py-1.5 bg-[#0053D9] hover:bg-[#003899] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
                                 <span>Microless</span>
                                 <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                               </a>

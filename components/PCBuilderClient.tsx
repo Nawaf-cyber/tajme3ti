@@ -2,6 +2,10 @@
 export const dynamic = 'force-dynamic';
 import { useState, useRef, useEffect } from 'react';
 import type { FC } from 'react';
+import WorkInProgress from './WorkInProgress';
+
+/* ملاحظة: IntentPicker و BuildTuner مؤجّلان حتى يجهزا.
+   buildPlans و USE_PROFILE محفوظان أدناه لإعادة الوصل بسطر واحد. */
 import { toPng } from 'html-to-image';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
@@ -41,6 +45,21 @@ type ComponentWithCompatibility = Component & {
 };
 
 // دالة التسويق بالعمولة الذكية
+/* ============ معرّفات الأفلييت ============
+   تأتي من لوحة الإدارة (جدول Setting) عبر prop، وهذه قيم احتياطية
+   تُستخدم لو كان الجدول فارغاً. */
+let AMAZON_TAG = 'tajmee3ti-21';
+let CAZASOUQ_AFF_ID = '800';   // مؤكّد من رابط تتبّع فعلي: ?idev_id=800
+let MICROLESS_AFF_ID = '';     // فارغ = معطّل — لم نتحقق من معامله بعد
+
+/** يُستدعى من المكوّن ليطبّق قيم لوحة الإدارة قبل بناء أي رابط */
+const applyAffiliateIds = (ids?: Record<string, string>) => {
+  if (!ids) return;
+  if (ids.amazon_affiliate) AMAZON_TAG = ids.amazon_affiliate;
+  if (ids.cazasouq_affiliate !== undefined) CAZASOUQ_AFF_ID = ids.cazasouq_affiliate;
+  if (ids.microless_affiliate !== undefined) MICROLESS_AFF_ID = ids.microless_affiliate;
+};
+
 const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'cazasouq' | 'microless') => {
   if (!url) return '#';
   
@@ -48,30 +67,47 @@ const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'caza
     case 'amazon':
       if (url.includes('amazon.sa') || url.includes('amazon.com')) {
         const match = url.match(/(https?:\/\/[^\/]+\/(?:[^\/]+\/)?(?:dp|gp\/product)\/[A-Z0-9]{10})/i);
-        if (match) return `${match[1]}?tag=tajmee3ti-21`;
-        return url.includes('?') ? `${url}&tag=tajmee3ti-21` : `${url}?tag=tajmee3ti-21`;
+        if (match) return `${match[1]}?tag=${AMAZON_TAG}`;
+        return url.includes('?') ? `${url}&tag=${AMAZON_TAG}` : `${url}?tag=${AMAZON_TAG}`;
       }
       return url;
       
     case 'cazasouq':
+      /* كازاسوق يستخدم iDevAffiliate — المعامل idev_id لا aff.
+         مؤكّد من رابط تتبّع فعلي:
+         cazasouq.com/pny-geforce-rtx-5070-ti-...-41921/?idev_id=800
+         الربط المباشر يعمل: نضيف المعامل على رابط المنتج مباشرة. */
       if (url.includes('cazasouq.com')) {
-        const cazasouqAffId = ''; 
-        if (!cazasouqAffId) return url;
-        return url.includes('?') ? `${url}&aff=${cazasouqAffId}` : `${url}?aff=${cazasouqAffId}`;
+        if (!CAZASOUQ_AFF_ID) return url;
+        return url.includes('?')
+          ? `${url}&idev_id=${CAZASOUQ_AFF_ID}`
+          : `${url}?idev_id=${CAZASOUQ_AFF_ID}`;
       }
       return url;
-      
+
     case 'microless':
+      /* ⚠️ المعامل aff_id غير مؤكّد — لم نتحقق من رابط تتبّع فعلي.
+         يبقى معطّلاً (المعرّف فارغ) حتى نتأكد. رابط بمعامل خاطئ
+         أسوأ من رابط بلا معامل: يبدو ناجحاً ولا يُحتسب. */
       if (url.includes('microless.com')) {
-        const microlessAffId = ''; 
-        if (!microlessAffId) return url;
-        return url.includes('?') ? `${url}&aff_id=${microlessAffId}` : `${url}?aff_id=${microlessAffId}`;
+        if (!MICROLESS_AFF_ID) return url;
+        return url.includes('?')
+          ? `${url}&aff_id=${MICROLESS_AFF_ID}`
+          : `${url}?aff_id=${MICROLESS_AFF_ID}`;
       }
       return url;
       
     default:
       return url;
   }
+};
+
+type TierPlan = {
+  key: 'value' | 'balanced' | 'strong';
+  label: string;
+  note: string;
+  total: number;
+  picks: Record<string, any>;
 };
 
 /* ---- عروض المتاجر لقطعة: المتوفّر فقط، الأرخص أولاً ---- */
@@ -889,7 +925,9 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
   );
 };
 
-export default function PCBuilderClient({ categories, importedSelections = {} }: { categories: Category[], importedSelections?: Record<string, string> }) {
+export default function PCBuilderClient({ categories, importedSelections = {}, affiliateIds }: { categories: Category[], importedSelections?: Record<string, string>, affiliateIds?: Record<string, string> }) {
+  // نطبّق معرّفات لوحة الإدارة قبل أي رسم — الروابط تُبنى أثناء الرسم
+  applyAffiliateIds(affiliateIds);
   const { data: session } = useSession();
   const router = useRouter(); 
   const [editModeId, setEditModeId] = useState<string | null>(null); 
@@ -1124,120 +1162,133 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     });
   };
 
-  const handleAutoFill = (tier: 'economy' | 'mid' | 'high') => {
-    let newSelections = { ...selectedComponents };
-    
-    // سحب القطع مرتبة حسب السعر
-    const getCategoryComponents = (name: string) => [...(categories.find(c => c.name === name)?.components || [])].sort((a, b) => a.price - b.price);
+  /* ============ التوزيع بالميزانية ============
+     النسب مأخوذة من دليل "تجميعة ألعاب اقتصادية ذكية" — المنصة تمارس ما تعظ به.
+     الكرت أهم قطعة في جهاز الألعاب، فيأخذ أكبر نصيب.
 
-    const cpus = getCategoryComponents('CPU');
-    const gpus = getCategoryComponents('GPU');
-    const mobos = getCategoryComponents('Motherboard');
-    const rams = getCategoryComponents('RAM');
-    const psus = getCategoryComponents('PSU');
-    const storages = getCategoryComponents('Storage');
-    const cases = getCategoryComponents('Case');
+  /* أوزان النيّة — محفوظة لإعادة وصل الذكاء لاحقاً */
+  const USE_PROFILE: Record<string, { cpu: number; gpu: number; ram: number; storage: number; label: string }> = {
+    'competitive-shooter': { cpu: 0.30, gpu: 0.34, ram: 0.14, storage: 0.08, label: 'شوتر تنافسي' },
+    'aaa-gaming':          { cpu: 0.20, gpu: 0.44, ram: 0.14, storage: 0.08, label: 'ألعاب ثقيلة' },
+    'casual-gaming':       { cpu: 0.24, gpu: 0.36, ram: 0.14, storage: 0.08, label: 'ألعاب خفيفة' },
+    'editing':             { cpu: 0.32, gpu: 0.26, ram: 0.20, storage: 0.12, label: 'مونتاج وتصميم' },
+    'streaming':           { cpu: 0.32, gpu: 0.30, ram: 0.16, storage: 0.10, label: 'بث مباشر' },
+    'office':              { cpu: 0.30, gpu: 0.16, ram: 0.18, storage: 0.14, label: 'مكتبي ودراسة' },
+    'mixed':               { cpu: 0.26, gpu: 0.34, ram: 0.16, storage: 0.10, label: 'استخدام متنوّع' },
+  };
 
-    // دالة لتقسيم القطع لشرائح حسب الفئة السعرية والأداء
-    const getTierSlice = (arr: any[], t: 'economy' | 'mid' | 'high') => {
-      if (arr.length <= 3) return arr;
-      const third = Math.floor(arr.length / 3);
-      if (t === 'economy') return arr.slice(0, third + Math.floor(third/2)); // النصف الأرخص
-      if (t === 'mid') return arr.slice(third, arr.length - third); // الوسط
-      return arr.slice(arr.length - Math.floor(third * 1.5)); // النصف الأغلى
+  /* ============ بناء ثلاثة مستويات من الكتالوج الحقيقي ============
+     يُستدعى بعد أن يفهم المساعد النيّة. النموذج لا يلمس هذا إطلاقاً —
+     كل قطعة هنا موجودة ومتوفّرة في كتالوجنا بسعرها الفعلي. */
+  const buildPlans = (intent: any): TierPlan[] | null => {
+    const profile = USE_PROFILE[intent.use] || USE_PROFILE['mixed'];
+
+    const pool = (name: string) => [...(categories.find(c => c.name === name)?.components || [])]
+      .filter(isComponentAvailable)
+      .sort((a, b) => a.price - b.price);
+
+    const gpus = pool('GPU');
+    const cpus = pool('CPU');
+    const mobos = pool('Motherboard');
+    const rams = pool('RAM');
+    const psus = pool('PSU');
+    const cases = pool('Case');
+    // قرص النظام لا يكون HDD — يطابق دليل SSD مقابل HDD
+    const storages = pool('Storage').filter(st => {
+      const t = String(parseSpecs(st.specs).type || '').toUpperCase();
+      return t.includes('NVME') || t.includes('SSD');
+    });
+
+    if (!gpus.length || !cpus.length || !mobos.length || !rams.length || !psus.length || !cases.length || !storages.length) {
+      return null;
+    }
+
+    // الدقة ترفع وزن الكرت: 4K يحتاج كرتاً أقوى، 1080p أقل
+    const resBoost = intent.resolution === '4K' ? 1.25 : intent.resolution === '1440p' ? 1.1 : 0.9;
+    // البثّ/التصوير يرفع وزن المعالج والرام
+    const streamBoost = intent.alsoStreams ? 1.2 : 1.0;
+
+    /* نبني ثلاثة مستويات بمؤشّرات من الكتالوج:
+       الاقتصادي = الشريحة الدنيا، المتوازن = الوسطى، القوي = العليا.
+       المؤشّر يُحسب على مصفوفة مرتّبة بالسعر — لا نفرض أرقاماً. */
+    const at = (arr: any[], frac: number) => {
+      const i = Math.min(arr.length - 1, Math.max(0, Math.round((arr.length - 1) * frac)));
+      return arr[i];
     };
 
-    // 1. اختيار كرت الشاشة (الأساس)
-    let validGpus = getTierSlice(gpus, tier);
-    let gpu = tier === 'high' ? validGpus[validGpus.length - 1] : validGpus[Math.floor(validGpus.length / 3)];
-    if (tier === 'economy') gpu = validGpus[0];
-    
-    if (!gpu) {
-      toast.error('لا توجد كروت شاشة كافية في قاعدة البيانات.');
-      return;
+    const TIERS: { key: TierPlan['key']; label: string; f: number }[] = [
+      { key: 'value',    label: 'اقتصادي',  f: 0.20 },
+      { key: 'balanced', label: 'متوازن',   f: 0.50 },
+      { key: 'strong',   label: 'قوي',      f: 0.82 },
+    ];
+
+    const plans: TierPlan[] = [];
+
+    for (const t of TIERS) {
+      const picks: Record<string, any> = {};
+
+      // الكرت والمعالج: الوزن يحرّك المؤشّر داخل الشريحة
+      const gpuFrac = Math.min(0.98, t.f * (profile.gpu / 0.34) * resBoost);
+      const cpuFrac = Math.min(0.98, t.f * (profile.cpu / 0.26) * streamBoost);
+
+      picks['GPU'] = at(gpus, gpuFrac);
+      picks['CPU'] = at(cpus, cpuFrac);
+
+      // اللوحة: متوافقة مع مقبس المعالج
+      const socket = String(parseSpecs(picks['CPU'].specs).socket || '');
+      const okMobos = mobos.filter(m => String(parseSpecs(m.specs).socket || '') === socket);
+      if (!okMobos.length) continue;
+      picks['Motherboard'] = at(okMobos, t.f * 0.7);
+
+      // الرام: متوافقة مع نوع اللوحة
+      const ramType = String(parseSpecs(picks['Motherboard'].specs).ramType || '');
+      const okRams = rams.filter(r => String(parseSpecs(r.specs).type || '') === ramType);
+      if (!okRams.length) continue;
+      picks['RAM'] = at(okRams, t.f * (profile.ram / 0.16) * streamBoost);
+
+      picks['Storage'] = at(storages, t.f * (profile.storage / 0.10));
+
+      /* المزوّد: نختار بالقدرة لا بمؤشّر السعر.
+         الخطأ السابق: okPsus مرتّبة بالسعر، فالمؤشّر يقفز عشوائياً بين
+         الواطات (850W بـ458 أرخص من 650W بـ536!) — فيختار 850W لتجميعة
+         تحتاج 450W. الصواب: أصغر مزوّد يحقّق الحاجة + هامش أمان،
+         ومن بين المتساوين في الواط نأخذ الأرخص. */
+      const drawW = (picks['CPU'].tdpWattage || 65) + (picks['GPU'].tdpWattage || 200) + 80;
+      const reqW = Math.ceil(drawW * 1.25); // هامش 25% — يطابق دليل مزوّد الطاقة
+      const okPsus = psus.filter(ps => parseFloat(parseSpecs(ps.specs).wattage || '0') >= reqW);
+      if (!okPsus.length) continue;
+      // أصغر واط كافٍ، ثم الأرخص ضمنه
+      const minW = Math.min(...okPsus.map(ps => parseFloat(parseSpecs(ps.specs).wattage || '0')));
+      const tightPsus = okPsus
+        .filter(ps => parseFloat(parseSpecs(ps.specs).wattage || '0') === minW)
+        .sort((a, b) => a.price - b.price);
+      picks['PSU'] = tightPsus[0];
+
+      // الكيس: يتّسع للكرت
+      const gpuLen = parseFloat(parseSpecs(picks['GPU'].specs).lengthMm || '320');
+      const okCases = cases.filter(c => parseFloat(parseSpecs(c.specs).maxGpuLength || '999') >= gpuLen);
+      if (!okCases.length) continue;
+      picks['Case'] = at(okCases, t.f * 0.6);
+
+      const total = Object.values(picks).reduce((sum: number, c: any) => sum + (c?.price || 0), 0);
+
+      const resNote = intent.resolution ? ` · ${intent.resolution}` : '';
+      plans.push({
+        key: t.key,
+        label: t.label,
+        note: `${profile.label}${resNote}`,
+        total,
+        picks,
+      });
     }
-    newSelections['GPU'] = gpu;
-    const gpuPrice = gpu.price;
-    const reqGpuLength = parseFloat(parseSpecs(gpu.specs).lengthMm || "320");
 
-    // 2. اختيار المعالج
-    let validCpus = getTierSlice(cpus, tier);
-    let cpu = tier === 'high' ? validCpus[validCpus.length - 1] : validCpus[Math.floor(validCpus.length / 3)];
-    if (tier === 'economy') cpu = validCpus[0];
-    newSelections['CPU'] = cpu;
-
-    const cpuSpecs = parseSpecs(cpu.specs);
-    const reqWattage = (cpu.tdpWattage || 65) + (gpu.tdpWattage || 200) + 100; // الاستهلاك الفعلي + هامش 100W
-
-    // 3. اختيار اللوحة الأم
-    const compMobos = mobos.filter(mb => String(parseSpecs(mb.specs).socket) === String(cpuSpecs.socket));
-    let filteredMobos = compMobos.filter(mb => {
-      const chipset = String(parseSpecs(mb.specs).chipset || '').toUpperCase();
-      const isBasic = chipset.includes('H610') || chipset.includes('A620') || chipset.includes('A520') || chipset.includes('B450');
-      const isMid = chipset.includes('B760') || chipset.includes('B660') || chipset.includes('B650') || chipset.includes('B550');
-      
-      // القيود الصارمة للقيمة
-      if (tier === 'economy') return (isBasic || isMid) && mb.price <= (gpuPrice * 0.6); // اللوحة لا تتجاوز 60% من سعر الكرت
-      if (tier === 'mid') return isMid && mb.price <= gpuPrice;
-      return true; // الفئة العليا بدون قيود
-    });
-    if (filteredMobos.length === 0) filteredMobos = compMobos;
-    newSelections['Motherboard'] = tier === 'high' ? filteredMobos[filteredMobos.length - 1] : filteredMobos[0];
-
-    // 4. اختيار الرام
-    const moboSpecs = parseSpecs(newSelections['Motherboard']!.specs);
-    const compRams = rams.filter(r => String(parseSpecs(r.specs).type) === String(moboSpecs.ramType));
-    let filteredRams = compRams.filter(r => {
-      const cap = parseFloat(parseSpecs(r.specs).capacity || "16");
-      // منع الرامات الأغلى من الكرت
-      if (tier !== 'high' && r.price > (gpuPrice * 0.45)) return false; 
-
-      if (tier === 'economy') return cap <= 32;
-      if (tier === 'mid') return cap >= 32;
-      return true;
-    });
-    if (filteredRams.length === 0) filteredRams = compRams.filter(r => r.price <= gpuPrice);
-    if (filteredRams.length === 0) filteredRams = compRams;
-    newSelections['RAM'] = tier === 'high' ? filteredRams[filteredRams.length - 1] : filteredRams[0];
-
-    // 5. اختيار مزود الطاقة (PSU)
-    const compPsus = psus.filter(p => parseFloat(parseSpecs(p.specs).wattage || "0") >= reqWattage);
-    let filteredPsus = compPsus.filter(p => {
-      const psuW = parseFloat(parseSpecs(p.specs).wattage || "0");
-      // حماية من مزودات 1000W لتجميعة تستهلك 350W
-      if (tier === 'economy') return psuW <= (reqWattage + 200) && p.price <= (gpuPrice * 0.5);
-      if (tier === 'mid') return psuW <= (reqWattage + 300);
-      return true;
-    });
-    if (filteredPsus.length === 0) filteredPsus = compPsus;
-    newSelections['PSU'] = tier === 'high' ? filteredPsus[filteredPsus.length - 1] : filteredPsus[0];
-
-    // 6. اختيار التخزين
-    let filteredStorages = storages.filter(st => {
-      const capStr = String(parseSpecs(st.specs).capacity || '').toUpperCase();
-      if (tier !== 'high' && st.price > (gpuPrice * 0.4)) return false;
-      if (tier === 'economy') return capStr.includes('1TB') || capStr.includes('500GB');
-      if (tier === 'mid') return capStr.includes('1TB') || capStr.includes('2TB');
-      return true;
-    });
-    if (filteredStorages.length === 0) filteredStorages = storages;
-    newSelections['Storage'] = tier === 'high' ? filteredStorages[filteredStorages.length - 1] : filteredStorages[0];
-
-    // 7. اختيار الكيس
-    const compCases = cases.filter(c => parseFloat(parseSpecs(c.specs).maxGpuLength || "999") >= reqGpuLength);
-    let filteredCases = compCases.filter(c => {
-      if (tier !== 'high' && c.price > (gpuPrice * 0.4)) return false;
-      if (tier === 'economy') return c.price <= 350;
-      if (tier === 'mid') return c.price <= 700;
-      return true;
-    });
-    if (filteredCases.length === 0) filteredCases = compCases;
-    newSelections['Case'] = tier === 'high' ? filteredCases[filteredCases.length - 1] : filteredCases[0];
-
-    setSelectedComponents(newSelections);
-    const tierName = tier === 'economy' ? 'الاقتصادية' : tier === 'mid' ? 'المتوسطة' : 'العليا';
-    toast.success(`تم بناء تجميعة كاملة من الفئة ${tierName} بنجاح!`, { icon: '✨' });
+    // نزيل التكرار: لو مستويان أنتجا نفس السعر تقريباً
+    const unique = plans.filter((p, i) => i === 0 || Math.abs(p.total - plans[i - 1].total) > 200);
+    return unique.length ? unique : plans;
   };
+
+
+
 
   const handleCopyText = () => {
     let text = "💻 تجميعتي المخصصة:\n\n";
@@ -1568,6 +1619,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
       <div className="p-6 md:p-10">
         
+        {/* ===== نشتغل عليه الآن — إشارة حياة، بلا وعود ===== */}
+        <WorkInProgress />
+
         {/* شريط الخيارات العلوي */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 pb-6 border-b border-slate-200 dark:border-slate-800/60 gap-4">
           
@@ -1578,17 +1632,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
               لوحة اختيار القطع
             </h2>
             
-            {selectedComponents['CPU'] && selectedComponents['GPU'] && (
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/50">
-              <span className="text-xs font-black text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1">
-                <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                تجميع تلقائي:
-              </span>
-              <button onClick={() => handleAutoFill('economy')} className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 dark:text-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg shadow-sm transition-all border border-slate-200 dark:border-slate-600">اقتصادي</button>
-              <button onClick={() => handleAutoFill('mid')} className="px-3 py-1.5 text-xs font-bold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900/30 dark:hover:bg-cyan-900/50 rounded-lg shadow-sm transition-all border border-cyan-200 dark:border-cyan-800/50">متوسط</button>
-              <button onClick={() => handleAutoFill('high')} className="px-3 py-1.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 rounded-lg shadow-sm transition-all border border-purple-200 dark:border-purple-800/50">عالي</button>
-            </div>
-            )}
+
           </div>
 
           {/* اليسار: التفريغ والعرض */}
