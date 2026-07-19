@@ -30,7 +30,7 @@ const ITEMS: Item[] = [
     title: 'مساعد اختيار التجميعة',
     desc: 'قل لنا وش تسوي بجهازك — ألعاب؟ مونتاج؟ — ونبني لك تجميعة كاملة من القطع المتوفّرة.',
     stage: 'building',
-  },
+  }
 ];
 
 const STAGE_META = {
@@ -45,7 +45,7 @@ const STAGE_META = {
     dot: 'bg-amber-500',
     text: 'text-amber-600 dark:text-amber-400',
     ring: 'border-amber-500/40 bg-amber-500/[0.06]',
-  },
+  }
 };
 
 export default function WorkInProgress() {

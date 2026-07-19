@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useRef, useEffect } from 'react';
 import type { FC } from 'react';
 import WorkInProgress from './WorkInProgress';
+import { Sk, SkSelectCard } from './loading-ui';
 
 /* ملاحظة: IntentPicker و BuildTuner مؤجّلان حتى يجهزا.
    buildPlans و USE_PROFILE محفوظان أدناه لإعادة الوصل بسطر واحد. */
@@ -1595,9 +1596,20 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
   };
 
   if (!isLoaded) {
+    /* هيكل عظمي يطابق التخطيط الفعلي — لا دوّارة عارية.
+       يُشعر بأن المحتوى قادم، ويمنع قفزة التخطيط عند الوصول. */
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="max-w-5xl mx-auto my-10 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-3xl border border-slate-200 dark:border-slate-800/80">
+        <div className="p-6 md:p-10">
+          <div className="flex flex-col lg:flex-row justify-between gap-4 mb-10 pb-6 border-b border-slate-200 dark:border-slate-800/60">
+            <Sk className="h-8 w-48" />
+            <Sk className="h-10 w-64 rounded-xl" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6 mb-10">
+            {Array.from({ length: 7 }).map((_, i) => <SkSelectCard key={i} />)}
+          </div>
+          <Sk className="h-14 w-full rounded-2xl" />
+        </div>
       </div>
     );
   }
