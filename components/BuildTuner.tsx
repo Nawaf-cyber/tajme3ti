@@ -54,6 +54,20 @@ const CAT_META: Record<string, { icon: string; label: string }> = {
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
+/* ============ حساب الطاقة ============
+   مصدر واحد للحقيقة: كان الحساب مكرّراً في موضعين (كشف التعارض
+   وسبب المنع)، فأي تعديل في أحدهما يجعل التحذير يخالف الشارة.
+   نستبعد المزوّد نفسه — لا يغذّي ذاته — ونضيف هامشاً للمراوح. */
+const PSU_HEADROOM = 150;
+const PERIPHERAL_DRAW = 50;
+
+const computeDraw = (parts: Record<string, any>): number => {
+  const sum = Object.entries(parts)
+    .filter(([k]) => k !== 'PSU')
+    .reduce((s: number, [, c]: [string, any]) => s + ((c && c.tdpWattage) || 0), 0);
+  return sum > 0 ? sum + PERIPHERAL_DRAW : 0;
+};
+
 /* ============ المكوّن ============ */
 
 export default function BuildTuner({
@@ -136,12 +150,9 @@ export default function BuildTuner({
     }
 
     if (psu) {
-      // نستبعد المزوّد من حساب استهلاكه — لا يغذّي نفسه
-      const draw = Object.entries(effective)
-        .filter(([k]) => k !== 'PSU')
-        .reduce((s: number, [, c]: any) => s + (c?.tdpWattage || 0), 0);
+      const draw = computeDraw(effective);
       const w = parseFloat(parseSpecs(psu.specs).wattage || '0');
-      if (w > 0 && draw > 0 && w < draw + 100) {
+      if (w > 0 && draw > 0 && w < draw + PSU_HEADROOM) {
         list.push({
           cat: 'PSU',
           reason: `الاستهلاك ${draw}W والمزوّد ${w}W — لا يكفي`,
@@ -154,6 +165,60 @@ export default function BuildTuner({
   }, [effective]);
 
   const conflictFor = (cat: string) => conflicts.find(c => c.cat === cat) || null;
+
+  /* سبب منع قطعة بعينها ضمن الحالة الفعّالة الحالية */
+  const blockReason = (catName: string, comp: Comp): string | null => {
+    const sp = parseSpecs(comp.specs);
+
+    if (catName === 'Motherboard') {
+      const cpu = effective['CPU'];
+      if (cpu) {
+        const a = String(parseSpecs(cpu.specs).socket || '').trim();
+        const b = String(sp.socket || '').trim();
+        if (a && b && a !== b) return `تتطلب معالج ${b}`;
+      }
+    }
+    if (catName === 'CPU') {
+      const mobo = effective['Motherboard'];
+      if (mobo) {
+        const a = String(sp.socket || '').trim();
+        const b = String(parseSpecs(mobo.specs).socket || '').trim();
+        if (a && b && a !== b) return `يتطلب لوحة ${a}`;
+      }
+    }
+    if (catName === 'RAM') {
+      const mobo = effective['Motherboard'];
+      if (mobo) {
+        const a = String(sp.type || '').trim();
+        const b = String(parseSpecs(mobo.specs).ramType || '').trim();
+        if (a && b && a !== b) return `اللوحة تدعم ${b}`;
+      }
+    }
+    if (catName === 'GPU') {
+      const cse = effective['Case'];
+      if (cse) {
+        const len = parseFloat(sp.lengthMm);
+        const max = parseFloat(parseSpecs(cse.specs).maxGpuLength);
+        if (!isNaN(len) && !isNaN(max) && len > max) return `أطول من الكيس (${max}mm)`;
+      }
+    }
+    if (catName === 'Case') {
+      const gpu = effective['GPU'];
+      if (gpu) {
+        const len = parseFloat(parseSpecs(gpu.specs).lengthMm);
+        const max = parseFloat(sp.maxGpuLength);
+        if (!isNaN(len) && !isNaN(max) && len > max) return `أصغر من الكرت (${len}mm)`;
+      }
+    }
+    if (catName === 'PSU') {
+      const draw = computeDraw(effective);
+      const w = parseFloat(sp.wattage || '0');
+      if (w > 0 && draw > 0 && w < draw + PSU_HEADROOM) {
+        return `لا يكفي (تحتاج ${draw + PSU_HEADROOM}W)`;
+      }
+    }
+    return null;
+  };
 
   /* ============ توليد البدائل الخمسة ============
      موزّعة على الطيف: الأرخص · أقل من الحالي · الحالي · أعلى · الأقوى.
@@ -182,11 +247,13 @@ export default function BuildTuner({
       const tiers = withTier.map((c: any) => c.performanceTier as number);
       const minT = tiers.length ? Math.min(...tiers) : 1;
       const maxT = tiers.length ? Math.max(...tiers) : 5;
-      const prices = pool.map((c: any) => c.price).sort((a: number, b: number) => a - b);
-      const priceRank = (p: number) => {
-        const i = prices.indexOf(p);
-        return prices.length > 1 ? i / (prices.length - 1) : 0.5;
-      };
+      /* الرتبة السعرية بالتطبيع بين الأدنى والأعلى.
+         الاعتماد على indexOf كان يعطي رتبة واحدة لقطعتين بنفس السعر
+         (مثل RTX 4060 و RTX 5060 وكلاهما 1,500)، ويعطي -1 لو لم يجد السعر. */
+      const priceList = pool.map((c: any) => c.price);
+      const minP = Math.min(...priceList);
+      const maxP = Math.max(...priceList);
+      const priceRank = (p: number) => (maxP > minP ? (p - minP) / (maxP - minP) : 0.5);
       const effTier = (c: any) =>
         c.performanceTier != null
           ? c.performanceTier
@@ -249,60 +316,6 @@ export default function BuildTuner({
     const cat = categories.find(c => c.name === catName);
     if (!cat) return 0;
     return cat.components.filter((c: any) => c.price > 0 && !blockReason(catName, c)).length;
-  };
-
-  /* سبب منع قطعة بعينها ضمن الحالة الفعّالة الحالية */
-  const blockReason = (catName: string, comp: Comp): string | null => {
-    const sp = parseSpecs(comp.specs);
-
-    if (catName === 'Motherboard') {
-      const cpu = effective['CPU'];
-      if (cpu) {
-        const a = String(parseSpecs(cpu.specs).socket || '').trim();
-        const b = String(sp.socket || '').trim();
-        if (a && b && a !== b) return `تتطلب معالج ${b}`;
-      }
-    }
-    if (catName === 'CPU') {
-      const mobo = effective['Motherboard'];
-      if (mobo) {
-        const a = String(sp.socket || '').trim();
-        const b = String(parseSpecs(mobo.specs).socket || '').trim();
-        if (a && b && a !== b) return `يتطلب لوحة ${a}`;
-      }
-    }
-    if (catName === 'RAM') {
-      const mobo = effective['Motherboard'];
-      if (mobo) {
-        const a = String(sp.type || '').trim();
-        const b = String(parseSpecs(mobo.specs).ramType || '').trim();
-        if (a && b && a !== b) return `اللوحة تدعم ${b}`;
-      }
-    }
-    if (catName === 'GPU') {
-      const cse = effective['Case'];
-      if (cse) {
-        const len = parseFloat(sp.lengthMm);
-        const max = parseFloat(parseSpecs(cse.specs).maxGpuLength);
-        if (!isNaN(len) && !isNaN(max) && len > max) return `أطول من الكيس (${max}mm)`;
-      }
-    }
-    if (catName === 'Case') {
-      const gpu = effective['GPU'];
-      if (gpu) {
-        const len = parseFloat(parseSpecs(gpu.specs).lengthMm);
-        const max = parseFloat(sp.maxGpuLength);
-        if (!isNaN(len) && !isNaN(max) && len > max) return `أصغر من الكرت (${len}mm)`;
-      }
-    }
-    if (catName === 'PSU') {
-      const draw = Object.entries(effective)
-        .filter(([k]) => k !== 'PSU')
-        .reduce((s: number, [, c]: any) => s + (c?.tdpWattage || 0), 0);
-      const w = parseFloat(sp.wattage || '0');
-      if (w > 0 && draw > 0 && w < draw + 100) return `لا يكفي (تحتاج ${draw + 100}W)`;
-    }
-    return null;
   };
 
   /* ============ الإجراءات ============ */
@@ -536,10 +549,20 @@ export default function BuildTuner({
                                 </div>
                               ) : (
                                 <div className="text-left shrink-0">
-                                  <div className={`text-[11px] font-black ${
+                                  <div className={`text-[11px] font-black flex items-center gap-0.5 justify-end ${
                                     alt.delta > 0 ? 'text-red-500' : alt.delta < 0 ? 'text-emerald-500' : 'text-slate-400'
                                   }`}>
-                                    {alt.delta > 0 ? '▲' : '▼'} {fmt(Math.abs(alt.delta))} ﷼
+                                    {alt.delta > 0 ? '▲' : '▼'} {fmt(Math.abs(alt.delta))}
+                                    <RiyalIcon
+                                      size="h-2 w-2"
+                                      colorClass={
+                                        alt.delta > 0
+                                          ? 'bg-red-500'
+                                          : alt.delta < 0
+                                          ? 'bg-emerald-500'
+                                          : 'bg-slate-400'
+                                      }
+                                    />
                                   </div>
                                   <div className="text-[8.5px] font-bold text-slate-400 mt-0.5">
                                     الإجمالي يصير {fmt(nextTotal - (cur?.price || 0) + alt.comp.price)}

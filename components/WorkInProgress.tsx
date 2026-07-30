@@ -20,17 +20,11 @@ type Item = {
 
 const ITEMS: Item[] = [
   {
-    icon: '🎛️',
-    title: 'خصّص تجميعتك',
-    desc: 'بدائل لكل قطعة بأسعارها الحقيقية، وترى أثر أي تغيير على الإجمالي قبل ما تطبّقه.',
-    stage: 'testing',
-  },
-  {
-    icon: '💡',
-    title: 'مساعد اختيار التجميعة',
-    desc: 'قل لنا وش تسوي بجهازك — ألعاب؟ مونتاج؟ — ونبني لك تجميعة كاملة من القطع المتوفّرة.',
+    icon: '💬',
+    title: 'مساعد ذكي بالمحادثة',
+    desc: 'بدل الأزرار، اكتب بكلامك: "أبي جهاز شوتر تنافسي بميزانية معقولة" — ونفهم طلبك ونبني لك التجميعة.',
     stage: 'building',
-  }
+  },
 ];
 
 const STAGE_META = {
@@ -45,7 +39,7 @@ const STAGE_META = {
     dot: 'bg-amber-500',
     text: 'text-amber-600 dark:text-amber-400',
     ring: 'border-amber-500/40 bg-amber-500/[0.06]',
-  }
+  },
 };
 
 export default function WorkInProgress() {

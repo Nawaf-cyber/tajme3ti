@@ -1,7 +1,8 @@
 "use client";
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { isComponentAvailable } from '../../lib/availability';
+import { formatPrice, componentDiscount } from '../../lib/price';
 
 // إضافة colorClass للتحكم بلون الشعار حسب مكانه (أزرق للفلتر، أخضر للأسعار)
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -34,22 +35,44 @@ export default function ComponentsClient({ components, categories }: { component
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('all');
   const [maxPrice, setMaxPrice] = useState(20000);
-  
-  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== 20000;
+  const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc'>('newest');
+  const [onlyDeals, setOnlyDeals] = useState(false);
+
+  /* نحسب الخصم مرّة واحدة لكل قطعة — الدالة مشتركة مع صفحة المنتج */
+  const withDeals = useMemo(
+    () => components.map(c => ({ ...c, _deal: componentDiscount(c) })),
+    [components]
+  );
+
+  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== 20000 || sortBy !== 'newest' || onlyDeals;
 
   const handleClearFilters = () => {
     setSearch('');
     setSelectedCat('all');
     setMaxPrice(20000);
+    setSortBy('newest');
+    setOnlyDeals(false);
   };
 
-  // منطق الفلترة
-  const filtered = components.filter((c) => {
-    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.brand.toLowerCase().includes(search.toLowerCase());
+  // الفلاتر الأساسية (بلا فلتر التخفيضات) — نحتاجها لحساب عدّاد الصفقات
+  const baseFiltered = useMemo(() => withDeals.filter((c) => {
+    const q = search.toLowerCase();
+    const matchSearch = c.name.toLowerCase().includes(q) || c.brand.toLowerCase().includes(q);
     const matchCat = selectedCat === 'all' || c.categoryId === selectedCat;
     const matchPrice = c.price <= maxPrice;
     return matchSearch && matchCat && matchPrice;
-  });
+  }), [withDeals, search, selectedCat, maxPrice]);
+
+  /* العدّاد يعكس ما ستراه لو فعّلت الزر — أي ضمن الفلاتر الحالية،
+     لا إجمالي الموقع. رقم لا يطابق النتيجة يُفقد الثقة. */
+  const dealsCount = useMemo(() => baseFiltered.filter(c => c._deal.pct > 0).length, [baseFiltered]);
+
+  const filtered = useMemo(() => {
+    const list = onlyDeals ? baseFiltered.filter(c => c._deal.pct > 0) : [...baseFiltered];
+    if (sortBy === 'price-asc') list.sort((a, b) => a.price - b.price);
+    else if (sortBy === 'price-desc') list.sort((a, b) => b.price - a.price);
+    return list;
+  }, [baseFiltered, onlyDeals, sortBy]);
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
@@ -120,7 +143,7 @@ export default function ComponentsClient({ components, categories }: { component
             <div className="flex justify-between items-center mb-5">
               <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">أقصى سعر</label>
               <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-800/30 shadow-sm">
-                {maxPrice} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                {formatPrice(maxPrice)} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-600 dark:bg-emerald-400" />
               </span>
             </div>
             <input 
@@ -143,6 +166,73 @@ export default function ComponentsClient({ components, categories }: { component
 
       {/* قسم عرض البطاقات */}
       <div className="flex-1">
+
+        {/* ===== شريط الأدوات: الفرز + الصفقات + العدد ===== */}
+        <div className="mb-6 flex flex-wrap items-center gap-3 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+
+          {/* زر الصفقات — يظهر معطّلاً إن لم توجد تخفيضات، لا يُخفى */}
+          <button
+            onClick={() => dealsCount > 0 && setOnlyDeals(!onlyDeals)}
+            disabled={dealsCount === 0}
+            title={dealsCount === 0 ? 'لا توجد تخفيضات مرصودة حالياً' : 'اعرض القطع المخفّضة فقط'}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black transition-all active:scale-95 border ${
+              dealsCount === 0
+                ? 'bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-700/50 cursor-not-allowed'
+                : onlyDeals
+                ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-500/30'
+                : 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-900/40'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            عليها تخفيض
+            <span className={`min-w-[22px] px-1.5 py-0.5 rounded-md text-[11px] font-black font-mono tabular-nums ${
+              dealsCount === 0
+                ? 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                : onlyDeals
+                ? 'bg-white/25 text-white'
+                : 'bg-rose-500 text-white'
+            }`}>
+              {dealsCount}
+            </span>
+          </button>
+
+          <div className="w-px h-8 bg-slate-200 dark:bg-slate-700/60"></div>
+
+          {/* الفرز */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">الترتيب</span>
+            {([
+              { key: 'newest', label: 'الأحدث', icon: null },
+              { key: 'price-asc', label: 'الأرخص', icon: 'M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12' },
+              { key: 'price-desc', label: 'الأغلى', icon: 'M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4' },
+            ] as const).map(o => (
+              <button
+                key={o.key}
+                onClick={() => setSortBy(o.key)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold transition-all active:scale-95 border ${
+                  sortBy === o.key
+                    ? 'bg-cyan-500 text-white border-cyan-500 shadow-sm shadow-cyan-500/30'
+                    : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:border-cyan-400 dark:hover:border-cyan-600'
+                }`}
+              >
+                {o.icon && (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={o.icon} />
+                  </svg>
+                )}
+                {o.label}
+              </button>
+            ))}
+          </div>
+
+          {/* عدد النتائج */}
+          <span className="mr-auto text-[11px] font-bold text-slate-400 dark:text-slate-500 font-mono tabular-nums px-2">
+            {filtered.length} قطعة
+          </span>
+        </div>
+
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm text-center">
             <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-4 border border-slate-100 dark:border-slate-700">
@@ -194,6 +284,12 @@ export default function ComponentsClient({ components, categories }: { component
                     alt={comp.name} 
                     className="max-w-full max-h-full object-contain p-4 mix-blend-multiply filter drop-shadow-sm group-hover:scale-110 transition-transform duration-500"
                   />
+                  {/* شارة الخصم — أعلى يمين الصورة */}
+                  {comp._deal.pct > 0 && (
+                    <span className="absolute top-2 right-2 bg-rose-500 text-white text-[11px] font-black px-2 py-1 rounded-sm shadow-md shadow-rose-500/40 font-mono tabular-nums z-10">
+                      ‎-{comp._deal.pct}%
+                    </span>
+                  )}
                   {!available && (
                     <span className="absolute top-2 left-2 bg-amber-500/90 backdrop-blur-sm text-white text-[9px] font-black px-2 py-1 rounded-sm shadow-sm flex items-center gap-1 font-mono">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
@@ -227,12 +323,20 @@ export default function ComponentsClient({ components, categories }: { component
                     <div>
                       <p className="text-[12px] text-slate-400 font-bold mb-1 uppercase tracking-wider">السعر</p>
                       {available ? (
-                        <span className="font-black text-xl text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                          {comp.price} <RiyalIcon size="h-5 w-5" colorClass="bg-emerald-600 dark:bg-emerald-400" />
-                        </span>
+                        <>
+                          <span className="font-black text-xl text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                            {formatPrice(comp.price)} <RiyalIcon size="h-5 w-5" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                          </span>
+                          {/* السعر قبل الخصم — مشطوباً */}
+                          {comp._deal.pct > 0 && comp._deal.listPrice && (
+                            <span className="block text-[12px] font-bold text-slate-400 dark:text-slate-500 line-through mt-0.5 font-mono" dir="ltr">
+                              {formatPrice(comp._deal.listPrice)}
+                            </span>
+                          )}
+                        </>
                       ) : (
                         <span className="font-black text-xl text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                          {comp.price} <RiyalIcon size="h-5 w-5" colorClass="bg-amber-600 dark:bg-amber-400" />
+                          {formatPrice(comp.price)} <RiyalIcon size="h-5 w-5" colorClass="bg-amber-600 dark:bg-amber-400" />
                           <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 mr-1">(غير متوفر حالياً)</span>
                         </span>
                       )}

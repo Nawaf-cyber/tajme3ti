@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 export default function UpdateSingleButton({ id, name }: { id: string, name: string }) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const router = useRouter();
 
   const handleUpdate = async () => {
     setIsUpdating(true);
     const loadingToast = toast.loading(`جاري تحديث سعر ${name}...`);
-    
+
     try {
       const res = await fetch('/api/update-single', {
         method: 'POST',
@@ -20,11 +22,33 @@ export default function UpdateSingleButton({ id, name }: { id: string, name: str
       const data = await res.json();
 
       if (res.ok && data.success) {
-        toast.success(`تم تحديث السعر بنجاح: ${data.price} ر.س`, { id: loadingToast });
-        // تنبيه: السعر لن يتحدث في الواجهة فوراً إلا إذا قمت بعمل Refresh للصفحة أو تحديث الـ State
-        // يمكنك إضافة router.refresh() هنا إذا أردت تحديث الجدول فوراً
+        /* رسالة تحكي ما تغيّر فعلاً: الفارق عن السعر السابق، والخصم إن رُصد.
+           الهدف من هذا الزر هو التحقّق الفوري، فالرد لازم يكون مفيداً. */
+        const parts: string[] = [`${data.price} ر.س`];
+
+        if (typeof data.previousPrice === 'number' && data.previousPrice !== data.price) {
+          const diff = data.price - data.previousPrice;
+          parts.push(`${diff < 0 ? '▼' : '▲'} ${Math.abs(Math.round(diff * 100) / 100)}`);
+        }
+        if (data.discountPct >= 3 && data.listPrice) {
+          parts.push(`🔻 خصم ${data.discountPct}% (كان ${data.listPrice})`);
+        }
+        if (data.restocked) parts.push('📦 توفرت من جديد');
+        if (data.cheapestStore) {
+          const ar: Record<string, string> = { amazon: 'أمازون', cazasouq: 'كازاسوق', microless: 'مايكرولس' };
+          parts.push(`· ${ar[data.cheapestStore] || data.cheapestStore}`);
+        }
+
+        toast.success(parts.join('  '), { id: loadingToast, duration: 6000 });
+
+        // تنبيهات جزئية: نجح التحديث لكن متجر أو أكثر تعذّر قراءته
+        if (Array.isArray(data.errors) && data.errors.length) {
+          toast(data.errors.slice(0, 3).join('\n'), { icon: '⚠️', duration: 9000 });
+        }
+
+        router.refresh();   // يحدّث الجدول فوراً بلا إعادة تحميل يدوية
       } else {
-        toast.error('فشل التحديث. تأكد من الروابط.', { id: loadingToast });
+        toast.error(data.error || 'فشل التحديث. تأكد من الروابط.', { id: loadingToast });
       }
     } catch (error) {
       toast.error('حدث خطأ في الاتصال بالسيرفر', { id: loadingToast });

@@ -144,7 +144,9 @@ const HIGHER_IS_BETTER = [
   'سرعة القراءة', 'سرعة الكتابة', 'القدرة',
   'المراوح', 'أقصى طول للكرت',
 ];
-const LOWER_IS_BETTER = ['زمن الوصول', 'الطول'];
+// زمن الوصول: الأقل أفضل. الطول أُزيل عمداً — فهو مقياس توافق
+// (يدخل الكيس أو لا) لا مقياس جودة، فالنجمة عليه تُضلّل.
+const LOWER_IS_BETTER = ['زمن الوصول'];
 
 const parseNum = (v: any): number | null => {
   if (v == null) return null;
@@ -156,6 +158,33 @@ const compareDirection = (label: string): 'higher' | 'lower' | null => {
   if (LOWER_IS_BETTER.includes(label)) return 'lower';
   if (HIGHER_IS_BETTER.includes(label)) return 'higher';
   return null;
+};
+
+/* شهادة كفاءة المزوّد: ترتيب معروف (كلما أعلى كان أفضل).
+   نحوّل النص إلى رقم حتى يعمل معه منطق الفائز نفسه. */
+const RATING_RANK: Record<string, number> = {
+  'titanium': 6,
+  'platinum': 5,
+  'gold': 4,
+  'silver': 3,
+  'bronze': 2,
+  'white': 1,
+  'standard': 1,
+};
+const ratingRank = (v: any): number | null => {
+  if (v == null) return null;
+  const s = String(v).toLowerCase();
+  for (const key of Object.keys(RATING_RANK)) {
+    if (s.includes(key)) return RATING_RANK[key];
+  }
+  return null;
+};
+
+/* موصّلات الطاقة: لا "أفضل" مطلق، لكن 16-pin هو المعيار الأحدث
+   (PCIe 5.0). نضع شارة "الأحدث" تعريفياً لا حكماً على الجودة. */
+const isModernConnector = (v: any): boolean => {
+  if (v == null) return false;
+  return /16[\s-]?pin/i.test(String(v));
 };
 
 /* ============ المكوّن ============ */
@@ -247,15 +276,28 @@ export default function CompareClient({
       const key = Object.keys(sp).find((k) => specLabel(k) === label);
       return key ? sp[key] : null;
     });
-    const dir = compareDirection(label);
     let winnerIdx: number[] = [];
-    if (dir && selected.length > 1) {
-      const nums = values.map(parseNum);
-      const valid = nums.filter((n): n is number => n != null);
-      if (valid.length > 1) {
-        const best = dir === 'higher' ? Math.max(...valid) : Math.min(...valid);
-        winnerIdx = nums.map((n, i) => (n === best ? i : -1)).filter((i) => i >= 0);
-        if (winnerIdx.length === valid.length) winnerIdx = [];
+    if (selected.length > 1) {
+      // شهادة الكفاءة تُقارَن بالترتيب المعروف لا بالأرقام
+      if (label === 'شهادة الكفاءة') {
+        const ranks = values.map(ratingRank);
+        const valid = ranks.filter((n): n is number => n != null);
+        if (valid.length > 1) {
+          const best = Math.max(...valid);
+          winnerIdx = ranks.map((n, i) => (n === best ? i : -1)).filter((i) => i >= 0);
+          if (winnerIdx.length === valid.length) winnerIdx = [];
+        }
+      } else {
+        const dir = compareDirection(label);
+        if (dir) {
+          const nums = values.map(parseNum);
+          const valid = nums.filter((n): n is number => n != null);
+          if (valid.length > 1) {
+            const best = dir === 'higher' ? Math.max(...valid) : Math.min(...valid);
+            winnerIdx = nums.map((n, i) => (n === best ? i : -1)).filter((i) => i >= 0);
+            if (winnerIdx.length === valid.length) winnerIdx = [];
+          }
+        }
       }
     }
     return { values, winnerIdx };
@@ -585,6 +627,11 @@ export default function CompareClient({
                         >
                           {v ?? <span className="text-slate-300 dark:text-slate-700">—</span>}
                           {winnerIdx.includes(i) && <span className="text-amber-400 mr-1">★</span>}
+                          {label === 'موصّلات الطاقة' && isModernConnector(v) && (
+                            <span className="block mt-1 text-[9px] font-black text-cyan-600 dark:text-cyan-400 tracking-wide">
+                              الأحدث · PCIe 5.0
+                            </span>
+                          )}
                         </td>
                       ))}
                       {selected.length < 3 && (
@@ -622,22 +669,36 @@ export default function CompareClient({
                 })()}
 
                 {/* صف مستوى الأداء */}
-                {selected.some((c) => c.performanceTier) && (
-                  <tr className="bg-cyan-500/[0.03]">
-                    <td className="py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                      مستوى الأداء
-                    </td>
-                    {selected.map((c, i) => (
-                      <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
-                        <span className="text-sm tracking-widest" dir="ltr">
-                          <span className="text-cyan-500 dark:text-cyan-400">{'●'.repeat(c.performanceTier ?? 0)}</span>
-                          <span className="text-slate-200 dark:text-slate-700">{'●'.repeat(5 - (c.performanceTier ?? 0))}</span>
-                        </span>
+                {selected.some((c) => c.performanceTier) && (() => {
+                  // الأعلى مستوىً هو الفائز — نُخفي النجمة عند تساوي الجميع
+                  const tierNums = selected.map((c) => c.performanceTier ?? null);
+                  const validTiers = tierNums.filter((n): n is number => n != null);
+                  let tierWinners: number[] = [];
+                  if (validTiers.length > 1) {
+                    const bestTier = Math.max(...validTiers);
+                    tierWinners = tierNums.map((n, i) => (n === bestTier ? i : -1)).filter((i) => i >= 0);
+                    if (tierWinners.length === validTiers.length) tierWinners = [];
+                  }
+                  return (
+                    <tr className="bg-cyan-500/[0.03]">
+                      <td className="py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        مستوى الأداء
                       </td>
-                    ))}
-                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
-                  </tr>
-                )}
+                      {selected.map((c, i) => (
+                        <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
+                          <span className="text-sm tracking-widest inline-flex items-center gap-1" dir="ltr">
+                            {tierWinners.includes(i) && <span className="text-amber-400">★</span>}
+                            <span>
+                              <span className="text-cyan-500 dark:text-cyan-400">{'●'.repeat(c.performanceTier ?? 0)}</span>
+                              <span className="text-slate-200 dark:text-slate-700">{'●'.repeat(5 - (c.performanceTier ?? 0))}</span>
+                            </span>
+                          </span>
+                        </td>
+                      ))}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
 
                 {/* صف السعر */}
                 {(() => {
@@ -673,6 +734,46 @@ export default function CompareClient({
                         );
                       })}
                       {selected.length < 3 && <td style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
+                {/* صف القيمة الرقمية: يُظهر رقم "القيمة مقابل السعر" صراحةً
+                    بدل الاكتفاء بذكر "أفضل قيمة" في الخلاصة. الأعلى أفضل. */}
+                {selected.length > 1 && selected.some((c) => c.performanceTier && c.price > 0) && (() => {
+                  // نقيس القيمة كمؤشر نسبي 0–100 (الأعلى = أفضل قيمة)
+                  const raw = selected.map(valueScore);
+                  const validRaw = raw.filter((n): n is number => n != null);
+                  const maxRaw = validRaw.length ? Math.max(...validRaw) : 0;
+                  const idx = raw.map((s) => (s != null && maxRaw > 0 ? Math.round((s / maxRaw) * 100) : null));
+                  let vWinners: number[] = [];
+                  if (validRaw.length > 1) {
+                    const best = Math.max(...validRaw);
+                    vWinners = raw.map((n, i) => (n === best ? i : -1)).filter((i) => i >= 0);
+                    if (vWinners.length === validRaw.length) vWinners = [];
+                  }
+                  return (
+                    <tr className="bg-cyan-500/[0.03]">
+                      <td className="py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        القيمة مقابل السعر
+                        <div className="mt-0.5 font-mono text-[9px] font-normal text-slate-400 leading-tight">
+                          مؤشر نسبي · الأعلى أفضل
+                        </div>
+                      </td>
+                      {idx.map((score, i) => (
+                        <td key={selected[i].id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
+                          {score != null ? (
+                            <span className="inline-flex items-center gap-1 font-mono font-black text-base text-slate-900 dark:text-white">
+                              {vWinners.includes(i) && <span className="text-amber-400 text-xs">★</span>}
+                              {score}
+                              <span className="text-[10px] font-normal text-slate-400">/100</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 dark:text-slate-700">—</span>
+                          )}
+                        </td>
+                      ))}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
                     </tr>
                   );
                 })()}

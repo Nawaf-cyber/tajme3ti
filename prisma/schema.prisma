@@ -20,8 +20,8 @@ model Component {
   id          String   @id @default(cuid())
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id])
-  brand       String   
-  name        String   
+  brand       String
+  name        String
   price       Float    @default(0)
   amazonPrice   Float?  // سعر أمازون
   amazonInStock   Boolean @default(true)
@@ -30,6 +30,13 @@ model Component {
   microlessUrl     String?
   microlessPrice   Float?
   microlessInStock Boolean?  @default(true)
+
+  /* أسعار ما قبل الخصم (السعر المشطوب في المتجر).
+     null = لا يوجد خصم معلن. تُقرأ من الصفحة أثناء السحب، وتُقبل فقط إن
+     كانت أعلى من السعر الحالي وبنسبة معقولة — كي لا يُختلق خصم وهمي. */
+  amazonListPrice    Float?
+  cazasouqListPrice  Float?
+  microlessListPrice Float?
   tdpWattage  Int      @default(0)
   specs       Json     
   imageUrl    String?  
@@ -39,6 +46,7 @@ model Component {
   updatedAt   DateTime @updatedAt
   description String?  
   performanceTier Int?  // تقييم من 1 إلى 5 (1=اقتصادي، 5=فئة عليا)
+  priceHistory PriceHistory[]
 
   @@index([categoryId])
 }
@@ -166,4 +174,19 @@ model Setting {
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model PriceHistory {
+  id          String   @id @default(cuid())
+  componentId String
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  store       String   // "amazon" | "cazasouq" | "microless"
+  price       Float
+  recordedAt  DateTime @default(now())
+
+  // فهرس مركّب: يسرّع جلب تاريخ قطعة معيّنة مرتّباً زمنياً،
+  // وهو الاستعلام الوحيد الذي سنشغّله فعلياً في صفحة القطعة.
+  @@index([componentId, recordedAt])
+  // فهرس ثانٍ لصفحة الصفقات: أحدث الأسعار عبر كل القطع.
+  @@index([recordedAt])
 }

@@ -3,10 +3,13 @@ export const dynamic = 'force-dynamic';
 import { useState, useRef, useEffect } from 'react';
 import type { FC } from 'react';
 import WorkInProgress from './WorkInProgress';
+import IntentPicker from './IntentPicker';
+import BuildTuner from './BuildTuner';
 import { Sk, SkSelectCard } from './loading-ui';
 
-/* ملاحظة: IntentPicker و BuildTuner مؤجّلان حتى يجهزا.
-   buildPlans و USE_PROFILE محفوظان أدناه لإعادة الوصل بسطر واحد. */
+/* ملاحظة: IntentPicker (الذكاء) لا يزال مؤجّلاً حتى تجهز واجهته.
+   buildPlans و USE_PROFILE محفوظان أدناه لإعادة وصله بسطر واحد.
+   BuildTuner (خصّص تجميعتك) مُفعّل. */
 import { toPng } from 'html-to-image';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
@@ -1018,6 +1021,7 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
   const [isSaving, setIsSaving] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [showIncompatible, setShowIncompatible] = useState(false);
+  const [aiPlans, setAiPlans] = useState<TierPlan[] | null>(null);
   
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -1163,35 +1167,115 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
     });
   };
 
-  /* ============ التوزيع بالميزانية ============
-     النسب مأخوذة من دليل "تجميعة ألعاب اقتصادية ذكية" — المنصة تمارس ما تعظ به.
-     الكرت أهم قطعة في جهاز الألعاب، فيأخذ أكبر نصيب.
+  /* ============ ملفّات الاستخدام ============
+     المستوى (اقتصادي/متوازن/قوي) = **مستوى أداء مستهدف**، لا شريحة سعرية.
+     كان التصميم السابق يقصّ الكتالوج بشرائح مئوية من السعر، فأنتج تناقضات:
+     "قوي" أغلى بآلاف بلا ترقية، و1440p يعطي كرتاً أضعف من 1080p.
+     الآن كل مستوى يستهدف performanceTier محدّداً، والدقة ترفع المستوى
+     المستهدف واحتياج الذاكرة — فالسلّم مضمون بالبناء لا بالحظّ.
 
-  /* أوزان النيّة — محفوظة لإعادة وصل الذكاء لاحقاً */
-  const USE_PROFILE: Record<string, { cpu: number; gpu: number; ram: number; storage: number; label: string }> = {
-    'competitive-shooter': { cpu: 0.30, gpu: 0.34, ram: 0.14, storage: 0.08, label: 'شوتر تنافسي' },
-    'aaa-gaming':          { cpu: 0.20, gpu: 0.44, ram: 0.14, storage: 0.08, label: 'ألعاب ثقيلة' },
-    'casual-gaming':       { cpu: 0.24, gpu: 0.36, ram: 0.14, storage: 0.08, label: 'ألعاب خفيفة' },
-    'editing':             { cpu: 0.32, gpu: 0.26, ram: 0.20, storage: 0.12, label: 'مونتاج وتصميم' },
-    'streaming':           { cpu: 0.32, gpu: 0.30, ram: 0.16, storage: 0.10, label: 'بث مباشر' },
-    'office':              { cpu: 0.30, gpu: 0.16, ram: 0.18, storage: 0.14, label: 'مكتبي ودراسة' },
-    'mixed':               { cpu: 0.26, gpu: 0.34, ram: 0.16, storage: 0.10, label: 'استخدام متنوّع' },
+     gpuStep: إزاحة مستوى الكرت لهذا الاستخدام (سالب = يكفيه أقل).
+     cpuBias: إزاحة مستوى المعالج نسبةً لمستوى الكرت (+ = المعالج أهم). */
+  const USE_PROFILE: Record<string, {
+    label: string;
+    gpuStep: number;         // إزاحة مستوى الكرت المستهدف
+    cpuBias: number;         // إزاحة مستوى المعالج نسبةً للكرت
+    ramMinGB: number;        // السعة المطلوبة للرام
+    ramCapGB: number;        // سقف سعة الرام (999 = بلا سقف)
+    prefNvme: boolean;       // يفضّل NVMe سريعاً
+    vramHeavy: boolean;      // الذاكرة الرسومية حاسمة (ألعاب ثقيلة/مونتاج)
+    gpuCap: number;          // سقف مستوى الكرت (5 = بلا سقف)
+    cpuCap: number;          // سقف مستوى المعالج
+    cpuFloor: number;        // أدنى مستوى معالج مقبول
+    cpuPref: 'x3d' | 'cores' | 'balanced'; // نوع المعالج المفضّل
+    storageWeight: number;   // وزن التخزين في شريحة المستوى
+    reason: string;          // قالب جملة السبب
+  }> = {
+    'competitive-shooter': { label: 'شوتر تنافسي', gpuStep:  0, cpuBias:  1, ramMinGB: 16, ramCapGB: 32,  prefNvme: true,  vramHeavy: false, gpuCap: 4, cpuCap: 5, cpuFloor: 3, cpuPref: 'x3d',      storageWeight: 0.7, reason: 'مناسبة لألعاب الشوتر التنافسي بأعلى فريمات ممكنة' },
+    'aaa-gaming':          { label: 'ألعاب ثقيلة',  gpuStep:  0, cpuBias: -1, ramMinGB: 16, ramCapGB: 32,  prefNvme: true,  vramHeavy: true,  gpuCap: 5, cpuCap: 4, cpuFloor: 3, cpuPref: 'balanced', storageWeight: 0.8, reason: 'مناسبة للألعاب الثقيلة بإعدادات عالية' },
+    'casual-gaming':       { label: 'ألعاب خفيفة',  gpuStep: -1, cpuBias:  0, ramMinGB: 16, ramCapGB: 16,  prefNvme: false, vramHeavy: false, gpuCap: 2, cpuCap: 3, cpuFloor: 1, cpuPref: 'balanced', storageWeight: 0.7, reason: 'مناسبة للألعاب الخفيفة والاستخدام اليومي' },
+    'editing':             { label: 'مونتاج وتصميم', gpuStep: 0, cpuBias:  1, ramMinGB: 32, ramCapGB: 999, prefNvme: true,  vramHeavy: true,  gpuCap: 5, cpuCap: 5, cpuFloor: 4, cpuPref: 'cores',    storageWeight: 1.3, reason: 'مناسبة لتحرير الفيديو والتصميم بذاكرة كبيرة وتخزين سريع' },
+    'streaming':           { label: 'بث مباشر',     gpuStep:  0, cpuBias:  1, ramMinGB: 32, ramCapGB: 32,  prefNvme: true,  vramHeavy: false, gpuCap: 4, cpuCap: 5, cpuFloor: 4, cpuPref: 'cores',    storageWeight: 0.9, reason: 'مناسبة للبث المباشر مع اللعب بسلاسة' },
+    'office':              { label: 'مكتبي ودراسة', gpuStep: -1, cpuBias:  0, ramMinGB: 16, ramCapGB: 16,  prefNvme: true,  vramHeavy: false, gpuCap: 2, cpuCap: 3, cpuFloor: 1, cpuPref: 'balanced', storageWeight: 1.0, reason: 'مناسبة للأعمال المكتبية والدراسة والتصفّح' },
+    'mixed':               { label: 'استخدام متنوّع', gpuStep: 0, cpuBias:  0, ramMinGB: 16, ramCapGB: 64,  prefNvme: true,  vramHeavy: false, gpuCap: 5, cpuCap: 5, cpuFloor: 3, cpuPref: 'balanced', storageWeight: 0.9, reason: 'مناسبة للاستخدام المتنوّع بين الألعاب والمهام' },
+  };
+
+  /* ---- قراءة آمنة للمواصفات (المفاتيح غير موحّدة في الكتالوج) ---- */
+  const specVal = (sp: any, keys: string[]) => { for (const k of keys) if (sp?.[k] != null) return sp[k]; return null; };
+  const specNum = (v: any) => { if (v == null) return 0; const m = String(v).match(/[\d.]+/); return m ? parseFloat(m[0]) : 0; };
+
+  /* ---- ذاكرة الكرت: بعض القطع سعتها مفقودة في القاعدة (RX 6600 XT / 6700 XT)
+     فنقرؤها من الاسم بدل أن تُحسب صفراً فتُظلم القطعة في الترشيح. ---- */
+  const vramOf = (c: any): number => {
+    const direct = specNum(specVal(parseSpecs(c.specs), ['vram', 'VRAM']));
+    if (direct > 0) return direct;
+    const m = String(c.name || '').match(/(\d+)\s*GB/i);
+    return m ? parseFloat(m[1]) : 0;
   };
 
   /* ============ بناء ثلاثة مستويات من الكتالوج الحقيقي ============
      يُستدعى بعد أن يفهم المساعد النيّة. النموذج لا يلمس هذا إطلاقاً —
      كل قطعة هنا موجودة ومتوفّرة في كتالوجنا بسعرها الفعلي. */
+  const applyPlan = (plan: TierPlan) => {
+    setSelectedComponents(plan.picks as any);
+    setAiPlans(null);
+    toast.success(`تم بناء تجميعة ${plan.label} — ${Math.round(plan.total)} ﷼`, { icon: '✨' });
+    setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
+
+  /* ============ بناء المستويات من الكتالوج الحقيقي ============
+     ثوابت مضمونة بالبناء (وليست مأمولة):
+     ١) صعود المستوى يرفع مستوى الكرت أو يساويه — أبداً لا يخفضه.
+     ٢) رفع الدقة يرفع المستوى المستهدف واحتياج الذاكرة — أبداً لا يخفضهما.
+     ٣) داخل المستوى: أفضل ما يلبّي الاحتياج، لا أغلى قطعة.
+     ٤) خطة تُعرض فقط إن كانت ترقية حقيقية عن سابقتها — فلا "أغلى بلا فائدة".
+     النموذج لا يلمس هذا إطلاقاً؛ كل قطعة موجودة ومتوفّرة بسعرها الفعلي. */
   const buildPlans = (intent: any): TierPlan[] | null => {
     const profile = USE_PROFILE[intent.use] || USE_PROFILE['mixed'];
+    const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
     const pool = (name: string) => [...(categories.find(c => c.name === name)?.components || [])]
       .filter(isComponentAvailable)
       .sort((a, b) => a.price - b.price);
 
-    const gpus = pool('GPU');
-    const cpus = pool('CPU');
+    const res = intent.resolution || '1080p';
+    /* الدقة ترفع المستوى المستهدف واحتياج الذاكرة. و4K يرفع سقف الكرت درجة:
+       حتى الشوتر يحتاج كرتاً أقوى على 4K، وكان السقف الثابت يمنع ذلك. */
+    const resBump = res === '4K' ? 2 : res === '1440p' ? 1 : 0;
+    const vramNeed = res === '4K' ? 16 : res === '1440p' ? 12 : 8;
+    const gpuCapEff = res === '4K' ? Math.min(5, profile.gpuCap + 1) : profile.gpuCap;
+
+    /* السقوف تُطبّق أولاً: "ألعاب خفيفة" لا تتجاوز كرت مستوى 2 مهما كان المستوى.
+       المستوى المجهول (null) يُستبعد — لا يخترق السقف بصمت. */
+    const gpusAll = pool('GPU').filter(c => c.performanceTier != null && c.performanceTier <= gpuCapEff);
+    const cpuInRange = pool('CPU').filter(c => c.performanceTier != null && c.performanceTier >= profile.cpuFloor && c.performanceTier <= profile.cpuCap);
+    let cpusAll = cpuInRange.length ? cpuInRange : pool('CPU').filter(c => c.performanceTier != null && c.performanceTier <= profile.cpuCap);
+    /* ---- تفضيل الشركة (اختياري) ----
+       نُطبّقه كتصفية، وإن أفرغ المجموعة نتجاهله بدل أن نفشل:
+       تفضيل المستخدم لا يجوز أن يمنع ظهور أي تجميعة. */
+    const byBrand = (arr: any[], brand?: string | null) => {
+      if (!brand) return arr;
+      const f = arr.filter(c => String(c.brand || '').toLowerCase() === brand.toLowerCase());
+      return f.length ? f : arr;
+    };
+    const gpusBrandFiltered = byBrand(gpusAll, intent.gpuBrand);
+    cpusAll = byBrand(cpusAll, intent.cpuBrand);
+
+    /* الشوتر: ذاكرة 3D V-Cache هي محرّك الفريمات — إن توفّر X3D نقصر عليه.
+       ⚠️ يأتي **بعد** تصفية الشركة عن قصد: X3D حصري لـAMD، فلو سبق التفضيل
+       لأُلغي اختيار المستخدم لـIntel صامتاً. تفضيله الصريح يفوز على
+       اجتهادنا، ونعطيه أفضل معالج ألعاب داخل شركته. */
+    if (profile.cpuPref === 'x3d') {
+      const x3ds = cpusAll.filter(c => /x3d/i.test(String(c.name || '')));
+      if (x3ds.length) cpusAll = x3ds;
+    }
+
     const mobos = pool('Motherboard');
-    const rams = pool('RAM');
+    const ramCapped = pool('RAM').filter(c => {
+      const gb = specNum(specVal(parseSpecs(c.specs), ['capacity', 'Capacity']));
+      return gb > 0 && gb <= profile.ramCapGB;
+    });
+    const rams = ramCapped.length ? ramCapped : pool('RAM');
     const psus = pool('PSU');
     const cases = pool('Case');
     // قرص النظام لا يكون HDD — يطابق دليل SSD مقابل HDD
@@ -1200,92 +1284,216 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
       return t.includes('NVME') || t.includes('SSD');
     });
 
-    if (!gpus.length || !cpus.length || !mobos.length || !rams.length || !psus.length || !cases.length || !storages.length) {
+    if (!gpusAll.length || !cpusAll.length || !mobos.length || !rams.length || !psus.length || !cases.length || !storages.length) {
       return null;
     }
 
-    // الدقة ترفع وزن الكرت: 4K يحتاج كرتاً أقوى، 1080p أقل
-    const resBoost = intent.resolution === '4K' ? 1.25 : intent.resolution === '1440p' ? 1.1 : 0.9;
-    // البثّ/التصوير يرفع وزن المعالج والرام
-    const streamBoost = intent.alsoStreams ? 1.2 : 1.0;
+    const gpusPool = gpusBrandFiltered;
+    const gTiers = [...new Set(gpusPool.map(c => c.performanceTier as number))].sort((a, b) => a - b);
+    const cTiers = [...new Set(cpusAll.map(c => c.performanceTier as number))].sort((a, b) => a - b);
+    const gLo = gTiers[0], gHi = gTiers[gTiers.length - 1];
+    const cLo = cTiers[0], cHi = cTiers[cTiers.length - 1];
 
-    /* نبني ثلاثة مستويات بمؤشّرات من الكتالوج:
-       الاقتصادي = الشريحة الدنيا، المتوازن = الوسطى، القوي = العليا.
-       المؤشّر يُحسب على مصفوفة مرتّبة بالسعر — لا نفرض أرقاماً. */
-    const at = (arr: any[], frac: number) => {
-      const i = Math.min(arr.length - 1, Math.max(0, Math.round((arr.length - 1) * frac)));
-      return arr[i];
+    /* مجموعة المستوى المستهدف؛ إن كان فارغاً نوسّع للأقرب صعوداً ثم هبوطاً */
+    const poolAtTier = (arr: any[], target: number, lo: number, hi: number) => {
+      for (let d = 0; d <= 5; d++) {
+        for (const t of (d === 0 ? [target] : [target + d, target - d])) {
+          if (t < lo || t > hi) continue;
+          const p = arr.filter(c => c.performanceTier === t);
+          if (p.length) return p;
+        }
+      }
+      return arr;
     };
 
-    const TIERS: { key: TierPlan['key']; label: string; f: number }[] = [
-      { key: 'value',    label: 'اقتصادي',  f: 0.20 },
-      { key: 'balanced', label: 'متوازن',   f: 0.50 },
-      { key: 'strong',   label: 'قوي',      f: 0.82 },
+    const priceRank = (arr: any[], c: any) => {
+      const s = [...arr].sort((a, b) => a.price - b.price);
+      const i = s.findIndex(x => x.id === c.id);
+      return s.length > 1 ? i / (s.length - 1) : 0.5;
+    };
+
+    const bandPick = (arr: any[], scorer: (c: any) => number, band: [number, number]) => {
+      if (!arr.length) return null;
+      const s = [...arr].sort((a, b) => a.price - b.price);
+      const lo = Math.floor(s.length * band[0]);
+      const hi = Math.max(lo + 1, Math.ceil(s.length * band[1]));
+      const slice = s.slice(lo, hi);
+      return (slice.length ? slice : s).sort((a, b) => scorer(b) - scorer(a))[0];
+    };
+
+    /* القوّة = المستوى ثم الذاكرة. السعر وكيل رديء للأداء في كتالوج
+       أسعاره مضطربة (كرت قديم قد يكون أغلى من أحدث منه). */
+    const gStrength = (c: any) => (c.performanceTier ?? 0) * 1000 + vramOf(c);
+    const cStrength = (c: any) => (c.performanceTier ?? 0) * 100000 + c.price;
+
+    const LEVELS: { key: TierPlan['key']; label: string; base: number; band: [number, number] }[] = [
+      { key: 'value', label: 'اقتصادي', base: 2, band: [0.00, 0.40] },
+      { key: 'balanced', label: 'متوازن', base: 3, band: [0.30, 0.70] },
+      { key: 'strong', label: 'قوي', base: 4, band: [0.60, 1.00] },
     ];
 
     const plans: TierPlan[] = [];
+    let lastGpuTier = -Infinity, lastGpuStrength = -Infinity, lastCpuTier = -Infinity;
 
-    for (const t of TIERS) {
+    for (const L of LEVELS) {
       const picks: Record<string, any> = {};
 
-      // الكرت والمعالج: الوزن يحرّك المؤشّر داخل الشريحة
-      const gpuFrac = Math.min(0.98, t.f * (profile.gpu / 0.34) * resBoost);
-      const cpuFrac = Math.min(0.98, t.f * (profile.cpu / 0.26) * streamBoost);
+      /* ---- الكرت ---- */
+      let tGpu = clamp(L.base + resBump + profile.gpuStep, gLo, gHi);
+      if (tGpu < lastGpuTier) tGpu = lastGpuTier;                 // سلّم لا يهبط
+      const gPool = poolAtTier(gpusPool, tGpu, gLo, gHi);
 
-      picks['GPU'] = at(gpus, gpuFrac);
-      picks['CPU'] = at(cpus, cpuFrac);
+      /* داخل المستوى: نرشّح ما يلبّي احتياج الذاكرة، ثم نتدرّج بالطموح.
+         السقف نسبة من أرخص كافٍ في نفس المستوى — يمنع الوصول إلى أغلى
+         كرت في الفئة (5090) بلا داعٍ. */
+      const adequate = gPool.filter(c => vramOf(c) >= vramNeed);
+      let gSrc = [...(adequate.length ? adequate : gPool)].sort((a, b) => a.price - b.price);
+      const notWeaker = gSrc.filter(c => gStrength(c) >= lastGpuStrength);
+      if (notWeaker.length) gSrc = notWeaker;
+      const capMult = L.key === 'value' ? 1.0 : L.key === 'balanced' ? 1.45 : 2.0;
+      const inBudget = gSrc.filter(c => c.price <= gSrc[0].price * capMult);
+      const gList = inBudget.length ? inBudget : gSrc;
+      // أعلى ذاكرة ضمن السقف، والأرخص عند التعادل — لا الأغلى
+      picks['GPU'] = L.key === 'value'
+        ? gList[0]
+        : [...gList].sort((a, b) => (vramOf(b) - vramOf(a)) || (a.price - b.price))[0];
 
-      // اللوحة: متوافقة مع مقبس المعالج
+      /* ---- المعالج: يتبع مستوى الكرت لتفادي الاختناق ----
+         4K ينقل الثقل للكرت فيكفي معالج أقل؛ 1080p يحتاج معالجاً أقوى. */
+      const resCpuBias = res === '4K' ? -1 : res === '1440p' ? 0 : 1;
+      const streamBias = intent.alsoStreams ? 1 : 0;
+      const gpuTier = (picks['GPU'].performanceTier ?? L.base) as number;
+      const antiBottleneck = Math.max(cLo, gpuTier - 1);   // لا نسمح باختناق فاضح
+      let tCpu = clamp(gpuTier + profile.cpuBias + resCpuBias + streamBias, antiBottleneck, cHi);
+      if (tCpu < lastCpuTier) tCpu = lastCpuTier;
+      const cPool = poolAtTier(cpusAll, tCpu, cLo, cHi);
+
+      const scoreCpu = (c: any) => {
+        const sp = parseSpecs(c.specs);
+        const coreScore = Math.min(1, (specNum(sp.cores) + specNum(sp.threads) / 2) / 40);
+        const value = 1 - priceRank(cPool, c);
+        if (profile.cpuPref === 'x3d') return (/x3d/i.test(String(c.name || '')) ? 0.5 : 0) + value * 0.4 + coreScore * 0.1;
+        if (profile.cpuPref === 'cores') return coreScore * 0.6 + value * 0.4;
+        return value * 0.6 + coreScore * 0.4;
+      };
+      picks['CPU'] = [...cPool].sort((a, b) => scoreCpu(b) - scoreCpu(a))[0];
+
+      lastGpuTier = picks['GPU'].performanceTier ?? lastGpuTier;
+      lastGpuStrength = gStrength(picks['GPU']);
+      lastCpuTier = picks['CPU'].performanceTier ?? lastCpuTier;
+
+      /* ---- اللوحة: أرخص متوافقة **تتحمّل المعالج** ----
+         "الأرخص مطلقاً" كان خطأً: أرخص لوحة LGA1700 هي H610M (مستوى ١، DDR4)،
+         وتركيبها مع i7-14700K بسحب 253W يعني VRM يخنق المعالج ورامات بطيئة.
+         فنفرض أرضية مستوى للوحة مشتقّة من سحب المعالج ومستواه. */
       const socket = String(parseSpecs(picks['CPU'].specs).socket || '');
-      const okMobos = mobos.filter(m => String(parseSpecs(m.specs).socket || '') === socket);
-      if (!okMobos.length) continue;
-      picks['Motherboard'] = at(okMobos, t.f * 0.7);
+      const cpuDraw = picks['CPU'].tdpWattage || 65;
+      const cpuTier = (picks['CPU'].performanceTier ?? 3) as number;
+      const moboFloor = (cpuDraw >= 200 || cpuTier >= 5) ? 4
+                      : (cpuDraw >= 125 || cpuTier >= 4) ? 3
+                      : 2;   // نتفادى أدنى فئة (H610) حتى للمعالجات الهادئة
+      const sameSocket = mobos.filter(m => String(parseSpecs(m.specs).socket || '') === socket);
+      if (!sameSocket.length) continue;
+      const strongEnough = sameSocket.filter(m => (m.performanceTier ?? 0) >= moboFloor);
+      // إن لم تتوفّر لوحة بالأرضية المطلوبة، نأخذ أقوى المتاح لهذا المقبس
+      const moboSrc = strongEnough.length
+        ? strongEnough
+        : [...sameSocket].sort((a, b) => (b.performanceTier ?? 0) - (a.performanceTier ?? 0));
+      picks['Motherboard'] = moboSrc[0];   // مرتّبة سعرياً تصاعدياً
 
-      // الرام: متوافقة مع نوع اللوحة
+      /* ---- الرام: السعة تتبع الدقة والمستوى، ثم أفضل سرعة بفارق سعر معقول ----
+         16GB لا تكفي 4K ولا الألعاب الثقيلة على متوازن/قوي — المعيار 32GB.
+         وبين 5600 و6000 فارق سعر ضئيل ومكسب حقيقي في الفريمات، فلا نأخذ
+         الأرخص عمياً بل أفضل سرعة داخل هامش ٢٥٪ من الأرخص الكافي. */
+      const gamingUse = ['competitive-shooter', 'aaa-gaming', 'casual-gaming', 'mixed'].includes(intent.use);
+      let ramNeed = profile.ramMinGB;
+      if (gamingUse) {
+        if (res === '4K') ramNeed = Math.max(ramNeed, 32);
+        else if (res === '1440p' && L.key !== 'value') ramNeed = Math.max(ramNeed, 32);
+      }
+      ramNeed = Math.min(ramNeed, profile.ramCapGB);   // لا نخترق سقف الاستخدام
+
       const ramType = String(parseSpecs(picks['Motherboard'].specs).ramType || '');
-      const okRams = rams.filter(r => String(parseSpecs(r.specs).type || '') === ramType);
-      if (!okRams.length) continue;
-      picks['RAM'] = at(okRams, t.f * (profile.ram / 0.16) * streamBoost);
+      const compatRams = rams.filter(r => {
+        const rt = String(parseSpecs(r.specs).type || '');
+        return !ramType || rt === ramType;
+      });
+      const rPool = compatRams.length ? compatRams : rams;
+      const meetsNeed = rPool.filter(r => specNum(specVal(parseSpecs(r.specs), ['capacity', 'Capacity'])) >= ramNeed);
+      const rSrc = [...(meetsNeed.length ? meetsNeed : rPool)].sort((a, b) => a.price - b.price);
+      const ramBudget = rSrc[0].price * 1.25;
+      const ramCands = rSrc.filter(r => r.price <= ramBudget);
+      // أعلى سرعة داخل الهامش، والأرخص عند تعادل السرعة
+      picks['RAM'] = (ramCands.length ? ramCands : rSrc).sort((a, b) =>
+        (specNum(specVal(parseSpecs(b.specs), ['speed', 'Speed'])) - specNum(specVal(parseSpecs(a.specs), ['speed', 'Speed']))) ||
+        (a.price - b.price)
+      )[0];
 
-      picks['Storage'] = at(storages, t.f * (profile.storage / 0.10));
+      /* ---- التخزين: يتبع شريحة المستوى (سعة/سرعة أعلى للأقوى) ---- */
+      const scoreStorage = (c: any) => {
+        const sp = parseSpecs(c.specs);
+        const nvme = String(specVal(sp, ['type', 'Type']) || '').toUpperCase().includes('NVME');
+        const s = Math.min(1, specNum(sp.readSpeed) / 7000) * 0.5
+          + Math.min(1, specNum(specVal(sp, ['capacity', 'Capacity'])) / 2000) * 0.5;
+        return clamp(s + (profile.prefNvme ? (nvme ? 0.25 : -0.15) : 0), 0, 1);
+      };
+      picks['Storage'] = bandPick(storages, scoreStorage, L.band) || storages[0];
 
-      /* المزوّد: نختار بالقدرة لا بمؤشّر السعر.
-         الخطأ السابق: okPsus مرتّبة بالسعر، فالمؤشّر يقفز عشوائياً بين
-         الواطات (850W بـ458 أرخص من 650W بـ536!) — فيختار 850W لتجميعة
-         تحتاج 450W. الصواب: أصغر مزوّد يحقّق الحاجة + هامش أمان،
-         ومن بين المتساوين في الواط نأخذ الأرخص. */
+      /* ---- المزوّد: بالقدرة لا بالمؤشّر — أصغر قدرة تكفي بهامش ٢٥٪ ---- */
       const drawW = (picks['CPU'].tdpWattage || 65) + (picks['GPU'].tdpWattage || 200) + 80;
-      const reqW = Math.ceil(drawW * 1.25); // هامش 25% — يطابق دليل مزوّد الطاقة
+      const reqW = Math.ceil(drawW * 1.25);
       const okPsus = psus.filter(ps => parseFloat(parseSpecs(ps.specs).wattage || '0') >= reqW);
       if (!okPsus.length) continue;
-      // أصغر واط كافٍ، ثم الأرخص ضمنه
       const minW = Math.min(...okPsus.map(ps => parseFloat(parseSpecs(ps.specs).wattage || '0')));
-      const tightPsus = okPsus
-        .filter(ps => parseFloat(parseSpecs(ps.specs).wattage || '0') === minW)
-        .sort((a, b) => a.price - b.price);
-      picks['PSU'] = tightPsus[0];
+      picks['PSU'] = okPsus.filter(ps => parseFloat(parseSpecs(ps.specs).wattage || '0') === minW)[0];
 
-      // الكيس: يتّسع للكرت
+      /* ---- الكيس: أرخص يتسع للكرت ---- */
       const gpuLen = parseFloat(parseSpecs(picks['GPU'].specs).lengthMm || '320');
       const okCases = cases.filter(c => parseFloat(parseSpecs(c.specs).maxGpuLength || '999') >= gpuLen);
       if (!okCases.length) continue;
-      picks['Case'] = at(okCases, t.f * 0.6);
+      picks['Case'] = okCases[0];
 
       const total = Object.values(picks).reduce((sum: number, c: any) => sum + (c?.price || 0), 0);
 
-      const resNote = intent.resolution ? ` · ${intent.resolution}` : '';
-      plans.push({
-        key: t.key,
-        label: t.label,
-        note: `${profile.label}${resNote}`,
-        total,
-        picks,
-      });
+      /* ---- جملة السبب: النيّة + الدقة + البثّ + مواصفات فعلية ---- */
+      const gpuVram = vramOf(picks['GPU']);
+      const ramGb = specNum(specVal(parseSpecs(picks['RAM'].specs), ['capacity', 'Capacity']));
+      const stType = String(specVal(parseSpecs(picks['Storage'].specs), ['type', 'Type']) || '');
+      let reason = profile.reason;
+      if (intent.resolution && ['competitive-shooter', 'aaa-gaming', 'casual-gaming'].includes(intent.use)) {
+        reason += ` بدقة ${intent.resolution}`;
+      }
+      if (intent.alsoStreams && intent.use !== 'streaming') reason += ' مع البثّ المباشر';
+      const specBits: string[] = [];
+      if (ramGb) specBits.push(`${ramGb}GB رام`);
+      if (gpuVram) specBits.push(`${gpuVram}GB كرت`);
+      if (stType.toUpperCase().includes('NVME')) specBits.push('تخزين NVMe سريع');
+      const reasonFull = specBits.length ? `${reason} — ${specBits.join('، ')}.` : `${reason}.`;
+
+      plans.push({ key: L.key, label: L.label, note: reasonFull, total, picks });
     }
 
-    // نزيل التكرار: لو مستويان أنتجا نفس السعر تقريباً
-    const unique = plans.filter((p, i) => i === 0 || Math.abs(p.total - plans[i - 1].total) > 200);
-    return unique.length ? unique : plans;
+    /* ---- مرشّح السلّم: خطة تُعرض فقط إن كانت أفضل *فعلاً* من سابقتها ----
+       يمنع "قوي أغلى بآلاف بلا ترقية" (تشبّع المستوى) و"متوازن أرخص من
+       اقتصادي" (انقلاب بسبب اختلاف المنصّة). عرض خطتين صادقتين أفضل من
+       ثلاث إحداها بلا معنى. */
+    const kept: TierPlan[] = [];
+    for (const p of plans) {
+      if (!kept.length) { kept.push(p); continue; }
+      const prev = kept[kept.length - 1];
+      const gUp = gStrength(p.picks['GPU']) > gStrength(prev.picks['GPU']);
+      const cUp = cStrength(p.picks['CPU']) > cStrength(prev.picks['CPU']);
+      if (p.total > prev.total + 300 && (gUp || cUp)) kept.push(p);
+    }
+    if (!kept.length) return null;
+
+    // إعادة التسمية بما يتّسق مع العدد المتبقّي
+    const LABELS = kept.length >= 3 ? ['اقتصادي', 'متوازن', 'قوي']
+      : kept.length === 2 ? ['متوازن', 'قوي']
+        : ['الأنسب لك'];
+    kept.forEach((p, i) => { p.label = LABELS[i] || p.label; });
+
+    return kept;
   };
 
 
@@ -1633,6 +1841,73 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
         
         {/* ===== نشتغل عليه الآن — إشارة حياة، بلا وعود ===== */}
         <WorkInProgress />
+
+        {/* ===== ١) المساعد: يسأل وش تلعب، ويبني ثلاث خطط من الكتالوج ===== */}
+        <IntentPicker onPlans={(plans) => setAiPlans(plans)} buildPlans={buildPlans} />
+
+        {/* ===== خيارات المساعد ===== */}
+        {aiPlans && aiPlans.length > 0 && (() => {
+          /* المُوصى به = الأوسط حين تكون ثلاث خطط، وإلا الأولى.
+             كان مثبّتاً على الفهرس ١، فيوصي بـ"قوي" حين تبقى خطتان. */
+          const recIdx = aiPlans.length >= 3 ? 1 : 0;
+          return (
+          <div className="mb-8 p-5 rounded-2xl border border-cyan-500/30 bg-white dark:bg-[#0F172A]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">اختر المستوى الذي يناسبك:</h3>
+              <button onClick={() => setAiPlans(null)} className="text-[11px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">إخفاء</button>
+            </div>
+            <div className={`grid grid-cols-1 gap-3 ${aiPlans.length >= 3 ? 'md:grid-cols-3' : aiPlans.length === 2 ? 'md:grid-cols-2' : ''}`}>
+              {aiPlans.map((plan, i) => (
+                <button
+                  key={plan.key}
+                  onClick={() => applyPlan(plan)}
+                  className={`text-right p-4 rounded-xl border transition-all hover:-translate-y-1 group ${
+                    i === recIdx ? 'border-cyan-500 bg-cyan-500/[0.06] ring-2 ring-cyan-500/20' : 'border-slate-200 dark:border-slate-700 hover:border-cyan-500/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-[11px] font-black tracking-widest ${i === recIdx ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'}`}>{plan.label}</span>
+                    {i === recIdx && <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-cyan-500 text-white">مُوصى به</span>}
+                  </div>
+                  <div className="flex items-baseline gap-1.5 mb-2">
+                    <span className="text-2xl font-black text-slate-900 dark:text-white">{Math.round(plan.total).toLocaleString('en-US')}</span>
+                    <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-slate-900 dark:bg-white" />
+                  </div>
+                  <div className="mb-3 flex items-start gap-1.5 text-right">
+                    <svg className="w-3 h-3 mt-0.5 shrink-0 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    <p className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">{plan.note}</p>
+                  </div>
+                  <div className="space-y-1">
+                    {['CPU', 'GPU'].map(cat => plan.picks[cat] && (
+                      <div key={cat} className="flex items-center gap-1.5 text-[10px]">
+                        <span className="font-black text-slate-400 w-7 shrink-0">{cat}</span>
+                        <span className="font-bold text-slate-600 dark:text-slate-300 truncate">{plan.picks[cat].name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={`mt-3 pt-3 border-t text-[11px] font-black text-center transition-colors ${
+                    i === recIdx ? 'border-cyan-500/30 text-cyan-600 dark:text-cyan-400' : 'border-slate-100 dark:border-slate-800 text-slate-400 group-hover:text-cyan-500'
+                  }`}>استخدم هذي ←</div>
+                </button>
+              ))}
+            </div>
+            <p className="mt-4 text-[10px] text-slate-400 font-medium text-center">كل القطع متوفّرة فعلاً بأسعارها اللحظية · يمكنك تعديل أي قطعة بعد الاختيار</p>
+          </div>
+          );
+        })()}
+
+        {/* ===== ٢) خصّص تجميعتك: تحت المساعد، يظهر متى اخترت قطعة ===== */}
+        {Object.values(selectedComponents).some(Boolean) && (
+          <BuildTuner
+            categories={categories}
+            selectedComponents={selectedComponents}
+            onApply={(next) => {
+              setSelectedComponents(next);
+              setResult({ status: 'idle', message: '', totalTdp: 0, totalPrice: 0 });
+              toast.success('تم تطبيق التغييرات — افحص التوافق مجدداً.', { icon: '✅' });
+            }}
+          />
+        )}
 
         {/* شريط الخيارات العلوي */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 pb-6 border-b border-slate-200 dark:border-slate-800/60 gap-4">

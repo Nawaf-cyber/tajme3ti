@@ -4,7 +4,8 @@ import { notFound } from 'next/navigation';
 import ImageZoom from '../ImageZoom';
 import { buildAffiliateUrl, AFFILIATE_LINK_PROPS } from '../../../lib/affiliate';
 import { getAffiliateIds } from '../../../lib/affiliate-server';
-
+import PriceHistoryChart from '../../../components/PriceHistoryChart';
+import { formatPrice, discountPercent, componentDiscount } from '../../../lib/price';
 
 const RiyalIcon = ({ size = 'h-6 w-6' }: { size?: string }) => (
   <div 
@@ -126,22 +127,29 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
   let sourceText = "";
   const availablePrices = [
-    { name: 'أمازون', price: comp.amazonPrice || 0, inStock: comp.amazonInStock },
-    { name: 'كازاسوق', price: comp.cazasouqPrice || 0, inStock: comp.cazasouqInStock },
-    { name: 'مايكروليس', price: comp.microlessPrice || 0, inStock: comp.microlessInStock }
+    { name: 'أمازون', price: comp.amazonPrice || 0, listPrice: comp.amazonListPrice, inStock: comp.amazonInStock },
+    { name: 'كازاسوق', price: comp.cazasouqPrice || 0, listPrice: comp.cazasouqListPrice, inStock: comp.cazasouqInStock },
+    { name: 'مايكروليس', price: comp.microlessPrice || 0, listPrice: comp.microlessListPrice, inStock: comp.microlessInStock }
   ].filter(p => p.price > 0 && p.inStock !== false);
 
   if (availablePrices.length > 0) {
     availablePrices.sort((a, b) => a.price - b.price);
     const minPrice = availablePrices[0].price;
     const lowestStores = availablePrices.filter(p => p.price === minPrice).map(p => p.name);
-    
+
     if (lowestStores.length > 1) {
       sourceText = `السعر متطابق في: ${lowestStores.join(' و ')}`;
     } else {
       sourceText = `أفضل سعر من: ${lowestStores[0]}`;
     }
   }
+
+  /* الخصم على المتجر الأرخص المتوفّر — نفس الدالة التي تستخدمها صفحة
+     التصفّح، فلا يظهر خصم في مكان ويغيب في آخر. */
+  const deal = componentDiscount(comp);
+  const mainDiscount = deal.pct;
+  const cheapestListPrice = deal.listPrice;
+  const savedAmount = mainDiscount > 0 && cheapestListPrice ? cheapestListPrice - comp.price : 0;
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
@@ -179,16 +187,34 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               </span>
             </div>
             
-            <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 leading-tight">
-              {comp.name}
-            </h1>
-            
+            <div className="flex items-start gap-3 mb-6">
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight">
+                {comp.name}
+              </h1>
+              {mainDiscount > 0 && (
+                <span className="shrink-0 mt-2 px-2.5 py-1 rounded-sm bg-rose-500 text-white text-xs font-black font-mono shadow-[0_0_12px_rgba(244,63,94,0.5)]">
+                  ‎-{mainDiscount}%
+                </span>
+              )}
+            </div>
+
             <div className="flex flex-wrap items-end gap-5 mb-4 pb-6 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-2 font-mono uppercase tracking-widest">أقل سعر · SAR</p>
                 <div className="text-4xl md:text-5xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-2 font-mono">
-                  {comp.price} <RiyalIcon size="h-9 w-9" />
+                  {formatPrice(comp.price)} <RiyalIcon size="h-9 w-9" />
                 </div>
+                {/* السعر قبل الخصم — مشطوباً، مع قيمة التوفير */}
+                {mainDiscount > 0 && cheapestListPrice && (
+                  <div className="flex items-center gap-2.5 mt-2">
+                    <span className="text-lg font-bold text-slate-400 dark:text-slate-500 line-through font-mono" dir="ltr">
+                      {formatPrice(cheapestListPrice)}
+                    </span>
+                    <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-2 py-0.5 rounded-sm">
+                      وفّرت {formatPrice(savedAmount)} ﷼
+                    </span>
+                  </div>
+                )}
               </div>
               {sourceText && (
                 <div className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 rounded-sm text-emerald-800 dark:text-emerald-400 text-sm font-extrabold flex items-center gap-2 mb-1 shadow-sm">
@@ -226,7 +252,13 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                     <span className={`font-mono font-black text-xl flex items-center gap-1.5 ${comp.amazonInStock && comp.amazonPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
                       {comp.amazonPrice ? (
                         <>
-                          {comp.amazonPrice} <RiyalIcon size="h-5 w-5" />
+                          {/* السعر المشطوب يظهر فقط عند وجود خصم معلن على هذا المتجر */}
+                          {discountPercent(comp.amazonPrice, comp.amazonListPrice) > 0 && (
+                            <span className="text-sm font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
+                              {formatPrice(comp.amazonListPrice)}
+                            </span>
+                          )}
+                          {formatPrice(comp.amazonPrice)} <RiyalIcon size="h-5 w-5" />
                         </>
                       ) : '---'}
                     </span>
@@ -257,7 +289,13 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                     <span className={`font-mono font-black text-xl flex items-center gap-1.5 ${comp.cazasouqInStock && comp.cazasouqPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
                       {comp.cazasouqPrice ? (
                         <>
-                          {comp.cazasouqPrice} <RiyalIcon size="h-5 w-5" />
+                          {/* السعر المشطوب يظهر فقط عند وجود خصم معلن على هذا المتجر */}
+                          {discountPercent(comp.cazasouqPrice, comp.cazasouqListPrice) > 0 && (
+                            <span className="text-sm font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
+                              {formatPrice(comp.cazasouqListPrice)}
+                            </span>
+                          )}
+                          {formatPrice(comp.cazasouqPrice)} <RiyalIcon size="h-5 w-5" />
                         </>
                       ) : '---'}
                     </span>
@@ -288,7 +326,13 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                     <span className={`font-mono font-black text-xl flex items-center gap-1.5 ${comp.microlessInStock && comp.microlessPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
                       {comp.microlessPrice ? (
                         <>
-                          {comp.microlessPrice} <RiyalIcon size="h-5 w-5" />
+                          {/* السعر المشطوب يظهر فقط عند وجود خصم معلن على هذا المتجر */}
+                          {discountPercent(comp.microlessPrice, comp.microlessListPrice) > 0 && (
+                            <span className="text-sm font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
+                              {formatPrice(comp.microlessListPrice)}
+                            </span>
+                          )}
+                          {formatPrice(comp.microlessPrice)} <RiyalIcon size="h-5 w-5" />
                         </>
                       ) : '---'}
                     </span>
@@ -343,6 +387,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
           </div>
 
         </div>
+        <PriceHistoryChart componentId={comp.id} />
       </div>
     </div>
   );

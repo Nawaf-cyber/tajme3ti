@@ -2,20 +2,6 @@
 
 import { useState } from 'react';
 
-/* ============ أوزان النيّة ============
-   لكل استخدام أولوياته. شوتر تنافسي يحتاج معالجاً قوياً وفريمات عالية،
-   لا رسوميات ثقيلة. المونتاج يحتاج رام ومعالجاً. إلخ.
-   الأوزان *ترتيبية*: تحدّد أي فئة تُخدم أولاً — لا نسباً من ميزانية. */
-export const USE_PROFILE: Record<string, { cpu: number; gpu: number; ram: number; storage: number; label: string }> = {
-  'competitive-shooter': { cpu: 0.30, gpu: 0.34, ram: 0.14, storage: 0.08, label: 'شوتر تنافسي' },
-  'aaa-gaming':          { cpu: 0.20, gpu: 0.44, ram: 0.14, storage: 0.08, label: 'ألعاب ثقيلة' },
-  'casual-gaming':       { cpu: 0.24, gpu: 0.36, ram: 0.14, storage: 0.08, label: 'ألعاب خفيفة' },
-  'editing':             { cpu: 0.32, gpu: 0.26, ram: 0.20, storage: 0.12, label: 'مونتاج وتصميم' },
-  'streaming':           { cpu: 0.32, gpu: 0.30, ram: 0.16, storage: 0.10, label: 'بث مباشر' },
-  'office':              { cpu: 0.30, gpu: 0.16, ram: 0.18, storage: 0.14, label: 'مكتبي ودراسة' },
-  'mixed':               { cpu: 0.26, gpu: 0.34, ram: 0.16, storage: 0.10, label: 'استخدام متنوّع' },
-};
-
 export type TierPlan = {
   key: 'value' | 'balanced' | 'strong';
   label: string;
@@ -30,6 +16,9 @@ type Intent = {
   fpsTarget: number | null;
   budget: number | null;
   alsoStreams: boolean | null;
+  /* تفضيل الشركة — اختياري. null = لا يهمّه، فيبني النظام بمنطقه المعتاد. */
+  gpuBrand: string | null;
+  cpuBrand: string | null;
 };
 
 /* ---- الاستخدامات المعروضة ---- */
@@ -39,13 +28,29 @@ const USES = [
   { key: 'casual-gaming',       icon: '🎮', title: 'ألعاب خفيفة',  desc: 'ماين كرافت · فورتنايت' },
   { key: 'editing',             icon: '🎬', title: 'مونتاج وتصميم', desc: 'فيديو · رندر · تصميم' },
   { key: 'streaming',           icon: '📡', title: 'بث مباشر',      desc: 'تويتش · يوتيوب' },
-  { key: 'office',              icon: '💼', title: 'مكتبي ودراسة',  desc: 'أوفيس · برمجة · تصفّح' },
 ];
 
 const RESOLUTIONS = [
   { key: '1080p', label: '1080p', desc: 'الأكثر شيوعاً' },
   { key: '1440p', label: '1440p', desc: 'التوازن الأمثل' },
   { key: '4K',    label: '4K',    desc: 'أعلى دقة' },
+];
+
+/* ---- تفضيل الشركة (اختياري) ----
+   القيم تطابق حقل brand في الكتالوج حرفياً. "لا يهمّني" = null فيختار
+   النظام بمنطقه. ملاحظة: كروت Intel لا تتجاوز المستوى ٣ في كتالوجنا،
+   فاختيارها على 4K يعطي أقوى ما تملكه Intel لا أقوى كرت متاح. */
+const GPU_BRANDS = [
+  { key: null,     label: 'لا يهمّني', hint: 'أفضل خيار متاح' },
+  { key: 'NVIDIA', label: 'NVIDIA',   hint: 'GeForce RTX' },
+  { key: 'AMD',    label: 'AMD',      hint: 'Radeon RX' },
+  { key: 'Intel',  label: 'Intel',    hint: 'Arc' },
+];
+
+const CPU_BRANDS = [
+  { key: null,    label: 'لا يهمّني', hint: 'أفضل خيار متاح' },
+  { key: 'AMD',   label: 'AMD',      hint: 'Ryzen' },
+  { key: 'Intel', label: 'Intel',    hint: 'Core' },
 ];
 
 export default function IntentPicker({
@@ -59,22 +64,27 @@ export default function IntentPicker({
   const [use, setUse] = useState<string | null>(null);
   const [resolution, setResolution] = useState<string | null>(null);
   const [alsoStreams, setAlsoStreams] = useState(false);
+  const [gpuBrand, setGpuBrand] = useState<string | null>(null);
+  const [cpuBrand, setCpuBrand] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const needsResolution = use !== null && use !== 'office' && use !== 'editing';
   const canBuild = use !== null && (!needsResolution || resolution !== null);
 
-  const handleBuild = (nextRes?: string) => {
+  /* بانٍ واحد لكل المسارات — يمنع تباعد الوسائط بين الأزرار */
+  const run = (over: Partial<Intent> = {}) => {
     if (!use) return;
-    const res = nextRes ?? resolution;
+    const res = over.resolution !== undefined ? over.resolution : resolution;
     if (needsResolution && !res) return;
 
     const plans = buildPlans({
       use,
-      resolution: res,
+      resolution: needsResolution ? res : null,
       fpsTarget: use === 'competitive-shooter' ? 144 : 60,
       budget: null,
-      alsoStreams: alsoStreams || use === 'streaming',
+      alsoStreams: (over.alsoStreams ?? alsoStreams) || use === 'streaming',
+      gpuBrand: over.gpuBrand !== undefined ? over.gpuBrand : gpuBrand,
+      cpuBrand: over.cpuBrand !== undefined ? over.cpuBrand : cpuBrand,
     });
 
     if (!plans || plans.length === 0) {
@@ -85,6 +95,9 @@ export default function IntentPicker({
     onPlans(plans);
   };
 
+  const handleBuild = (nextRes?: string) =>
+    run(nextRes !== undefined ? { resolution: nextRes } : {});
+
   // اختيار الاستخدام: يبني فوراً إن لم تلزم الدقة
   const pickUse = (k: string) => {
     setUse(k);
@@ -94,7 +107,7 @@ export default function IntentPicker({
       setTimeout(() => {
         const plans = buildPlans({
           use: k, resolution: null, fpsTarget: null, budget: null,
-          alsoStreams: alsoStreams,
+          alsoStreams, gpuBrand, cpuBrand,
         });
         if (plans?.length) onPlans(plans);
         else setError('تعذّر بناء تجميعة من القطع المتوفّرة حالياً.');
@@ -105,7 +118,19 @@ export default function IntentPicker({
   const pickRes = (r: string) => {
     setResolution(r);
     setError(null);
-    setTimeout(() => handleBuild(r), 0);
+    setTimeout(() => run({ resolution: r }), 0);
+  };
+
+  /* تغيير الشركة يعيد البناء فوراً إن كانت المدخلات مكتملة */
+  const pickGpuBrand = (b: string | null) => {
+    setGpuBrand(b);
+    setError(null);
+    if (canBuild) setTimeout(() => run({ gpuBrand: b }), 0);
+  };
+  const pickCpuBrand = (b: string | null) => {
+    setCpuBrand(b);
+    setError(null);
+    if (canBuild) setTimeout(() => run({ cpuBrand: b }), 0);
   };
 
   return (
@@ -196,6 +221,68 @@ export default function IntentPicker({
             </div>
           )}
 
+          {/* ===== الخطوة ٣: تفضيل الشركة — اختياري ===== */}
+          {use && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="w-5 h-5 rounded-md bg-slate-400 dark:bg-slate-600 text-white text-[10px] font-black flex items-center justify-center">{needsResolution ? '٣' : '٢'}</span>
+                <span className="text-[11px] font-black text-slate-600 dark:text-slate-300">تفضّل شركة معيّنة؟</span>
+                <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500">(اختياري — اتركه ونختار لك الأفضل)</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* كرت الشاشة */}
+                <div>
+                  <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 mb-1.5">كرت الشاشة</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {GPU_BRANDS.map(b => (
+                      <button
+                        key={b.label}
+                        onClick={() => pickGpuBrand(b.key)}
+                        title={b.hint}
+                        className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${
+                          gpuBrand === b.key
+                            ? 'border-cyan-500 bg-cyan-500/[0.08] text-cyan-600 dark:text-cyan-400 ring-1 ring-cyan-500/20'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-cyan-500/50'
+                        }`}
+                      >
+                        {b.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* المعالج */}
+                <div>
+                  <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 mb-1.5">المعالج</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {CPU_BRANDS.map(b => (
+                      <button
+                        key={b.label}
+                        onClick={() => pickCpuBrand(b.key)}
+                        title={b.hint}
+                        className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${
+                          cpuBrand === b.key
+                            ? 'border-cyan-500 bg-cyan-500/[0.08] text-cyan-600 dark:text-cyan-400 ring-1 ring-cyan-500/20'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-cyan-500/50'
+                        }`}
+                      >
+                        {b.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* تنبيه صادق: كروت Intel لا تصل الفئات العليا في كتالوجنا */}
+              {gpuBrand === 'Intel' && (resolution === '4K' || resolution === '1440p') && (
+                <p className="mt-2 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                  كروت Intel Arc في كتالوجنا لا تتجاوز الفئة المتوسطة — على {resolution} ستحصل على أقوى ما تملكه Intel، لا أقوى كرت متاح.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* ===== خيار البثّ ===== */}
           {use && use !== 'office' && use !== 'streaming' && (
             <label className="flex items-center gap-2.5 mb-4 cursor-pointer group w-fit">
@@ -204,8 +291,10 @@ export default function IntentPicker({
                   type="checkbox"
                   checked={alsoStreams}
                   onChange={e => {
-                    setAlsoStreams(e.target.checked);
-                    if (canBuild) setTimeout(() => handleBuild(), 0);
+                    const next = e.target.checked;
+                    setAlsoStreams(next);
+                    // نمرّر القيمة صراحةً — لا نعتمد على وصول تحديث الحالة
+                    if (canBuild) setTimeout(() => run({ alsoStreams: next }), 0);
                   }}
                   className="sr-only peer"
                 />
