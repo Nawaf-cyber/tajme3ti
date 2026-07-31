@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { isComponentAvailable } from '../../lib/availability';
 import { formatPrice, componentDiscount } from '../../lib/price';
@@ -73,6 +73,23 @@ export default function ComponentsClient({ components, categories }: { component
     else if (sortBy === 'price-desc') list.sort((a, b) => b.price - a.price);
     return list;
   }, [baseFiltered, onlyDeals, sortBy]);
+
+  /* ============ عرض تدريجي ============
+     كانت الصفحة ترسم كل القطع دفعةً واحدة: مئات البطاقات ومئات طلبات
+     الصور في التحميل الأول. البيانات نفسها خفيفة، فنُبقيها كاملة في
+     الذاكرة (البحث والفرز وعدّاد الصفقات تعمل على الكل) ونرسم دفعةً
+     فقط. اخترنا زراً صريحاً لا تمريراً لانهائياً: الأخير يمنع الوصول
+     للفوتر ويُفقد موضعك عند الرجوع. */
+  const PAGE_SIZE = 24;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // أي تغيير في الفلاتر يعيد العرض للبداية — وإلا بقيت على صفحة 5 لنتيجة من 3
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search, selectedCat, maxPrice, sortBy, onlyDeals]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const remaining = filtered.length - visible.length;
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
@@ -168,7 +185,7 @@ export default function ComponentsClient({ components, categories }: { component
       <div className="flex-1">
 
         {/* ===== شريط الأدوات: الفرز + الصفقات + العدد ===== */}
-        <div className="mb-6 flex flex-wrap items-center gap-3 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+        <div className="relative mb-6 flex flex-wrap items-center gap-3 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm p-3 rounded-2xl border-t-2 border-t-cyan-500/70 border-x border-b border-slate-200 dark:border-slate-800/80 shadow-sm">
 
           {/* زر الصفقات — يظهر معطّلاً إن لم توجد تخفيضات، لا يُخفى */}
           <button
@@ -227,9 +244,9 @@ export default function ComponentsClient({ components, categories }: { component
             ))}
           </div>
 
-          {/* عدد النتائج */}
+          {/* عدد النتائج — المعروض من الإجمالي كي يعرف أن هناك المزيد */}
           <span className="mr-auto text-[11px] font-bold text-slate-400 dark:text-slate-500 font-mono tabular-nums px-2">
-            {filtered.length} قطعة
+            {remaining > 0 ? `${visible.length} من ${filtered.length} قطعة` : `${filtered.length} قطعة`}
           </span>
         </div>
 
@@ -245,7 +262,7 @@ export default function ComponentsClient({ components, categories }: { component
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filtered.map((comp) => {
+            {visible.map((comp) => {
               const available = isComponentAvailable(comp);
               // استخراج أهم 3 مواصفات سريعة من specs + الطاقة
               const specBadges: string[] = [];
@@ -279,9 +296,12 @@ export default function ComponentsClient({ components, categories }: { component
 
                 {/* الصورة (تبقى كما هي — الأهم للزبون) */}
                 <div className="relative w-full h-52 bg-white mx-4 mb-1 rounded-sm flex items-center justify-center" style={{width:'calc(100% - 2rem)'}}>
-                  <img 
-                    src={comp.imageUrl || `/images/${comp.categoryId}/boxed.png`} 
-                    alt={comp.name} 
+                  {/* loading="lazy" — كانت كل الصور تُطلب فوراً عند التحميل */}
+                  <img
+                    src={comp.imageUrl || `/images/${comp.categoryId}/boxed.png`}
+                    alt={comp.name}
+                    loading="lazy"
+                    decoding="async"
                     className="max-w-full max-h-full object-contain p-4 mix-blend-multiply filter drop-shadow-sm group-hover:scale-110 transition-transform duration-500"
                   />
                   {/* شارة الخصم — أعلى يمين الصورة */}
@@ -365,6 +385,35 @@ export default function ComponentsClient({ components, categories }: { component
               </div>
               );
             })}
+          </div>
+        )}
+
+        {/* ===== تحميل المزيد ===== */}
+        {remaining > 0 && (
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <button
+              onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+              className="group flex items-center gap-2.5 px-8 py-3.5 rounded-2xl bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-700/60 text-sm font-black text-slate-700 dark:text-slate-200 hover:border-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:shadow-lg hover:shadow-cyan-500/10 transition-all active:scale-95"
+            >
+              <svg className="w-4 h-4 text-cyan-500 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+              تحميل المزيد
+              <span className="font-mono text-[11px] font-black text-slate-400 dark:text-slate-500 tabular-nums">
+                (+{Math.min(PAGE_SIZE, remaining)})
+              </span>
+            </button>
+
+            {/* شريط تقدّم بصري: كم رأيت من الإجمالي */}
+            <div className="w-40 h-1 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-500"
+                style={{ width: `${(visible.length / filtered.length) * 100}%` }}
+              ></div>
+            </div>
+            <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500 tabular-nums">
+              بقيت {remaining} قطعة
+            </span>
           </div>
         )}
       </div>

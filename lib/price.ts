@@ -15,6 +15,9 @@ export const formatPrice = (value: number | null | undefined): string => {
 };
 
 /** نسبة الخصم صحيحةً، أو 0 إن لم يوجد خصم معتبر */
+/** أقصى خصم نعتبره حقيقياً — ما فوقه خطأ قراءة لا عرض */
+export const MAX_PLAUSIBLE_DISCOUNT = 50;
+
 export const discountPercent = (
   current: number | null | undefined,
   listPrice: number | null | undefined
@@ -23,7 +26,13 @@ export const discountPercent = (
   if (!(listPrice > current)) return 0;
   const pct = Math.round((1 - current / listPrice) * 100);
   // أقل من ٣٪ لا يستحق وسم "خصم" — قد يكون فرق تقريب أو ضريبة
-  return pct >= 3 ? pct : 0;
+  if (pct < 3) return 0;
+  /* سقف المعقولية: خصومات قطع الحاسب الحقيقية ٥–٤٠٪. أي رقم فوق ٥٠٪
+     صادفناه كان خطأ محدّد في السحب (مثال حقيقي: 7554.03 لكرت بـ3042
+     = ‎-60%). نحجبه هنا أيضاً لا في السحب وحده، كي تتوقّف أي قيمة خاطئة
+     مخزّنة عن الظهور فوراً بلا انتظار دورة سحب جديدة. */
+  if (pct > MAX_PLAUSIBLE_DISCOUNT) return 0;
+  return pct;
 };
 
 /** أقل سعر متوفّر مع سعره قبل الخصم — يُستخدم لعرض الشارة على السعر المعروض */

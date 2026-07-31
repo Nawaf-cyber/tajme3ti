@@ -26,9 +26,60 @@ export type AffiliateIds = {
 /** قيم احتياطية تُستخدم لو كان جدول Setting فارغاً */
 export const FALLBACK: Required<AffiliateIds> = {
   amazon_affiliate: 'tajmee3ti-21',
-  cazasouq_affiliate: '800',   // مؤكّد من رابط تتبّع فعلي: ?idev_id=800
+  cazasouq_affiliate: '800',   // معرّف الشريك في iDevAffiliate (لوحة كازاسوق)
   microless_affiliate: '',     // فارغ = معطّل — معامله غير مؤكّد بعد
 };
+
+/* ============ تتبّع كازاسوق — الحقيقة المُثبتة بالفحص ============
+ *
+ * نتائج فحص فعلي (2026-07-30/31)، صحّحت اعتقاداً خاطئاً كان موثّقاً هنا
+ * بأن `?idev_id=800` "مؤكّد من رابط تتبّع فعلي". هو **ليس** كذلك:
+ *
+ *  ✗ https://www.cazasouq.com/<منتج>?idev_id=800
+ *      صفحة المنتج **لا تحتوي أي سكربت لـiDevAffiliate**، ولا يُضبط كوكي.
+ *      أي أن أحداً لا يقرأ المعامل — تجربة ممتازة و**عمولة صفر**.
+ *  ~ https://cazasouq.idevaffiliate.com/800.html
+ *      يحوّل للصفحة الرئيسية ويضبط كوكي HttpOnly. العمولة تُحتسب لكن
+ *      الزائر يفقد المنتج الذي أراده.
+ *  ✗ 800.html?url= / ?u= / ?dest= / ?target= / ?r=  → كلها تتجاهل الوجهة.
+ *  ✗ 800_1.html و 800_2.html (صفحات هبوط)          → 404.
+ *
+ *  ✓✓ https://cazasouq.idevaffiliate.com/idevaffiliate.php?id=800&url=799
+ *      **الحل الصحيح.** يمرّ عبر خادم التتبّع (فتُحتسب العمولة) ويهبط
+ *      مباشرةً على صفحة المنتج. مُختبَر فعلياً وأكّد الهبوط على المنتج.
+ *
+ * ⚠️ الرقم 799 معرّف **يولّده خادم كازاسوق** لهذه الوجهة تحديداً، ويُنشأ
+ * يدوياً من لوحة الشريك:
+ *     روابط التتبّع ← الروابط البديلة للصفحات الداخلة ← إنشاء رابط أوتوماتيكي
+ * فهو **لا يُشتقّ ولا يُخمَّن**: رقم مجاور (798/800) يوجّه لوجهة مختلفة
+ * تماماً، فتحويل المشتري لمنتج خاطئ أسوأ من فقدان العمولة.
+ * لذلك يُخزَّن لكل قطعة في Component.cazasouqAffiliateUrl.
+ *
+ * والكوكي يدوم 14 يوماً من أول نقرة ويغطّي الموقع (من أسئلتهم الشائعة).
+ */
+
+/** هل هذا رابط تتبّع كازاسوق صالح؟ نتحقّق كي لا يُلصق رابط خاطئ في اللوحة */
+export const isCazasouqTrackingUrl = (u?: string | null): boolean => {
+  if (!u) return false;
+  try {
+    const parsed = new URL(u.trim());
+    return parsed.hostname.endsWith('idevaffiliate.com') && parsed.searchParams.has('id');
+  } catch {
+    return false;
+  }
+};
+
+/** السلوك حين لا يوجد رابط تتبّع مولَّد للقطعة */
+export type CazasouqFallback =
+  | 'product-link'        // رابط المنتج مباشرة: تجربة جيدة، بلا عمولة
+  | 'affiliate-redirect'; // 800.html: عمولة تُحتسب، لكن هبوط على الرئيسية
+
+/** غيّر هذه القيمة وحدها لتبديل السلوك الاحتياطي عبر الموقع كله */
+export const CAZASOUQ_FALLBACK: CazasouqFallback = 'product-link';
+
+/** رابط التحويل العام — يُحتسب لكنه يهبط على الرئيسية */
+export const cazasouqRedirect = (affiliateId: string) =>
+  `https://cazasouq.idevaffiliate.com/${affiliateId}.html`;
 
 /**
  * تنظيف رابط كازاسوق من ضجيج البحث.
@@ -61,8 +112,16 @@ const withParam = (url: string, key: string, val: string): string =>
 export function buildAffiliateUrl(
   url: string | null | undefined,
   store: Store,
-  ids?: AffiliateIds
+  ids?: AffiliateIds,
+  /** رابط التتبّع العميق المولَّد لهذه القطعة (كازاسوق فقط) */
+  deepLink?: string | null
 ): string {
+  /* الرابط المولَّد يتقدّم على كل شيء: هو الوحيد الذي يجمع احتساب العمولة
+     والهبوط على المنتج. نتحقّق من شكله كي لا يكسر رابطٌ خاطئ ملصوق. */
+  if (store === 'cazasouq' && isCazasouqTrackingUrl(deepLink)) {
+    return deepLink!.trim();
+  }
+
   if (!url) return '#';
 
   const amazonTag = ids?.amazon_affiliate ?? FALLBACK.amazon_affiliate;
@@ -80,10 +139,16 @@ export function buildAffiliateUrl(
     }
 
     case 'cazasouq': {
-      // كازاسوق يعمل على iDevAffiliate — المعامل idev_id لا aff
+      /* وصلنا هنا = لا يوجد رابط تتبّع مولَّد لهذه القطعة.
+         راجع التعليق أعلاه: كلا الاحتياطيين ناقص، والحل هو توليد الرابط. */
       if (!url.includes('cazasouq.com')) return url;
       if (!cazaId) return url;
-      return withParam(cleanCazasouq(url), 'idev_id', cazaId);
+
+      if (CAZASOUQ_FALLBACK === 'affiliate-redirect') {
+        return cazasouqRedirect(cazaId);
+      }
+      // 'product-link': رابط المنتج نظيفاً. لا عمولة، لكن تجربة سليمة.
+      return cleanCazasouq(url);
     }
 
     case 'microless': {

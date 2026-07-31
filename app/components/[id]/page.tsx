@@ -267,7 +267,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
                 {comp.cazasouqUrl && (
                   <a 
-                    href={buildAffiliateUrl(comp.cazasouqUrl, 'cazasouq', affIds)} 
+                    href={buildAffiliateUrl(comp.cazasouqUrl, 'cazasouq', affIds, comp.cazasouqAffiliateUrl)} 
                     {...AFFILIATE_LINK_PROPS} 
                     className={`flex items-center justify-between p-3.5 border-r-2 rounded-sm transition-all group shadow-sm ${
                       !comp.cazasouqInStock || !comp.cazasouqPrice

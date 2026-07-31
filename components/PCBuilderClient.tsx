@@ -15,6 +15,7 @@ import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { isComponentAvailable } from '../lib/availability';
+import { buildAffiliateUrl, type AffiliateIds } from '../lib/affiliate';
 
 type Component = {
   id: string;
@@ -48,63 +49,20 @@ type ComponentWithCompatibility = Component & {
   reason?: string;
 };
 
-// دالة التسويق بالعمولة الذكية
 /* ============ معرّفات الأفلييت ============
-   تأتي من لوحة الإدارة (جدول Setting) عبر prop، وهذه قيم احتياطية
-   تُستخدم لو كان الجدول فارغاً. */
-let AMAZON_TAG = 'tajmee3ti-21';
-let CAZASOUQ_AFF_ID = '800';   // مؤكّد من رابط تتبّع فعلي: ?idev_id=800
-let MICROLESS_AFF_ID = '';     // فارغ = معطّل — لم نتحقق من معامله بعد
+   ⚠️ كانت هنا نسخة كاملة مكرّرة من منطق بناء روابط العمولة، تحمل الاعتقاد
+   الخاطئ نفسه بأن `?idev_id` مؤكّد لكازاسوق. الفحص أثبت أنه لا يُحتسب،
+   ولو بقيت النسخة لظلّت هذه الصفحة خارج أي إصلاح مركزي (تبديل استراتيجية
+   كازاسوق مثلاً لن يشملها). الآن تستدعي lib/affiliate مثل بقية الموقع. */
+let AFFILIATE_IDS: AffiliateIds | undefined = undefined;
 
 /** يُستدعى من المكوّن ليطبّق قيم لوحة الإدارة قبل بناء أي رابط */
 const applyAffiliateIds = (ids?: Record<string, string>) => {
-  if (!ids) return;
-  if (ids.amazon_affiliate) AMAZON_TAG = ids.amazon_affiliate;
-  if (ids.cazasouq_affiliate !== undefined) CAZASOUQ_AFF_ID = ids.cazasouq_affiliate;
-  if (ids.microless_affiliate !== undefined) MICROLESS_AFF_ID = ids.microless_affiliate;
+  if (ids) AFFILIATE_IDS = ids as AffiliateIds;
 };
 
-const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'cazasouq' | 'microless') => {
-  if (!url) return '#';
-  
-  switch(store) {
-    case 'amazon':
-      if (url.includes('amazon.sa') || url.includes('amazon.com')) {
-        const match = url.match(/(https?:\/\/[^\/]+\/(?:[^\/]+\/)?(?:dp|gp\/product)\/[A-Z0-9]{10})/i);
-        if (match) return `${match[1]}?tag=${AMAZON_TAG}`;
-        return url.includes('?') ? `${url}&tag=${AMAZON_TAG}` : `${url}?tag=${AMAZON_TAG}`;
-      }
-      return url;
-      
-    case 'cazasouq':
-      /* كازاسوق يستخدم iDevAffiliate — المعامل idev_id لا aff.
-         مؤكّد من رابط تتبّع فعلي:
-         cazasouq.com/pny-geforce-rtx-5070-ti-...-41921/?idev_id=800
-         الربط المباشر يعمل: نضيف المعامل على رابط المنتج مباشرة. */
-      if (url.includes('cazasouq.com')) {
-        if (!CAZASOUQ_AFF_ID) return url;
-        return url.includes('?')
-          ? `${url}&idev_id=${CAZASOUQ_AFF_ID}`
-          : `${url}?idev_id=${CAZASOUQ_AFF_ID}`;
-      }
-      return url;
-
-    case 'microless':
-      /* ⚠️ المعامل aff_id غير مؤكّد — لم نتحقق من رابط تتبّع فعلي.
-         يبقى معطّلاً (المعرّف فارغ) حتى نتأكد. رابط بمعامل خاطئ
-         أسوأ من رابط بلا معامل: يبدو ناجحاً ولا يُحتسب. */
-      if (url.includes('microless.com')) {
-        if (!MICROLESS_AFF_ID) return url;
-        return url.includes('?')
-          ? `${url}&aff_id=${MICROLESS_AFF_ID}`
-          : `${url}?aff_id=${MICROLESS_AFF_ID}`;
-      }
-      return url;
-      
-    default:
-      return url;
-  }
-};
+const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'cazasouq' | 'microless') =>
+  buildAffiliateUrl(url, store, AFFILIATE_IDS);
 
 type TierPlan = {
   key: 'value' | 'balanced' | 'strong';

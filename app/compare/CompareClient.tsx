@@ -4,9 +4,12 @@ import { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { isComponentAvailable } from '../../lib/availability';
+import { formatPrice, componentDiscount } from '../../lib/price';
+import type { AffiliateIds } from '../../lib/affiliate';
 import UseInBuildModal from './UseInBuildModal';
 import CompareActions from './CompareActions';
 import BuyCell from './BuyCell';
+import ComparePriceHistory, { SERIES_COLORS, type HistorySeries } from './ComparePriceHistory';
 
 type Comp = any;
 
@@ -195,12 +198,18 @@ export default function CompareClient({
   categories,
   starterComponents,
   activeCategoryId,
+  droppedNames = [],
+  history = [],
+  affiliateIds,
 }: {
   selected: Comp[];
   available: Comp[];
   categories: any[];
   starterComponents: Comp[];
   activeCategoryId: string | null;
+  droppedNames?: string[];
+  history?: HistorySeries[];
+  affiliateIds?: AffiliateIds;
 }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -216,6 +225,9 @@ export default function CompareClient({
   const [overIdx, setOverIdx] = useState<number | null>(null);
 
   const ids = selected.map((c) => c.id);
+
+  /* خصم كل عمود — نفس دالة صفحتَي التصفّح والمنتج، فلا يتباعد الحساب */
+  const deals = useMemo(() => selected.map((c) => componentDiscount(c)), [selected]);
 
   /* ---- تحديث الرابط ---- */
   const updateUrl = (newIds: string[]) => {
@@ -389,15 +401,22 @@ export default function CompareClient({
     return out;
   }, [selected, analysis]);
 
-  const pickerList = useMemo(() => {
+  const PICKER_LIMIT = 40;
+  /* نُعيد العدد الكامل والمعروض معاً: التذييل كان يعرض طول القائمة بعد
+     القصّ (40 دائماً) فيبدو رقماً دقيقاً وهو مسقوف — والرقم الذي لا يطابق
+     الواقع يُفقد الثقة. */
+  const picker = useMemo(() => {
     const source = activeCategoryId ? available : starterComponents;
+    const q = search.toLowerCase();
     const filtered = source.filter((c: Comp) => {
-      const matchSearch = `${c.brand} ${c.name}`.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = `${c.brand} ${c.name}`.toLowerCase().includes(q);
       const matchCat = activeCategoryId ? true : !pickerCategory || c.categoryId === pickerCategory;
       return matchSearch && matchCat;
     });
-    return filtered.slice(0, 40);
+    return { list: filtered.slice(0, PICKER_LIMIT), total: filtered.length };
   }, [available, starterComponents, search, pickerCategory, activeCategoryId]);
+
+  const pickerList = picker.list;
 
   const categoryName = selected[0]?.category?.name ?? '';
 
@@ -434,6 +453,25 @@ export default function CompareClient({
           )}
         </div>
 
+        {/* ===== تنبيه: قطع استُبعدت لأنها من فئة أخرى =====
+            المقارنة عبر فئات مختلفة تُنتج جدولاً فارغاً وخلاصة مضلّلة
+            (مزوّد طاقة "أعلى أداء" أمام معالج). نستبعدها ونُصرّح بذلك
+            بدل أن نُسقطها بصمت فيحتار المستخدم أين ذهبت قطعته. */}
+        {droppedNames.length > 0 && (
+          <div className="max-w-2xl mx-auto mb-8 flex items-start gap-3 p-4 rounded-sm border border-amber-500/40 bg-amber-500/[0.07]">
+            <span className="w-7 h-7 shrink-0 rounded-sm bg-amber-500/15 text-amber-500 flex items-center justify-center text-sm font-black">!</span>
+            <div className="min-w-0 text-right">
+              <p className="text-[13px] font-black text-amber-600 dark:text-amber-400">
+                استُبعدت {droppedNames.length === 1 ? 'قطعة' : droppedNames.length === 2 ? 'قطعتان' : `${droppedNames.length} قطع`} من فئة مختلفة
+              </p>
+              <p className="text-[11.5px] font-semibold text-amber-700/80 dark:text-amber-500/70 mt-1 leading-relaxed">
+                {droppedNames.join(' · ')} — المقارنة تعمل داخل فئة واحدة فقط{categoryName ? ` (${categoryName})` : ''}،
+                لأن مقارنة قطع مختلفة الفئات تُنتج مواصفات غير متقابلة ونتائج بلا معنى.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ===== حالة الفراغ ===== */}
         {selected.length === 0 ? (
           <div className="max-w-md mx-auto text-center bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-10">
@@ -461,18 +499,33 @@ export default function CompareClient({
           {/* ===== منطقة التصدير ===== */}
           <div ref={exportRef}>
 
+          {/* ===== عنوان الجدول — نفس نمط "الخلاصة" و"المواصفات التقنية" ===== */}
+          <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4 px-1">
+            <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
+            جدول المقارنة
+            {categoryName && (
+              <span className="font-mono text-[10px] font-normal text-slate-400 tracking-wider">{categoryName}</span>
+            )}
+          </h2>
+
           {/* ===== جدول المقارنة ===== */}
-          <div data-export-scroll className="bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm overflow-x-auto shadow-sm">
+          <div data-export-scroll className="relative bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm overflow-x-auto shadow-sm">
+            {/* الزاوية الهندسية — بصمة بطاقات الموقع */}
+            <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent z-30 pointer-events-none"></div>
+
             <table className="w-full min-w-[640px] border-collapse">
               <thead>
                 <tr>
-                  {/* خانة فارغة (عمود التسميات) */}
-                  <th className="w-[140px] md:w-[180px] border-b border-slate-200 dark:border-slate-800"></th>
+                  {/* خانة فارغة (عمود التسميات) — مثبّتة عند التمرير الأفقي */}
+                  <th className="sticky right-0 z-20 w-[140px] md:w-[180px] border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm"></th>
 
                   {/* أعمدة القطع */}
                   {selected.map((c, colIdx) => {
                     const avail = isComponentAvailable(c);
                     const isBest = colIdx === analysis.bestValueIdx;
+                    const deal = deals[colIdx];
+                    // اللون يطابق خط القطعة في رسم تاريخ السعر أدناه
+                    const seriesColor = SERIES_COLORS[colIdx % SERIES_COLORS.length];
                     return (
                       <th
                         key={c.id}
@@ -492,10 +545,18 @@ export default function CompareClient({
                             : ''
                         }`}
                       >
+                        {/* شريط لوني يربط العمود بخطّه في رسم تاريخ السعر */}
+                        <div
+                          className="absolute top-0 left-0 right-0 h-[3px]"
+                          style={{ backgroundColor: seriesColor, opacity: isBest ? 1 : 0.45 }}
+                        ></div>
+
+                        {/* كود القطعة — نفس بصمة بطاقات التصفّح وصفحة المنتج */}
+                        <div className="mt-1.5 mb-1 font-mono text-[9px] text-slate-400 dark:text-slate-500 tracking-wider text-center">
+                          #{c.id.slice(-4).toUpperCase()}
+                        </div>
+
                         {/* شارة أفضل قيمة */}
-                        {isBest && (
-                          <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"></div>
-                        )}
                         {isBest && (
                           <div className="mb-2 font-mono text-[9px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 rounded-sm py-1 uppercase tracking-widest">
                             أفضل قيمة
@@ -545,12 +606,19 @@ export default function CompareClient({
                         )}
 
                         <Link href={`/components/${c.id}`} className="block group/link mt-2">
-                          <div className="h-20 md:h-24 bg-white rounded-sm mb-3 flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800">
+                          <div className="relative h-20 md:h-24 bg-white rounded-sm mb-3 flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800">
                             <img
                               src={c.imageUrl || `/images/${c.categoryId}/boxed.png`}
                               alt={c.name}
+                              loading="lazy"
                               className="max-w-full max-h-full object-contain mix-blend-multiply group-hover/link:scale-105 transition-transform"
                             />
+                            {/* شارة الخصم على الصورة — أول ما تلحظه العين */}
+                            {deal.pct > 0 && (
+                              <span className="absolute top-1 right-1 bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-sm shadow-md shadow-rose-500/40 font-mono tabular-nums">
+                                ‎-{deal.pct}%
+                              </span>
+                            )}
                           </div>
                           <div className={`font-mono text-[9px] font-black uppercase tracking-wider mb-1 ${brandColor(c.brand)}`}>
                             {c.brand}
@@ -609,10 +677,17 @@ export default function CompareClient({
                 {specRows.map((label, rowIdx) => {
                   const { values, winnerIdx } = rowData(label);
                   return (
-                    <tr key={label} className={rowIdx % 2 === 0 ? 'bg-cyan-500/[0.03]' : ''}>
-                      <td className="py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr
+                      key={label}
+                      /* تظليل الصف عند التمرير — يساعد على تتبّع صف عريض */
+                      className={`group/row transition-colors hover:bg-cyan-500/[0.06] ${rowIdx % 2 === 0 ? 'bg-cyan-500/[0.03]' : ''}`}
+                    >
+                      <th
+                        scope="row"
+                        className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm group-hover/row:text-cyan-600 dark:group-hover/row:text-cyan-400"
+                      >
                         {label}
-                      </td>
+                      </th>
                       {values.map((v, i) => (
                         <td
                           key={i}
@@ -646,9 +721,9 @@ export default function CompareClient({
                   const { values, winnerIdx } = tdpRow();
                   return (
                     <tr className={specRows.length % 2 === 0 ? 'bg-cyan-500/[0.03]' : ''}>
-                      <td className="py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                         الاستهلاك
-                      </td>
+                      </th>
                       {values.map((v, i) => (
                         <td
                           key={i}
@@ -681,9 +756,9 @@ export default function CompareClient({
                   }
                   return (
                     <tr className="bg-cyan-500/[0.03]">
-                      <td className="py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                         مستوى الأداء
-                      </td>
+                      </th>
                       {selected.map((c, i) => (
                         <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
                           <span className="text-sm tracking-widest inline-flex items-center gap-1" dir="ltr">
@@ -705,7 +780,7 @@ export default function CompareClient({
                   const { nums, winnerIdx } = priceRow();
                   return (
                     <tr>
-                      <td className="py-4 px-4 text-sm font-black text-slate-900 dark:text-white">السعر</td>
+                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-4 px-4 text-sm font-black text-slate-900 dark:text-white">السعر</th>
                       {nums.map((p, i) => {
                         const delta = p && analysis.minPrice && p > analysis.minPrice ? p - analysis.minPrice : 0;
                         const cheapestName = analysis.cheapestIdx >= 0 ? selected[analysis.cheapestIdx]?.name : '';
@@ -714,10 +789,21 @@ export default function CompareClient({
                           {p ? (
                             <div className="flex flex-col items-center gap-1">
                               <span className="inline-flex items-center gap-1 font-mono font-black text-lg md:text-xl text-emerald-600 dark:text-emerald-400">
-                                {p.toLocaleString('en-US')}
+                                {formatPrice(p)}
                                 <RiyalIcon size="h-4 w-4" />
                                 {winnerIdx.includes(i) && <span className="text-amber-400 text-xs">★</span>}
                               </span>
+                              {/* السعر قبل الخصم + النسبة — على المتجر الأرخص فقط */}
+                              {deals[i]?.pct > 0 && deals[i]?.listPrice && (
+                                <span className="inline-flex items-center gap-1.5">
+                                  <span className="font-mono text-[11px] font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
+                                    {formatPrice(deals[i].listPrice)}
+                                  </span>
+                                  <span className="font-mono text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-1.5 rounded-sm tabular-nums">
+                                    ‎-{deals[i].pct}%
+                                  </span>
+                                </span>
+                              )}
                               {delta > 0 && cheapestName && (
                                 <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 leading-tight">
                                   أغلى بـ <span className="font-mono text-red-500 dark:text-red-400">{delta.toLocaleString('en-US')}</span> ريال من {cheapestName}
@@ -754,12 +840,12 @@ export default function CompareClient({
                   }
                   return (
                     <tr className="bg-cyan-500/[0.03]">
-                      <td className="py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                         القيمة مقابل السعر
                         <div className="mt-0.5 font-mono text-[9px] font-normal text-slate-400 leading-tight">
                           مؤشر نسبي · الأعلى أفضل
                         </div>
-                      </td>
+                      </th>
                       {idx.map((score, i) => (
                         <td key={selected[i].id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
                           {score != null ? (
@@ -780,12 +866,12 @@ export default function CompareClient({
 
                 {/* ===== صف الشراء ===== */}
                 <tr data-noexport className="bg-slate-50/60 dark:bg-slate-900/30">
-                  <td className="py-4 px-4 text-sm font-black text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-800 align-top">
+                  <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-4 px-4 text-sm font-black text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-800 align-top">
                     الشراء
                     <div className="mt-1 font-mono text-[9px] font-normal text-slate-400 leading-tight">
                       روابط أفلييت
                     </div>
-                  </td>
+                  </th>
                   {selected.map((c, i) => (
                     <td
                       key={c.id}
@@ -809,7 +895,8 @@ export default function CompareClient({
 
         {/* ===== الخلاصة ===== */}
         {summary.length > 0 && (
-          <div className="mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-6 shadow-sm">
+          <div className="relative mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-6 shadow-sm animate-fade-up">
+            <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent pointer-events-none"></div>
             <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-5">
               <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
               الخلاصة
@@ -832,6 +919,14 @@ export default function CompareClient({
               خلاصة محسوبة من مواصفات القطع وأسعارها اللحظية — لا من رأي محرّر.
             </p>
           </div>
+        )}
+
+        {/* ===== مقارنة تاريخ الأسعار ===== */}
+        {selected.length >= 2 && (
+          <ComparePriceHistory
+            history={history}
+            labels={selected.map((c) => ({ id: c.id, name: c.name, brand: c.brand }))}
+          />
         )}
 
           </div>{/* /منطقة التصدير */}
@@ -905,32 +1000,57 @@ export default function CompareClient({
                 <p className="text-center py-10 text-sm text-slate-500 font-medium">لا توجد نتائج مطابقة.</p>
               ) : (
                 <div className="space-y-1.5">
-                  {pickerList.map((c: Comp) => (
+                  {pickerList.map((c: Comp) => {
+                    /* التوفّر والخصم قبل الإضافة لا بعدها — كان المستخدم
+                       يضيف قطعة نافدة ثم يكتشف ذلك في الجدول. */
+                    const avail = isComponentAvailable(c);
+                    const deal = componentDiscount(c);
+                    return (
                     <button
                       key={c.id}
                       onClick={() => addComponent(c.id)}
                       className="w-full flex items-center gap-3 p-2.5 rounded-sm hover:bg-cyan-50 dark:hover:bg-cyan-950/20 border border-transparent hover:border-cyan-500/30 transition-colors text-right group"
                     >
-                      <div className="w-12 h-12 bg-white rounded-sm shrink-0 flex items-center justify-center p-1 border border-slate-100 dark:border-slate-800">
+                      <div className="relative w-12 h-12 bg-white rounded-sm shrink-0 flex items-center justify-center p-1 border border-slate-100 dark:border-slate-800">
                         <img
                           src={c.imageUrl || '/images/placeholder.png'}
                           alt={c.name}
+                          loading="lazy"
                           className="max-w-full max-h-full object-contain mix-blend-multiply"
                         />
+                        {deal.pct > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] font-black px-1 rounded-sm font-mono tabular-nums shadow-sm">
+                            ‎-{deal.pct}%
+                          </span>
+                        )}
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <div className={`font-mono text-[9px] font-black uppercase ${brandColor(c.brand)}`}>{c.brand}</div>
                         <div className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                           {c.name}
                         </div>
+                        {!avail && (
+                          <div className="font-mono text-[9px] font-black text-amber-600 dark:text-amber-500 mt-0.5">
+                            ⚠ غير متوفر حالياً
+                          </div>
+                        )}
                       </div>
                       {c.price > 0 && (
-                        <span className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-1 shrink-0">
-                          {c.price} <RiyalIcon size="h-3 w-3" />
+                        <span className="flex flex-col items-end shrink-0">
+                          <span className={`font-mono font-black text-sm flex items-center gap-1 ${avail ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                            {formatPrice(c.price)}
+                            <RiyalIcon size="h-3 w-3" colorClass={avail ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-400'} />
+                          </span>
+                          {deal.pct > 0 && deal.listPrice && (
+                            <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
+                              {formatPrice(deal.listPrice)}
+                            </span>
+                          )}
                         </span>
                       )}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -938,7 +1058,10 @@ export default function CompareClient({
             {/* تذييل النافذة */}
             <div className="p-3 border-t border-slate-200 dark:border-slate-800 text-center">
               <p className="font-mono text-[10px] text-slate-400">
-                {pickerList.length} قطعة متاحة · المقارنة داخل نفس الفئة فقط
+                {picker.total > pickerList.length
+                  ? `يُعرض ${pickerList.length} من ${picker.total} — ابحث لتضييق النتائج`
+                  : `${picker.total} قطعة متاحة`}
+                {' · المقارنة داخل نفس الفئة فقط'}
               </p>
             </div>
           </div>

@@ -30,7 +30,10 @@ export const parseMoney = (text: string): number => {
 export const acceptListPrice = (list: number, current: number): number | null => {
   if (!(list > 0) || !(current > 0)) return null;
   if (list <= current * 1.005) return null;   // فارق أقل من ٠٫٥٪ ليس خصماً
-  if (list > current * 3) return null;        // فارق خرافي = قراءة خاطئة
+  /* السقف ٢× (أي خصم ٥٠٪ كحد أقصى). كان ٣× فمرّ خصم وهمي ٦٠٪ من
+     مايكرولس (7554.03 لكرت سعره 3042). خصومات قطع الحاسب الحقيقية
+     تتراوح ٥–٤٠٪؛ ما فوق ٥٠٪ على عتاد حديث هو خطأ قراءة لا عرض. */
+  if (list > current * 2) return null;
   return round2(list);
 };
 
@@ -260,27 +263,24 @@ export async function scrapeMicroless(comp: ScrapeTarget, token: string): Promis
       priceText = $('.product-details .price, .product-info .amount, .product-price').first().text();
     }
 
-    /* سعر ما قبل الخصم: وسم مخصّص أو سعر مشطوب */
-    const listText =
-      $('meta[property="product:original_price:amount"]').attr('content') ||
-      $('.product-details del, .product-info del, .price-was, .old-price').first().text() ||
-      '';
-
-    let price = parseMoney(priceText || '');
-    let listPrice = parseMoney(listText);
+    let price = round2(parseMoney(priceText || ''));
 
     if (htmlLower.includes('aed') && !htmlLower.includes('sar')) {
-      price = price * 1.022;
-      if (listPrice > 0) listPrice = listPrice * 1.022;
+      price = round2(price * 1.022);
     }
-
-    price = round2(price);
-    listPrice = round2(listPrice);
 
     if (price > 0) {
       if (isPlausible(price, comp.microlessPrice)) {
         out.price = price;
-        out.listPrice = acceptListPrice(listPrice, price);
+        /* ⚠️ سعر ما قبل الخصم لمايكرولس **معطّل** حتى نتحقّق من محدّده.
+           المحاولة الأولى (meta[product:original_price] ثم del/.price-was)
+           أنتجت خصماً وهمياً ١٠٠٪ من الحالات: 7554.03 لكرت سعره 3042 (‎-60%).
+           والمبدأ نفسه المطبَّق على معامل عمولة مايكرولس ينطبق هنا:
+           خصم بسعر خاطئ أسوأ من لا خصم — يبدو عرضاً حقيقياً ويضلّل المشتري.
+           لإعادة تشغيله: افتح صفحة منتج مخفّض على مايكرولس، اقرأ بنية DOM
+           الفعلية، ثم أعد المحدّد المؤكّد هنا.
+           null (لا undefined) عن قصد: يمسح أي قيمة خاطئة مخزّنة سابقاً. */
+        out.listPrice = null;
       } else {
         out.errors.push(`مايكروليس (${comp.name}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${comp.microlessPrice} سابقاً).`);
       }

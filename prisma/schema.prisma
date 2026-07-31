@@ -37,6 +37,15 @@ model Component {
   amazonListPrice    Float?
   cazasouqListPrice  Float?
   microlessListPrice Float?
+
+  /* رابط تتبّع كازاسوق العميق — يُولَّد يدوياً من لوحة الشريك:
+     روابط التتبّع ← الروابط البديلة للصفحات الداخلة ← إنشاء رابط أوتوماتيكي
+     الشكل: https://cazasouq.idevaffiliate.com/idevaffiliate.php?id=800&url=799
+     حيث 799 معرّف رقمي **يولّده خادمهم** لهذه الوجهة تحديداً — لا يُشتقّ
+     ولا يُخمَّن (رقم مجاور يوجّه لمنتج آخر تماماً).
+     هذا هو المسار الوحيد الذي يجمع: احتساب العمولة + الهبوط على المنتج.
+     null = لم يُولَّد بعد، فيسقط الكود للسلوك الاحتياطي. */
+  cazasouqAffiliateUrl String?
   tdpWattage  Int      @default(0)
   specs       Json     
   imageUrl    String?  

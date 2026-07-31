@@ -446,7 +446,7 @@ export default function MyBuildsPage() {
                               </a>
                             )}
                             {comp.cazasouqUrl && comp.cazasouqInStock !== false && (
-                              <a href={buildAffiliateUrl(comp.cazasouqUrl, 'cazasouq')} {...AFFILIATE_LINK_PROPS} className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                              <a href={buildAffiliateUrl(comp.cazasouqUrl, 'cazasouq', undefined, comp.cazasouqAffiliateUrl)} {...AFFILIATE_LINK_PROPS} className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
                                 <span>Cazasouq</span>
                                 <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                               </a>
