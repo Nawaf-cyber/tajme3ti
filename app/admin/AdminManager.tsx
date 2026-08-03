@@ -68,6 +68,8 @@ export default function AdminManager({ categories, components, news, cronStatus,
   // متغيرات الفلترة والبحث
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
+  // فلتر المتجر: يعرض القطع التي لها رابط ذلك المتجر (لإدارة روابط العمولة)
+  const [filterStore, setFilterStore] = useState<'ALL' | 'amazon' | 'cazasouq' | 'microless'>('ALL');
 
   useEffect(() => {
     const catName = categories.find(c => c.id.toString() === selectedCategoryId)?.name || '';
@@ -148,13 +150,29 @@ export default function AdminManager({ categories, components, news, cronStatus,
     }
   };
 
+  // هل للقطعة رابط متجر معيّن؟ (رابط قصير جداً = فارغ فعلياً)
+  const hasStoreUrl = (comp: any, store: 'amazon' | 'cazasouq' | 'microless') => {
+    const u = store === 'amazon' ? comp.amazonUrl : store === 'cazasouq' ? comp.cazasouqUrl : comp.microlessUrl;
+    return !!(u && String(u).length > 12);
+  };
+
   const filteredComponents = components.filter(comp => {
-    const matchesSearch = 
-      comp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch =
+      comp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       comp.brand.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'ALL' || comp.categoryId === filterCategory;
-    return matchesSearch && matchesCategory;
+    const matchesStore = filterStore === 'ALL' || hasStoreUrl(comp, filterStore);
+    return matchesSearch && matchesCategory && matchesStore;
   });
+
+  // عدّادات المتاجر لأزرار الفلتر
+  const storeCounts = {
+    amazon: components.filter(c => hasStoreUrl(c, 'amazon')).length,
+    cazasouq: components.filter(c => hasStoreUrl(c, 'cazasouq')).length,
+    microless: components.filter(c => hasStoreUrl(c, 'microless')).length,
+  };
+  // كم قطعة كازاسوق ما زالت بلا رابط تتبّع عمولة — يقيس تقدّم عملك
+  const cazaMissingLink = components.filter(c => hasStoreUrl(c, 'cazasouq') && !c.cazasouqAffiliateUrl).length;
 
   return (
     <div className="flex flex-col gap-8">
@@ -275,6 +293,23 @@ export default function AdminManager({ categories, components, news, cronStatus,
               <input type="url" name="amazonUrl" defaultValue={editingComponent?.amazonUrl || ''} placeholder="رابط أمازون (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
               <input type="url" name="cazasouqUrl" defaultValue={editingComponent?.cazasouqUrl || ''} placeholder="رابط كازاسوق (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
               <input type="url" name="microlessUrl" defaultValue={editingComponent?.microlessUrl || ''} placeholder="رابط مايكروليس (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
+
+              {/* رابط تتبّع كازاسوق العميق — المسار الوحيد الذي يجمع العمولة والهبوط على المنتج */}
+              <div className="md:col-span-2 flex flex-col gap-1.5">
+                <input
+                  type="url"
+                  name="cazasouqAffiliateUrl"
+                  defaultValue={editingComponent?.cazasouqAffiliateUrl || ''}
+                  placeholder="رابط تتبّع كازاسوق (idevaffiliate.php?id=800&url=…)"
+                  pattern="https?://.*idevaffiliate\.com/.*"
+                  className="p-3 border-2 border-emerald-300 dark:border-emerald-800/60 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 text-left dir-ltr"
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold leading-relaxed px-1">
+                  🔗 رابط العمولة العميق من لوحة كازاسوق: روابط التتبّع ← الروابط البديلة للصفحات الداخلة ← إنشاء رابط.
+                  متى وُضِع، تُحتسب عمولتك <b>ويهبط الزائر على المنتج مباشرة</b>. اتركه فارغاً لو لم تولّده بعد.
+                </p>
+              </div>
               
               <textarea name="description" defaultValue={editingComponent?.description || ''} placeholder="وصف تفصيلي للقطعة (اختياري، يظهر في نافذة التفاصيل)" className="md:col-span-2 p-3 h-24 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"></textarea>
 
@@ -448,6 +483,37 @@ export default function AdminManager({ categories, components, news, cronStatus,
               </select>
             </div>
 
+            {/* ===== فلتر المتجر: يعرض القطع التي لها رابط ذلك المتجر ===== */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="text-xs font-bold text-gray-400 dark:text-slate-500 ml-1">المتجر:</span>
+              {([
+                { key: 'ALL', label: 'الكل', count: components.length, active: 'bg-slate-700 text-white border-slate-700', idle: 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-700 hover:border-slate-400' },
+                { key: 'amazon', label: 'أمازون', count: storeCounts.amazon, active: 'bg-amber-500 text-white border-amber-500', idle: 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-900/50 hover:border-amber-500' },
+                { key: 'cazasouq', label: 'كازاسوق', count: storeCounts.cazasouq, active: 'bg-violet-500 text-white border-violet-500', idle: 'bg-violet-50 dark:bg-violet-950/20 text-violet-700 dark:text-violet-400 border-violet-300 dark:border-violet-900/50 hover:border-violet-500' },
+                { key: 'microless', label: 'مايكرولس', count: storeCounts.microless, active: 'bg-sky-500 text-white border-sky-500', idle: 'bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400 border-sky-300 dark:border-sky-900/50 hover:border-sky-500' },
+              ] as const).map(b => (
+                <button
+                  key={b.key}
+                  onClick={() => setFilterStore(b.key as any)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border-2 transition-all active:scale-95 ${filterStore === b.key ? b.active : b.idle}`}
+                >
+                  {b.label}
+                  <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-black tabular-nums ${filterStore === b.key ? 'bg-white/25' : 'bg-black/5 dark:bg-white/10'}`}>{b.count}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* عند تصفية كازاسوق: نُظهر تقدّم روابط العمولة كي تعرف كم بقي */}
+            {filterStore === 'cazasouq' && (
+              <div className="mb-4 flex items-center gap-3 p-3 rounded-lg border border-violet-200 dark:border-violet-900/50 bg-violet-50/60 dark:bg-violet-950/20">
+                <span className="text-xs font-bold text-violet-700 dark:text-violet-300">
+                  {cazaMissingLink === 0
+                    ? `✅ كل قطع كازاسوق (${storeCounts.cazasouq}) عليها رابط تتبّع عمولة`
+                    : `🔗 ${storeCounts.cazasouq - cazaMissingLink} من ${storeCounts.cazasouq} عليها رابط تتبّع — بقي ${cazaMissingLink}`}
+                </span>
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               <table className="w-full text-right border-collapse">
                 <thead>
@@ -465,7 +531,21 @@ export default function AdminManager({ categories, components, news, cronStatus,
                       <tr key={comp.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800/50">
                         <td className="p-4">{comp.category?.name}</td>
                         <td className="p-4 font-semibold">{comp.brand}</td>
-                        <td className="p-4">{comp.name}</td>
+                        <td className="p-4">
+                          {comp.name}
+                          {/* شارة رابط التتبّع — تظهر فقط في عرض كازاسوق */}
+                          {filterStore === 'cazasouq' && (
+                            comp.cazasouqAffiliateUrl ? (
+                              <span className="mr-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 align-middle">
+                                ✓ رابط تتبّع
+                              </span>
+                            ) : (
+                              <span className="mr-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 align-middle">
+                                ⚠ بلا رابط تتبّع
+                              </span>
+                            )
+                          )}
+                        </td>
                         <td className="p-4 text-emerald-600 dark:text-emerald-400 font-bold">
                         <div className="flex items-center gap-1">
                           {comp.price} 

@@ -3,6 +3,14 @@ import { prisma } from "../../../../lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getToken } from 'next-auth/jwt';
 import { NextRequest } from 'next/server';
+import { isCazasouqTrackingUrl } from '../../../../lib/affiliate';
+
+/* رابط تتبّع كازاسوق من ملف الاستيراد: نقبله فقط إن كان idevaffiliate صالحاً،
+   وإلا null — كي لا يوجّه رابطٌ خاطئ في الملف المشتري لوجهة غلط. */
+const cleanCazaAff = (v: any): string | null => {
+  const s = (typeof v === 'string' ? v : '').trim();
+  return isCazasouqTrackingUrl(s) ? s : null;
+};
 
 export async function POST(req: NextRequest) {
   // حماية: أدمن فقط
@@ -132,6 +140,7 @@ export async function POST(req: NextRequest) {
               imageUrl: item.imageUrl !== undefined ? item.imageUrl : existingComponent.imageUrl,
               amazonUrl: item.amazonUrl !== undefined ? item.amazonUrl : existingComponent.amazonUrl,
               cazasouqUrl: item.cazasouqUrl !== undefined ? item.cazasouqUrl : existingComponent.cazasouqUrl,
+              cazasouqAffiliateUrl: item.cazasouqAffiliateUrl !== undefined ? cleanCazaAff(item.cazasouqAffiliateUrl) : existingComponent.cazasouqAffiliateUrl,
               description: item.description !== undefined ? item.description : existingComponent.description,
               performanceTier: item.performanceTier !== undefined ? item.performanceTier : existingComponent.performanceTier,
             }
@@ -180,6 +189,7 @@ export async function POST(req: NextRequest) {
               imageUrl: item.imageUrl || null,
               amazonUrl: item.amazonUrl || null,
               cazasouqUrl: item.cazasouqUrl || null,
+              cazasouqAffiliateUrl: cleanCazaAff(item.cazasouqAffiliateUrl),
               description: item.description || null,
               performanceTier: item.performanceTier || null,
             }

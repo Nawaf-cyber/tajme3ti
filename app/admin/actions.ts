@@ -4,6 +4,15 @@ import { prisma } from '../../lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../api/auth/[...nextauth]/route';
+import { isCazasouqTrackingUrl } from '../../lib/affiliate';
+
+/* رابط تتبّع كازاسوق: نقبله فقط إن كان رابط idevaffiliate صالحاً.
+   قيمة خاطئة ملصوقة (رابط منتج عادي مثلاً) تُحفظ null فيسقط الكود
+   للسلوك الاحتياطي بدل أن يوجّه المشتري لوجهة خاطئة. */
+const cleanCazaAffiliate = (val: FormDataEntryValue | null): string | null => {
+  const s = (val as string || '').trim();
+  return isCazasouqTrackingUrl(s) ? s : null;
+};
 
 // حارس صلاحية: يرفع استثناءً إن لم يكن المستخدم أدمن
 async function assertAdmin() {
@@ -57,8 +66,9 @@ export async function addComponent(formData: FormData) {
   const imageUrl = formData.get('imageUrl') as string || null;
   const amazonUrl = formData.get('amazonUrl') as string || null;
   const cazasouqUrl = formData.get('cazasouqUrl') as string || null;
+  const cazasouqAffiliateUrl = cleanCazaAffiliate(formData.get('cazasouqAffiliateUrl'));
   const microlessUrl = formData.get('microlessUrl') as string || null;
-  
+
   const ptRaw = formData.get('performanceTier') as string;
   const performanceTier = (ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null;
 
@@ -72,8 +82,8 @@ export async function addComponent(formData: FormData) {
   const microlessInStock = formData.get('microlessInStock') === 'true';
 
   await prisma.component.create({
-    data: { 
-      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, performanceTier, microlessUrl,
+    data: {
+      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, cazasouqAffiliateUrl, performanceTier, microlessUrl,
       amazonPrice, cazasouqPrice, microlessPrice, amazonInStock, cazasouqInStock, microlessInStock
     }
   });
@@ -95,8 +105,9 @@ export async function updateComponent(formData: FormData) {
   const imageUrl = formData.get('imageUrl') as string || null;
   const amazonUrl = formData.get('amazonUrl') as string || null;
   const cazasouqUrl = formData.get('cazasouqUrl') as string || null;
+  const cazasouqAffiliateUrl = cleanCazaAffiliate(formData.get('cazasouqAffiliateUrl'));
   const microlessUrl = formData.get('microlessUrl') as string || null;
-  
+
   const ptRaw = formData.get('performanceTier') as string;
   const performanceTier = (ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null;
 
@@ -111,8 +122,8 @@ export async function updateComponent(formData: FormData) {
 
   await prisma.component.update({
     where: { id },
-    data: { 
-      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, performanceTier, microlessUrl,
+    data: {
+      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, cazasouqAffiliateUrl, performanceTier, microlessUrl,
       amazonPrice, cazasouqPrice, microlessPrice, amazonInStock, cazasouqInStock, microlessInStock
     }
   });

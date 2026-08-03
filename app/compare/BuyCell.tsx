@@ -78,7 +78,7 @@ export default function BuyCell({
             /* ⚠️ كانت هذه الخلية تستخدم الرابط الخام بلا وسم عمولة — أي كل
                نقرة شراء من صفحة المقارنة تُهدر العمولة. الآن تمرّ على
                المصدر المركزي مثل بقية الموقع. */
-            href={buildAffiliateUrl(o.url, o.store, affiliateIds)}
+            href={buildAffiliateUrl(o.url, o.store, affiliateIds, o.store === 'cazasouq' ? component.cazasouqAffiliateUrl : null)}
             {...AFFILIATE_LINK_PROPS}
             className={`group/buy flex items-center justify-between gap-2 px-2.5 py-2 border rounded-sm transition-colors ${
               i === 0

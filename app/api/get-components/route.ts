@@ -6,13 +6,14 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const components = await prisma.component.findMany({
-      select: { 
-        id: true, 
-        name: true, 
-        amazonUrl: true, 
-        cazasouqUrl: true, 
-        amazonPrice: true, 
-        cazasouqPrice: true 
+      select: {
+        id: true,
+        name: true,
+        amazonUrl: true,
+        cazasouqUrl: true,
+        cazasouqAffiliateUrl: true,   // عمود رابط العمولة — يُملأ ويُعاد استيراده
+        amazonPrice: true,
+        cazasouqPrice: true
       }
     });
     return NextResponse.json({ components });

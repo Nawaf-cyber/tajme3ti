@@ -27,6 +27,7 @@ type Component = {
   imageUrl?: string | null;
   amazonUrl?: string | null;
   cazasouqUrl?: string | null;
+  cazasouqAffiliateUrl?: string | null;
   microlessUrl?: string | null;
   amazonInStock?: boolean | null;
   cazasouqInStock?: boolean | null;
@@ -61,8 +62,11 @@ const applyAffiliateIds = (ids?: Record<string, string>) => {
   if (ids) AFFILIATE_IDS = ids as AffiliateIds;
 };
 
-const getAffiliateUrl = (url: string | null | undefined, store: 'amazon' | 'cazasouq' | 'microless') =>
-  buildAffiliateUrl(url, store, AFFILIATE_IDS);
+const getAffiliateUrl = (
+  url: string | null | undefined,
+  store: 'amazon' | 'cazasouq' | 'microless',
+  deepLink?: string | null,
+) => buildAffiliateUrl(url, store, AFFILIATE_IDS, deepLink);
 
 type TierPlan = {
   key: 'value' | 'balanced' | 'strong';
@@ -81,7 +85,7 @@ const getStoreOffers = (comp: Component): StoreOffer[] => {
       ? { store: 'amazon', label: 'Amazon', price: comp.amazonPrice!, url: getAffiliateUrl(comp.amazonUrl, 'amazon') }
       : null,
     comp.cazasouqInStock === true && comp.cazasouqUrl && (comp.cazasouqPrice ?? 0) > 0
-      ? { store: 'cazasouq', label: 'Cazasouq', price: comp.cazasouqPrice!, url: getAffiliateUrl(comp.cazasouqUrl, 'cazasouq') }
+      ? { store: 'cazasouq', label: 'Cazasouq', price: comp.cazasouqPrice!, url: getAffiliateUrl(comp.cazasouqUrl, 'cazasouq', comp.cazasouqAffiliateUrl) }
       : null,
     comp.microlessInStock === true && comp.microlessUrl && (comp.microlessPrice ?? 0) > 0
       ? { store: 'microless', label: 'Microless', price: comp.microlessPrice!, url: getAffiliateUrl(comp.microlessUrl, 'microless') }
