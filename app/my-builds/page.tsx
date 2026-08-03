@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { isComponentAvailable } from '../../lib/availability';
+import MyPartRequests from './MyPartRequests';
 
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -268,7 +269,10 @@ export default function MyBuildsPage() {
             + بناء جديد
           </Link>
         </div>
-        
+
+        {/* ===== طلبات القطع (يظهر فقط إن طلب المستخدم شيئاً) ===== */}
+        <MyPartRequests />
+
         {builds.length === 0 ? (
           <div className="text-center py-16 bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <p className="text-slate-500 mb-4 font-bold">لا توجد تجميعات محفوظة.</p>

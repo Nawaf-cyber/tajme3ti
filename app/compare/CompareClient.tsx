@@ -10,6 +10,7 @@ import UseInBuildModal from './UseInBuildModal';
 import CompareActions from './CompareActions';
 import BuyCell from './BuyCell';
 import ComparePriceHistory, { SERIES_COLORS, type HistorySeries } from './ComparePriceHistory';
+import SuggestPartCard from '../../components/SuggestPartCard';
 
 type Comp = any;
 
@@ -942,6 +943,9 @@ export default function CompareClient({
             </p>
           </div>
         )}
+
+        {/* ===== اقترح قطعة ناقصة ===== */}
+        <SuggestPartCard source="compare" className="mt-10 max-w-2xl mx-auto" />
 
       </div>
 

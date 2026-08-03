@@ -56,6 +56,7 @@ model Component {
   description String?  
   performanceTier Int?  // تقييم من 1 إلى 5 (1=اقتصادي، 5=فئة عليا)
   priceHistory PriceHistory[]
+  requestedParts RequestedPart[] // القطع المطلوبة التي رُبطت بهذه القطعة عند إضافتها
 
   @@index([categoryId])
 }
@@ -78,6 +79,7 @@ model User {
   updatedAt     DateTime     @default(now()) @updatedAt // متطلب لـ NextAuth
   builds        SavedBuild[] // ربط المستخدم بتجميعاته المحفوظة
   suggestions   Suggestion[] // إضافة هذا السطر
+  partVotes     PartVote[]   // طلبات القطع الناقصة التي أرسلها
   accounts      Account[]    // متطلب لـ NextAuth
   sessions      Session[]    // متطلب لـ NextAuth
 }
@@ -120,6 +122,45 @@ model Suggestion {
   userId    String   // حقل إلزامي لمعرف المستخدم
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+// 7. طلبات القطع الناقصة (Part Requests)
+//    RequestedPart = القطعة المطلوبة (تُدمج بالاسم المطبّع فالطلبات المكرّرة تُعدّ).
+//    PartVote       = كل طلب فردي (لعدّ الطلب ومتابعة كل مستخدم لحالته).
+enum PartRequestStatus {
+  REVIEWING // 🟡 قيد المراجعة
+  ADDING    // 🔵 قيد الإضافة
+  ADDED     // ✅ تمت الإضافة
+}
+
+model RequestedPart {
+  id          String            @id @default(cuid())
+  name        String            // آخر صيغة كتبها مستخدم — تُعرض كما هي
+  normalized  String            @unique // مفتاح الدمج والعدّ (حروف صغيرة، بلا ضجيج)
+  status      PartRequestStatus @default(REVIEWING)
+  // يُملأ عند الإضافة → يفعّل زر "ابنِ تجميعة بهذه القطعة"
+  componentId String?
+  component   Component?        @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  votes       PartVote[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([status])
+}
+
+model PartVote {
+  id              String        @id @default(cuid())
+  requestedPartId String
+  requestedPart   RequestedPart @relation(fields: [requestedPartId], references: [id], onDelete: Cascade)
+  // null = زائر مجهول (يُحتسب للطلب، لكن بلا متابعة شخصية)
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  source          String? // "builder" | "components" | "compare" — من أي صفحة أتى
+  createdAt       DateTime      @default(now())
+
+  // صوت واحد لكل مستخدم مسجّل لكل قطعة (المجهول لا يُدمج — كل NULL مستقل في Postgres)
+  @@unique([requestedPartId, userId])
+  @@index([userId])
 }
 
 // -------------------------------------------------

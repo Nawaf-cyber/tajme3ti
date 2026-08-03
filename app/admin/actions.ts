@@ -140,6 +140,42 @@ export async function deleteComponent(formData: FormData) {
   revalidatePath('/');
 }
 
+/* ============ إدارة طلبات القطع ============ */
+const PART_STATUSES = ['REVIEWING', 'ADDING', 'ADDED'] as const;
+
+/** تحديث حالة طلب قطعة وربطه بقطعة فعلية.
+ *  ربط القطعة يفعّل زر "ابنِ بهذه القطعة" لكل من طلبها.
+ *  عند الربط نضبط الحالة تلقائياً إلى ADDED إن لم تُحدَّد أخرى. */
+export async function updatePartRequest(formData: FormData) {
+  await assertAdmin();
+  const id = formData.get('id') as string;
+  if (!id) return;
+
+  const statusRaw = formData.get('status') as string;
+  const componentRaw = (formData.get('componentId') as string || '').trim();
+  const componentId = componentRaw || null;
+
+  // القطعة المرتبطة تعني ضمناً "تمت الإضافة" إن لم يختر الأدمن حالة صريحة أدنى
+  let status = PART_STATUSES.includes(statusRaw as any) ? statusRaw : 'REVIEWING';
+  if (componentId && status !== 'ADDED') status = 'ADDED';
+  // لا نُبقي حالة ADDED بلا قطعة مرتبطة — يفقد الزر معناه
+  if (status === 'ADDED' && !componentId) status = 'ADDING';
+
+  await prisma.requestedPart.update({
+    where: { id },
+    data: { status: status as any, componentId },
+  });
+
+  revalidatePath('/admin/part-requests');
+}
+
+export async function deletePartRequest(formData: FormData) {
+  await assertAdmin();
+  const id = formData.get('id') as string;
+  if (id) await prisma.requestedPart.delete({ where: { id } });
+  revalidatePath('/admin/part-requests');
+}
+
 export async function addNews(formData: FormData) {
   await assertAdmin();
   const title = formData.get('title') as string;

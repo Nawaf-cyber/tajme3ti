@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { isComponentAvailable } from '../../lib/availability';
 import { formatPrice, componentDiscount } from '../../lib/price';
+import SuggestPartCard from '../../components/SuggestPartCard';
 
 // إضافة colorClass للتحكم بلون الشعار حسب مكانه (أزرق للفلتر، أخضر للأسعار)
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -416,6 +417,9 @@ export default function ComponentsClient({ components, categories }: { component
             </span>
           </div>
         )}
+
+        {/* ===== اقترح قطعة ناقصة ===== */}
+        <SuggestPartCard source="components" className="mt-8" />
       </div>
     </div>
   );

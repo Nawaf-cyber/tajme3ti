@@ -178,12 +178,19 @@ export default function AdminManager({ categories, components, news, cronStatus,
     <div className="flex flex-col gap-8">
       
       <div className="flex flex-wrap gap-4 border-b border-gray-200 dark:border-slate-800 pb-4">
-        <button 
+        <button
           onClick={() => { setActiveTab('components'); cancelEdit(); }}
           className={`px-6 py-3 font-bold rounded-lg transition-colors ${activeTab === 'components' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
         >
           💻 إدارة القطع
         </button>
+        {/* صفحة مستقلّة (خادم) لأنها تجلب عدّادات الطلبات — رابط لا تبويب */}
+        <Link
+          href="/admin/part-requests"
+          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
+        >
+          🙋 طلبات القطع
+        </Link>
         <button 
           onClick={() => { setActiveTab('news'); cancelEdit(); }}
           className={`px-6 py-3 font-bold rounded-lg transition-colors ${activeTab === 'news' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'}`}

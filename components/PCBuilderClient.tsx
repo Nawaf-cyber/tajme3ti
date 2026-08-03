@@ -6,6 +6,7 @@ import WorkInProgress from './WorkInProgress';
 import IntentPicker from './IntentPicker';
 import BuildTuner from './BuildTuner';
 import { Sk, SkSelectCard } from './loading-ui';
+import SuggestPartCard from './SuggestPartCard';
 
 /* ملاحظة: IntentPicker (الذكاء) لا يزال مؤجّلاً حتى تجهز واجهته.
    buildPlans و USE_PROFILE محفوظان أدناه لإعادة وصله بسطر واحد.
@@ -1932,6 +1933,9 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
             );
           })}
         </div>
+
+        {/* ===== اقترح قطعة ناقصة — هنا يدرك المستخدم أن قطعته غير موجودة ===== */}
+        <SuggestPartCard source="builder" className="mt-8" />
 
         {/* صندوق النتيجة */}
         {result.status !== 'idle' && (
