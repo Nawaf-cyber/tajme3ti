@@ -11,6 +11,7 @@ import CompareActions from './CompareActions';
 import BuyCell from './BuyCell';
 import ComparePriceHistory, { SERIES_COLORS, type HistorySeries } from './ComparePriceHistory';
 import SuggestPartCard from '../../components/SuggestPartCard';
+import { productImage } from '../../lib/image';
 
 type Comp = any;
 
@@ -290,6 +291,10 @@ export default function CompareClient({
       return key ? sp[key] : null;
     });
     let winnerIdx: number[] = [];
+    /* فارق النسبة المئوية عن الأفضل في الصف — يُعرض تحت القيمة.
+       "أعلى بـ 23%" أوضح بكثير من نجمة تقول "هذا الأفضل" بلا مقدار. */
+    let deltas: (string | null)[] = values.map(() => null);
+
     if (selected.length > 1) {
       // شهادة الكفاءة تُقارَن بالترتيب المعروف لا بالأرقام
       if (label === 'شهادة الكفاءة') {
@@ -308,13 +313,46 @@ export default function CompareClient({
           if (valid.length > 1) {
             const best = dir === 'higher' ? Math.max(...valid) : Math.min(...valid);
             winnerIdx = nums.map((n, i) => (n === best ? i : -1)).filter((i) => i >= 0);
-            if (winnerIdx.length === valid.length) winnerIdx = [];
+            const allEqual = winnerIdx.length === valid.length;
+            if (allEqual) winnerIdx = [];
+
+            /* النسبة تُقاس عن الأفضل. نتجاهلها عند التساوي أو القسمة على صفر. */
+            if (!allEqual && best !== 0) {
+              deltas = nums.map((n) => {
+                if (n == null || n === best) return null;
+                const pct = Math.round(Math.abs((n - best) / best) * 100);
+                if (pct < 1) return null;   // فارق أقل من ١٪ ضجيج
+                // الأفضل "أعلى" ⇒ الباقي أقل منه، والعكس
+                return dir === 'higher' ? `أقل بـ ${pct}%` : `أعلى بـ ${pct}%`;
+              });
+            }
           }
         }
       }
     }
-    return { values, winnerIdx };
+    return { values, winnerIdx, deltas };
   };
+
+  /* ---- فلتر "أظهر الفروقات فقط" (#1) ----
+     يُخفي الصفوف المتطابقة في كل الأعمدة. مفيد جداً لقطعتين متقاربتين
+     حيث تختفي عشرات الصفوف المكرّرة ويبقى ما يفرّق فعلاً. */
+  const [diffOnly, setDiffOnly] = useState(false);
+
+  const rowDiffers = (label: string): boolean => {
+    const { values } = rowData(label);
+    const norm = values.map((v) => (v == null ? '' : String(v).trim().toLowerCase()));
+    return new Set(norm).size > 1;
+  };
+
+  /* ⚠️ الصفوف المختلفة تُحسب **دائماً**، لا عند تفعيل الفلتر فقط.
+     الربط بـdiffOnly كان يخلق حلقة مفرغة: العدّاد صفر ⇒ الزر معطّل ⇒
+     لا فلترة ⇒ العدّاد يبقى صفراً. */
+  const differingRows = useMemo(
+    () => (selected.length > 1 ? specRows.filter(rowDiffers) : specRows),
+    [specRows, selected]
+  );
+  const visibleSpecRows = diffOnly && selected.length > 1 ? differingRows : specRows;
+  const identicalCount = specRows.length - differingRows.length;
 
   const tdpRow = () => {
     const values = selected.map((c) => (c.tdpWattage > 0 ? `${c.tdpWattage}W` : null));
@@ -371,6 +409,47 @@ export default function CompareClient({
       minPrice: validPrices.length ? Math.min(...validPrices) : 0,
     };
   }, [selected]);
+
+  /* ---- «أيّهما أنصح؟» (#3) ----
+     حكم واحد حاسم لكل حاجة، بدل أن يقرأ المستخدم ٢٠ صفاً ويحتار.
+     كل توصية تُشير لعمود صراحةً وتشرح سببها بجملة واحدة. */
+  const verdicts = useMemo(() => {
+    if (selected.length < 2) return [];
+    const { bestValueIdx, topPerfIdx, cheapestIdx, lowTdpIdx, minPrice } = analysis;
+    const out: { icon: string; forWhat: string; name: string; why: string; idx: number }[] = [];
+
+    if (topPerfIdx >= 0) {
+      const c = selected[topPerfIdx];
+      const extra = c.price > minPrice ? ` (أغلى بـ ${formatPrice(c.price - minPrice)} ﷼)` : '';
+      out.push({
+        icon: '🚀', forWhat: 'للأداء الأعلى', name: c.name, idx: topPerfIdx,
+        why: `أعلى مستوى أداء في المقارنة${extra}`,
+      });
+    }
+    if (bestValueIdx >= 0 && bestValueIdx !== topPerfIdx) {
+      out.push({
+        icon: '⚖️', forWhat: 'لأفضل قيمة', name: selected[bestValueIdx].name, idx: bestValueIdx,
+        why: 'أعلى أداء مقابل كل ريال — التوازن الأمثل',
+      });
+    }
+    if (cheapestIdx >= 0 && cheapestIdx !== bestValueIdx && cheapestIdx !== topPerfIdx) {
+      out.push({
+        icon: '💰', forWhat: 'لأقل ميزانية', name: selected[cheapestIdx].name, idx: cheapestIdx,
+        why: `الأوفر سعراً (${formatPrice(selected[cheapestIdx].price)} ﷼)`,
+      });
+    }
+    if (lowTdpIdx >= 0 && selected[lowTdpIdx].tdpWattage > 0
+        && lowTdpIdx !== topPerfIdx && lowTdpIdx !== bestValueIdx) {
+      const others = selected.filter((_, j) => j !== lowTdpIdx).map((x) => x.tdpWattage).filter((t) => t > 0);
+      if (others.length) {
+        out.push({
+          icon: '🔋', forWhat: 'لأقل استهلاك', name: selected[lowTdpIdx].name, idx: lowTdpIdx,
+          why: `أقل بـ ${Math.min(...others) - selected[lowTdpIdx].tdpWattage} واط — مزوّد أصغر وحرارة أقل`,
+        });
+      }
+    }
+    return out;
+  }, [selected, analysis]);
 
   const summary = useMemo(() => {
     if (selected.length < 2) return [];
@@ -447,11 +526,26 @@ export default function CompareClient({
             اختر حتى 3 قطع من نفس الفئة وقارن المواصفات والأسعار والأداء دفعة واحدة، لتختار الأنسب بثقة.
           </p>
 
-          {categoryName && (
-            <div className="mt-5 inline-flex items-center gap-2 font-mono text-[10px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-sm uppercase tracking-widest">
-              الفئة: {categoryName}
-            </div>
-          )}
+          <div className="mt-6 flex flex-col items-center gap-3">
+            {categoryName && (
+              <span className="inline-flex items-center gap-2 font-mono text-[10px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-sm uppercase tracking-widest">
+                الفئة: {categoryName}
+              </span>
+            )}
+
+            {/* جسر لمقارنة التجميعات الكاملة — زرّ لا بطاقة (البطاقة كانت
+                تكسر إيقاع الصفحة)، لكن بحجم ووزن يجعلانه ظاهراً فعلاً. */}
+            <Link
+              href="/compare/builds"
+              className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-sm text-[13px] font-black text-cyan-700 dark:text-cyan-300 bg-cyan-500/10 dark:bg-cyan-400/10 border border-cyan-500/50 dark:border-cyan-400/40 shadow-sm shadow-cyan-500/10 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 hover:shadow-md hover:shadow-cyan-500/30 transition-all active:scale-95"
+            >
+              <span className="text-base leading-none">⚖️</span>
+              تبي تقارن تجميعات كاملة؟
+              <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </Link>
+          </div>
         </div>
 
         {/* ===== تنبيه: قطع استُبعدت لأنها من فئة أخرى =====
@@ -508,6 +602,40 @@ export default function CompareClient({
               <span className="font-mono text-[10px] font-normal text-slate-400 tracking-wider">{categoryName}</span>
             )}
           </h2>
+
+          {/* ===== أدوات الجدول: إظهار الفروقات فقط ===== */}
+          {selected.length > 1 && specRows.length > 0 && (
+            <div data-noexport className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+              <button
+                onClick={() => setDiffOnly(!diffOnly)}
+                disabled={identicalCount === 0 && !diffOnly}
+                title={identicalCount === 0 && !diffOnly ? 'كل الصفوف مختلفة أصلاً' : 'أخفِ الصفوف المتطابقة'}
+                className={`flex items-center gap-2 px-4 py-2 rounded-sm text-[12px] font-black border transition-all active:scale-95 ${
+                  diffOnly
+                    ? 'bg-cyan-500 text-white border-cyan-500 shadow-sm shadow-cyan-500/30'
+                    : identicalCount === 0
+                    ? 'bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-700/50 cursor-not-allowed'
+                    : 'bg-white dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-cyan-500/60 hover:text-cyan-600 dark:hover:text-cyan-400'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M7 12h10M10 18h4" />
+                </svg>
+                أظهر الفروقات فقط
+                {identicalCount > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-black tabular-nums ${diffOnly ? 'bg-white/25' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                    {diffOnly ? `أُخفي ${identicalCount}` : `${identicalCount} متطابق`}
+                  </span>
+                )}
+              </button>
+
+              {diffOnly && visibleSpecRows.length === 0 && (
+                <span className="font-mono text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                  ⚠ كل المواصفات متطابقة — الفرق في السعر والتوفّر فقط
+                </span>
+              )}
+            </div>
+          )}
 
           {/* ===== جدول المقارنة ===== */}
           <div data-export-scroll className="relative bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm overflow-x-auto shadow-sm">
@@ -609,7 +737,7 @@ export default function CompareClient({
                         <Link href={`/components/${c.id}`} className="block group/link mt-2">
                           <div className="relative h-20 md:h-24 bg-white rounded-sm mb-3 flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800">
                             <img
-                              src={c.imageUrl || `/images/${c.categoryId}/boxed.png`}
+                              src={productImage(c.imageUrl, `/images/${c.categoryId}/boxed.png`)}
                               alt={c.name}
                               loading="lazy"
                               className="max-w-full max-h-full object-contain mix-blend-multiply group-hover/link:scale-105 transition-transform"
@@ -675,8 +803,8 @@ export default function CompareClient({
 
               <tbody>
                 {/* صفوف المواصفات */}
-                {specRows.map((label, rowIdx) => {
-                  const { values, winnerIdx } = rowData(label);
+                {visibleSpecRows.map((label, rowIdx) => {
+                  const { values, winnerIdx, deltas } = rowData(label);
                   return (
                     <tr
                       key={label}
@@ -703,6 +831,12 @@ export default function CompareClient({
                         >
                           {v ?? <span className="text-slate-300 dark:text-slate-700">—</span>}
                           {winnerIdx.includes(i) && <span className="text-amber-400 mr-1">★</span>}
+                          {/* فارق النسبة عن الأفضل — يجعل "★" رقماً ملموساً */}
+                          {deltas[i] && (
+                            <span className="block mt-0.5 text-[9.5px] font-bold text-slate-400 dark:text-slate-500 tracking-tight" dir="rtl">
+                              {deltas[i]}
+                            </span>
+                          )}
                           {label === 'موصّلات الطاقة' && isModernConnector(v) && (
                             <span className="block mt-1 text-[9px] font-black text-cyan-600 dark:text-cyan-400 tracking-wide">
                               الأحدث · PCIe 5.0
@@ -894,6 +1028,44 @@ export default function CompareClient({
             </table>
           </div>
 
+        {/* ===== أيّهما أنصح؟ — حكم حاسم قبل التفاصيل ===== */}
+        {verdicts.length > 0 && (
+          <div className="relative mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-5 md:p-6 shadow-sm animate-fade-up">
+            <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent pointer-events-none"></div>
+            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
+              أيّهما أنصح؟
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {verdicts.map((v) => (
+                <div
+                  key={v.forWhat}
+                  className="relative flex items-start gap-3 p-3.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/30 overflow-hidden"
+                >
+                  {/* شريط لون العمود — يربط التوصية بعمودها في الجدول */}
+                  <span
+                    className="absolute top-0 bottom-0 right-0 w-[3px]"
+                    style={{ backgroundColor: SERIES_COLORS[v.idx % SERIES_COLORS.length] }}
+                  ></span>
+                  <span className="text-lg leading-none mt-0.5 shrink-0">{v.icon}</span>
+                  <div className="min-w-0">
+                    <div className="font-mono text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5">
+                      {v.forWhat}
+                    </div>
+                    <div className="text-[13px] font-black text-slate-900 dark:text-white leading-snug">{v.name}</div>
+                    <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{v.why}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 font-mono text-[10px] text-slate-400 dark:text-slate-500 text-center">
+              توصيات محسوبة من المستوى والسعر والاستهلاك — لا رأي محرّر
+            </p>
+          </div>
+        )}
+
         {/* ===== الخلاصة ===== */}
         {summary.length > 0 && (
           <div className="relative mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-6 shadow-sm animate-fade-up">
@@ -1017,7 +1189,7 @@ export default function CompareClient({
                     >
                       <div className="relative w-12 h-12 bg-white rounded-sm shrink-0 flex items-center justify-center p-1 border border-slate-100 dark:border-slate-800">
                         <img
-                          src={c.imageUrl || '/images/placeholder.png'}
+                          src={productImage(c.imageUrl)}
                           alt={c.name}
                           loading="lazy"
                           className="max-w-full max-h-full object-contain mix-blend-multiply"

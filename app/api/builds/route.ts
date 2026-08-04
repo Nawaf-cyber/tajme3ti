@@ -36,22 +36,26 @@ export async function GET(req: NextRequest) {
     
     const components = await prisma.component.findMany({
       where: { id: { in: componentIds } },
-      select: { 
-        id: true, 
-        name: true, 
-        brand: true, 
-        price: true, 
+      select: {
+        id: true,
+        name: true,
+        brand: true,
+        price: true,
         imageUrl: true,
         amazonUrl: true,
         cazasouqUrl: true,
-        microlessUrl: true,       
+        microlessUrl: true,
         amazonPrice: true,
         cazasouqPrice: true,
         microlessPrice: true,
-        amazonInStock: true,      
-        cazasouqInStock: true,    
-        microlessInStock: true,   
-        performanceTier: true 
+        amazonInStock: true,
+        cazasouqInStock: true,
+        microlessInStock: true,
+        performanceTier: true,
+        // مطلوبة لمقارنة التجميعات: الاستهلاك الكلي وسعة المزوّد/الرام
+        tdpWattage: true,
+        specs: true,
+        cazasouqAffiliateUrl: true
       }
     });
 

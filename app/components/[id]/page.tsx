@@ -6,6 +6,48 @@ import { buildAffiliateUrl, AFFILIATE_LINK_PROPS } from '../../../lib/affiliate'
 import { getAffiliateIds } from '../../../lib/affiliate-server';
 import PriceHistoryChart from '../../../components/PriceHistoryChart';
 import { formatPrice, discountPercent, componentDiscount } from '../../../lib/price';
+import type { Metadata } from 'next';
+import { productImage } from '../../../lib/image';
+
+/* عنوان ووصف وcanonical خاصّان بكل قطعة.
+   كانت ٢٢٤ صفحة ترث عنوان الرئيسية وcanonical يشير إليها — أي "محتوى مكرّر"
+   في عين جوجل، وسبب مباشر لرفض AdSense. */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const comp = await prisma.component.findUnique({
+    where: { id },
+    select: { name: true, brand: true, price: true, description: true, category: { select: { name: true } } },
+  });
+
+  if (!comp) {
+    return { title: 'القطعة غير موجودة', robots: { index: false, follow: true } };
+  }
+
+  const full = `${comp.brand} ${comp.name}`;
+  const cat = comp.category?.name || 'قطعة';
+  // نأخذ أول جملة من الوصف الأصلي، وإلا نبني وصفاً من البيانات
+  const firstLine = (comp.description || '')
+    .replace(/[#*\[\]]/g, '')
+    .split('\n')
+    .map((l) => l.trim())
+    .find((l) => l.length > 50);
+
+  const description = firstLine
+    ? `${firstLine.slice(0, 150)}…`
+    : `${full} — السعر الحالي ${formatPrice(comp.price)} ريال. قارن أسعار المتاجر السعودية، وافحص توافقها مع تجميعتك على تجميعتي.`;
+
+  return {
+    title: `${full} — السعر والمواصفات`,
+    description,
+    alternates: { canonical: `/components/${id}` },
+    openGraph: {
+      title: `${full} | تجميعتي`,
+      description,
+      url: `/components/${id}`,
+      type: 'website',
+    },
+  };
+}
 
 const RiyalIcon = ({ size = 'h-6 w-6' }: { size?: string }) => (
   <div 
@@ -47,7 +89,9 @@ const formatTextWithLinks = (text: string) => {
             key={key}
             href={linkUrl}
             target={linkUrl.startsWith('http') ? "_blank" : "_self"}
-            rel={linkUrl.startsWith('http') ? "noopener noreferrer" : ""}
+            /* روابط المتاجر داخل الوصف تجارية بطبيعتها — جوجل يشترط
+               sponsored/nofollow عليها، وغيابها مخالفة صريحة لإرشاداته. */
+            rel={linkUrl.startsWith('http') ? "nofollow sponsored noopener noreferrer" : ""}
             className="text-cyan-600 dark:text-cyan-400 font-bold underline hover:text-cyan-800 dark:hover:text-cyan-300 transition-colors mx-1"
           >
             {linkText}
@@ -170,7 +214,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             <div className="w-full max-w-[450px] aspect-square bg-white rounded-sm flex items-center justify-center p-6 shadow-md">
 
               <ImageZoom 
-                src={comp.imageUrl || `/images/${comp.categoryId}/boxed.png`} 
+                src={productImage(comp.imageUrl, `/images/${comp.categoryId}/boxed.png`)} 
                 alt={comp.name} 
               />
             </div>

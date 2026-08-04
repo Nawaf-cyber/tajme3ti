@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { isComponentAvailable } from '../lib/availability';
 import { buildAffiliateUrl, type AffiliateIds } from '../lib/affiliate';
+import { productImage } from '../lib/image';
 
 type Component = {
   id: string;
@@ -127,8 +128,9 @@ const formatTextWithLinks = (text: string) => {
         <a 
           key={i} 
           href={linkUrl} 
-          target={linkUrl.startsWith('http') ? "_blank" : "_self"} 
-          rel={linkUrl.startsWith('http') ? "noopener noreferrer" : ""} 
+          target={linkUrl.startsWith('http') ? "_blank" : "_self"}
+          /* روابط المتاجر داخل الوصف تجارية — جوجل يشترط sponsored/nofollow */
+          rel={linkUrl.startsWith('http') ? "nofollow sponsored noopener noreferrer" : ""}
           className="text-cyan-600 dark:text-cyan-400 font-bold underline hover:text-cyan-800 dark:hover:text-cyan-300 transition-colors mx-1"
         >
           {linkText}
@@ -140,9 +142,11 @@ const formatTextWithLinks = (text: string) => {
       return (
         <a 
           key={i} 
-          href={part} 
-          target="_blank" 
-          rel="noopener noreferrer" 
+          href={part}
+          target="_blank"
+          /* رابط خارجي داخل وصف منتج — نُعلّمه nofollow احتياطاً لأنه قد
+             يكون رابط متجر أو صفحة مصنّع في سياق تجاري. */
+          rel="nofollow noopener noreferrer"
           className="inline-flex items-center gap-2 mt-3 mb-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-400 font-bold text-xs rounded-xl transition-all w-fit border border-slate-200 dark:border-slate-700 shadow-sm"
         >
           <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
@@ -361,7 +365,7 @@ const SearchableSelect = ({
               {/* الصورة داخل البطاقة */}
               {selectedComponent?.imageUrl ? (
                 <div className="w-14 h-14 rounded-xl bg-white border border-slate-200 dark:border-slate-800 p-1 flex items-center justify-center shrink-0">
-                  <img src={selectedComponent.imageUrl as string} alt={selectedComponent.name} className="max-w-full max-h-full object-contain" />
+                  <img src={productImage(selectedComponent.imageUrl)} alt={selectedComponent.name} className="max-w-full max-h-full object-contain" />
                 </div>
               ) : (
                 <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-[#0B1120] border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center shrink-0 text-slate-400 dark:text-slate-600 text-xl font-light">
@@ -505,7 +509,7 @@ const SearchableSelect = ({
                       <div className="flex items-center gap-2 flex-1">
                         {comp.imageUrl && (
                           <div className="w-8 h-8 rounded bg-white dark:bg-slate-900 p-0.5 shrink-0 border border-slate-200 dark:border-slate-700/50">
-                            <img src={comp.imageUrl} alt="" className="w-full h-full object-contain" />
+                            <img src={productImage(comp.imageUrl)} alt="" className="w-full h-full object-contain" />
                           </div>
                         )}
                         <span className={`text-sm font-bold leading-tight ${comp.isCompatible ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
@@ -1802,8 +1806,11 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
 
       <div className="p-6 md:p-10">
         
-        {/* ===== نشتغل عليه الآن — إشارة حياة، بلا وعود ===== */}
-        <WorkInProgress />
+        {/* ⚠️ شريط "نشتغل عليه الآن" مُعطَّل عن العرض عمداً.
+            مراجع AdSense يقرأ "قيد التطوير" على صفحة رئيسية كإشارة
+            "موقع تحت الإنشاء" — وهو سبب رفض صريح في سياساتهم.
+            المكوّن باقٍ في المشروع؛ أعِد <WorkInProgress /> هنا متى قُبِلت
+            المنصة وأردت إعلان ميزة قادمة. */}
 
         {/* ===== ١) المساعد: يسأل وش تلعب، ويبني ثلاث خطط من الكتالوج ===== */}
         <IntentPicker onPlans={(plans) => setAiPlans(plans)} buildPlans={buildPlans} />
@@ -2127,7 +2134,7 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
                               <div key={catName} className="flex p-4 bg-white dark:bg-slate-800/80 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 gap-4 hover:border-cyan-300 dark:hover:border-cyan-500/50 transition-colors group items-start sm:items-center">
                                 {comp.imageUrl ? (
                                   <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 p-2 flex items-center justify-center shrink-0">
-                                     <img src={comp.imageUrl} alt={comp.name} className="max-w-full max-h-full object-contain export-ignore" />
+                                     <img src={productImage(comp.imageUrl)} alt={comp.name} className="max-w-full max-h-full object-contain export-ignore" />
                                   </div>
                                 ) : (
                                   <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 flex items-center justify-center shrink-0">
@@ -2249,7 +2256,7 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
               <div className="flex gap-5 items-start mb-6">
                 {detailsModal.comp.imageUrl && (
                   <div className="w-24 h-24 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-2 flex items-center justify-center shrink-0">
-                    <img src={detailsModal.comp.imageUrl} alt={detailsModal.comp.name} className="max-w-full max-h-full object-contain filter drop-shadow-sm" />
+                    <img src={productImage(detailsModal.comp.imageUrl)} alt={detailsModal.comp.name} className="max-w-full max-h-full object-contain filter drop-shadow-sm" />
                   </div>
                 )}
                 <div>

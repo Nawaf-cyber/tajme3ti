@@ -1,8 +1,33 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getArticle } from '../../../lib/content';
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const news = await getArticle(id);
+  if (!news) return { title: 'الخبر غير موجود', robots: { index: false, follow: true } };
+
+  const description = (news.summary || news.content || '')
+    .replace(/[#*\[\]]/g, '')
+    .trim()
+    .slice(0, 155);
+
+  return {
+    title: news.title,
+    description,
+    alternates: { canonical: `/news/${id}` },
+    openGraph: {
+      title: news.title,
+      description,
+      url: `/news/${id}`,
+      type: 'article',
+      images: news.imageUrl ? [news.imageUrl] : undefined,
+    },
+  };
+}
 
 export default async function NewsDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

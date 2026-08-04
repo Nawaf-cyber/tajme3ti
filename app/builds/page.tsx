@@ -5,7 +5,7 @@ import CountdownTimer from '../../components/CountdownTimer';
 export const revalidate = 86400;
 
 export const metadata = {
-  title: 'تجميعات مقترحة ومحدثة تلقائياً | منصة تجميعتي',
+  title: 'تجميعات مقترحة ومحدّثة تلقائياً',
   description: 'أفضل تجميعات الـ PC الجاهزة (اقتصادية، متوسطة، عليا) متوافقة 100%.',
 };
 

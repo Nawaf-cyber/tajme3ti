@@ -5,7 +5,7 @@ import { getGuides } from '../../lib/content';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'أدلّة تجميع الحاسب | تجميعتي',
+  title: 'أدلّة تجميع الحاسب',
   description:
     'أدلّة عملية لاختيار قطع الحاسب وتجميعه: المعالج، كرت الشاشة، اللوحة الأم، الذاكرة، التخزين، ومزوّد الطاقة — بأسلوب مبسّط من واقع تجربة.',
   alternates: { canonical: 'https://www.tajme3ti.com/guides' },

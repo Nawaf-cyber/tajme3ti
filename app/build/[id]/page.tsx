@@ -1,8 +1,10 @@
+import type { Metadata } from 'next';
 import { prisma } from '../../../lib/prisma';
 import { buildAffiliateUrl, AFFILIATE_LINK_PROPS } from '../../../lib/affiliate';
 import { getAffiliateIds } from '../../../lib/affiliate-server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { productImage } from '../../../lib/image';
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
@@ -173,6 +175,17 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
     </div>
   );
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const build = await prisma.savedBuild.findUnique({ where: { id }, select: { name: true } });
+  if (!build) return { title: 'التجميعة غير موجودة', robots: { index: false, follow: true } };
+  return {
+    title: `${build.name} — تجميعة مشتركة`,
+    description: `تفاصيل تجميعة "${build.name}": القطع وأسعارها اللحظية وفحص التوافق — على منصة تجميعتي.`,
+    alternates: { canonical: `/build/${id}` },
+  };
+}
 
 export default async function SharedBuildPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -372,7 +385,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 shrink-0 bg-slate-50 dark:bg-slate-900/50 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800">
                     <img 
-                      src={part?.imageUrl || `/images/${category.toLowerCase()}/boxed.png`} 
+                      src={productImage(part?.imageUrl, `/images/${category.toLowerCase()}/boxed.png`)} 
                       alt={part?.name || category} 
                       className="max-w-full max-h-full object-contain filter drop-shadow-sm opacity-90"
                     />

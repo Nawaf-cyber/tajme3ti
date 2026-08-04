@@ -18,6 +18,7 @@ const ALLOWED_HOSTS = new Set([
   // كازاسوق
   'cazasouq.com',
   'www.cazasouq.com',
+  'static.cazasouq.com',   // نطاق أصول كازاسوق (صور المنتجات الفعلية)
   // مايكرولس
   'saudi.microless.com',
   'microless.com',

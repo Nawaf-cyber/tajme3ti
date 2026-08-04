@@ -7,6 +7,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { isComponentAvailable } from '../../lib/availability';
 import MyPartRequests from './MyPartRequests';
+import { productImage } from '../../lib/image';
 
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -270,6 +271,62 @@ export default function MyBuildsPage() {
           </Link>
         </div>
 
+        {/* ===== دعوة صريحة لمقارنة التجميعات =====
+            كانت زراً صغيراً في الرأس يضيع بين العناصر. الآن بطاقة كاملة
+            العرض تشرح الفائدة وتعرض عدد التجميعات الجاهزة — فالمستخدم
+            يفهم "ليش أقارن؟" لا "وش هذا الزر؟". */}
+        {builds.length >= 2 && (
+          <Link
+            href="/compare/builds"
+            className="group relative block overflow-hidden mb-8 bg-gradient-to-l from-cyan-50 via-white to-white dark:from-cyan-950/30 dark:via-[#0F172A] dark:to-[#0F172A] border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-5 md:p-6 shadow-sm hover:shadow-lg hover:shadow-cyan-500/10 transition-all"
+          >
+            {/* الزاوية الهندسية — بصمة بطاقات الموقع */}
+            <div className="absolute top-0 right-0 w-0 h-0 border-t-[16px] border-t-cyan-500/60 border-l-[16px] border-l-transparent pointer-events-none"></div>
+            <div className="absolute -top-20 -left-20 w-48 h-48 bg-cyan-500/10 blur-3xl rounded-full pointer-events-none"></div>
+
+            <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="w-14 h-14 shrink-0 rounded-sm bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-2xl shadow-lg shadow-cyan-500/30 group-hover:scale-105 transition-transform">
+                ⚖️
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg md:text-xl font-black text-slate-900 dark:text-white mb-1 leading-snug">
+                  تبي تقارن تجميعاتك؟
+                </h2>
+                <p className="text-[13px] font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
+                  السعر الكلي، الأداء، الاستهلاك، وقطعة بقطعة — ونقول لك أيّها أنصح ولماذا.
+                </p>
+                <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                  <span className="font-mono text-[10px] font-black text-cyan-700 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-800/50 px-2 py-0.5 rounded-sm">
+                    {builds.length} تجميعة جاهزة
+                  </span>
+                  <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                    اختر حتى ٣ للمقارنة
+                  </span>
+                </div>
+              </div>
+
+              <span className="shrink-0 flex items-center gap-2 px-6 py-3 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-black shadow-sm shadow-cyan-500/20 group-hover:opacity-90 transition-opacity w-full sm:w-auto justify-center">
+                قارن الآن
+                <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </span>
+            </div>
+          </Link>
+        )}
+
+        {/* تلميح لمن عنده تجميعة واحدة — يشرح الشرط بدل إخفاء الميزة بصمت */}
+        {builds.length === 1 && (
+          <div className="mb-8 flex items-center gap-3 p-4 rounded-sm border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/30">
+            <span className="text-xl shrink-0 opacity-50">⚖️</span>
+            <p className="text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
+              احفظ تجميعة ثانية لتفتح <b className="text-slate-700 dark:text-slate-300">مقارنة التجميعات</b> —
+              تعرض السعر والأداء والاستهلاك جنباً إلى جنب.
+            </p>
+          </div>
+        )}
+
         {/* ===== طلبات القطع (يظهر فقط إن طلب المستخدم شيئاً) ===== */}
         <MyPartRequests />
 
@@ -411,7 +468,7 @@ export default function MyBuildsPage() {
                         <div className="flex items-center gap-3">
                           {comp?.imageUrl ? (
                             <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 p-1 flex items-center justify-center shrink-0 shadow-sm">
-                               <img src={comp.imageUrl} alt={comp.name} className="max-w-full max-h-full object-contain" />
+                               <img src={productImage(comp.imageUrl)} alt={comp.name} className="max-w-full max-h-full object-contain" />
                             </div>
                           ) : (
                             <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 flex items-center justify-center shrink-0 shadow-sm">

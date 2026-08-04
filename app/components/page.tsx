@@ -1,4 +1,11 @@
 import { prisma } from '../../lib/prisma';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'تصفّح قطع الحاسب وأسعارها',
+  description: 'تصفّح كتالوج قطع الحاسب: كروت الشاشة والمعالجات واللوحات والذاكرة والتخزين — بأسعار لحظية من المتاجر السعودية مع رصد التخفيضات.',
+  alternates: { canonical: '/components' },
+};
 import ComponentsClient from './ComponentsClient';
 
 // تحديث حي دائماً — يعرض أحدث الأسعار والصور والتوفّر بلا حاجة redeploy

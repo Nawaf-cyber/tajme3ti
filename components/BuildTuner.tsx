@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { productImage } from '../lib/image';
 
 /* ============ الأنواع ============ */
 type Comp = any;
@@ -502,7 +503,7 @@ export default function BuildTuner({
                             >
                               <div className="w-9 h-9 shrink-0 rounded-lg bg-white border border-slate-200 dark:border-slate-800 p-0.5 flex items-center justify-center">
                                 {alt.comp.imageUrl ? (
-                                  <img src={alt.comp.imageUrl} alt="" className="max-w-full max-h-full object-contain" />
+                                  <img src={productImage(alt.comp.imageUrl)} alt="" className="max-w-full max-h-full object-contain" />
                                 ) : (
                                   <span className="text-[10px] text-slate-300">—</span>
                                 )}

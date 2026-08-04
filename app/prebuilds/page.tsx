@@ -1,4 +1,11 @@
 import { prisma } from '../../lib/prisma';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'تجميعات جاهزة بميزانيات مختلفة',
+  description: 'تجميعات حاسب جاهزة ومفحوصة التوافق لكل ميزانية — قطعها متوفّرة فعلاً بأسعارها اللحظية في المتاجر السعودية.',
+  alternates: { canonical: '/prebuilds' },
+};
 import SavePrebuildButton from './SavePrebuildButton';
 import Link from 'next/link';
 import { isComponentAvailable } from '../../lib/availability';

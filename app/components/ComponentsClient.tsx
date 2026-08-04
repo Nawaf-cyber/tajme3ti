@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { isComponentAvailable } from '../../lib/availability';
 import { formatPrice, componentDiscount } from '../../lib/price';
 import SuggestPartCard from '../../components/SuggestPartCard';
+import { productImage } from '../../lib/image';
 
 // إضافة colorClass للتحكم بلون الشعار حسب مكانه (أزرق للفلتر، أخضر للأسعار)
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -299,7 +300,7 @@ export default function ComponentsClient({ components, categories }: { component
                 <div className="relative w-full h-52 bg-white mx-4 mb-1 rounded-sm flex items-center justify-center" style={{width:'calc(100% - 2rem)'}}>
                   {/* loading="lazy" — كانت كل الصور تُطلب فوراً عند التحميل */}
                   <img
-                    src={comp.imageUrl || `/images/${comp.categoryId}/boxed.png`}
+                    src={productImage(comp.imageUrl, `/images/${comp.categoryId}/boxed.png`)}
                     alt={comp.name}
                     loading="lazy"
                     decoding="async"

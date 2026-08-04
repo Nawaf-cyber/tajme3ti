@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { productImage } from '../../lib/image';
 
 /* ============ أنواع ============ */
 
@@ -59,9 +60,11 @@ const PartThumb = ({ src, alt, size = 'w-14 h-14' }: { src?: string | null; alt:
   <div
     className={`${size} bg-white rounded-sm shrink-0 flex items-center justify-center p-1 border border-slate-200 dark:border-slate-800`}
   >
+    {/* التغليف داخل المكوّن يغطّي كل استخداماته دفعة واحدة */}
     <img
-      src={src || '/images/placeholder.png'}
+      src={productImage(src)}
       alt={alt}
+      loading="lazy"
       className="max-w-full max-h-full object-contain mix-blend-multiply"
     />
   </div>

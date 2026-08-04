@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { prisma } from '../lib/prisma';
 import { isComponentAvailable } from '../lib/availability';
+import { productImage } from '../lib/image';
 
 /* ============ شارة "جديد" مربوطة بتاريخ ============
    بعد هذا التاريخ تختفي وحدها. لا تحتاج تدخّلاً.
@@ -297,7 +298,7 @@ export default async function CompareTeaser() {
 
                       <div className="h-16 bg-white rounded-sm mb-3 flex items-center justify-center p-1.5 border border-slate-100 dark:border-slate-800">
                         <img
-                          src={c.imageUrl || `/images/${GPU_CATEGORY_ID}/boxed.png`}
+                          src={productImage(c.imageUrl, `/images/${GPU_CATEGORY_ID}/boxed.png`)}
                           alt={c.name}
                           className="max-w-full max-h-full object-contain mix-blend-multiply"
                         />

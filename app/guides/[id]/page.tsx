@@ -13,9 +13,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const article = await getArticle(id);
-  if (!article) return { title: 'دليل غير موجود | تجميعتي' };
+  if (!article) return { title: 'دليل غير موجود', robots: { index: false, follow: true } };
   return {
-    title: `${article.title} | أدلّة تجميعتي`,
+    title: article.title,
     description: article.summary,
     alternates: { canonical: `https://www.tajme3ti.com/guides/${id}` },
   };

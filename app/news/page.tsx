@@ -1,7 +1,14 @@
 import Link from 'next/link';
 import { getNews } from '../../lib/content';
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'أخبار عتاد الحاسب',
+  description: 'آخر أخبار قطع الحاسب: إطلاقات كروت الشاشة والمعالجات، تحرّكات الأسعار في السوق السعودي، وما يهمّ المجمِّع العربي.',
+  alternates: { canonical: '/news' },
+};
 
 export default async function NewsPage() {
   const newsList = await getNews();
