@@ -3,10 +3,11 @@
 /* إدارة طلبات القطع: تغيير الحالة + ربط القطعة الفعلية. كل صف نموذج
    server action مستقل، فالحفظ فوري بلا حالة عميل معقّدة. */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { updatePartRequest, deletePartRequest } from '../actions';
-import { STATUS_META, STATUS_ORDER, type PartStatus } from '../../../lib/part-request';
+import { STATUS_META, STATUS_ORDER, matchesSearch, type PartStatus } from '../../../lib/part-request';
+import ComponentPicker, { type Comp } from './ComponentPicker';
 
 type Row = {
   id: string;
@@ -16,10 +17,23 @@ type Row = {
   createdAt: string;
   component: { id: string; label: string } | null;
 };
-type Comp = { id: string; label: string; category: string };
 
 export default function AdminPartRequests({ data, components }: { data: Row[]; components: Comp[] }) {
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<PartStatus | 'ALL'>('ALL');
+
+  /* البحث يشمل اسم الطلب والقطعة المربوطة به — فتقدر تلقى الطلب
+     سواء تذكّرت الاسم الذي كتبه المستخدم أو اسم القطعة عندنا. */
+  const filtered = useMemo(
+    () =>
+      data.filter(
+        (r) =>
+          (statusFilter === 'ALL' || r.status === statusFilter) &&
+          matchesSearch(`${r.name} ${r.component?.label || ''}`, query),
+      ),
+    [data, query, statusFilter],
+  );
 
   if (data.length === 0) {
     return (
@@ -29,9 +43,70 @@ export default function AdminPartRequests({ data, components }: { data: Row[]; c
     );
   }
 
+  const counts = STATUS_ORDER.reduce(
+    (acc, s) => ({ ...acc, [s]: data.filter((r) => r.status === s).length }),
+    {} as Record<PartStatus, number>,
+  );
+
   return (
     <div className="space-y-3">
-      {data.map((r) => {
+      {/* شريط البحث + تصفية بالحالة */}
+      <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm space-y-3">
+        <div className="relative">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">🔍</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="ابحث باسم القطعة المطلوبة أو القطعة المربوطة…"
+            className="w-full py-2.5 pr-9 pl-9 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 placeholder:font-semibold placeholder:text-slate-400"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="مسح البحث"
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {(['ALL', ...STATUS_ORDER] as const).map((s) => {
+            const active = statusFilter === s;
+            const label = s === 'ALL' ? `الكل (${data.length})` : `${STATUS_META[s].icon} ${STATUS_META[s].label} (${counts[s]})`;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatusFilter(s)}
+                className={`text-[11px] font-black px-2.5 py-1.5 rounded-lg border transition-colors ${
+                  active
+                    ? 'bg-cyan-600 border-cyan-600 text-white'
+                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-cyan-400'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+          {(query || statusFilter !== 'ALL') && (
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-auto tabular-nums">
+              {filtered.length} من {data.length}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {filtered.length === 0 && (
+        <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center">
+          <p className="text-sm font-bold text-slate-500 dark:text-slate-400">لا يوجد طلب يطابق البحث.</p>
+        </div>
+      )}
+
+      {filtered.map((r) => {
         const meta = STATUS_META[r.status];
         return (
           <div key={r.id} className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
@@ -75,17 +150,7 @@ export default function AdminPartRequests({ data, components }: { data: Row[]; c
                 ))}
               </select>
 
-              <select
-                name="componentId"
-                defaultValue={r.component?.id || ''}
-                className="flex-1 p-2.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-cyan-500"
-                dir="ltr"
-              >
-                <option value="">— اربط بقطعة فعلية (يفعّل زر البناء) —</option>
-                {components.map((c) => (
-                  <option key={c.id} value={c.id}>{c.label} · {c.category}</option>
-                ))}
-              </select>
+              <ComponentPicker components={components} defaultValue={r.component?.id || ''} />
 
               <button
                 type="submit"

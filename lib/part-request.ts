@@ -29,6 +29,28 @@ export const isValidPartName = (raw: string): boolean => {
   return n.length >= 2 && n.length <= 80;
 };
 
+/** تطبيع للبحث فقط — يبني على normalizePartName ويوحّد صور الحروف العربية
+ *  ويحذف التشكيل، فبحث "الفا" يجد "ألفا" و"شاشه" تجد "شاشة". */
+export const searchNormalize = (raw: string): string =>
+  normalizePartName(raw)
+    .replace(/[ً-ْـ]/g, '') // تشكيل + تطويل
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه');
+
+/** هل يطابق النص الاستعلام؟ كل كلمة في البحث يجب أن ترد في النص، لا بالضرورة
+ *  متجاورة — فـ"ryzen 9800" تجد "AMD Ryzen 7 9800X3D". وكل كلمة تُجرَّب مرّتين:
+ *  كما هي، ثم بعد إزالة المسافات والشرطات — فـ"5070ti" تجد "RTX 5070 Ti"
+ *  و"rx-9070" تجد "RX 9070 XT". */
+export const matchesSearch = (haystack: string, query: string): boolean => {
+  const q = searchNormalize(query);
+  if (!q) return true;
+  const h = searchNormalize(haystack);
+  const squash = (s: string) => s.replace(/[\s-]/g, '');
+  const hSquashed = squash(h);
+  return q.split(' ').every((token) => h.includes(token) || hSquashed.includes(squash(token)));
+};
+
 /** بيانات عرض كل حالة — لون + أيقونة + نص، بنمط الموقع (لا ألوان غريبة) */
 export const STATUS_META: Record<PartStatus, {
   label: string;

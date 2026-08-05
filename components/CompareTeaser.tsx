@@ -198,7 +198,7 @@ export default async function CompareTeaser() {
                 </span>
               )}
               <span className="font-mono text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                أداة المقارنة
+                أدوات المقارنة
               </span>
             </div>
 
@@ -209,17 +209,18 @@ export default async function CompareTeaser() {
               </span>
             </h2>
 
-            <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 font-medium leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0">
-              ضع حتى ٣ قطع جنباً إلى جنب. المواصفات موحّدة، والأسعار لحظية، والخلاصة
-              محسوبة من الأرقام — لا من رأي محرّر.
+            <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 font-medium leading-relaxed mb-6 max-w-lg mx-auto lg:mx-0">
+              قارن <b className="text-slate-800 dark:text-slate-200">قطعاً مفردة</b> أو{' '}
+              <b className="text-slate-800 dark:text-slate-200">أجهزة كاملة</b> جنباً إلى جنب.
+              المواصفات موحّدة، والأسعار لحظية، والخلاصة محسوبة من الأرقام — لا من رأي محرّر.
             </p>
 
-            {/* نقاط سريعة */}
+            {/* نقاط سريعة — تشمل الميزتين */}
             <ul className="space-y-2.5 mb-9 text-right max-w-lg mx-auto lg:mx-0">
               {[
-                'يحدّد أفضل قيمة مقابل السعر تلقائياً',
-                'يعرض فرق السعر بين كل قطعة والأوفر',
-                'أضف القطعة إلى تجميعتك المحفوظة مباشرة',
+                'يقول لك أيّها أنصح: للأداء · لأفضل قيمة · لأقل ميزانية',
+                'يُظهر الفارق بالنسبة المئوية، ويُخفي المواصفات المتطابقة',
+                'قارن تجميعاتك المحفوظة: السعر الكلي والأداء والاستهلاك',
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2.5 justify-start">
                   <svg
@@ -259,6 +260,33 @@ export default async function CompareTeaser() {
                 قارن قطعاً تختارها
               </Link>
             </div>
+
+            {/* ===== المسار الثاني: مقارنة التجميعات الكاملة =====
+                مستقلّ عن أزرار القطع كي لا يزاحمها، وواضح كفاية ليُكتشف. */}
+            <Link
+              href="/compare/builds"
+              className="group mt-4 flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-md hover:shadow-cyan-500/10 transition-all max-w-lg mx-auto lg:mx-0"
+            >
+              <span className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-lg shadow-md shadow-cyan-500/25 group-hover:scale-105 transition-transform">
+                ⚖️
+              </span>
+              <span className="flex-1 min-w-0 text-right">
+                <span className="block text-[13px] font-black text-slate-900 dark:text-white leading-snug">
+                  عندك أكثر من تجميعة؟ قارنها كاملة
+                </span>
+                <span className="block text-[11.5px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                  السعر الكلي · الأداء · الاستهلاك · قطعة بقطعة
+                </span>
+              </span>
+              <svg
+                className="w-4 h-4 shrink-0 text-cyan-500 transition-transform group-hover:-translate-x-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </Link>
           </div>
 
           {/* ===== معاينة حيّة (بيانات حقيقية) ===== */}

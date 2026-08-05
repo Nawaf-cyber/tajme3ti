@@ -5,18 +5,26 @@ import { guideWhere, newsWhere } from '../lib/content';
 // رابط الموقع الأساسي — عدّله إن تغيّر الدومين
 const BASE_URL = 'https://www.tajme3ti.com';
 
+/* تاريخ آخر تعديل جوهري على الصفحات الثابتة.
+   ⚠️ لا نضع new Date() هنا: خريطة تقول "تغيّر كل شيء" في كل طلب تفقد
+   مصداقيتها عند جوجل فيتجاهل الإشارة. نضع تاريخاً حقيقياً ونحدّثه يدوياً
+   عند أي تغيير جوهري. آخر تحديث: إعادة بناء العناوين وروابط canonical
+   لكل الصفحات (2026-08-04). */
+const STATIC_LAST_MODIFIED = new Date('2026-08-04');
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // الصفحات الثابتة الرئيسية
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${BASE_URL}/`,          changeFrequency: 'daily',   priority: 1.0 },
-    { url: `${BASE_URL}/components`, changeFrequency: 'daily',   priority: 0.9 },
-    { url: `${BASE_URL}/builder`,    changeFrequency: 'weekly',  priority: 0.9 },
-    { url: `${BASE_URL}/prebuilds`,  changeFrequency: 'weekly',  priority: 0.8 },
-    { url: `${BASE_URL}/news`,       changeFrequency: 'daily',   priority: 0.7 },
-    { url: `${BASE_URL}/guides`,     changeFrequency: 'weekly',  priority: 0.8 },
-    { url: `${BASE_URL}/about`,      changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${BASE_URL}/contact`,    changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${BASE_URL}/privacy`,    changeFrequency: 'yearly',  priority: 0.3 },
+    { url: `${BASE_URL}/`,           lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'daily',   priority: 1.0 },
+    { url: `${BASE_URL}/components`, lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'daily',   priority: 0.9 },
+    { url: `${BASE_URL}/builder`,    lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'weekly',  priority: 0.9 },
+    { url: `${BASE_URL}/prebuilds`,  lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'weekly',  priority: 0.8 },
+    { url: `${BASE_URL}/news`,       lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'daily',   priority: 0.7 },
+    { url: `${BASE_URL}/guides`,     lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'weekly',  priority: 0.8 },
+    { url: `${BASE_URL}/compare`,    lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'weekly',  priority: 0.7 },
+    { url: `${BASE_URL}/about`,      lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE_URL}/contact`,    lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE_URL}/privacy`,    lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'yearly',  priority: 0.3 },
   ];
 
   let dynamicRoutes: MetadataRoute.Sitemap = [];
