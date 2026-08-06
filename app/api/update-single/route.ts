@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     for (const u of resolved.offerUpdates) {
       await prisma.componentOffer.update({ where: { id: u.offerId }, data: u.data });
     }
-    await prisma.component.update({ where: { id }, data: { price: resolved.lowestPrice } });
+    await prisma.component.update({ where: { id }, data: { price: resolved.lowestPrice, lastScrapedAt: new Date() } });
 
     // سجلّ الأسعار — نقطة واحدة لكل متجر في اليوم (كان مفقوداً هنا تماماً)
     await recordPriceHistory(prisma, id, resolved.pricePoints);

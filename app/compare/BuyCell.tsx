@@ -4,7 +4,7 @@
  *  المتاجر تأتي من عروض القطعة، ولون كل رقاقة من صفّ متجرها — فما عاد
  *  هنا أي اسم متجر ولا لون مكتوب يدوياً. */
 
-import { buildStoreUrl, AFFILIATE_LINK_PROPS } from '../../lib/affiliate';
+import { buildStoreUrl, storeLinkProps } from '../../lib/affiliate';
 import { formatPrice, discountPercent } from '../../lib/price';
 import { liveOffers, storeVars, type Offer } from '../../lib/stores';
 
@@ -32,7 +32,7 @@ export default function BuyCell({ component }: { component: { offers?: Offer[] |
                نقرة شراء من صفحة المقارنة تُهدر العمولة. الآن تمرّ على
                المصدر المركزي مثل بقية الموقع. */
             href={buildStoreUrl(o.store, o.url, o.affiliateUrl)}
-            {...AFFILIATE_LINK_PROPS}
+            {...storeLinkProps(o.store)}
             style={storeVars(o.store.color)}
             className={`group/buy flex items-center justify-between gap-2 px-2.5 py-2 border rounded-sm transition-colors ${
               i === 0

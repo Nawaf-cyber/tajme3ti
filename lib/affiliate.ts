@@ -227,3 +227,18 @@ export const AFFILIATE_LINK_PROPS = {
   target: '_blank' as const,
   rel: 'nofollow sponsored noopener noreferrer',
 };
+
+/**
+ * سمات رابط المتجر حسب حالته التجارية.
+ *
+ * `sponsored` تعني عند جوجل: "رابط مقابل مقابل مادي". وضعها على متجر لا
+ * نأخذ منه عمولة تصريحٌ خاطئ بقدر ما أن حذفها عن متجر بعمولة إخفاءٌ خاطئ —
+ * وكلاهما يُحاسَب عليه. فنشتقّها من إعدادات المتجر لا من افتراض ثابت.
+ */
+export const storeLinkProps = (store: StoreLink) => ({
+  target: '_blank' as const,
+  rel:
+    store.usesDeepLinks || (store.affiliateParam && store.affiliateId)
+      ? 'nofollow sponsored noopener noreferrer'
+      : 'nofollow noopener noreferrer',
+});

@@ -64,8 +64,16 @@ console.log(`قطع: ${comps.length} · عروض في القاعدة: ${offersSe
 if (diffs.length === 0) {
   console.log('✅ تطابق تام — لا فرق واحد بين الجديد والقديم.');
 } else {
-  console.log(`❌ ${diffs.length} فرق:`);
-  diffs.slice(0, 30).forEach((d) => console.log('   ' + d));
+  /* ⚠️ الفروق بعد بدء السحب **متوقّعة**: الأعمدة القديمة مجمّدة لحظة
+     الترحيل، والعروض تحمل أسعار اليوم. هذا السكربت أدّى غرضه (إثبات أن
+     النقل لم يفقد شيئاً) يوم الترحيل؛ وما بعده تُقرأ الفروق كدليل حياة
+     لا كخطأ. النسخة المرجعية الحقيقية للرجوع: backups/store-columns-*.json */
+  console.log(`ℹ️ ${diffs.length} قيمة تغيّرت عن لحظة الترحيل — طبيعي إن كان السحب يعمل.`);
+  console.log('   (خطأ حقيقي = "عرض مفقود" أو "url مختلف"، لا فرق في السعر)');
+  const structural = diffs.filter((d) => /مفقود|url:|affiliateUrl/.test(d));
+  console.log(`   فروق بنيوية (تستدعي القلق): ${structural.length}`);
+  structural.slice(0, 10).forEach((d) => console.log('   ⚠ ' + d));
+  diffs.filter((d) => !structural.includes(d)).slice(0, 5).forEach((d) => console.log('   · ' + d));
 }
 
 await prisma.$disconnect();

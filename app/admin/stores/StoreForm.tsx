@@ -13,6 +13,7 @@ export type StoreRow = {
   currency: string; rateToSar: number;
   scrapeMode: string; priceSelector: string | null; listSelector: string | null;
   stockSelector: string | null; premiumProxy: boolean;
+  noticeMessage: string | null; noticeUntil: string | Date | null;
 };
 
 const input =
@@ -168,6 +169,30 @@ export default function StoreForm({ store, onDone }: { store?: StoreRow; onDone?
         <p className="text-[10px] font-semibold text-slate-400 mt-2 leading-relaxed">
           اتركه فارغاً إن لم تتأكّد من المعامل — رابط بمعامل خاطئ أسوأ من رابط بلا معامل: يبدو ناجحاً ولا يُحتسب.
         </p>
+      </div>
+
+      {/* ---- إعلان حالة المتجر ---- */}
+      <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+        <p className="text-[11px] font-black text-slate-400 mb-3">إعلان للزوّار (عطل · صيانة · تأخّر شحن)</p>
+        <textarea
+          name="noticeMessage"
+          defaultValue={store?.noticeMessage || ''}
+          rows={2}
+          placeholder="مثال: موقع المتجر يمرّ بعطل تقني حالياً — قد لا تفتح صفحات المنتجات."
+          className={`${input} resize-y`}
+        />
+        <div className="flex items-center gap-3 mt-2 flex-wrap">
+          <label className={label + ' mb-0'}>يختفي تلقائياً في</label>
+          <input
+            type="datetime-local"
+            name="noticeUntil"
+            defaultValue={store?.noticeUntil ? new Date(store.noticeUntil).toISOString().slice(0, 16) : ''}
+            className="p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-cyan-500"
+          />
+          <span className="text-[10px] font-semibold text-slate-400">
+            اتركه فارغاً ليبقى حتى تمسح النص. الإعلان يظهر عند عروض هذا المتجر في صفحة القطعة وصفحة البناء.
+          </span>
+        </div>
       </div>
 
       {/* ---- العملة ---- */}

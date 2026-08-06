@@ -15,7 +15,7 @@
  */
 
 import * as cheerio from 'cheerio';
-import { round2, parseMoney, acceptListPrice, fetchWithTimeout } from './scrape-prices';
+import { round2, parseMoney, acceptListPrice, scrapeFetch, httpReason, isBrokenPage } from './scrape-prices';
 
 export type GenericStoreConfig = {
   slug: string;
@@ -117,14 +117,21 @@ export async function scrapeGeneric(
 
   let html = '';
   try {
-    const res = await fetchWithTimeout(scrapeUrl(token, url, store.premiumProxy), { cache: 'no-store' }, 20000);
+    const res = await scrapeFetch(scrapeUrl(token, url, store.premiumProxy));
     if (!res.ok) {
-      out.errors.push(`${store.name}: فشل الاتصال ${res.status}${res.status === 403 || res.status === 401 ? ' — جرّب تفعيل البروكسي المتقدّم' : ''}`);
+      out.errors.push(`${store.name}: ${httpReason(res.status)}`);
       return out;
     }
     html = await res.text();
   } catch {
     out.errors.push(`${store.name}: تجاوز الوقت المسموح (Timeout) أو خطأ اتصال.`);
+    return out;
+  }
+
+  /* صفحة معطّلة/صيانة ليست دليل نفاد — نُبقي الحالة السابقة كما هي */
+  if (isBrokenPage(html)) {
+    out.errors.push(`${store.name}: صفحة المتجر معطّلة أو تحت الصيانة — أُبقيت الحالة السابقة.`);
+    out.inStock = true; // لا نغيّر شيئاً: المستدعي يتجاهل النتيجة بلا سعر
     return out;
   }
 

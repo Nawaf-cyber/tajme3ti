@@ -6,7 +6,7 @@
  * الآن لون واحد لكل متجر مصدره جدول Store، عبر متغيّر CSS.
  */
 
-import { buildStoreUrl, AFFILIATE_LINK_PROPS } from '../lib/affiliate';
+import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { liveOffers, storeVars, type Offer } from '../lib/stores';
 
 export default function StoreBuyChips({
@@ -26,7 +26,7 @@ export default function StoreBuyChips({
         <a
           key={o.storeId}
           href={buildStoreUrl(o.store, o.url, o.affiliateUrl)}
-          {...AFFILIATE_LINK_PROPS}
+          {...storeLinkProps(o.store)}
           style={{
             ...storeVars(o.store.color),
             ...(solid ? { backgroundColor: 'var(--store-color)' } : {}),

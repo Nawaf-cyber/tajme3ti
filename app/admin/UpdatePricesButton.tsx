@@ -71,6 +71,12 @@ export default function UpdatePricesButton() {
 
       if (wasCancelled) {
         toast.success(`تم الإيقاف! تم حفظ ${totalUpdated} قطعة بنجاح.`, { id: toastId, duration: 5000 });
+      } else if (targetTotal > 0 && totalUpdated < targetTotal) {
+        // انتهت الحلقة بدفعة فارغة قبل بلوغ الإجمالي — نقصٌ لا اكتمال
+        toast(
+          `انتهى التحديث عند ${totalUpdated} من ${targetTotal}. اضغط الزر مجدداً ليكمل الباقي.`,
+          { id: toastId, icon: '⚠️', duration: 8000 },
+        );
       } else {
         toast.success(`اكتمل التحديث بنجاح! إجمالي القطع: ${totalUpdated} / ${targetTotal}`, { id: toastId, duration: 5000 });
       }
@@ -78,8 +84,18 @@ export default function UpdatePricesButton() {
       if (allCollectedErrors.length > 0) setUpdateErrors(allCollectedErrors);
 
     } catch (error: any) {
-      // إنهاء التحديث حتى لو حصل تعليق مع الاحتفاظ بالعدد
-      toast.success(`اكتمل التحديث مع تخطي الروابط المعطوبة (المنجزة: ${totalUpdated})`, { id: toastId, duration: 6000 });
+      /* ⚠️ كان هذا يعرض toast.success ويقول "اكتمل التحديث" — أي أن انقطاع
+         دفعة في المنتصف (مهلة فيرسل ٦٠ث، أو رد HTML بدل JSON) يظهر نجاحاً
+         كاملاً بينما بقيت مئات القطع بلا تحديث. هذا سبب انطباع "أمازون
+         ما يتحدّث": الأداة تقول تمّ، والقطع الباقية لم تُمسّ.
+         الآن نقولها كما هي، ونذكر كم بقي وكيف يُستأنف. */
+      const remaining = targetTotal > 0 ? Math.max(0, targetTotal - totalUpdated) : null;
+      toast.error(
+        `توقّف التحديث قبل أن يكتمل — أُنجزت ${totalUpdated}` +
+        (remaining !== null ? ` من ${targetTotal}، وبقيت ${remaining} قطعة.` : ' قطعة.') +
+        ' اضغط الزر مجدداً ليكمل من حيث توقّف.',
+        { id: toastId, duration: 9000 },
+      );
       setUpdateErrors(prev => [...prev, error.message]);
     } finally {
       setLoading(false);

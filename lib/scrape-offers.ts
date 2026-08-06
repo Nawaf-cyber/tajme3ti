@@ -128,7 +128,13 @@ export function resolveOfferPrices(
     // undefined = لم نقرأ الصفحة → نُبقي القديم؛ null = قرأناها ولا خصم
     const listPrice = o.listPrice !== undefined ? o.listPrice : prev.listPrice;
 
-    const data: Record<string, any> = { inStock: o.inStock };
+    /* نسجّل أثر كل محاولة — لا النجاح وحده. بلا هذا، العرض النافد أو
+       المحظور يبدو "لم يُحدَّث منذ أسبوع" وهو يُفحص كل يوم. */
+    const data: Record<string, any> = {
+      inStock: o.inStock,
+      lastCheckedAt: new Date(),
+      lastError: o.errors.length ? o.errors[0].slice(0, 300) : null,
+    };
     if (o.price != null) data.price = o.price;
     if (o.listPrice !== undefined) data.listPrice = o.listPrice;
     offerUpdates.push({ offerId: r.offerId, data });

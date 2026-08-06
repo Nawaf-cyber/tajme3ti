@@ -68,12 +68,18 @@ export async function GET(req: Request) {
 
     const totalMatchingCount = await prisma.component.count({ where: searchConditions });
 
-    // خطة Scrape.do: 10 طلبات متزامنة.
-    // 35 قطعة/تشغيلة × 6 تشغيلات يومياً (كل 4 ساعات) = دورة كاملة يومياً لـ ~200 قطعة.
-    const BATCH_SIZE = 35;
+    /* خطة Scrape.do: 10 طلبات متزامنة.
+       35 قطعة/تشغيلة × 8 تشغيلات يومياً (كل 3 ساعات) = 280 > عدد القطع،
+       فتكتمل الدورة يومياً بهامش.
+       ?limit=N يقلّص الدفعة (للطلبات المصرَّح لها فقط) — لاختبار السحب بعد إضافة متجر
+       أو تغيير محدّد، بلا إحراق رصيد دفعة كاملة. */
+    const limitParam = parseInt(new URL(req.url).searchParams.get('limit') || '', 10);
+    const BATCH_SIZE = limitParam > 0 ? Math.min(limitParam, 35) : 35;
     const components = await prisma.component.findMany({
       where: searchConditions,
-      orderBy: { updatedAt: 'asc' },
+      /* الأقدم سحباً أولاً، والتي لم تُسحب قط في المقدّمة تماماً.
+         (كان الترتيب بـ updatedAt فتقفز أي قطعة تعدّلها لآخر الطابور.) */
+      orderBy: { lastScrapedAt: { sort: 'asc', nulls: 'first' } },
       take: BATCH_SIZE,
       include: {
         offers: {
@@ -114,7 +120,7 @@ export async function GET(req: Request) {
         for (const u of resolved.offerUpdates) {
           await prisma.componentOffer.update({ where: { id: u.offerId }, data: u.data });
         }
-        await prisma.component.update({ where: { id: comp.id }, data: { price: resolved.lowestPrice } });
+        await prisma.component.update({ where: { id: comp.id }, data: { price: resolved.lowestPrice, lastScrapedAt: new Date() } });
         await recordPriceHistory(prisma, comp.id, resolved.pricePoints);
 
         // ---- وسوم إشعار ديسكورد ----

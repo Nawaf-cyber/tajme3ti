@@ -54,6 +54,14 @@ function readStoreForm(formData: FormData) {
     listSelector: ((formData.get('listSelector') as string) || '').trim() || null,
     stockSelector: ((formData.get('stockSelector') as string) || '').trim() || null,
     premiumProxy: formData.get('premiumProxy') === 'true',
+    /* الإعلان: نصّ فارغ يعني "لا إعلان" فنخزّن null — كي لا يظهر شريط فارغ */
+    noticeMessage: ((formData.get('noticeMessage') as string) || '').trim() || null,
+    noticeUntil: (() => {
+      const raw = ((formData.get('noticeUntil') as string) || '').trim();
+      if (!raw) return null;
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? null : d;
+    })(),
     active: formData.get('active') === 'true',
     sortOrder: parseInt((formData.get('sortOrder') as string) || '0', 10) || 0,
   };

@@ -16,7 +16,7 @@ import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { isAvailable, liveOffers, type Offer } from '../lib/stores';
-import { buildStoreUrl } from '../lib/affiliate';
+import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { productImage } from '../lib/image';
 
 type Component = {
@@ -2121,8 +2121,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                         <a
                                           key={offer.storeId}
                                           href={buildStoreUrl(offer.store, offer.url, offer.affiliateUrl)}
-                                          target="_blank"
-                                          rel="nofollow sponsored noopener noreferrer"
+                                          {...storeLinkProps(offer.store)}
                                           className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
                                             i === 0
                                               ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-300 dark:ring-emerald-500/40'

@@ -10,6 +10,7 @@ import CronControlToggle from './components/CronControlToggle';
 import ManualUpdateButton from "./components/ManualUpdateButton";
 import ExportComponentsButton from './ExportComponentsButton';
 import StoreFieldsGroup from './StoreFieldsGroup';
+import ScrapeStatusBadge, { isStale } from './ScrapeStatusBadge';
 import { storeVars, type StoreInfo } from '../../lib/stores';
 
 // خريطة الحقول التلقائية بناءً على الفئة
@@ -65,6 +66,8 @@ export default function AdminManager({ categories, components, news, cronStatus,
   const [filterCategory, setFilterCategory] = useState('ALL');
   // فلتر المتجر: يعرض القطع التي لها رابط ذلك المتجر (لإدارة روابط العمولة)
   const [filterStore, setFilterStore] = useState<string>('ALL');
+  // عرض المتأخّرة فقط — للوصول السريع لما لم يُفحص
+  const [onlyStale, setOnlyStale] = useState(false);
 
   useEffect(() => {
     const catName = categories.find(c => c.id.toString() === selectedCategoryId)?.name || '';
@@ -149,6 +152,7 @@ export default function AdminManager({ categories, components, news, cronStatus,
       comp.brand.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'ALL' || comp.categoryId === filterCategory;
     const matchesStore = filterStore === 'ALL' || hasStoreUrl(comp, filterStore);
+    if (onlyStale && !isStale(comp.lastScrapedAt)) return false;
     return matchesSearch && matchesCategory && matchesStore;
   });
 
@@ -156,6 +160,12 @@ export default function AdminManager({ categories, components, news, cronStatus,
   const storeCounts: Record<string, number> = Object.fromEntries(
     stores.map((st) => [st.id, components.filter((c) => hasStoreUrl(c, st.id)).length]),
   );
+
+  /* مؤشّرات صحّة التحديث — تجيب سؤال «هل كل القطع تتحدّث؟» بنظرة واحدة */
+  const staleCount = components.filter((c) => isStale(c.lastScrapedAt)).length;
+  const failingCount = components.filter((c) =>
+    (c.offers || []).some((o: any) => o.url && o.lastError),
+  ).length;
 
   /* متجر بروابط تتبّع مولَّدة: كم قطعة بلا رابط — يقيس تقدّم عملك */
   const deepStore = stores.find((st) => st.usesDeepLinks && filterStore === st.id);
@@ -443,6 +453,33 @@ export default function AdminManager({ categories, components, news, cronStatus,
               </div>
             )}
 
+            {/* ===== صحّة التحديث: يجيب "هل كل القطع تتحدّث؟" بنظرة ===== */}
+            <div className="flex items-center gap-2 flex-wrap mb-4 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+              <span className="text-xs font-black text-slate-500 dark:text-slate-400">صحّة التحديث:</span>
+              <span className="text-[11px] font-black px-2 py-1 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                ✓ {components.length - staleCount} فُحصت خلال ٢٤ ساعة
+              </span>
+              <button
+                type="button"
+                onClick={() => setOnlyStale(!onlyStale)}
+                className={`text-[11px] font-black px-2 py-1 rounded-md border transition-colors ${
+                  onlyStale
+                    ? 'bg-amber-500 border-amber-500 text-white'
+                    : 'bg-amber-100 dark:bg-amber-900/30 border-transparent text-amber-700 dark:text-amber-400 hover:border-amber-500'
+                }`}
+              >
+                ⏸ {staleCount} متأخّرة {onlyStale ? '(اضغط للعودة)' : '(اضغط لعرضها)'}
+              </button>
+              {failingCount > 0 && (
+                <span className="text-[11px] font-black px-2 py-1 rounded-md bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400">
+                  ⚠ {failingCount} قطعة فيها متجر فشلت قراءته
+                </span>
+              )}
+              <span className="text-[10px] font-bold text-slate-400 mr-auto">
+                مرّر المؤشّر على شارة أي قطعة لترى نتيجة كل متجر
+              </span>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-right border-collapse">
                 <thead>
@@ -462,6 +499,10 @@ export default function AdminManager({ categories, components, news, cronStatus,
                         <td className="p-4 font-semibold">{comp.brand}</td>
                         <td className="p-4">
                           {comp.name}
+                          {/* حالة آخر فحص — تفصيل كل متجر يظهر عند المرور بالمؤشّر */}
+                          <span className="mr-2">
+                            <ScrapeStatusBadge lastScrapedAt={comp.lastScrapedAt} offers={comp.offers} />
+                          </span>
                           {/* شارة رابط التتبّع — عند تصفية متجر يستخدم روابط مولَّدة */}
                           {deepStore && (
                             (comp.offers || []).find((o: any) => o.storeId === deepStore.id)?.affiliateUrl ? (

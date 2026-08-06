@@ -55,6 +55,12 @@ model Component {
   updatedAt   DateTime @updatedAt
   description String?  
   performanceTier Int?  // تقييم من 1 إلى 5 (1=اقتصادي، 5=فئة عليا)
+  /* آخر محاولة سحب لهذه القطعة — ناجحة كانت أو فاشلة.
+     ⚠️ لا نستخدم updatedAt لترتيب دور السحب: فهو يتغيّر مع **أي** كتابة،
+     بما فيها تعديل الأدمن للقطعة. فكانت القطعة التي تعدّلها تقفز لآخر
+     الطابور فتتأخّر عن التحديث بلا سبب ظاهر. هذا العمود يتغيّر بالسحب فقط. */
+  lastScrapedAt DateTime?
+
   priceHistory PriceHistory[]
   requestedParts RequestedPart[] // القطع المطلوبة التي رُبطت بهذه القطعة عند إضافتها
   offers      ComponentOffer[]   // عروض المتاجر — المصدر الجديد بدل الأعمدة الثابتة أعلاه
@@ -107,6 +113,13 @@ model Store {
   /* بروكسي متقدّم (super) — أغلى بالرصيد، يلزم للمتاجر ذات الحماية العالية */
   premiumProxy  Boolean @default(false)
 
+  /* ---- إعلان حالة المتجر ----
+     يظهر للزائر عند عروض هذا المتجر وحده، لا كلافتة عامة: الزائر على وشك
+     الضغط على رابط الشراء، فالتنبيه في مكانه أصدق وأقلّ إزعاجاً.
+     noticeUntil يُنهيه تلقائياً — إعلان عطلٍ أُصلح منذ أسبوع يفقد الثقة. */
+  noticeMessage String?
+  noticeUntil   DateTime?
+
   offers    ComponentOffer[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -129,6 +142,14 @@ model ComponentOffer {
   price        Float?
   listPrice    Float? // السعر قبل الخصم؛ null = لا خصم معلن
   inStock      Boolean @default(true)
+
+  /* أثر آخر محاولة سحب لهذا العرض تحديداً.
+     السبب: سجلّ الأسعار يسجّل النجاح فقط، فالقطعة التي تُفحص يومياً ولا
+     يُقرأ لها سعر (نافدة أو محدّد مكسور أو حظر) تبدو "لم تُحدَّث منذ أسبوع"
+     بينما هي تُفحص كل يوم. هذان الحقلان يفرّقان الحالتين. */
+  lastCheckedAt DateTime?
+  lastError     String?  // null = آخر محاولة نجحت
+
   updatedAt    DateTime @updatedAt
 
   // عرض واحد لكل قطعة في كل متجر

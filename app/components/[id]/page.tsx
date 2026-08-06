@@ -5,7 +5,8 @@ import ImageZoom from '../ImageZoom';
 import { AFFILIATE_LINK_PROPS } from '../../../lib/affiliate';
 import PriceHistoryChart from '../../../components/PriceHistoryChart';
 import StoreOfferList from '../../../components/StoreOfferList';
-import { OFFER_INCLUDE } from '../../../lib/stores-server';
+import StoreNotices from '../../../components/StoreNotice';
+import { OFFER_INCLUDE, getStoreNotices } from '../../../lib/stores-server';
 import { cheapestStoreNames, offerDeal } from '../../../lib/stores';
 import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
@@ -50,6 +51,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     },
   };
 }
+
+/* تحديث حيّ: الأسعار والتوفّر وإعلانات المتاجر تتغيّر خلال اليوم، وصفحة
+   مُخزَّنة ثابتة كانت ستُظهر سعراً قديماً وتُخفي إعلان عطل متجر حتى إعادة
+   البناء التالية. (باقي الصفحات المسعّرة تفعل الشيء نفسه.) */
+export const dynamic = 'force-dynamic';
 
 const RiyalIcon = ({ size = 'h-6 w-6' }: { size?: string }) => (
   <div 
@@ -168,6 +174,9 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
   const specs = typeof comp.specs === 'string' ? JSON.parse(comp.specs) : comp.specs || {};
 
+  // إعلانات حالة المتاجر (عطل/صيانة) — تظهر قبل روابط الشراء
+  const notices = await getStoreNotices();
+
   // المتاجر صاحبة أقل سعر — قد تتساوى فنقول "متطابق في"
   const lowestStores = cheapestStoreNames(comp as any);
   const sourceText =
@@ -257,6 +266,8 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               )}
             </div>
 
+            {/* إعلانات المتاجر السارية — تشمل الموقوف، فيعرف الزائر سبب اختفائه */}
+            <StoreNotices stores={notices as any} />
             <StoreOfferList offers={comp.offers as any} />
           </div>
         </div>

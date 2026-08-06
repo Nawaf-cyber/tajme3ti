@@ -47,6 +47,80 @@ export const isPlausible = (next: number, previous: number | null | undefined): 
   return ratio >= 0.4 && ratio <= 1.6;
 };
 
+/* ============ حدّ التزامن — بوّابة واحدة لكل طلبات Scrape.do ============
+ *
+ * خطة Scrape.do تسمح بعدد محدّد من الطلبات المتزامنة، وتجاوزه يردّ 429.
+ * الخطأ الذي وقعنا فيه: التزامن كان محسوباً بعدد **القطع** (١٠ قطع دفعة)،
+ * بينما كل قطعة تسحب متاجرها بالتوازي. فمع ٣ متاجر = ٣٠ طلباً، ومع إضافة
+ * متجر رابع صارت ٤٠ — فامتلأ الحدّ وفشلت أغلب الطلبات بـ429.
+ *
+ * الآن العدّ على الطلبات نفسها: مهما بلغ عدد القطع أو المتاجر، لا يتجاوز
+ * المفتوح فعلياً SCRAPE_CONCURRENCY. إضافة متجر خامس تُبطئ الدفعة قليلاً
+ * ولا تُسقطها.
+ */
+const MAX_CONCURRENT = Math.max(1, Number(process.env.SCRAPE_CONCURRENCY || 8));
+let activeRequests = 0;
+const waiting: (() => void)[] = [];
+
+const acquireSlot = async (): Promise<void> => {
+  if (activeRequests < MAX_CONCURRENT) {
+    activeRequests++;
+    return;
+  }
+  await new Promise<void>((resolve) => waiting.push(resolve));
+};
+
+const releaseSlot = () => {
+  const next = waiting.shift();
+  // نُسلّم المكان للمنتظر مباشرة بدل إنقاص العدّاد ثم زيادته
+  if (next) next();
+  else activeRequests--;
+};
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * كل طلب إلى Scrape.do يمرّ من هنا: يحترم حدّ التزامن، ويعيد المحاولة مرّة
+ * واحدة عند 429 بعد مهلة قصيرة (الحدّ لحظي، فالانتظار وحده يكفي غالباً).
+ */
+export async function scrapeFetch(url: string, timeout = 20000): Promise<Response> {
+  await acquireSlot();
+  try {
+    let res = await fetchWithTimeout(url, { cache: 'no-store' }, timeout);
+    if (res.status === 429) {
+      await sleep(2000 + Math.floor(Math.random() * 1000)); // تشتيت لتفادي الارتطام
+      res = await fetchWithTimeout(url, { cache: 'no-store' }, timeout);
+    }
+    return res;
+  } finally {
+    releaseSlot();
+  }
+}
+
+/* ============ حارس الصفحة المعطّلة ============
+ *
+ * درس مكلّف (٢٠٢٦-٠٨-٠٦): تعطّل خادم كازاسوق وأعاد صفحة خطأ PHP بدل صفحة
+ * المنتج. فحص التوفّر لم يجد صفّ المخزون ولا زرّ السلة، فاستنتج "نافد"
+ * وعلّم **٥٦ من ٧٤ منتجاً** غير متوفّر دفعةً واحدة — فاختفت أسعار المتجر
+ * من الموقع، وانتقل "الأرخص" لمتجر أغلى بلا أن يلاحظ أحد.
+ *
+ * القاعدة: صفحة لا نتعرّف عليها كصفحة منتج ≠ منتج نافد. الأولى تعني
+ * "لم نستطع القراءة" فنُبقي الحالة السابقة، والثانية وحدها تُغيّرها.
+ */
+const BROKEN_PAGE = /fatal error|uncaught (error|exception)|call to a member function|whoops, looks like|maintenance mode|under maintenance|service (temporarily )?unavailable|database connection|502 bad gateway|504 gateway/i;
+
+/** هل الصفحة معطّلة/صيانة بدل أن تكون صفحة منتج؟ */
+export const isBrokenPage = (html: string): boolean => {
+  if (!html || html.length < 500) return true;      // ردّ فارغ أو مبتور
+  return BROKEN_PAGE.test(html.slice(0, 6000));      // رسائل الخطأ تظهر في الأعلى
+};
+
+/** رسالة خطأ مفهومة بدل رقم الحالة الخام */
+export const httpReason = (status: number): string =>
+  status === 429 ? 'تجاوز حدّ الطلبات المتزامنة (429) — قلّل SCRAPE_CONCURRENCY أو حجم الدفعة'
+  : status === 403 || status === 401 ? `حظر من المتجر (${status}) — جرّب البروكسي المتقدّم`
+  : `فشل الاتصال ${status}`;
+
 /** حماية الاتصال من التعليق */
 export async function fetchWithTimeout(url: string, options: any = {}, timeout = 10000) {
   const controller = new AbortController();
@@ -97,12 +171,18 @@ export async function scrapeAmazon(t: OfferTarget, token: string): Promise<Store
   if (!t.url || t.url.length <= 12) return out;
 
   try {
-    const res = await fetchWithTimeout(scrapeUrl(token, t.url, true), { cache: 'no-store' });
+    const res = await scrapeFetch(scrapeUrl(token, t.url, true));
     if (!res.ok) {
-      out.errors.push(`أمازون (${t.name}): فشل الاتصال ${res.status}`);
+      out.errors.push(`أمازون (${t.name}): ${httpReason(res.status)}`);
       return out;
     }
     const html = await res.text();
+
+    /* صفحة معطّلة/صيانة ليست دليل نفاد — نخرج بلا أن نمسّ حالة التوفّر */
+    if (isBrokenPage(html)) {
+      out.errors.push(`أمازون (${t.name}): صفحة المتجر معطّلة أو تحت الصيانة — أُبقيت الحالة السابقة.`);
+      return out;
+    }
     const $ = cheerio.load(html);
 
     const availability = $('#availability').text().toLowerCase();
@@ -133,7 +213,8 @@ export async function scrapeAmazon(t: OfferTarget, token: string): Promise<Store
       } else {
         out.errors.push(`أمازون (${t.name}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${t.price} سابقاً).`);
       }
-    } else {
+    } else if (out.inStock) {
+      // النافد لا يعرض سعراً — الإبلاغ عنه كخطأ ضوضاء تُخفي الأعطال الحقيقية
       out.errors.push(`أمازون (${t.name}): لم يتم العثور على سعر صالح.`);
     }
   } catch {
@@ -149,12 +230,18 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
 
   try {
     // بروكسي عادي (بلا super) — كازاسوق لا يحتاج حماية متقدمة، فيوفّر الرصيد
-    const res = await fetchWithTimeout(scrapeUrl(token, t.url, false), { cache: 'no-store' });
+    const res = await scrapeFetch(scrapeUrl(token, t.url, false));
     if (!res.ok) {
-      out.errors.push(`كازاسوق (${t.name}): فشل الاتصال ${res.status}`);
+      out.errors.push(`كازاسوق (${t.name}): ${httpReason(res.status)}`);
       return out;
     }
     const html = await res.text();
+
+    /* صفحة معطّلة/صيانة ليست دليل نفاد — نخرج بلا أن نمسّ حالة التوفّر */
+    if (isBrokenPage(html)) {
+      out.errors.push(`كازاسوق (${t.name}): صفحة المتجر معطّلة أو تحت الصيانة — أُبقيت الحالة السابقة.`);
+      return out;
+    }
     const $ = cheerio.load(html);
 
     /* ---- التوفّر — من كتلة المنتج نفسه فقط ----
@@ -218,8 +305,10 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
       } else {
         out.errors.push(`كازاسوق (${t.name}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${t.price} سابقاً) — تحقّق من بنية الصفحة.`);
       }
-    } else {
-      // تعذُّر قراءة السعر ليس دليل نفاد — نُبقي نتيجة فحص التوفّر كما هي.
+    } else if (out.inStock) {
+      /* غياب السعر مع كون المنتج **متوفّراً** = عطل حقيقي (محدّد مكسور).
+         أمّا النافد فلا يعرض سعراً أصلاً — والإبلاغ عنه كخطأ يملأ لوحة
+         التنبيهات بضوضاء تُخفي الأعطال الفعلية. */
       out.errors.push(`كازاسوق (${t.name}): لم يتم العثور على سعر في كتلة المنتج (.product-price-new).`);
     }
   } catch {
@@ -234,12 +323,18 @@ export async function scrapeMicroless(t: OfferTarget, token: string): Promise<St
   if (!t.url || t.url.length <= 12) return out;
 
   try {
-    const res = await fetchWithTimeout(scrapeUrl(token, t.url, true), { cache: 'no-store' });
+    const res = await scrapeFetch(scrapeUrl(token, t.url, true));
     if (!res.ok) {
-      out.errors.push(`مايكروليس (${t.name}): فشل الاتصال ${res.status}`);
+      out.errors.push(`مايكروليس (${t.name}): ${httpReason(res.status)}`);
       return out;
     }
     const html = await res.text();
+
+    /* صفحة معطّلة/صيانة ليست دليل نفاد — نخرج بلا أن نمسّ حالة التوفّر */
+    if (isBrokenPage(html)) {
+      out.errors.push(`مايكروليس (${t.name}): صفحة المتجر معطّلة أو تحت الصيانة — أُبقيت الحالة السابقة.`);
+      return out;
+    }
     const $ = cheerio.load(html);
     const htmlLower = html.toLowerCase();
 
@@ -277,7 +372,8 @@ export async function scrapeMicroless(t: OfferTarget, token: string): Promise<St
       } else {
         out.errors.push(`مايكروليس (${t.name}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${t.price} سابقاً).`);
       }
-    } else {
+    } else if (out.inStock) {
+      // النافد لا يعرض سعراً — الإبلاغ عنه كخطأ ضوضاء تُخفي الأعطال الحقيقية
       out.errors.push(`مايكروليس (${t.name}): لم يتم العثور على سعر صالح.`);
     }
   } catch {

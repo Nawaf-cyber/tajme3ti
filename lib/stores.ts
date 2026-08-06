@@ -25,6 +25,9 @@ export type StoreInfo = {
   affiliateId: string | null;
   usesDeepLinks: boolean;
   sortOrder: number;
+  /** إعلان حالة (عطل/صيانة) — يُعرض عند عروض هذا المتجر */
+  noticeMessage?: string | null;
+  noticeUntil?: string | Date | null;
 };
 
 /** عرض متجر واحد لقطعة واحدة، ومعه بيانات متجره */

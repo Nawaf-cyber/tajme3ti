@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
 import { prisma } from '../../lib/prisma';
 import PCBuilderClient from '../../components/PCBuilderClient';
-import { OFFER_INCLUDE } from '../../lib/stores-server';
+import { OFFER_INCLUDE, getStoreNotices } from '../../lib/stores-server';
+import StoreNotices from '../../components/StoreNotice';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,14 +59,10 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
     include: { components: { include: OFFER_INCLUDE } },
   });
 
-  /* معرّفات الأفلييت من لوحة الإدارة (جدول Setting).
-     تُمرَّر للعميل ليبني روابط العمولة — بدلاً من ثوابت في الكود. */
-  const affRows = await prisma.setting.findMany({
-    where: { key: { in: ['amazon_affiliate', 'cazasouq_affiliate', 'microless_affiliate'] } },
-  });
-  const affiliateIds: Record<string, string> = Object.fromEntries(
-    affRows.map((r) => [r.key, r.value])
-  );
+  /* إعلانات المتاجر (عطل/صيانة) — تُقرأ من جدول Store.
+     معرّفات العمولة لم تعد تُجلب هنا: صارت داخل صفّ كل متجر ويبنيها
+     buildStoreUrl من العرض نفسه. */
+  const notices = await getStoreNotices();
 
   // قراءة التجميعة إذا كان هناك متغير from في الرابط
   let importedSelections: Record<string, string> = {};
@@ -80,6 +77,10 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="bg-gray-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
+      {/* إعلان حالة أي متجر — قبل أن يبني الزائر تجميعته لا بعدها */}
+      <div className="max-w-7xl mx-auto">
+        <StoreNotices stores={notices as any} />
+      </div>
       <PCBuilderClient categories={categories} importedSelections={importedSelections} />
     </main>
   );

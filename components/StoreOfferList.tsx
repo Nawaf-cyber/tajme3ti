@@ -8,9 +8,10 @@
  * التشغيل، بينما `var(--store-color)` يُحسم في المتصفّح.
  */
 
-import { buildStoreUrl, AFFILIATE_LINK_PROPS } from '../lib/affiliate';
+import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { formatPrice, discountPercent } from '../lib/price';
 import { storeVars, type Offer } from '../lib/stores';
+import { StoreNoticeInline } from './StoreNotice';
 
 const RiyalIcon = ({ size = 'h-5 w-5' }: { size?: string }) => (
   <div
@@ -42,7 +43,7 @@ export default function StoreOfferList({ offers }: { offers: Offer[] }) {
           <a
             key={o.storeId}
             href={buildStoreUrl(o.store, o.url, o.affiliateUrl)}
-            {...AFFILIATE_LINK_PROPS}
+            {...storeLinkProps(o.store)}
             style={storeVars(o.store.color)}
             className={`flex items-center justify-between p-3.5 border-r-2 rounded-sm transition-all group shadow-sm ${
               !live
@@ -60,6 +61,8 @@ export default function StoreOfferList({ offers }: { offers: Offer[] }) {
               <span className="font-mono font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-[color:var(--store-color)] transition-colors flex flex-col">
                 {o.store.latinName}
                 {!live && <span className="text-[10px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>}
+                {/* إعلان حالة المتجر — في اللحظة التي يهمّ فيها: قبل الضغط */}
+                <StoreNoticeInline store={{ ...o.store, id: o.storeId }} />
               </span>
             </div>
 

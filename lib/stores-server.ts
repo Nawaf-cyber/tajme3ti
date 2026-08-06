@@ -23,6 +23,9 @@ export const STORE_SELECT = {
   affiliateId: true,
   usesDeepLinks: true,
   sortOrder: true,
+  // إعلان حالة المتجر — يُعرض عند عروضه في صفحات القطع والمقارنة
+  noticeMessage: true,
+  noticeUntil: true,
 } as const;
 
 /** حقول المتجر التي يحتاجها السحب (لا تُرسل للعميل — تحوي إعدادات داخلية) */
@@ -54,6 +57,24 @@ export const getStores = cache(async (): Promise<StoreInfo[]> => {
     where: { active: true },
     orderBy: { sortOrder: 'asc' },
     select: STORE_SELECT,
+  });
+});
+
+/**
+ * المتاجر التي عليها إعلان سارٍ — **بما فيها الموقوفة**.
+ *
+ * مقصود: أكثر لحظة يحتاج فيها الزائر التفسير هي حين يختفي متجر كان يراه.
+ * لو حصرناها بالمفعّلة، لصار إيقاف متجر معطّل يُخفي معه سبب اختفائه.
+ */
+export const getStoreNotices = cache(async () => {
+  const now = new Date();
+  return prisma.store.findMany({
+    where: {
+      noticeMessage: { not: null },
+      OR: [{ noticeUntil: null }, { noticeUntil: { gt: now } }],
+    },
+    orderBy: { sortOrder: 'asc' },
+    select: { id: true, name: true, color: true, noticeMessage: true, noticeUntil: true },
   });
 });
 
