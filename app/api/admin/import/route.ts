@@ -12,6 +12,53 @@ const cleanCazaAff = (v: any): string | null => {
   return isCazasouqTrackingUrl(s) ? s : null;
 };
 
+/* ============ أعمدة المتاجر في ملف CSV ============
+ * يقبل شكلين لكل متجر:
+ *   <slug>Url / <slug>Price / <slug>InStock / <slug>AffiliateUrl   (شكل ملفاتك القديمة)
+ *   store_<slug>_url / _price / _stock / _aff                      (الشكل الصريح)
+ * فأي متجر تضيفه اليوم تستورد له أعمدة بلا تعديل هنا، وملفاتك القديمة
+ * (amazonUrl…) تبقى تعمل كما هي.
+ */
+async function applyOffersFromRow(componentId: string, item: any) {
+  const stores = await prisma.store.findMany({ select: { id: true, slug: true, usesDeepLinks: true } });
+
+  for (const s of stores) {
+    const pick = (suffix: string, explicit: string) => {
+      const legacy = `${s.slug}${suffix}`;
+      if (item[legacy] !== undefined) return item[legacy];
+      if (item[explicit] !== undefined) return item[explicit];
+      return undefined;
+    };
+
+    const url = pick('Url', `store_${s.slug}_url`);
+    const price = pick('Price', `store_${s.slug}_price`);
+    const stock = pick('InStock', `store_${s.slug}_stock`);
+    const aff = pick('AffiliateUrl', `store_${s.slug}_aff`);
+
+    // لا عمود لهذا المتجر في الصف → لا نمسّ عرضه إطلاقاً
+    if (url === undefined && price === undefined && stock === undefined && aff === undefined) continue;
+
+    const existing = await prisma.componentOffer.findUnique({
+      where: { componentId_storeId: { componentId, storeId: s.id } },
+      select: { id: true },
+    });
+
+    const data: Record<string, any> = {};
+    if (url !== undefined) data.url = url || null;
+    if (price !== undefined) data.price = price === '' || price === null ? null : Number(price);
+    if (stock !== undefined) data.inStock = stock === true || stock === 'true' || stock === 1 || stock === '1';
+    if (aff !== undefined && s.usesDeepLinks) data.affiliateUrl = cleanCazaAff(aff);
+
+    if (existing) {
+      await prisma.componentOffer.update({ where: { id: existing.id }, data });
+    } else if (data.url || data.price != null) {
+      await prisma.componentOffer.create({
+        data: { componentId, storeId: s.id, inStock: true, ...data },
+      });
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   // حماية: أدمن فقط
   const token = await getToken({ req });
@@ -128,23 +175,14 @@ export async function POST(req: NextRequest) {
               brand: item.brand !== undefined ? item.brand : existingComponent.brand,
               name: item.name !== undefined ? item.name : existingComponent.name,
               price: item.price !== undefined ? item.price : existingComponent.price,
-              amazonPrice: item.amazonPrice !== undefined ? item.amazonPrice : existingComponent.amazonPrice,
-              amazonInStock: item.amazonInStock !== undefined ? item.amazonInStock : existingComponent.amazonInStock,
-              cazasouqPrice: item.cazasouqPrice !== undefined ? item.cazasouqPrice : existingComponent.cazasouqPrice,
-              cazasouqInStock: item.cazasouqInStock !== undefined ? item.cazasouqInStock : existingComponent.cazasouqInStock,
-              microlessUrl: item.microlessUrl !== undefined ? item.microlessUrl : existingComponent.microlessUrl,
-              microlessPrice: item.microlessPrice !== undefined ? item.microlessPrice : existingComponent.microlessPrice,
-              microlessInStock: item.microlessInStock !== undefined ? item.microlessInStock : existingComponent.microlessInStock,
               tdpWattage: item.tdpWattage !== undefined ? item.tdpWattage : existingComponent.tdpWattage,
               specs: item.specs !== undefined ? parsedSpecs : existingComponent.specs,
               imageUrl: item.imageUrl !== undefined ? item.imageUrl : existingComponent.imageUrl,
-              amazonUrl: item.amazonUrl !== undefined ? item.amazonUrl : existingComponent.amazonUrl,
-              cazasouqUrl: item.cazasouqUrl !== undefined ? item.cazasouqUrl : existingComponent.cazasouqUrl,
-              cazasouqAffiliateUrl: item.cazasouqAffiliateUrl !== undefined ? cleanCazaAff(item.cazasouqAffiliateUrl) : existingComponent.cazasouqAffiliateUrl,
               description: item.description !== undefined ? item.description : existingComponent.description,
               performanceTier: item.performanceTier !== undefined ? item.performanceTier : existingComponent.performanceTier,
             }
           });
+          await applyOffersFromRow(existingComponent.id, item);
           updatedCount++;
           updated.push({
             id: existingComponent.id,
@@ -170,30 +208,21 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
-          await prisma.component.create({
+          const createdComp = await prisma.component.create({
             data: {
               id: item.id || undefined, // الحفاظ على الـ ID القديم إن وُجد
               categoryId: item.categoryId,
               brand: item.brand,
               name: item.name,
               price: item.price || 0,
-              amazonPrice: item.amazonPrice || null,
-              amazonInStock: item.amazonInStock ?? true,
-              cazasouqPrice: item.cazasouqPrice || null,
-              cazasouqInStock: item.cazasouqInStock ?? true,
-              microlessUrl: item.microlessUrl || null,
-              microlessPrice: item.microlessPrice || null,
-              microlessInStock: item.microlessInStock ?? true,
               tdpWattage: item.tdpWattage || 0,
               specs: parsedSpecs || {},
               imageUrl: item.imageUrl || null,
-              amazonUrl: item.amazonUrl || null,
-              cazasouqUrl: item.cazasouqUrl || null,
-              cazasouqAffiliateUrl: cleanCazaAff(item.cazasouqAffiliateUrl),
               description: item.description || null,
               performanceTier: item.performanceTier || null,
             }
           });
+          await applyOffersFromRow(createdComp.id, item);
           addedCount++;
           added.push({
             name: item.name,

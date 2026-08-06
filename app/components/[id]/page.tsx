@@ -2,10 +2,12 @@ import { prisma } from '../../../lib/prisma';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ImageZoom from '../ImageZoom';
-import { buildAffiliateUrl, AFFILIATE_LINK_PROPS } from '../../../lib/affiliate';
-import { getAffiliateIds } from '../../../lib/affiliate-server';
+import { AFFILIATE_LINK_PROPS } from '../../../lib/affiliate';
 import PriceHistoryChart from '../../../components/PriceHistoryChart';
-import { formatPrice, discountPercent, componentDiscount } from '../../../lib/price';
+import StoreOfferList from '../../../components/StoreOfferList';
+import { OFFER_INCLUDE } from '../../../lib/stores-server';
+import { cheapestStoreNames, offerDeal } from '../../../lib/stores';
+import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
 import { productImage } from '../../../lib/image';
 
@@ -159,38 +161,25 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
   const comp = await prisma.component.findUnique({
     where: { id },
-    include: { category: true }
+    include: { category: true, ...OFFER_INCLUDE }
   });
 
   if (!comp) return notFound();
 
-  // معرّفات الأفلييت من لوحة الإدارة
-  const affIds = await getAffiliateIds();
-
   const specs = typeof comp.specs === 'string' ? JSON.parse(comp.specs) : comp.specs || {};
 
-  let sourceText = "";
-  const availablePrices = [
-    { name: 'أمازون', price: comp.amazonPrice || 0, listPrice: comp.amazonListPrice, inStock: comp.amazonInStock },
-    { name: 'كازاسوق', price: comp.cazasouqPrice || 0, listPrice: comp.cazasouqListPrice, inStock: comp.cazasouqInStock },
-    { name: 'مايكروليس', price: comp.microlessPrice || 0, listPrice: comp.microlessListPrice, inStock: comp.microlessInStock }
-  ].filter(p => p.price > 0 && p.inStock !== false);
-
-  if (availablePrices.length > 0) {
-    availablePrices.sort((a, b) => a.price - b.price);
-    const minPrice = availablePrices[0].price;
-    const lowestStores = availablePrices.filter(p => p.price === minPrice).map(p => p.name);
-
-    if (lowestStores.length > 1) {
-      sourceText = `السعر متطابق في: ${lowestStores.join(' و ')}`;
-    } else {
-      sourceText = `أفضل سعر من: ${lowestStores[0]}`;
-    }
-  }
+  // المتاجر صاحبة أقل سعر — قد تتساوى فنقول "متطابق في"
+  const lowestStores = cheapestStoreNames(comp as any);
+  const sourceText =
+    lowestStores.length > 1
+      ? `السعر متطابق في: ${lowestStores.join(' و ')}`
+      : lowestStores.length === 1
+        ? `أفضل سعر من: ${lowestStores[0]}`
+        : '';
 
   /* الخصم على المتجر الأرخص المتوفّر — نفس الدالة التي تستخدمها صفحة
      التصفّح، فلا يظهر خصم في مكان ويغيب في آخر. */
-  const deal = componentDiscount(comp);
+  const deal = offerDeal(comp as any);
   const mainDiscount = deal.pct;
   const cheapestListPrice = deal.listPrice;
   const savedAmount = mainDiscount > 0 && cheapestListPrice ? cheapestListPrice - comp.price : 0;
@@ -268,122 +257,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               )}
             </div>
 
-            {(comp.amazonUrl || comp.cazasouqUrl || comp.microlessUrl) && (
-              <div className="flex flex-col gap-3 mt-4 w-full relative z-0">
-                <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 mb-3 font-mono uppercase tracking-widest">مقارنة الأسعار · STORES</h3>
-
-                {comp.amazonUrl && (
-                  <a 
-                    href={buildAffiliateUrl(comp.amazonUrl, 'amazon', affIds)} 
-                    {...AFFILIATE_LINK_PROPS} 
-                    className={`flex items-center justify-between p-3.5 border-r-2 rounded-sm transition-all group shadow-sm ${
-                      !comp.amazonInStock || !comp.amazonPrice
-                        ? 'bg-slate-100 dark:bg-[#0B1120]/60 border-r-slate-400 dark:border-r-slate-700 opacity-60 grayscale cursor-not-allowed' 
-                        : 'bg-white/60 dark:bg-slate-800/40 border-r-[#FF9900] hover:bg-white dark:hover:bg-slate-800/70 hover:shadow-md hover:-translate-x-0.5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-9 h-9 rounded-sm bg-[#FF9900]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <span className={`w-3 h-3 rounded-full ${comp.amazonInStock && comp.amazonPrice ? 'bg-[#FF9900] shadow-[0_0_8px_#FF9900]/60' : 'bg-rose-500'}`}></span>
-                      </div>
-                      <span className="font-mono font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-[#FF9900] transition-colors flex flex-col">
-                        Amazon
-                        {(!comp.amazonInStock || !comp.amazonPrice) && (
-                          <span className="text-[10px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>
-                        )}
-                      </span>
-                    </div>
-                    <span className={`font-mono font-black text-xl flex items-center gap-1.5 ${comp.amazonInStock && comp.amazonPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
-                      {comp.amazonPrice ? (
-                        <>
-                          {/* السعر المشطوب يظهر فقط عند وجود خصم معلن على هذا المتجر */}
-                          {discountPercent(comp.amazonPrice, comp.amazonListPrice) > 0 && (
-                            <span className="text-sm font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
-                              {formatPrice(comp.amazonListPrice)}
-                            </span>
-                          )}
-                          {formatPrice(comp.amazonPrice)} <RiyalIcon size="h-5 w-5" />
-                        </>
-                      ) : '---'}
-                    </span>
-                  </a>
-                )}
-
-                {comp.cazasouqUrl && (
-                  <a 
-                    href={buildAffiliateUrl(comp.cazasouqUrl, 'cazasouq', affIds, comp.cazasouqAffiliateUrl)} 
-                    {...AFFILIATE_LINK_PROPS} 
-                    className={`flex items-center justify-between p-3.5 border-r-2 rounded-sm transition-all group shadow-sm ${
-                      !comp.cazasouqInStock || !comp.cazasouqPrice
-                        ? 'bg-slate-100 dark:bg-[#0B1120]/60 border-r-slate-400 dark:border-r-slate-700 opacity-60 grayscale cursor-not-allowed' 
-                        : 'bg-white/60 dark:bg-slate-800/40 border-r-purple-500 hover:bg-white dark:hover:bg-slate-800/70 hover:shadow-md hover:-translate-x-0.5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-9 h-9 rounded-sm bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <span className={`w-3 h-3 rounded-full ${comp.cazasouqInStock && comp.cazasouqPrice ? 'bg-purple-500 shadow-[0_0_8px_#A855F7]/60' : 'bg-rose-500'}`}></span>
-                      </div>
-                      <span className="font-mono font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-purple-500 transition-colors flex flex-col">
-                        CazaSouq
-                        {(!comp.cazasouqInStock || !comp.cazasouqPrice) && (
-                          <span className="text-[10px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>
-                        )}
-                      </span>
-                    </div>
-                    <span className={`font-mono font-black text-xl flex items-center gap-1.5 ${comp.cazasouqInStock && comp.cazasouqPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
-                      {comp.cazasouqPrice ? (
-                        <>
-                          {/* السعر المشطوب يظهر فقط عند وجود خصم معلن على هذا المتجر */}
-                          {discountPercent(comp.cazasouqPrice, comp.cazasouqListPrice) > 0 && (
-                            <span className="text-sm font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
-                              {formatPrice(comp.cazasouqListPrice)}
-                            </span>
-                          )}
-                          {formatPrice(comp.cazasouqPrice)} <RiyalIcon size="h-5 w-5" />
-                        </>
-                      ) : '---'}
-                    </span>
-                  </a>
-                )}
-
-                {comp.microlessUrl && (
-                  <a 
-                    href={buildAffiliateUrl(comp.microlessUrl, 'microless', affIds)} 
-                    {...AFFILIATE_LINK_PROPS} 
-                    className={`flex items-center justify-between p-3.5 border-r-2 rounded-sm transition-all group shadow-sm ${
-                      !comp.microlessInStock || !comp.microlessPrice
-                        ? 'bg-slate-100 dark:bg-[#0B1120]/60 border-r-slate-400 dark:border-r-slate-700 opacity-60 grayscale cursor-not-allowed' 
-                        : 'bg-white/60 dark:bg-slate-800/40 border-r-red-600 hover:bg-white dark:hover:bg-slate-800/70 hover:shadow-md hover:-translate-x-0.5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-9 h-9 rounded-sm bg-red-600/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <span className={`w-3 h-3 rounded-full ${comp.microlessInStock && comp.microlessPrice ? 'bg-red-600 shadow-[0_0_8px_#DC2626]/60' : 'bg-rose-500'}`}></span>
-                      </div>
-                      <span className="font-mono font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-red-500 transition-colors flex flex-col">
-                        Microless
-                        {(!comp.microlessInStock || !comp.microlessPrice) && (
-                          <span className="text-[10px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>
-                        )}
-                      </span>
-                    </div>
-                    <span className={`font-mono font-black text-xl flex items-center gap-1.5 ${comp.microlessInStock && comp.microlessPrice ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'} transition-colors`}>
-                      {comp.microlessPrice ? (
-                        <>
-                          {/* السعر المشطوب يظهر فقط عند وجود خصم معلن على هذا المتجر */}
-                          {discountPercent(comp.microlessPrice, comp.microlessListPrice) > 0 && (
-                            <span className="text-sm font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
-                              {formatPrice(comp.microlessListPrice)}
-                            </span>
-                          )}
-                          {formatPrice(comp.microlessPrice)} <RiyalIcon size="h-5 w-5" />
-                        </>
-                      ) : '---'}
-                    </span>
-                  </a>
-                )}
-              </div>
-            )}
+            <StoreOfferList offers={comp.offers as any} />
           </div>
         </div>
 

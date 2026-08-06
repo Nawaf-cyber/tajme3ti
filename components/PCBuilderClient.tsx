@@ -15,8 +15,8 @@ import { toPng } from 'html-to-image';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { isComponentAvailable } from '../lib/availability';
-import { buildAffiliateUrl, type AffiliateIds } from '../lib/affiliate';
+import { isAvailable, liveOffers, type Offer } from '../lib/stores';
+import { buildStoreUrl } from '../lib/affiliate';
 import { productImage } from '../lib/image';
 
 type Component = {
@@ -27,16 +27,7 @@ type Component = {
   tdpWattage: number;
   specs: any;
   imageUrl?: string | null;
-  amazonUrl?: string | null;
-  cazasouqUrl?: string | null;
-  cazasouqAffiliateUrl?: string | null;
-  microlessUrl?: string | null;
-  amazonInStock?: boolean | null;
-  cazasouqInStock?: boolean | null;
-  microlessInStock?: boolean | null;
-  amazonPrice?: number | null;
-  cazasouqPrice?: number | null;
-  microlessPrice?: number | null;
+  offers?: Offer[] | null;
   description?: string | null;
   performanceTier?: number | null;
 };
@@ -52,23 +43,10 @@ type ComponentWithCompatibility = Component & {
   reason?: string;
 };
 
-/* ============ معرّفات الأفلييت ============
-   ⚠️ كانت هنا نسخة كاملة مكرّرة من منطق بناء روابط العمولة، تحمل الاعتقاد
-   الخاطئ نفسه بأن `?idev_id` مؤكّد لكازاسوق. الفحص أثبت أنه لا يُحتسب،
-   ولو بقيت النسخة لظلّت هذه الصفحة خارج أي إصلاح مركزي (تبديل استراتيجية
-   كازاسوق مثلاً لن يشملها). الآن تستدعي lib/affiliate مثل بقية الموقع. */
-let AFFILIATE_IDS: AffiliateIds | undefined = undefined;
-
-/** يُستدعى من المكوّن ليطبّق قيم لوحة الإدارة قبل بناء أي رابط */
-const applyAffiliateIds = (ids?: Record<string, string>) => {
-  if (ids) AFFILIATE_IDS = ids as AffiliateIds;
-};
-
-const getAffiliateUrl = (
-  url: string | null | undefined,
-  store: 'amazon' | 'cazasouq' | 'microless',
-  deepLink?: string | null,
-) => buildAffiliateUrl(url, store, AFFILIATE_IDS, deepLink);
+/* ============ روابط العمولة ============
+   ⚠️ كانت هنا نسخة مكرّرة من منطق بناء الروابط بمعرّفات ممرّرة من الصفحة.
+   الآن معرّف كل متجر يأتي مع عرضه من جدول Store، فيبنى الرابط من مصدر
+   واحد (buildStoreUrl) بلا تمرير معرّفات عبر الخصائص. */
 
 type TierPlan = {
   key: 'value' | 'balanced' | 'strong';
@@ -78,23 +56,10 @@ type TierPlan = {
   picks: Record<string, any>;
 };
 
-/* ---- عروض المتاجر لقطعة: المتوفّر فقط، الأرخص أولاً ---- */
-type StoreOffer = { store: 'amazon' | 'cazasouq' | 'microless'; label: string; price: number; url: string };
-
-const getStoreOffers = (comp: Component): StoreOffer[] => {
-  const raw: (StoreOffer | null)[] = [
-    comp.amazonInStock === true && comp.amazonUrl && (comp.amazonPrice ?? 0) > 0
-      ? { store: 'amazon', label: 'Amazon', price: comp.amazonPrice!, url: getAffiliateUrl(comp.amazonUrl, 'amazon') }
-      : null,
-    comp.cazasouqInStock === true && comp.cazasouqUrl && (comp.cazasouqPrice ?? 0) > 0
-      ? { store: 'cazasouq', label: 'Cazasouq', price: comp.cazasouqPrice!, url: getAffiliateUrl(comp.cazasouqUrl, 'cazasouq', comp.cazasouqAffiliateUrl) }
-      : null,
-    comp.microlessInStock === true && comp.microlessUrl && (comp.microlessPrice ?? 0) > 0
-      ? { store: 'microless', label: 'Microless', price: comp.microlessPrice!, url: getAffiliateUrl(comp.microlessUrl, 'microless') }
-      : null,
-  ];
-  return (raw.filter(Boolean) as StoreOffer[]).sort((a, b) => a.price - b.price);
-};
+/* ---- عروض المتاجر لقطعة: المتوفّر فقط، الأرخص أولاً ----
+   كانت ثلاث كتل بأسماء متاجر مكتوبة يدوياً؛ الآن من عروض القطعة مباشرة
+   فأي متجر يضيفه الأدمن يظهر هنا بلونه واسمه بلا تعديل. */
+const getStoreOffers = (comp: Component) => liveOffers(comp.offers);
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-700 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
@@ -322,7 +287,7 @@ const SearchableSelect = ({
     <div className={`relative w-full min-w-0 transition-all ${isOpen ? 'z-50' : 'z-10'}`} ref={wrapperRef}>
       {(() => {
         const meta = getCatMeta(categoryName);
-        const avail = selectedComponent ? isComponentAvailable(selectedComponent) : true;
+        const avail = selectedComponent ? isAvailable(selectedComponent) : true;
         const quickSpec = selectedComponent ? getQuickSpec(selectedComponent, categoryName) : null;
         const compatCount = components.filter(c => c.isCompatible).length;
 
@@ -535,7 +500,7 @@ const SearchableSelect = ({
                         {comp.reason} (سيتم إلغاء المتعارض)
                       </span>
                     )}
-                    {!isComponentAvailable(comp) && (
+                    {!isAvailable(comp) && (
                       <span className="text-[11px] mt-1 text-amber-700 dark:text-amber-400 font-extrabold bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 rounded-md w-fit inline-flex items-center gap-1 border border-amber-200 dark:border-amber-800/50">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                         غير متوفر حالياً
@@ -896,9 +861,8 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
   );
 };
 
-export default function PCBuilderClient({ categories, importedSelections = {}, affiliateIds }: { categories: Category[], importedSelections?: Record<string, string>, affiliateIds?: Record<string, string> }) {
+export default function PCBuilderClient({ categories, importedSelections = {} }: { categories: Category[], importedSelections?: Record<string, string> }) {
   // نطبّق معرّفات لوحة الإدارة قبل أي رسم — الروابط تُبنى أثناء الرسم
-  applyAffiliateIds(affiliateIds);
   const { data: session } = useSession();
   const router = useRouter(); 
   const [editModeId, setEditModeId] = useState<string | null>(null); 
@@ -1202,7 +1166,7 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
     const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
     const pool = (name: string) => [...(categories.find(c => c.name === name)?.components || [])]
-      .filter(isComponentAvailable)
+      .filter(isAvailable)
       .sort((a, b) => a.price - b.price);
 
     const res = intent.resolution || '1080p';
@@ -2155,8 +2119,8 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
                                     <div className="flex flex-wrap gap-1.5 export-ignore">
                                       {getStoreOffers(comp).map((offer, i) => (
                                         <a
-                                          key={offer.store}
-                                          href={offer.url}
+                                          key={offer.storeId}
+                                          href={buildStoreUrl(offer.store, offer.url, offer.affiliateUrl)}
                                           target="_blank"
                                           rel="nofollow sponsored noopener noreferrer"
                                           className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
@@ -2165,9 +2129,9 @@ export default function PCBuilderClient({ categories, importedSelections = {}, a
                                               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500'
                                           }`}
                                         >
-                                          <span>{offer.label}</span>
+                                          <span>{offer.store.latinName}</span>
                                           <span className="font-black flex items-center gap-0.5">
-                                            {offer.price.toLocaleString('en-US')}
+                                            {(offer.price ?? 0).toLocaleString('en-US')}
                                             <RiyalIcon size="h-2.5 w-2.5" colorClass={i === 0 ? 'bg-white' : 'bg-slate-500 dark:bg-slate-400'} />
                                           </span>
                                           {i === 0 && getStoreOffers(comp).length > 1 && (

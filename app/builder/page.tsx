@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { prisma } from '../../lib/prisma';
 import PCBuilderClient from '../../components/PCBuilderClient';
+import { OFFER_INCLUDE } from '../../lib/stores-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +55,7 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
 
   // جلب الفئات والقطع
   const categories = await prisma.category.findMany({
-    include: { components: true },
+    include: { components: { include: OFFER_INCLUDE } },
   });
 
   /* معرّفات الأفلييت من لوحة الإدارة (جدول Setting).
@@ -79,7 +80,7 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="bg-gray-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
-      <PCBuilderClient categories={categories} importedSelections={importedSelections} affiliateIds={affiliateIds} />
+      <PCBuilderClient categories={categories} importedSelections={importedSelections} />
     </main>
   );
 }

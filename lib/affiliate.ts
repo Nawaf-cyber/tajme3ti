@@ -164,6 +164,64 @@ export function buildAffiliateUrl(
   }
 }
 
+/* ============ الرابط العام — أي متجر في جدول Store ============
+ *
+ * النسخة أعلاه (buildAffiliateUrl) مربوطة بثلاثة أسماء مكتوبة في الكود.
+ * هذه تقرأ الإعدادات من صفّ المتجر، فمتجر جديد يعمل بلا سطر كود:
+ *   - usesDeepLinks (مثل iDevAffiliate/كازاسوق): رابط التتبّع المولَّد يتقدّم،
+ *     وإن غاب نسقط لرابط المنتج النظيف (تجربة سليمة بلا عمولة).
+ *   - غيره: نضيف affiliateParam=affiliateId على الرابط.
+ * ويبقى تنظيف أمازون الخاص (dp/ASIN) لأنه مُختبَر ويُسقط ضجيج ref.
+ */
+
+/** إعدادات المتجر التي يحتاجها بناء الرابط — جزء من صفّ Store */
+export type StoreLink = {
+  slug: string;
+  domain?: string | null;
+  affiliateParam?: string | null;
+  affiliateId?: string | null;
+  usesDeepLinks?: boolean;
+};
+
+/** تنظيف خاص بكل متجر — يُطبَّق قبل إضافة معامل العمولة */
+const CLEANERS: Record<string, (url: string) => string> = {
+  cazasouq: cleanCazasouq,
+};
+
+export function buildStoreUrl(
+  store: StoreLink,
+  url: string | null | undefined,
+  deepLink?: string | null,
+): string {
+  // شبكات الروابط العميقة: الرابط المولَّد وحده يجمع العمولة والهبوط على المنتج
+  if (store.usesDeepLinks) {
+    if (isCazasouqTrackingUrl(deepLink)) return deepLink!.trim();
+    if (!url) return '#';
+    return (CLEANERS[store.slug] ?? ((u: string) => u))(url);
+  }
+
+  if (!url) return '#';
+  const clean = (CLEANERS[store.slug] ?? ((u: string) => u))(url);
+
+  const param = store.affiliateParam?.trim();
+  const id = store.affiliateId?.trim();
+  // بلا معرّف = رابط عادي. رابط بمعامل خاطئ أسوأ من رابط بلا معامل.
+  if (!param || !id) return clean;
+
+  /* نتحقّق أن الرابط فعلاً لهذا المتجر قبل وسمه بمعرّفنا.
+     domain يقبل أكثر من نطاق مفصولة بفاصلة — أمازون السعودية تخزّن روابط
+     amazon.sa و amazon.com معاً، ورفض أحدهما يُسقط وسم العمولة بصمت. */
+  const domains = (store.domain || '').split(',').map((d) => d.trim()).filter(Boolean);
+  if (domains.length && !domains.some((d) => clean.includes(d))) return clean;
+
+  if (store.slug === 'amazon') {
+    // رابط منتج نظيف (dp/ASIN) بلا ضجيج ref
+    const match = clean.match(/(https?:\/\/[^\/]+\/(?:[^\/]+\/)?(?:dp|gp\/product)\/[A-Z0-9]{10})/i);
+    if (match) return `${match[1]}?${param}=${id}`;
+  }
+  return withParam(clean, param, id);
+}
+
 /** سمات الرابط الصحيحة لروابط العمولة — مطلب SEO */
 export const AFFILIATE_LINK_PROPS = {
   target: '_blank' as const,

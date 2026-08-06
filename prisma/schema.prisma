@@ -57,8 +57,83 @@ model Component {
   performanceTier Int?  // تقييم من 1 إلى 5 (1=اقتصادي، 5=فئة عليا)
   priceHistory PriceHistory[]
   requestedParts RequestedPart[] // القطع المطلوبة التي رُبطت بهذه القطعة عند إضافتها
+  offers      ComponentOffer[]   // عروض المتاجر — المصدر الجديد بدل الأعمدة الثابتة أعلاه
 
   @@index([categoryId])
+}
+
+/* ============ المتاجر — جدول بدل الأسماء المكتوبة في الكود ============
+ *
+ * قبل هذا الجدول كان كل متجر ثلاثة أعمدة في Component + دالة سحب + لوناً
+ * مكتوباً في سبع صفحات؛ أي متجر رابع يعني تعديل ٤١٩ موضعاً يدوياً.
+ * الآن: صفّ واحد هنا = متجر يظهر في كل الموقع بلونه وترتيبه.
+ *
+ * الأعمدة القديمة (amazonPrice…) تبقى في القاعدة كنسخة رجوع حتى يتأكد
+ * الأدمن أن القراءة من ComponentOffer صحيحة، ثم تُحذف في خطوة منفصلة. */
+model Store {
+  id        String  @id @default(cuid())
+  /* المعرّف النصّي الثابت — يُستخدم في سجلّ الأسعار وفي ربط محرّكات السحب
+     المخصّصة (amazon/cazasouq/microless). لا يتغيّر بعد الإنشاء. */
+  slug      String  @unique
+  name      String  // الاسم العربي المعروض للمستخدم
+  latinName String  // الاسم اللاتيني (يظهر في صفحة القطعة وبطاقات الشراء)
+  /* لون المتجر hex — يُمرَّر كمتغيّر CSS لا كصنف Tailwind، لأن Tailwind
+     يُجمّع الأصناف وقت البناء فلا يعرف لوناً يختاره الأدمن وقت التشغيل. */
+  color     String  @default("#0EA5E9")
+  domain    String? // نطاق المتجر: يُستعمل للتحقق من الروابط ولبروكسي الصور
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  // ---- العمولة ----
+  affiliateParam String? // اسم المعامل: "tag" لأمازون، "aff_id" لغيره
+  affiliateId    String? // قيمته. فارغ = روابط بلا وسم عمولة
+  /* بعض الشبكات (iDevAffiliate) لا تقبل معاملاً على رابط المنتج، بل تتطلّب
+     رابط تتبّع مولَّداً لكل منتج — يُخزَّن في ComponentOffer.affiliateUrl. */
+  usesDeepLinks  Boolean @default(false)
+
+  // ---- العملة ----
+  currency  String @default("SAR")
+  rateToSar Float  @default(1) // كازاسوق يعرض BHD أحياناً = ١٠ ريالات
+
+  // ---- السحب ----
+  /* auto   = JSON-LD ثم وسوم meta (يغطّي أغلب المتاجر بلا إعداد)
+     custom = محدّدات CSS المكتوبة أدناه
+     native = محرّك مخصّص مكتوب بالكود لهذا الـslug (المتاجر الثلاثة الحالية)
+     off    = لا سحب، الأسعار تُدخل يدوياً */
+  scrapeMode    String  @default("auto")
+  priceSelector String?
+  listSelector  String?
+  stockSelector String?
+  /* بروكسي متقدّم (super) — أغلى بالرصيد، يلزم للمتاجر ذات الحماية العالية */
+  premiumProxy  Boolean @default(false)
+
+  offers    ComponentOffer[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
+/* عرض متجر واحد لقطعة واحدة — يحلّ محلّ الثلاثيّة
+   (<store>Url, <store>Price, <store>InStock, <store>ListPrice). */
+model ComponentOffer {
+  id          String    @id @default(cuid())
+  componentId String
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  storeId     String
+  store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  url          String? // رابط المنتج في هذا المتجر
+  /* رابط التتبّع العميق المولَّد من لوحة الشريك (كازاسوق) — يتقدّم على url */
+  affiliateUrl String?
+  price        Float?
+  listPrice    Float? // السعر قبل الخصم؛ null = لا خصم معلن
+  inStock      Boolean @default(true)
+  updatedAt    DateTime @updatedAt
+
+  // عرض واحد لكل قطعة في كل متجر
+  @@unique([componentId, storeId])
+  @@index([storeId])
 }
 
 // 3. جدول المستخدمين (Users)

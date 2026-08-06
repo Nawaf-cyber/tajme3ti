@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { productImage } from '../lib/image';
+import { isAvailable } from '../lib/stores';
 
 /* ============ الأنواع ============ */
 type Comp = any;
@@ -488,7 +489,9 @@ export default function BuildTuner({
                         <p className="text-[11px] text-slate-400 text-center py-3">لا توجد بدائل.</p>
                       ) : (
                         alts.map(alt => {
-                          const avail = alt.comp.amazonInStock || alt.comp.cazasouqInStock || alt.comp.microlessInStock;
+                          /* التوفّر من العروض — كان يقرأ أعمدة المتاجر الثلاثة
+                             المجمّدة، فيعرض حالة قديمة ولا يرى أي متجر جديد. */
+                          const avail = isAvailable(alt.comp);
                           return (
                             <button
                               key={alt.comp.id}

@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, updateNews, updateSettings } from './actions';
+import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, updateNews } from './actions';
 import toast from 'react-hot-toast';
-import UpdateCazasouqButton from './components/UpdateCazasouqButton';
-import UpdateAmazonButton from './components/UpdateAmazonButton';
 import UpdatePricesButton from './UpdatePricesButton';
 import UpdateSingleButton from './components/UpdateSingleButton';
 import CronControlToggle from './components/CronControlToggle';
 import ManualUpdateButton from "./components/ManualUpdateButton";
 import ExportComponentsButton from './ExportComponentsButton';
+import StoreFieldsGroup from './StoreFieldsGroup';
+import { storeVars, type StoreInfo } from '../../lib/stores';
 
 // خريطة الحقول التلقائية بناءً على الفئة
 const categoryFieldsMap: Record<string, { key: string, label: string, type: 'text' | 'number' | 'select', options?: string[] }[]> = {
@@ -48,7 +48,7 @@ const categoryFieldsMap: Record<string, { key: string, label: string, type: 'tex
   ]
 };
 
-export default function AdminManager({ categories, components, news, cronStatus, settings = {} }: { categories: any[], components: any[], news: any[], cronStatus: boolean, settings?: Record<string, string> }) {
+export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [] }: { categories: any[], components: any[], news: any[], cronStatus: boolean, settings?: Record<string, string>, stores?: StoreInfo[] }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news' | 'affiliates'>('components');
   
   const [editingComponent, setEditingComponent] = useState<any>(null);
@@ -60,16 +60,11 @@ export default function AdminManager({ categories, components, news, cronStatus,
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedCategoryName, setSelectedCategoryName] = useState('');
 
-  // متغيرات حالة التوفر اليدوي
-  const [amazonInStock, setAmazonInStock] = useState(true);
-  const [cazasouqInStock, setCazasouqInStock] = useState(true);
-  const [microlessInStock, setMicrolessInStock] = useState(true);
-
   // متغيرات الفلترة والبحث
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
   // فلتر المتجر: يعرض القطع التي لها رابط ذلك المتجر (لإدارة روابط العمولة)
-  const [filterStore, setFilterStore] = useState<'ALL' | 'amazon' | 'cazasouq' | 'microless'>('ALL');
+  const [filterStore, setFilterStore] = useState<string>('ALL');
 
   useEffect(() => {
     const catName = categories.find(c => c.id.toString() === selectedCategoryId)?.name || '';
@@ -96,9 +91,6 @@ export default function AdminManager({ categories, components, news, cronStatus,
     setEditingComponent(comp);
     setSelectedCategoryId(comp.categoryId);
     setSpecs(comp.specs || {});
-    setAmazonInStock(comp.amazonInStock ?? true);
-    setCazasouqInStock(comp.cazasouqInStock ?? true);
-    setMicrolessInStock(comp.microlessInStock ?? true);
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -113,9 +105,6 @@ export default function AdminManager({ categories, components, news, cronStatus,
     setEditingNews(null);
     setSelectedCategoryId('');
     setSpecs({});
-    setAmazonInStock(true);
-    setCazasouqInStock(true);
-    setMicrolessInStock(true);
   };
 
   const handleComponentSubmit = async (formData: FormData) => {
@@ -150,11 +139,9 @@ export default function AdminManager({ categories, components, news, cronStatus,
     }
   };
 
-  // هل للقطعة رابط متجر معيّن؟ (رابط قصير جداً = فارغ فعلياً)
-  const hasStoreUrl = (comp: any, store: 'amazon' | 'cazasouq' | 'microless') => {
-    const u = store === 'amazon' ? comp.amazonUrl : store === 'cazasouq' ? comp.cazasouqUrl : comp.microlessUrl;
-    return !!(u && String(u).length > 12);
-  };
+  /* هل للقطعة رابط في هذا المتجر؟ من العروض — فالفلتر يشمل أي متجر يُضاف */
+  const hasStoreUrl = (comp: any, storeId: string) =>
+    (comp.offers || []).some((o: any) => o.storeId === storeId && o.url && String(o.url).length > 12);
 
   const filteredComponents = components.filter(comp => {
     const matchesSearch =
@@ -165,14 +152,20 @@ export default function AdminManager({ categories, components, news, cronStatus,
     return matchesSearch && matchesCategory && matchesStore;
   });
 
-  // عدّادات المتاجر لأزرار الفلتر
-  const storeCounts = {
-    amazon: components.filter(c => hasStoreUrl(c, 'amazon')).length,
-    cazasouq: components.filter(c => hasStoreUrl(c, 'cazasouq')).length,
-    microless: components.filter(c => hasStoreUrl(c, 'microless')).length,
-  };
-  // كم قطعة كازاسوق ما زالت بلا رابط تتبّع عمولة — يقيس تقدّم عملك
-  const cazaMissingLink = components.filter(c => hasStoreUrl(c, 'cazasouq') && !c.cazasouqAffiliateUrl).length;
+  // عدّادات المتاجر لأزرار الفلتر — صفّ لكل متجر مفعّل
+  const storeCounts: Record<string, number> = Object.fromEntries(
+    stores.map((st) => [st.id, components.filter((c) => hasStoreUrl(c, st.id)).length]),
+  );
+
+  /* متجر بروابط تتبّع مولَّدة: كم قطعة بلا رابط — يقيس تقدّم عملك */
+  const deepStore = stores.find((st) => st.usesDeepLinks && filterStore === st.id);
+  const deepMissingLink = deepStore
+    ? components.filter(
+        (c) =>
+          hasStoreUrl(c, deepStore.id) &&
+          !(c.offers || []).find((o: any) => o.storeId === deepStore.id)?.affiliateUrl,
+      ).length
+    : 0;
 
   return (
     <div className="flex flex-col gap-8">
@@ -190,6 +183,13 @@ export default function AdminManager({ categories, components, news, cronStatus,
           className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
         >
           🙋 طلبات القطع
+        </Link>
+        <Link
+          href="/admin/stores"
+          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
+        >
+          🏪 المتاجر
+          <span className="text-[11px] font-black px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 tabular-nums">{stores.length}</span>
         </Link>
         <button 
           onClick={() => { setActiveTab('news'); cancelEdit(); }}
@@ -230,35 +230,41 @@ export default function AdminManager({ categories, components, news, cronStatus,
         <div className="flex flex-col gap-8 animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">إعدادات التسويق بالعمولة (Affiliates)</h2>
-            <form action={async (formData) => {
-              const loadingToast = toast.loading('جاري حفظ العمولات...');
-              try {
-                await updateSettings(formData);
-                toast.success('تم الحفظ بنجاح', { id: loadingToast });
-              } catch (error) {
-                toast.error('حدث خطأ أثناء الحفظ', { id: loadingToast });
-              }
-            }} className="flex flex-col gap-6">
-              
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-gray-700 dark:text-gray-300">معرف أمازون (Amazon Store ID)</label>
-                <input type="text" name="amazon_affiliate" defaultValue={settings.amazon_affiliate || 'tajmee3ti-21'} placeholder="مثال: tajmee3ti-21" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 dir-ltr text-left" dir="ltr" />
+            {/* معرّفات العمولة انتقلت لصفّ كل متجر في «المتاجر».
+                إبقاء الحقول هنا كان سيصير فخّاً: تعدّلها وتُحفظ ولا تؤثّر في
+                أي رابط، لأن الرابط يُبنى من إعدادات المتجر. مصدر واحد فقط. */}
+            <div className="flex flex-col gap-4">
+              <div className="p-5 rounded-xl border border-cyan-200 dark:border-cyan-900/50 bg-cyan-50/60 dark:bg-cyan-950/20">
+                <h4 className="text-sm font-black text-cyan-800 dark:text-cyan-300 mb-2">
+                  معرّفات العمولة صارت داخل كل متجر
+                </h4>
+                <p className="text-[13px] font-semibold text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                  لكل متجر الآن معامله ومعرّفه الخاص في صفحة «المتاجر» — لأن كل شبكة عمولة تختلف:
+                  أمازون بمعامل <span className="font-mono">tag</span>، وكازاسوق يتطلّب رابط تتبّع مولَّداً لكل منتج.
+                  المتجر الجديد يحمل إعداداته معه بلا حقل إضافي هنا.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {stores.map((st) => (
+                    <span
+                      key={st.id}
+                      style={storeVars(st.color)}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black border border-[var(--store-soft)] bg-[var(--store-tint)] text-[color:var(--store-color)]"
+                    >
+                      {st.name}
+                      <span className="font-mono text-[10px] opacity-80" dir="ltr">
+                        {st.usesDeepLinks ? 'روابط تتبّع' : st.affiliateId ? `${st.affiliateParam}=${st.affiliateId}` : 'بلا عمولة'}
+                      </span>
+                    </span>
+                  ))}
+                </div>
               </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-gray-700 dark:text-gray-300">معرف كازاسوق (Cazasouq Affiliate ID)</label>
-                <input type="text" name="cazasouq_affiliate" defaultValue={settings.cazasouq_affiliate || ''} placeholder="اتركه فارغاً حتى يتم تفعيله" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 dir-ltr text-left" dir="ltr" />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="font-bold text-gray-700 dark:text-gray-300">معرف مايكروليس (Microless Affiliate ID)</label>
-                <input type="text" name="microless_affiliate" defaultValue={settings.microless_affiliate || ''} placeholder="اتركه فارغاً حتى يتم تفعيله" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 dir-ltr text-left" dir="ltr" />
-              </div>
-
-              <button type="submit" className="py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm mt-4">
-                حفظ الإعدادات
-              </button>
-            </form>
+              <Link
+                href="/admin/stores"
+                className="py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm text-center transition-colors"
+              >
+                🏪 فتح إدارة المتاجر
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -297,104 +303,12 @@ export default function AdminManager({ categories, components, news, cronStatus,
 
               <input type="url" name="imageUrl" defaultValue={editingComponent?.imageUrl || ''} placeholder="رابط صورة القطعة (URL) - اختياري" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
               
-              <input type="url" name="amazonUrl" defaultValue={editingComponent?.amazonUrl || ''} placeholder="رابط أمازون (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
-              <input type="url" name="cazasouqUrl" defaultValue={editingComponent?.cazasouqUrl || ''} placeholder="رابط كازاسوق (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
-              <input type="url" name="microlessUrl" defaultValue={editingComponent?.microlessUrl || ''} placeholder="رابط مايكروليس (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
-
-              {/* رابط تتبّع كازاسوق العميق — المسار الوحيد الذي يجمع العمولة والهبوط على المنتج */}
-              <div className="md:col-span-2 flex flex-col gap-1.5">
-                <input
-                  type="url"
-                  name="cazasouqAffiliateUrl"
-                  defaultValue={editingComponent?.cazasouqAffiliateUrl || ''}
-                  placeholder="رابط تتبّع كازاسوق (idevaffiliate.php?id=800&url=…)"
-                  pattern="https?://.*idevaffiliate\.com/.*"
-                  className="p-3 border-2 border-emerald-300 dark:border-emerald-800/60 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 text-left dir-ltr"
-                  dir="ltr"
-                />
-                <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold leading-relaxed px-1">
-                  🔗 رابط العمولة العميق من لوحة كازاسوق: روابط التتبّع ← الروابط البديلة للصفحات الداخلة ← إنشاء رابط.
-                  متى وُضِع، تُحتسب عمولتك <b>ويهبط الزائر على المنتج مباشرة</b>. اتركه فارغاً لو لم تولّده بعد.
-                </p>
-              </div>
-              
               <textarea name="description" defaultValue={editingComponent?.description || ''} placeholder="وصف تفصيلي للقطعة (اختياري، يظهر في نافذة التفاصيل)" className="md:col-span-2 p-3 h-24 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-
-              <div className="md:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-blue-200 dark:border-blue-900/50 mt-2">
-                <h4 className="text-sm font-black text-blue-700 dark:text-blue-400 mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                  التوفر والأسعار اليدوية للمتاجر (تجاوز فحص Scraper)
-                </h4>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  
-                  {/* أمازون */}
-                  <div className="flex flex-col gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <input 
-                        type="checkbox" 
-                        checked={amazonInStock} 
-                        onChange={(e) => setAmazonInStock(e.target.checked)} 
-                        className="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 transition-colors"
-                      />
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">متوفر في أمازون</span>
-                    </label>
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      name="amazonPrice" 
-                      defaultValue={editingComponent?.amazonPrice || ''} 
-                      placeholder="سعر أمازون (ريال)" 
-                      disabled={!amazonInStock}
-                      className="w-full p-2.5 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    />
-                  </div>
-
-                  {/* كازاسوق */}
-                  <div className="flex flex-col gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <input 
-                        type="checkbox" 
-                        checked={cazasouqInStock} 
-                        onChange={(e) => setCazasouqInStock(e.target.checked)} 
-                        className="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 transition-colors"
-                      />
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">متوفر في كازاسوق</span>
-                    </label>
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      name="cazasouqPrice" 
-                      defaultValue={editingComponent?.cazasouqPrice || ''} 
-                      placeholder="سعر كازاسوق (ريال)" 
-                      disabled={!cazasouqInStock}
-                      className="w-full p-2.5 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    />
-                  </div>
-
-                  {/* مايكروليس */}
-                  <div className="flex flex-col gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <input 
-                        type="checkbox" 
-                        checked={microlessInStock} 
-                        onChange={(e) => setMicrolessInStock(e.target.checked)} 
-                        className="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 transition-colors"
-                      />
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">متوفر في مايكروليس</span>
-                    </label>
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      name="microlessPrice" 
-                      defaultValue={editingComponent?.microlessPrice || ''} 
-                      placeholder="سعر مايكروليس (ريال)" 
-                      disabled={!microlessInStock}
-                      className="w-full p-2.5 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    />
-                  </div>
-
-                </div>
-              </div>
+              {/* حقول كل متجر مفعّل — تُولَّد من جدول Store */}
+              <StoreFieldsGroup
+                stores={stores}
+                offers={(editingComponent?.offers || []).map((o: any) => ({ storeId: o.storeId, url: o.url, affiliateUrl: o.affiliateUrl, price: o.price, inStock: o.inStock }))}
+              />
 
               <div className="md:col-span-2 p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 mt-4">
                 <h3 className="block text-lg font-bold text-gray-900 dark:text-white mb-4">
@@ -450,9 +364,6 @@ export default function AdminManager({ categories, components, news, cronStatus,
               </div>
 
               <input type="hidden" name="specs" value={JSON.stringify(specs)} />
-              <input type="hidden" name="amazonInStock" value={amazonInStock.toString()} />
-              <input type="hidden" name="cazasouqInStock" value={cazasouqInStock.toString()} />
-              <input type="hidden" name="microlessInStock" value={microlessInStock.toString()} />
               
               <div className="md:col-span-2 flex gap-4 mt-2">
                 <button type="submit" className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm">
@@ -490,33 +401,44 @@ export default function AdminManager({ categories, components, news, cronStatus,
               </select>
             </div>
 
-            {/* ===== فلتر المتجر: يعرض القطع التي لها رابط ذلك المتجر ===== */}
+            {/* ===== فلتر المتجر: زرّ لكل متجر مفعّل، بلونه من الجدول ===== */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <span className="text-xs font-bold text-gray-400 dark:text-slate-500 ml-1">المتجر:</span>
-              {([
-                { key: 'ALL', label: 'الكل', count: components.length, active: 'bg-slate-700 text-white border-slate-700', idle: 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-700 hover:border-slate-400' },
-                { key: 'amazon', label: 'أمازون', count: storeCounts.amazon, active: 'bg-amber-500 text-white border-amber-500', idle: 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-900/50 hover:border-amber-500' },
-                { key: 'cazasouq', label: 'كازاسوق', count: storeCounts.cazasouq, active: 'bg-violet-500 text-white border-violet-500', idle: 'bg-violet-50 dark:bg-violet-950/20 text-violet-700 dark:text-violet-400 border-violet-300 dark:border-violet-900/50 hover:border-violet-500' },
-                { key: 'microless', label: 'مايكرولس', count: storeCounts.microless, active: 'bg-sky-500 text-white border-sky-500', idle: 'bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400 border-sky-300 dark:border-sky-900/50 hover:border-sky-500' },
-              ] as const).map(b => (
-                <button
-                  key={b.key}
-                  onClick={() => setFilterStore(b.key as any)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border-2 transition-all active:scale-95 ${filterStore === b.key ? b.active : b.idle}`}
-                >
-                  {b.label}
-                  <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-black tabular-nums ${filterStore === b.key ? 'bg-white/25' : 'bg-black/5 dark:bg-white/10'}`}>{b.count}</span>
-                </button>
-              ))}
+              <button
+                onClick={() => setFilterStore('ALL')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border-2 transition-all active:scale-95 ${filterStore === 'ALL' ? 'bg-slate-700 text-white border-slate-700' : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-700 hover:border-slate-400'}`}
+              >
+                الكل
+                <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-black tabular-nums ${filterStore === 'ALL' ? 'bg-white/25' : 'bg-black/5 dark:bg-white/10'}`}>{components.length}</span>
+              </button>
+              {stores.map((st) => {
+                const on = filterStore === st.id;
+                return (
+                  <button
+                    key={st.id}
+                    onClick={() => setFilterStore(st.id as any)}
+                    style={{
+                      ...storeVars(st.color),
+                      backgroundColor: on ? st.color : undefined,
+                      borderColor: st.color,
+                      color: on ? '#fff' : st.color,
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border-2 transition-all active:scale-95 bg-[var(--store-tint)]"
+                  >
+                    {st.name}
+                    <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-black tabular-nums ${on ? 'bg-white/25' : 'bg-black/5 dark:bg-white/10'}`}>{storeCounts[st.id] ?? 0}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* عند تصفية كازاسوق: نُظهر تقدّم روابط العمولة كي تعرف كم بقي */}
-            {filterStore === 'cazasouq' && (
-              <div className="mb-4 flex items-center gap-3 p-3 rounded-lg border border-violet-200 dark:border-violet-900/50 bg-violet-50/60 dark:bg-violet-950/20">
-                <span className="text-xs font-bold text-violet-700 dark:text-violet-300">
-                  {cazaMissingLink === 0
-                    ? `✅ كل قطع كازاسوق (${storeCounts.cazasouq}) عليها رابط تتبّع عمولة`
-                    : `🔗 ${storeCounts.cazasouq - cazaMissingLink} من ${storeCounts.cazasouq} عليها رابط تتبّع — بقي ${cazaMissingLink}`}
+            {/* متجر بروابط تتبّع مولَّدة: نُظهر تقدّم الروابط كي تعرف كم بقي */}
+            {deepStore && (
+              <div style={storeVars(deepStore.color)} className="mb-4 flex items-center gap-3 p-3 rounded-lg border border-[var(--store-soft)] bg-[var(--store-tint)]">
+                <span className="text-xs font-bold text-[color:var(--store-color)]">
+                  {deepMissingLink === 0
+                    ? `✅ كل قطع ${deepStore.name} (${storeCounts[deepStore.id] ?? 0}) عليها رابط تتبّع عمولة`
+                    : `🔗 ${(storeCounts[deepStore.id] ?? 0) - deepMissingLink} من ${storeCounts[deepStore.id] ?? 0} عليها رابط تتبّع — بقي ${deepMissingLink}`}
                 </span>
               </div>
             )}
@@ -540,9 +462,9 @@ export default function AdminManager({ categories, components, news, cronStatus,
                         <td className="p-4 font-semibold">{comp.brand}</td>
                         <td className="p-4">
                           {comp.name}
-                          {/* شارة رابط التتبّع — تظهر فقط في عرض كازاسوق */}
-                          {filterStore === 'cazasouq' && (
-                            comp.cazasouqAffiliateUrl ? (
+                          {/* شارة رابط التتبّع — عند تصفية متجر يستخدم روابط مولَّدة */}
+                          {deepStore && (
+                            (comp.offers || []).find((o: any) => o.storeId === deepStore.id)?.affiliateUrl ? (
                               <span className="mr-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 align-middle">
                                 ✓ رابط تتبّع
                               </span>

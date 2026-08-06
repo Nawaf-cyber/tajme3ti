@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { prisma } from '../lib/prisma';
-import { isComponentAvailable } from '../lib/availability';
+import { isAvailable } from '../lib/stores';
+import { OFFER_INCLUDE } from '../lib/stores-server';
 import { productImage } from '../lib/image';
 
 /* ============ شارة "جديد" مربوطة بتاريخ ============
@@ -55,17 +56,12 @@ export default async function CompareTeaser() {
       imageUrl: true,
       tdpWattage: true,
       performanceTier: true,
-      amazonInStock: true,
-      amazonPrice: true,
-      cazasouqInStock: true,
-      cazasouqPrice: true,
-      microlessInStock: true,
-      microlessPrice: true,
+      ...OFFER_INCLUDE,
     },
   });
 
   // نعرض قطعاً متوفّرة فقط — لا معنى لعرض مقارنة لقطع لا تُشترى
-  const pool = gpus.filter(isComponentAvailable);
+  const pool = gpus.filter(isAvailable);
 
   // تشخيص أثناء التطوير فقط — يظهر في طرفية `next dev`، لا في الإنتاج
   if (process.env.NODE_ENV === 'development') {

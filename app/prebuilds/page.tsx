@@ -8,7 +8,8 @@ export const metadata: Metadata = {
 };
 import SavePrebuildButton from './SavePrebuildButton';
 import Link from 'next/link';
-import { isComponentAvailable } from '../../lib/availability';
+import { isAvailable } from '../../lib/stores';
+import { OFFER_INCLUDE } from '../../lib/stores-server';
 
 // تحديث حي دائماً — يعرض أحدث حالة التوفّر بلا حاجة redeploy
 export const dynamic = 'force-dynamic';
@@ -40,12 +41,7 @@ export default async function PrebuildsPage() {
     select: {
       id: true,
       name: true,
-      amazonPrice: true,
-      amazonInStock: true,
-      cazasouqPrice: true,
-      cazasouqInStock: true,
-      microlessPrice: true,
-      microlessInStock: true,
+      ...OFFER_INCLUDE,
     }
   });
 
@@ -94,7 +90,7 @@ export default async function PrebuildsPage() {
                 categoryName: cat.name,
                 componentId: compId,
                 componentName: compDetails?.name || 'غير متوفر',
-                isAvailable: compDetails ? isComponentAvailable(compDetails) : false,
+                isAvailable: compDetails ? isAvailable(compDetails) : false,
                 shortCode: cat.name.substring(0, 2).toUpperCase()
               };
             }).filter(Boolean);

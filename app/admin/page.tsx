@@ -7,6 +7,7 @@ import AdminManager from "./AdminManager";
 import Link from 'next/link';
 import { getCronStatus } from "./actions"; // 1. استيراد دالة جلب الحالة من الـ actions
 import { authOptions } from "../api/auth/[...nextauth]/route";
+import { getStores, OFFER_INCLUDE } from "../../lib/stores-server";
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
@@ -23,12 +24,17 @@ export default async function AdminDashboard() {
 
   const categories = await prisma.category.findMany();
   const components = await prisma.component.findMany({
-    include: { category: true },
+    // العروض مطلوبة هنا: منها يملأ النموذج روابط المتاجر وأسعارها،
+    // ومنها تُحسب عدّادات فلتر المتاجر في الجدول.
+    include: { category: true, ...OFFER_INCLUDE },
     orderBy: { createdAt: 'desc' }
   });
   const news = await prisma.news.findMany({
     orderBy: { createdAt: 'desc' }
   });
+
+  // المتاجر المفعّلة — منها تُولَّد حقول النموذج وأزرار الفلتر وألوانها
+  const stores = await getStores();
 
   // 2. جلب حالة التحديث التلقائي من قاعدة البيانات (سيرفر سايد)
   const cronStatus = await getCronStatus();
@@ -54,7 +60,7 @@ export default async function AdminDashboard() {
         </div>
         
         {/* 3. تمرير القيمة المستخرجة كمستند أساسي إلى المكون الإداري */}
-        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} />
+        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} />
       </div>
     </main>
   );

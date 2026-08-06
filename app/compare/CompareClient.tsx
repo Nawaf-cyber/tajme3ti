@@ -3,8 +3,8 @@
 import { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { isComponentAvailable } from '../../lib/availability';
-import { formatPrice, componentDiscount } from '../../lib/price';
+import { formatPrice } from '../../lib/price';
+import { isAvailable, offerDeal } from '../../lib/stores';
 import type { AffiliateIds } from '../../lib/affiliate';
 import UseInBuildModal from './UseInBuildModal';
 import CompareActions from './CompareActions';
@@ -201,8 +201,7 @@ export default function CompareClient({
   starterComponents,
   activeCategoryId,
   droppedNames = [],
-  history = [],
-  affiliateIds,
+  history = [],
 }: {
   selected: Comp[];
   available: Comp[];
@@ -210,8 +209,7 @@ export default function CompareClient({
   starterComponents: Comp[];
   activeCategoryId: string | null;
   droppedNames?: string[];
-  history?: HistorySeries[];
-  affiliateIds?: AffiliateIds;
+  history?: HistorySeries[];
 }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -229,7 +227,7 @@ export default function CompareClient({
   const ids = selected.map((c) => c.id);
 
   /* خصم كل عمود — نفس دالة صفحتَي التصفّح والمنتج، فلا يتباعد الحساب */
-  const deals = useMemo(() => selected.map((c) => componentDiscount(c)), [selected]);
+  const deals = useMemo(() => selected.map((c) => offerDeal(c)), [selected]);
 
   /* ---- تحديث الرابط ---- */
   const updateUrl = (newIds: string[]) => {
@@ -650,7 +648,7 @@ export default function CompareClient({
 
                   {/* أعمدة القطع */}
                   {selected.map((c, colIdx) => {
-                    const avail = isComponentAvailable(c);
+                    const avail = isAvailable(c);
                     const isBest = colIdx === analysis.bestValueIdx;
                     const deal = deals[colIdx];
                     // اللون يطابق خط القطعة في رسم تاريخ السعر أدناه
@@ -1179,8 +1177,8 @@ export default function CompareClient({
                   {pickerList.map((c: Comp) => {
                     /* التوفّر والخصم قبل الإضافة لا بعدها — كان المستخدم
                        يضيف قطعة نافدة ثم يكتشف ذلك في الجدول. */
-                    const avail = isComponentAvailable(c);
-                    const deal = componentDiscount(c);
+                    const avail = isAvailable(c);
+                    const deal = offerDeal(c);
                     return (
                     <button
                       key={c.id}

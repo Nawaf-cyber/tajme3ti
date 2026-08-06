@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { OFFER_INCLUDE } from '../../../lib/stores-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
@@ -42,20 +43,11 @@ export async function GET(req: NextRequest) {
         brand: true,
         price: true,
         imageUrl: true,
-        amazonUrl: true,
-        cazasouqUrl: true,
-        microlessUrl: true,
-        amazonPrice: true,
-        cazasouqPrice: true,
-        microlessPrice: true,
-        amazonInStock: true,
-        cazasouqInStock: true,
-        microlessInStock: true,
+        ...OFFER_INCLUDE,
         performanceTier: true,
         // مطلوبة لمقارنة التجميعات: الاستهلاك الكلي وسعة المزوّد/الرام
         tdpWattage: true,
         specs: true,
-        cazasouqAffiliateUrl: true
       }
     });
 

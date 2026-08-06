@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { OFFER_INCLUDE } from '../../lib/stores-server';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function ComponentsPage() {
   const components = await prisma.component.findMany({
-    include: { category: true },
+    include: { category: true, ...OFFER_INCLUDE },
     orderBy: { createdAt: 'desc' }
   });
   

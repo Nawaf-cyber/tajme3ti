@@ -1,64 +1,17 @@
 'use client';
 
-/** خلية "الشراء" — رقائق المتاجر المتوفّرة، الأرخص أولاً */
+/** خلية "الشراء" — رقائق المتاجر المتوفّرة، الأرخص أولاً.
+ *  المتاجر تأتي من عروض القطعة، ولون كل رقاقة من صفّ متجرها — فما عاد
+ *  هنا أي اسم متجر ولا لون مكتوب يدوياً. */
 
-import { buildAffiliateUrl, AFFILIATE_LINK_PROPS, type AffiliateIds, type Store } from '../../lib/affiliate';
+import { buildStoreUrl, AFFILIATE_LINK_PROPS } from '../../lib/affiliate';
 import { formatPrice, discountPercent } from '../../lib/price';
+import { liveOffers, storeVars, type Offer } from '../../lib/stores';
 
-type Comp = {
-  amazonPrice?: number | null;
-  amazonListPrice?: number | null;
-  amazonInStock?: boolean | null;
-  amazonUrl?: string | null;
-  cazasouqPrice?: number | null;
-  cazasouqListPrice?: number | null;
-  cazasouqInStock?: boolean | null;
-  cazasouqUrl?: string | null;
-  /** رابط التتبّع العميق المولَّد من لوحة الشريك — يتقدّم على الرابط العادي */
-  cazasouqAffiliateUrl?: string | null;
-  microlessPrice?: number | null;
-  microlessListPrice?: number | null;
-  microlessInStock?: boolean | null;
-  microlessUrl?: string | null;
-};
+export { liveOffers as getOffers };
 
-type Offer = {
-  store: Store;
-  label: string;
-  price: number;
-  listPrice: number | null;
-  url: string;
-};
-
-const STORE_STYLE: Record<string, string> = {
-  'أمازون': 'hover:border-amber-500 hover:text-amber-600 dark:hover:text-amber-400',
-  'كازاسوق': 'hover:border-violet-500 hover:text-violet-600 dark:hover:text-violet-400',
-  'مايكرولس': 'hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400',
-};
-
-export function getOffers(c: Comp): Offer[] {
-  const raw: (Offer | null)[] = [
-    c.amazonInStock && c.amazonPrice && c.amazonUrl
-      ? { store: 'amazon', label: 'أمازون', price: c.amazonPrice, listPrice: c.amazonListPrice ?? null, url: c.amazonUrl }
-      : null,
-    c.cazasouqInStock && c.cazasouqPrice && c.cazasouqUrl
-      ? { store: 'cazasouq', label: 'كازاسوق', price: c.cazasouqPrice, listPrice: c.cazasouqListPrice ?? null, url: c.cazasouqUrl }
-      : null,
-    c.microlessInStock && c.microlessPrice && c.microlessUrl
-      ? { store: 'microless', label: 'مايكرولس', price: c.microlessPrice, listPrice: c.microlessListPrice ?? null, url: c.microlessUrl }
-      : null,
-  ];
-  return (raw.filter(Boolean) as Offer[]).sort((a, b) => a.price - b.price);
-}
-
-export default function BuyCell({
-  component,
-  affiliateIds,
-}: {
-  component: Comp;
-  affiliateIds?: AffiliateIds;
-}) {
-  const offers = getOffers(component);
+export default function BuyCell({ component }: { component: { offers?: Offer[] | null } }) {
+  const offers = liveOffers(component.offers);
 
   if (offers.length === 0) {
     return (
@@ -74,20 +27,21 @@ export default function BuyCell({
         const pct = discountPercent(o.price, o.listPrice);
         return (
           <a
-            key={o.store}
+            key={o.storeId}
             /* ⚠️ كانت هذه الخلية تستخدم الرابط الخام بلا وسم عمولة — أي كل
                نقرة شراء من صفحة المقارنة تُهدر العمولة. الآن تمرّ على
                المصدر المركزي مثل بقية الموقع. */
-            href={buildAffiliateUrl(o.url, o.store, affiliateIds, o.store === 'cazasouq' ? component.cazasouqAffiliateUrl : null)}
+            href={buildStoreUrl(o.store, o.url, o.affiliateUrl)}
             {...AFFILIATE_LINK_PROPS}
+            style={storeVars(o.store.color)}
             className={`group/buy flex items-center justify-between gap-2 px-2.5 py-2 border rounded-sm transition-colors ${
               i === 0
                 ? 'border-emerald-500/50 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400'
-                : `border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 ${STORE_STYLE[o.label] ?? ''}`
+                : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-[color:var(--store-color)] hover:text-[color:var(--store-color)]'
             }`}
           >
             <span className="font-mono text-[9px] font-black uppercase tracking-wider shrink-0 flex items-center gap-1">
-              {o.label}
+              {o.store.name}
               {pct > 0 && (
                 <span className="text-[8px] font-black text-white bg-rose-500 px-1 py-0.5 rounded-sm tabular-nums">
                   ‎-{pct}%

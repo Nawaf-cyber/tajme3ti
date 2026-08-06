@@ -1,8 +1,8 @@
 "use client";
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { isComponentAvailable } from '../../lib/availability';
-import { formatPrice, componentDiscount } from '../../lib/price';
+import { isAvailable, offerDeal } from '../../lib/stores';
+import { formatPrice } from '../../lib/price';
 import SuggestPartCard from '../../components/SuggestPartCard';
 import { productImage } from '../../lib/image';
 
@@ -42,7 +42,7 @@ export default function ComponentsClient({ components, categories }: { component
 
   /* نحسب الخصم مرّة واحدة لكل قطعة — الدالة مشتركة مع صفحة المنتج */
   const withDeals = useMemo(
-    () => components.map(c => ({ ...c, _deal: componentDiscount(c) })),
+    () => components.map(c => ({ ...c, _deal: offerDeal(c) })),
     [components]
   );
 
@@ -265,7 +265,7 @@ export default function ComponentsClient({ components, categories }: { component
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {visible.map((comp) => {
-              const available = isComponentAvailable(comp);
+              const available = isAvailable(comp);
               // استخراج أهم 3 مواصفات سريعة من specs + الطاقة
               const specBadges: string[] = [];
               try {

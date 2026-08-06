@@ -1,11 +1,11 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { buildAffiliateUrl, AFFILIATE_LINK_PROPS } from '../../lib/affiliate';
+import StoreBuyChips from '../../components/StoreBuyChips';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { isComponentAvailable } from '../../lib/availability';
+import { isAvailable } from '../../lib/stores';
 import MyPartRequests from './MyPartRequests';
 import { productImage } from '../../lib/image';
 
@@ -341,7 +341,7 @@ export default function MyBuildsPage() {
               const cpu = build.parts['CPU'];
               const gpu = build.parts['GPU'];
               const unavailableCount = Object.values(build.parts).filter(
-                (c: any) => c && !isComponentAvailable(c)
+                (c: any) => c && !isAvailable(c)
               ).length;
               
               return (
@@ -481,7 +481,7 @@ export default function MyBuildsPage() {
                               <>
                                 <span className={getBrandColor(comp.brand, comp.name, category) + " ml-1"}>{comp.brand}</span>
                                 <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
-                                {!isComponentAvailable(comp) && (
+                                {!isAvailable(comp) && (
                                   <span className="mt-1 text-amber-700 dark:text-amber-400 font-black inline-flex items-center gap-1 text-[11px] bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/40 w-fit">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                                     غير متوفر حالياً
@@ -500,24 +500,7 @@ export default function MyBuildsPage() {
                               {comp.price} <RiyalIcon size="h-3 w-3" />
                             </span>
                             
-                            {comp.amazonUrl && comp.amazonInStock !== false && (
-                              <a href={buildAffiliateUrl(comp.amazonUrl, 'amazon')} {...AFFILIATE_LINK_PROPS} className="flex items-center gap-1 px-3 py-1.5 bg-[#232F3E] hover:bg-[#131A22] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                <span>Amazon</span>
-                                <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                              </a>
-                            )}
-                            {comp.cazasouqUrl && comp.cazasouqInStock !== false && (
-                              <a href={buildAffiliateUrl(comp.cazasouqUrl, 'cazasouq', undefined, comp.cazasouqAffiliateUrl)} {...AFFILIATE_LINK_PROPS} className="flex items-center gap-1 px-3 py-1.5 bg-[#FF9900] hover:bg-[#E68A00] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                <span>Cazasouq</span>
-                                <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                              </a>
-                            )}
-                            {comp.microlessUrl && comp.microlessInStock !== false && (
-                              <a href={buildAffiliateUrl(comp.microlessUrl, 'microless')} {...AFFILIATE_LINK_PROPS} className="flex items-center gap-1 px-3 py-1.5 bg-[#0053D9] hover:bg-[#003899] text-white text-[10px] rounded-full font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                                <span>Microless</span>
-                                <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                              </a>
-                            )}
+                            <StoreBuyChips offers={(comp as any).offers} solid />
                           </div>
                         )}
                       </div>

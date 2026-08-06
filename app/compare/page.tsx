@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import CompareClient from './CompareClient';
-import { getAffiliateIds } from '../../lib/affiliate-server';
+import { OFFER_INCLUDE } from '../../lib/stores-server';
 import type { Metadata } from 'next';
 
 // تحديث حي — الأسعار والتوفّر تتغيّر
@@ -17,9 +17,7 @@ const PICKER_FIELDS = {
   price: true,
   imageUrl: true,
   categoryId: true,
-  amazonPrice: true, amazonListPrice: true, amazonInStock: true,
-  cazasouqPrice: true, cazasouqListPrice: true, cazasouqInStock: true,
-  microlessPrice: true, microlessListPrice: true, microlessInStock: true,
+  ...OFFER_INCLUDE,
 } as const;
 
 // توليد عنوان ووصف ديناميكيين للمقارنة (مهم لـ SEO)
@@ -69,7 +67,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   const selected = ids.length
     ? await prisma.component.findMany({
         where: { id: { in: ids } },
-        include: { category: true },
+        include: { category: true, ...OFFER_INCLUDE },
       })
     : [];
 
@@ -124,8 +122,14 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     const since = new Date();
     since.setDate(since.getDate() - 90);
 
+    /* المتاجر المعطّلة تُستثنى من الرسم — لو أوقفت متجراً فأسعاره القديمة
+       لا يجوز أن تبقى ترسم "أدنى سعر" لا يستطيع الزائر شراءه اليوم. */
+    const activeSlugs = (
+      await prisma.store.findMany({ where: { active: true }, select: { slug: true } })
+    ).map((s) => s.slug);
+
     const rows = await prisma.priceHistory.findMany({
-      where: { componentId: { in: keptIds }, recordedAt: { gte: since } },
+      where: { componentId: { in: keptIds }, recordedAt: { gte: since }, store: { in: activeSlugs } },
       orderBy: { recordedAt: 'asc' },
       select: { componentId: true, price: true, recordedAt: true },
     });
@@ -149,8 +153,6 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     }));
   }
 
-  // معرّفات العمولة — كانت خانة الشراء في المقارنة تبني روابط بلا وسم
-  const affiliateIds = await getAffiliateIds();
 
   return (
     <CompareClient
@@ -161,7 +163,6 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       activeCategoryId={activeCategoryId}
       droppedNames={droppedNames}
       history={history}
-      affiliateIds={affiliateIds}
     />
   );
 }

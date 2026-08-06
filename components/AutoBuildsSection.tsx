@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { prisma } from '../lib/prisma';
 import CountdownTimer from './CountdownTimer';
-import { isComponentAvailable } from '../lib/availability';
+import { isAvailable } from '../lib/stores';
+import { OFFER_INCLUDE } from '../lib/stores-server';
 
 /* تثبيت التجميعات 24 ساعة:
    الصفحة تُعاد بناؤها كل 24 ساعة، والاختيار يعتمد على بذرة مشتقّة من
@@ -11,13 +12,13 @@ export const revalidate = 86400;
 
 export default async function AutoBuildsSection() {
   const categories = await prisma.category.findMany({
-    include: { components: true }
+    include: { components: { include: OFFER_INCLUDE } }
   });
 
   // نجلب فقط القطع المتوفرة (متجر واحد على الأقل عنده سعر ومخزون)
   // حتى لا تختار التجميعات المقترحة قطعاً غير متوفرة.
   const getCat = (name: string) =>
-    (categories.find(c => c.name === name)?.components || []).filter(isComponentAvailable);
+    (categories.find(c => c.name === name)?.components || []).filter(isAvailable);
 
   const cpus = getCat('CPU').sort((a, b) => a.price - b.price);
   const gpus = getCat('GPU').sort((a, b) => a.price - b.price);

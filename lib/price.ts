@@ -35,38 +35,7 @@ export const discountPercent = (
   return pct;
 };
 
-/** أقل سعر متوفّر مع سعره قبل الخصم — يُستخدم لعرض الشارة على السعر المعروض */
-export type StorePrice = {
-  price: number | null | undefined;
-  listPrice: number | null | undefined;
-  inStock: boolean | null | undefined;
-};
-
-export const cheapestOffer = (offers: StorePrice[]) => {
-  const live = offers.filter(o => (o.price ?? 0) > 0 && o.inStock !== false);
-  if (!live.length) return null;
-  return live.reduce((best, o) => ((o.price as number) < (best.price as number) ? o : best));
-};
-
-/**
- * خصم القطعة — يُحسب على **المتجر الأرخص المتوفّر فقط**.
- * إعلان خصم متجر أغلى بينما نعرض سعر متجر آخر يضلّل المستخدم.
- *
- * مصدر واحد تستخدمه صفحة التصفّح وصفحة المنتج، فلا يتباعد الحسابان.
- */
-export type DiscountInfo = { pct: number; listPrice: number | null };
-
-export const componentDiscount = (comp: {
-  amazonPrice?: number | null; amazonListPrice?: number | null; amazonInStock?: boolean | null;
-  cazasouqPrice?: number | null; cazasouqListPrice?: number | null; cazasouqInStock?: boolean | null;
-  microlessPrice?: number | null; microlessListPrice?: number | null; microlessInStock?: boolean | null;
-}): DiscountInfo => {
-  const best = cheapestOffer([
-    { price: comp.amazonPrice, listPrice: comp.amazonListPrice, inStock: comp.amazonInStock },
-    { price: comp.cazasouqPrice, listPrice: comp.cazasouqListPrice, inStock: comp.cazasouqInStock },
-    { price: comp.microlessPrice, listPrice: comp.microlessListPrice, inStock: comp.microlessInStock },
-  ]);
-  if (!best) return { pct: 0, listPrice: null };
-  const pct = discountPercent(best.price, best.listPrice);
-  return { pct, listPrice: pct > 0 ? (best.listPrice ?? null) : null };
-};
+/* ملاحظة: cheapestOffer و componentDiscount كانتا هنا وتقرآن أعمدة
+   المتاجر الثلاثة بأسمائها. انتقلتا إلى lib/stores.ts (cheapestOffer/offerDeal)
+   تعملان على العروض، فتشملان أي متجر يُضاف. حُذفتا هنا كي لا يستوردهما أحد
+   فيحصل على بيانات مجمّدة بلا أن يلاحظ. */

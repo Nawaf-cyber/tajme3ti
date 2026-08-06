@@ -54,6 +54,45 @@ const parsePriceSafely = (val: FormDataEntryValue | null) => {
   return isNaN(parsed) ? null : parsed;
 };
 
+/* ============ حفظ عروض المتاجر ============
+ * النموذج يولّد لكل متجر مفعّل حقولاً باسم store_<id>_url|price|stock|aff،
+ * فإضافة متجر في اللوحة تضيف حقوله تلقائياً بلا تعديل هنا ولا في النموذج.
+ *
+ * ملاحظة: الأعمدة القديمة (amazonPrice…) لم تعد تُكتب — هي نسخة مجمّدة
+ * لحظة الترحيل، والنسخة الحيّة للرجوع هي backups/store-columns-*.json.
+ */
+async function saveOffersFromForm(componentId: string, formData: FormData) {
+  const stores = await prisma.store.findMany({ select: { id: true, usesDeepLinks: true } });
+
+  for (const s of stores) {
+    const url = ((formData.get(`store_${s.id}_url`) as string) || '').trim() || null;
+    const price = parsePriceSafely(formData.get(`store_${s.id}_price`));
+    const inStock = formData.get(`store_${s.id}_stock`) === 'true';
+    // رابط التتبّع العميق: يُقبل فقط بشكله الصحيح، وإلا null فيسقط للاحتياطي
+    const affiliateUrl = s.usesDeepLinks
+      ? cleanCazaAffiliate(formData.get(`store_${s.id}_aff`))
+      : null;
+
+    const existing = await prisma.componentOffer.findUnique({
+      where: { componentId_storeId: { componentId, storeId: s.id } },
+      select: { id: true },
+    });
+
+    // لا رابط ولا سعر = المتجر غير مرتبط بهذه القطعة؛ نحذف العرض إن وُجد
+    if (!url && price == null) {
+      if (existing) await prisma.componentOffer.delete({ where: { id: existing.id } });
+      continue;
+    }
+
+    const data = { url, price, inStock, affiliateUrl };
+    if (existing) {
+      await prisma.componentOffer.update({ where: { id: existing.id }, data });
+    } else {
+      await prisma.componentOffer.create({ data: { componentId, storeId: s.id, ...data } });
+    }
+  }
+}
+
 export async function addComponent(formData: FormData) {
   await assertAdmin();
   const categoryId = formData.get('categoryId') as string;
@@ -64,29 +103,14 @@ export async function addComponent(formData: FormData) {
   const specs = JSON.parse(formData.get('specs') as string);
   const description = formData.get('description') as string || null;
   const imageUrl = formData.get('imageUrl') as string || null;
-  const amazonUrl = formData.get('amazonUrl') as string || null;
-  const cazasouqUrl = formData.get('cazasouqUrl') as string || null;
-  const cazasouqAffiliateUrl = cleanCazaAffiliate(formData.get('cazasouqAffiliateUrl'));
-  const microlessUrl = formData.get('microlessUrl') as string || null;
 
   const ptRaw = formData.get('performanceTier') as string;
   const performanceTier = (ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null;
 
-  // الحقول اليدوية الجديدة (الأسعار والتوفر)
-  const amazonPrice = parsePriceSafely(formData.get('amazonPrice'));
-  const cazasouqPrice = parsePriceSafely(formData.get('cazasouqPrice'));
-  const microlessPrice = parsePriceSafely(formData.get('microlessPrice'));
-
-  const amazonInStock = formData.get('amazonInStock') === 'true';
-  const cazasouqInStock = formData.get('cazasouqInStock') === 'true';
-  const microlessInStock = formData.get('microlessInStock') === 'true';
-
-  await prisma.component.create({
-    data: {
-      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, cazasouqAffiliateUrl, performanceTier, microlessUrl,
-      amazonPrice, cazasouqPrice, microlessPrice, amazonInStock, cazasouqInStock, microlessInStock
-    }
+  const created = await prisma.component.create({
+    data: { categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, performanceTier },
   });
+  await saveOffersFromForm(created.id, formData);
 
   revalidatePath('/admin');
   revalidatePath('/');
@@ -103,30 +127,15 @@ export async function updateComponent(formData: FormData) {
   const specs = JSON.parse(formData.get('specs') as string);
   const description = formData.get('description') as string || null;
   const imageUrl = formData.get('imageUrl') as string || null;
-  const amazonUrl = formData.get('amazonUrl') as string || null;
-  const cazasouqUrl = formData.get('cazasouqUrl') as string || null;
-  const cazasouqAffiliateUrl = cleanCazaAffiliate(formData.get('cazasouqAffiliateUrl'));
-  const microlessUrl = formData.get('microlessUrl') as string || null;
 
   const ptRaw = formData.get('performanceTier') as string;
   const performanceTier = (ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null;
 
-  // الحقول اليدوية الجديدة (الأسعار والتوفر)
-  const amazonPrice = parsePriceSafely(formData.get('amazonPrice'));
-  const cazasouqPrice = parsePriceSafely(formData.get('cazasouqPrice'));
-  const microlessPrice = parsePriceSafely(formData.get('microlessPrice'));
-
-  const amazonInStock = formData.get('amazonInStock') === 'true';
-  const cazasouqInStock = formData.get('cazasouqInStock') === 'true';
-  const microlessInStock = formData.get('microlessInStock') === 'true';
-
   await prisma.component.update({
     where: { id },
-    data: {
-      categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, amazonUrl, cazasouqUrl, cazasouqAffiliateUrl, performanceTier, microlessUrl,
-      amazonPrice, cazasouqPrice, microlessPrice, amazonInStock, cazasouqInStock, microlessInStock
-    }
+    data: { categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, performanceTier },
   });
+  await saveOffersFromForm(id, formData);
 
   revalidatePath('/admin');
   revalidatePath('/');

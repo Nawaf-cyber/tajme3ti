@@ -2,12 +2,9 @@ import { prisma } from "../../../../lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import {
-  scrapeComponent,
-  resolvePrices,
-  recordPriceHistory,
-  type ScrapeTarget,
-} from '../../../../lib/scrape-prices';
+import { recordPriceHistory } from '../../../../lib/scrape-prices';
+import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrape-offers';
+import { SCRAPE_STORE_SELECT } from '../../../../lib/stores-server';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -58,12 +55,15 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "SCRAPER_API_KEY غير مضبوط في متغيرات البيئة." }, { status: 500 });
     }
 
+    /* القطع المرشّحة: لها عرض واحد على الأقل برابط في متجر مفعّل يُسحب.
+       المتجر الموقوف سحبه (scrapeMode: off) لا يستهلك رصيداً. */
     const searchConditions = {
-      OR: [
-        { amazonUrl: { contains: "http" } },
-        { cazasouqUrl: { contains: "http" } },
-        { microlessUrl: { contains: "http" } }
-      ]
+      offers: {
+        some: {
+          url: { contains: 'http' },
+          store: { active: true, scrapeMode: { not: 'off' } },
+        },
+      },
     };
 
     const totalMatchingCount = await prisma.component.count({ where: searchConditions });
@@ -74,7 +74,13 @@ export async function GET(req: Request) {
     const components = await prisma.component.findMany({
       where: searchConditions,
       orderBy: { updatedAt: 'asc' },
-      take: BATCH_SIZE
+      take: BATCH_SIZE,
+      include: {
+        offers: {
+          where: { store: { active: true, scrapeMode: { not: 'off' } } },
+          include: { store: { select: SCRAPE_STORE_SELECT } },
+        },
+      },
     });
 
     let updatedCount = 0;
@@ -100,11 +106,15 @@ export async function GET(req: Request) {
 
       await Promise.all(chunk.map(async (comp) => {
         // ---- السحب والحساب: منطق مشترك مع «تحديث قطعة واحدة» ----
-        const scraped = await scrapeComponent(comp as ScrapeTarget, SCRAPER_API_KEY);
-        const resolved = resolvePrices(comp as ScrapeTarget, scraped);
+        const scraped = await scrapeComponentOffers(comp as any, SCRAPER_API_KEY);
+        const resolved = resolveOfferPrices(comp as any, scraped.results);
         allErrors.push(...scraped.errors);
 
-        await prisma.component.update({ where: { id: comp.id }, data: resolved.data });
+        // كل عرض يُحدَّث في صفّه، والقطعة تحمل أقل سعر معروض
+        for (const u of resolved.offerUpdates) {
+          await prisma.componentOffer.update({ where: { id: u.offerId }, data: u.data });
+        }
+        await prisma.component.update({ where: { id: comp.id }, data: { price: resolved.lowestPrice } });
         await recordPriceHistory(prisma, comp.id, resolved.pricePoints);
 
         // ---- وسوم إشعار ديسكورد ----
@@ -126,17 +136,15 @@ export async function GET(req: Request) {
           try { return encodeURI(decodeURI(u)); } catch { return u; }
         };
 
-        const stores: string[] = [];
-        const line = (label: string, url: string | null | undefined, price: any, inStock: boolean) => {
-          if (!url || url.length <= 12) return;
-          const link = cleanUrl(url);
-          stores.push(inStock && price != null && price > 0
-            ? `[${label}: ${price} ريال](${link})`
-            : `[${label}: غير متوفر ❌](${link})`);
-        };
-        line('أمازون', comp.amazonUrl, resolved.data.amazonPrice, scraped.amazon.inStock);
-        line('كازاسوق', comp.cazasouqUrl, resolved.data.cazasouqPrice, scraped.cazasouq.inStock);
-        line('مايكروليس', comp.microlessUrl, resolved.data.microlessPrice, scraped.microless.inStock);
+        // سطر لكل متجر — تُبنى من العروض، فالمتجر الجديد يظهر في الإشعار تلقائياً
+        const stores: string[] = resolved.lines
+          .filter((l) => l.url && l.url.length > 12)
+          .map((l) => {
+            const link = cleanUrl(l.url!);
+            return l.inStock && l.price != null && l.price > 0
+              ? `[${l.label}: ${l.price} ريال](${link})`
+              : `[${l.label}: غير متوفر ❌](${link})`;
+          });
 
         updatedCount++;
         updatedItems.push({

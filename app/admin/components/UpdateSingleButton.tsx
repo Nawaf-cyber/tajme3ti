@@ -35,8 +35,10 @@ export default function UpdateSingleButton({ id, name }: { id: string, name: str
         }
         if (data.restocked) parts.push('📦 توفرت من جديد');
         if (data.cheapestStore) {
-          const ar: Record<string, string> = { amazon: 'أمازون', cazasouq: 'كازاسوق', microless: 'مايكرولس' };
-          parts.push(`· ${ar[data.cheapestStore] || data.cheapestStore}`);
+          /* الاسم العربي يأتي من الخادم ضمن stores — كان هنا جدول ترجمة
+             للمتاجر الثلاثة، فأي متجر جديد كان سيظهر بالـslug اللاتيني. */
+          const cheapest = (data.stores || []).find((s: any) => s.price === data.price);
+          parts.push(`· ${cheapest?.label || data.cheapestStore}`);
         }
 
         toast.success(parts.join('  '), { id: loadingToast, duration: 6000 });

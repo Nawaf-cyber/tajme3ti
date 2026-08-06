@@ -4,20 +4,14 @@ import { prisma } from '../lib/prisma';
    مكوّن خادم بحت (بلا 'use client') — يرندر SVG على الخادم،
    فيراه جوجل كمحتوى فعلي ولا يحتاج أي مكتبة رسم.
 
-   يعرض 4 خطوط خلال آخر 90 يوماً:
-   - خط لكل متجر (أمازون · كازاسوق · مايكروليس) بلونه الخاص.
+   يعرض خلال آخر 90 يوماً:
+   - خطاً لكل متجر بلونه المسجّل في جدول Store (كان الثلاثة مكتوبين هنا
+     يدوياً، فالمتجر الرابع كان سيُرسم بلا لون ولا اسم — أو لا يُرسم أصلاً).
    - خط "أدنى سعر" منقّط فوق الجميع (أرخص متجر في كل يوم).
    كل متجر يُرسم بنقاطه الحقيقية فقط — لا نسدّ الفجوات بتخمين. */
 
 type StorePoint = { date: Date; price: number };
-type StoreKey = 'amazon' | 'cazasouq' | 'microless';
 
-const STORE_META: Record<StoreKey, { label: string; color: string }> = {
-  amazon: { label: 'أمازون', color: '#FF9900' },
-  cazasouq: { label: 'كازاسوق', color: '#A855F7' },
-  microless: { label: 'مايكروليس', color: '#DC2626' },
-};
-const STORE_ORDER: StoreKey[] = ['amazon', 'cazasouq', 'microless'];
 const LOWEST_COLOR = '#10B981'; // أخضر لخط أدنى سعر
 
 const RiyalMark = () => (
@@ -41,28 +35,36 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
   const since = new Date();
   since.setDate(since.getDate() - 90);
 
-  const rows = await prisma.priceHistory.findMany({
-    where: { componentId, recordedAt: { gte: since } },
-    orderBy: { recordedAt: 'asc' },
-    select: { price: true, recordedAt: true, store: true },
-  });
+  /* سجلّ الأسعار يخزّن slug المتجر نصّاً، فنجلب المتاجر لنعرف اسمها ولونها
+     وترتيبها. المعطّلة تُستثنى — كي يختفي خطّها فور إيقافها من اللوحة. */
+  const [rows, stores] = await Promise.all([
+    prisma.priceHistory.findMany({
+      where: { componentId, recordedAt: { gte: since } },
+      orderBy: { recordedAt: 'asc' },
+      select: { price: true, recordedAt: true, store: true },
+    }),
+    prisma.store.findMany({
+      where: { active: true },
+      orderBy: { sortOrder: 'asc' },
+      select: { slug: true, name: true, color: true },
+    }),
+  ]);
+
+  const storeMeta = new Map(stores.map((s) => [s.slug, s]));
 
   // نجمّع النقاط لكل متجر على حدة (نقطة واحدة لكل يوم/متجر — الأدنى إن تكرر)
-  const perStore: Record<StoreKey, Map<string, number>> = {
-    amazon: new Map(),
-    cazasouq: new Map(),
-    microless: new Map(),
-  };
+  const perStore = new Map<string, Map<string, number>>();
   // ولأدنى سعر يومي عبر كل المتاجر
   const lowestByDay = new Map<string, number>();
 
   for (const r of rows) {
-    const store = r.store as StoreKey;
-    if (!STORE_META[store]) continue; // نتجاهل أي متجر غير معروف
+    if (!storeMeta.has(r.store)) continue; // متجر محذوف أو معطّل
     const day = r.recordedAt.toISOString().slice(0, 10);
 
-    const cur = perStore[store].get(day);
-    if (cur == null || r.price < cur) perStore[store].set(day, r.price);
+    if (!perStore.has(r.store)) perStore.set(r.store, new Map());
+    const days = perStore.get(r.store)!;
+    const cur = days.get(day);
+    if (cur == null || r.price < cur) days.set(day, r.price);
 
     const low = lowestByDay.get(day);
     if (low == null || r.price < low) lowestByDay.set(day, r.price);
@@ -73,8 +75,9 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
       .map(([k, price]) => ({ date: new Date(k), price }))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  const storeSeries: { key: StoreKey; points: StorePoint[] }[] = STORE_ORDER
-    .map((key) => ({ key, points: toPoints(perStore[key]) }))
+  // بترتيب المتاجر في اللوحة، لا بترتيب ورود الصفوف من القاعدة
+  const storeSeries = stores
+    .map((s) => ({ slug: s.slug, label: s.name, color: s.color, points: toPoints(perStore.get(s.slug) ?? new Map()) }))
     .filter((s) => s.points.length > 0);
 
   const lowestPoints = toPoints(lowestByDay);
@@ -140,8 +143,8 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
     change: number | null;
   }[] = [
     ...storeSeries.map((s) => ({
-      label: STORE_META[s.key].label,
-      color: STORE_META[s.key].color,
+      label: s.label,
+      color: s.color,
       dashed: false,
       change: storeChange(s.points),
     })),
@@ -237,18 +240,18 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
 
         {/* خط لكل متجر بلونه */}
         {storeSeries.map((s) => (
-          <g key={s.key}>
+          <g key={s.slug}>
             <path
               d={pathFor(s.points)}
               fill="none"
-              stroke={STORE_META[s.key].color}
+              stroke={s.color}
               strokeWidth="2.5"
               strokeLinejoin="round"
               strokeLinecap="round"
             />
             {/* نقطة عند كل قيمة فعلية */}
             {s.points.map((p, idx) => (
-              <circle key={idx} cx={x(p.date)} cy={y(p.price)} r="3" fill={STORE_META[s.key].color} />
+              <circle key={idx} cx={x(p.date)} cy={y(p.price)} r="3" fill={s.color} />
             ))}
           </g>
         ))}
