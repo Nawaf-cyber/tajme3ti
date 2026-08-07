@@ -88,7 +88,7 @@ export default function SuggestPartCard({
             <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm">
               {done.tracked
                 ? 'ستظهر لك الحالة في «تجميعاتي»، ويصلك إشعار عند إضافتها.'
-                : 'أخذت من وقتك عشان تفيدنا وأنت ما تعرفنا — وهذا ما ينُسى.'}
+                : 'أخذت من وقتك عشان تفيدنا وأنت ما تعرفنا — وهذا ما يُنسى.'}
             </p>
             <div className="flex items-center gap-2 mt-4">
               <button
