@@ -83,12 +83,12 @@ export default function SuggestPartCard({
               ✅
             </div>
             <h3 className="text-base font-black text-slate-900 dark:text-white mb-1.5">
-              {done.already ? 'طلبك مسجّل مسبقاً' : 'تم استلام اقتراحك'}
+              {done.already ? 'طلبك مسجّل مسبقاً' : done.tracked ? 'تم استلام اقتراحك' : 'الله يجزاك خير 🙏'}
             </h3>
             <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm">
               {done.tracked
                 ? 'ستظهر لك الحالة في «تجميعاتي»، ويصلك إشعار عند إضافتها.'
-                : 'سُجّل طلبك. سجّل دخولك لمتابعة الحالة ويصلك إشعار عند إضافتها.'}
+                : 'أخذت من وقتك عشان تفيدنا وأنت ما تعرفنا — وهذا ما ينُسى.'}
             </p>
             <div className="flex items-center gap-2 mt-4">
               <button
@@ -97,6 +97,14 @@ export default function SuggestPartCard({
               >
                 اقترح قطعة أخرى
               </button>
+              {!done.tracked && (
+                <a
+                  href="/login"
+                  className="px-4 py-2 rounded-sm text-[12px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95"
+                >
+                  تابعه بحسابك
+                </a>
+              )}
               {done.tracked && (
                 <a
                   href="/my-builds#part-requests"
@@ -126,29 +134,6 @@ export default function SuggestPartCard({
               </div>
             </div>
 
-            {status === 'unauthenticated' ? (
-              /* ============ الزائر ============
-                 نُظهر ما سيكسبه لا ما هو ممنوع منه. ولا نعتذر عن الشرط:
-                 الاعتذار يوحي بأننا نراه خطأً، ويدعو للجدال. */
-              <div className="flex flex-col sm:flex-row items-center gap-3 p-3.5 rounded-sm bg-cyan-50/60 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-900/40">
-                <div className="flex-1 min-w-0 text-center sm:text-right">
-                  <p className="text-[13px] font-black text-slate-800 dark:text-slate-200 mb-1">
-                    الاقتراح يحتاج حساباً — لتتابعه لا لنقيّدك
-                  </p>
-                  <ul className="text-[11.5px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed space-y-0.5">
-                    <li>· تشوف حالته: قيد المراجعة ← قيد الإضافة ← تمت</li>
-                    <li>· نسألك إن نقص تفصيل، وتردّ علينا في نفس المكان</li>
-                    <li>· أول ما تُضاف، يجيك زرّ يبني بها تجميعة</li>
-                  </ul>
-                </div>
-                <a
-                  href="/login"
-                  className="shrink-0 w-full sm:w-auto text-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white text-sm font-black rounded-sm transition-all active:scale-95 shadow-sm shadow-cyan-500/20"
-                >
-                  سجّل دخولك
-                </a>
-              </div>
-            ) : (
             <div className="flex flex-col sm:flex-row gap-2.5">
               {/* نوع القطعة — أوّل ما يُسأل عنه */}
               <select
@@ -190,6 +175,12 @@ export default function SuggestPartCard({
                 إرسال الاقتراح
               </button>
             </div>
+
+            {/* دعوة لا شرط: التسجيل مكافأة (متابعة + محادثة)، لا بوّابة */}
+            {status !== 'authenticated' && (
+              <p className="mt-2.5 text-[11px] font-bold text-slate-400 dark:text-slate-500">
+                💡 <a href="/login" className="text-cyan-600 dark:text-cyan-400 underline hover:opacity-80">سجّل دخولك</a> لتتابع حالة اقتراحك ونردّ عليك إن احتجنا تفصيلاً.
+              </p>
             )}
           </>
         )}

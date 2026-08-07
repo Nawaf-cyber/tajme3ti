@@ -24,19 +24,15 @@ export async function POST(req: NextRequest) {
     const token = await getToken({ req });
     const userId = (token?.id as string) || null;
 
-    /* ============ الاقتراح يتطلّب حساباً ============
-       ليس تقييداً بل شرطُ اكتمال: الاقتراح المجهول يصل ولا يُرَدّ عليه ولا
-       يعرف صاحبه مصيره — فيبدو للمقترِح أنه ذهب سدى. الحساب يفتح المتابعة
-       والمحادثة وزرّ البناء عند الإضافة. */
-    if (!userId) {
-      return NextResponse.json(
-        { message: 'سجّل دخولك لتتابع اقتراحك ونردّ عليك.', needsLogin: true },
-        { status: 401 },
-      );
-    }
-
+    /* ============ الزائر يقترح أيضاً ============
+       جُرّب اشتراط الحساب ثم أُلغي: ٦٠٪ من الاقتراجات جاءت من زوّار، وهم
+       من يصطدم بالنقص وقت التصفّح. والعدّاد نفسه هو المنتج — عشرة طلبوا
+       قطعة إشارةٌ كافية لإضافتها ولو لم نعرف أسماءهم. وغموض النوع (سبب
+       الاشتراط الأصلي) حلّته قائمة الفئة الإلزامية.
+       المسجّل يكسب المتابعة والمحادثة — مكافأة لا بوّابة. */
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     if (ratelimit) {
-      const { success } = await ratelimit.limit(`partreq_${userId}`);
+      const { success } = await ratelimit.limit(userId ? `partreq_${userId}` : `partreq_ip_${ip}`);
       if (!success) {
         return NextResponse.json({ message: 'أرسلت طلبات كثيرة. جرّب بعد قليل.' }, { status: 429 });
       }
@@ -68,9 +64,9 @@ export async function POST(req: NextRequest) {
       create: { name, normalized, categoryId },
     });
 
-    // صوت واحد لكل مستخدم لكل قطعة
+    // المسجّل: صوت واحد لكل قطعة (dedup). المجهول: كل إرسال يُحتسب.
     let alreadyRequested = false;
-    {
+    if (userId) {
       const existing = await prisma.partVote.findUnique({
         where: { requestedPartId_userId: { requestedPartId: rp.id, userId } },
       });
@@ -84,6 +80,8 @@ export async function POST(req: NextRequest) {
       } else {
         await prisma.partVote.create({ data: { requestedPartId: rp.id, userId, source } });
       }
+    } else {
+      await prisma.partVote.create({ data: { requestedPartId: rp.id, userId: null, source } });
     }
 
     return NextResponse.json(
