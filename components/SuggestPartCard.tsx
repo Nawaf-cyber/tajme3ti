@@ -5,7 +5,7 @@
    مفردات الموقع: rounded-sm + حدّ علوي سيان + زاوية هندسية + عنوان متدرّج،
    فيندمج بلا غرابة. متغيّر `source` يميّز من أي صفحة أتى الطلب (للتقارير). */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 
@@ -18,11 +18,26 @@ export default function SuggestPartCard({
 }) {
   const { status } = useSession();
   const [name, setName] = useState('');
+  /* الفئة: "32GB DDR5" وحدها لا تكفي لمعرفة أهي رام أم تخزين، فنسأل عنها
+     قبل الاسم — سؤالٌ واحد يوفّر جولة استيضاح كاملة. */
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categoryId, setCategoryId] = useState('');
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<null | { tracked: boolean; already: boolean }>(null);
 
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then((d) => setCategories(Array.isArray(d.categories) ? d.categories : []))
+      .catch(() => {});
+  }, []);
+
   const submit = async () => {
     const trimmed = name.trim();
+    if (!categoryId) {
+      toast.error('اختر نوع القطعة أولاً.');
+      return;
+    }
     if (trimmed.length < 2) {
       toast.error('اكتب اسم القطعة أولاً.');
       return;
@@ -32,12 +47,15 @@ export default function SuggestPartCard({
       const res = await fetch('/api/part-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmed, source }),
+        body: JSON.stringify({ name: trimmed, source, categoryId }),
       });
       const data = await res.json();
       if (res.ok) {
         setDone({ tracked: !!data.tracked, already: !!data.alreadyRequested });
         setName('');
+        setCategoryId('');
+      } else if (res.status === 401) {
+        toast.error(data.message || 'سجّل دخولك أولاً.');
       } else {
         toast.error(data.message || 'تعذّر إرسال الاقتراح.');
       }
@@ -103,12 +121,48 @@ export default function SuggestPartCard({
                   ما لقيت قطعتك؟ اقترح إضافتها
                 </h3>
                 <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                  اكتب اسم القطعة وسنراجعها ونضيفها — القطع الأكثر طلباً أولاً.
+                  اختر نوعها واكتب اسمها — القطع الأكثر طلباً أولاً.
                 </p>
               </div>
             </div>
 
+            {status === 'unauthenticated' ? (
+              /* ============ الزائر ============
+                 نُظهر ما سيكسبه لا ما هو ممنوع منه. ولا نعتذر عن الشرط:
+                 الاعتذار يوحي بأننا نراه خطأً، ويدعو للجدال. */
+              <div className="flex flex-col sm:flex-row items-center gap-3 p-3.5 rounded-sm bg-cyan-50/60 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-900/40">
+                <div className="flex-1 min-w-0 text-center sm:text-right">
+                  <p className="text-[13px] font-black text-slate-800 dark:text-slate-200 mb-1">
+                    الاقتراح يحتاج حساباً — لتتابعه لا لنقيّدك
+                  </p>
+                  <ul className="text-[11.5px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed space-y-0.5">
+                    <li>· تشوف حالته: قيد المراجعة ← قيد الإضافة ← تمت</li>
+                    <li>· نسألك إن نقص تفصيل، وتردّ علينا في نفس المكان</li>
+                    <li>· أول ما تُضاف، يجيك زرّ يبني بها تجميعة</li>
+                  </ul>
+                </div>
+                <a
+                  href="/login"
+                  className="shrink-0 w-full sm:w-auto text-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white text-sm font-black rounded-sm transition-all active:scale-95 shadow-sm shadow-cyan-500/20"
+                >
+                  سجّل دخولك
+                </a>
+              </div>
+            ) : (
             <div className="flex flex-col sm:flex-row gap-2.5">
+              {/* نوع القطعة — أوّل ما يُسأل عنه */}
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                aria-label="نوع القطعة"
+                className="shrink-0 sm:w-40 bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-700/60 rounded-sm px-3 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 hover:border-cyan-400 dark:hover:border-cyan-700 transition-all"
+              >
+                <option value="">النوع…</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+
               <input
                 type="text"
                 value={name}
@@ -136,10 +190,6 @@ export default function SuggestPartCard({
                 إرسال الاقتراح
               </button>
             </div>
-            {status !== 'authenticated' && (
-              <p className="mt-2.5 text-[11px] font-bold text-slate-400 dark:text-slate-500">
-                💡 <a href="/login" className="text-cyan-600 dark:text-cyan-400 underline hover:opacity-80">سجّل دخولك</a> لمتابعة حالة طلبك ويصلك إشعار عند الإضافة.
-              </p>
             )}
           </>
         )}

@@ -49,7 +49,7 @@ const categoryFieldsMap: Record<string, { key: string, label: string, type: 'tex
   ]
 };
 
-export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [] }: { categories: any[], components: any[], news: any[], cronStatus: boolean, settings?: Record<string, string>, stores?: StoreInfo[] }) {
+export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [], newRequests = 0 }: { categories: any[], components: any[], news: any[], cronStatus: boolean, settings?: Record<string, string>, stores?: StoreInfo[], newRequests?: number }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news' | 'affiliates'>('components');
   
   const [editingComponent, setEditingComponent] = useState<any>(null);

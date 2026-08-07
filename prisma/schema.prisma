@@ -13,6 +13,7 @@ model Category {
   id         String      @id @default(cuid())
   name       String      @unique 
   components Component[]
+  requests   RequestedPart[] // فئة القطع المطلوبة التي حدّدها المقترحون
 }
 
 // 2. جدول القطع (Components)
@@ -176,6 +177,7 @@ model User {
   builds        SavedBuild[] // ربط المستخدم بتجميعاته المحفوظة
   suggestions   Suggestion[] // إضافة هذا السطر
   partVotes     PartVote[]   // طلبات القطع الناقصة التي أرسلها
+  partMessages  PartRequestMessage[] // ردوده على استيضاحات الإدارة
   accounts      Account[]    // متطلب لـ NextAuth
   sessions      Session[]    // متطلب لـ NextAuth
 }
@@ -234,6 +236,20 @@ model RequestedPart {
   name        String            // آخر صيغة كتبها مستخدم — تُعرض كما هي
   normalized  String            @unique // مفتاح الدمج والعدّ (حروف صغيرة، بلا ضجيج)
   status      PartRequestStatus @default(REVIEWING)
+
+  /* فئة القطعة كما حدّدها المقترِح — "32GB DDR5" وحدها لا تكفي لمعرفة
+     أهي رام أم تخزين. تُستخدم أيضاً لتصفية منتقي القطعة عند الربط. */
+  categoryId  String?
+  category    Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  /* محادثة قصيرة بين الإدارة وصاحب الطلب — في PartRequestMessage.
+     السبب: اقتراح مثل "32GB DDR5 6000MHz" بلا شركة لا يكفي للإضافة، وكان
+     المخرج الوحيد رفضه بصمت. الآن يُسأل صاحبه ويردّ في نفس المربّع. */
+  messages    PartRequestMessage[]
+
+  /* أول مرة فتح فيها الأدمن هذا الطلب — null = جديد لم يُقرأ بعد،
+     وعليه تُبنى النقطة الحمراء على مربّع الطلبات. */
+  adminSeenAt DateTime?
   // يُملأ عند الإضافة → يفعّل زر "ابنِ تجميعة بهذه القطعة"
   componentId String?
   component   Component?        @relation(fields: [componentId], references: [id], onDelete: SetNull)
@@ -242,6 +258,23 @@ model RequestedPart {
   updatedAt   DateTime          @updatedAt
 
   @@index([status])
+}
+
+/* رسالة واحدة في محادثة طلب قطعة.
+   userId = null → من الإدارة. غيره → من صاحب الطلب.
+   حفظناها كسجلّات لا كحقلين، لأن الاستيضاح يحتاج أخذاً وردّاً لا ردّاً واحداً. */
+model PartRequestMessage {
+  id              String        @id @default(cuid())
+  requestedPartId String
+  requestedPart   RequestedPart @relation(fields: [requestedPartId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  body            String
+  createdAt       DateTime      @default(now())
+  /** لرسائل المستخدم: هل قرأها الأدمن؟ عليها تُبنى نقطة "ردود جديدة" */
+  seenByAdmin     Boolean       @default(false)
+
+  @@index([requestedPartId, createdAt])
 }
 
 model PartVote {
@@ -253,6 +286,16 @@ model PartVote {
   user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   source          String? // "builder" | "components" | "compare" — من أي صفحة أتى
   createdAt       DateTime      @default(now())
+
+  /* أزال صاحبه الطلب من قائمته (بعد إتمامه).
+     حذف ناعم لا صلب: الأدمن يحتاج أن يرى من أزال وماذا، فحذف الصفّ يمحو
+     الأثر ويجعل العدّاد يتقلّص بلا تفسير. */
+  removedAt       DateTime?
+
+  /* آخر مرة اطّلع فيها صاحب الطلب على حالته.
+     تُقارن بـ RequestedPart.updatedAt: أحدث منها = فيه جديد لم يره،
+     وعليها تُبنى النقطة على مربّع "تجميعاتي". */
+  seenAt          DateTime?
 
   // صوت واحد لكل مستخدم مسجّل لكل قطعة (المجهول لا يُدمج — كل NULL مستقل في Postgres)
   @@unique([requestedPartId, userId])

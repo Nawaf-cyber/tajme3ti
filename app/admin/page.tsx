@@ -36,6 +36,12 @@ export default async function AdminDashboard() {
   // المتاجر المفعّلة — منها تُولَّد حقول النموذج وأزرار الفلتر وألوانها
   const stores = await getStores();
 
+  /* طلبات لم يفتحها الأدمن بعد — عليها النقطة الحمراء في تبويب الطلبات */
+  const newRequests =
+    (await prisma.requestedPart.count({ where: { adminSeenAt: null } })) +
+    // وردود المستخدمين التي لم تُقرأ — كلاهما يستدعي فتح الصفحة
+    (await prisma.partRequestMessage.count({ where: { userId: { not: null }, seenByAdmin: false } }));
+
   // 2. جلب حالة التحديث التلقائي من قاعدة البيانات (سيرفر سايد)
   const cronStatus = await getCronStatus();
 
@@ -60,7 +66,7 @@ export default async function AdminDashboard() {
         </div>
         
         {/* 3. تمرير القيمة المستخرجة كمستند أساسي إلى المكون الإداري */}
-        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} />
+        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} newRequests={newRequests} />
       </div>
     </main>
   );

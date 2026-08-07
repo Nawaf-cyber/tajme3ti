@@ -188,11 +188,29 @@ const CLEANERS: Record<string, (url: string) => string> = {
   cazasouq: cleanCazasouq,
 };
 
+/* ============ تصفية البروتوكول ============
+ * روابط المنتجات تُدخَل من لوحة الإدارة أو من ملف CSV مستورَد، وتُوضع في
+ * href مباشرةً. رابط بـ`javascript:` أو `data:` في ملف استيراد يتحوّل إلى
+ * تنفيذ سكربت بنقرة الزائر على زرّ الشراء. لا نثق بالمصدر ولو كان الأدمن:
+ * الملف قد يأتي من طرف آخر.
+ */
+const isSafeHttpUrl = (u: string): boolean => {
+  try {
+    const p = new URL(u.trim());
+    return p.protocol === 'https:' || p.protocol === 'http:';
+  } catch {
+    return false;
+  }
+};
+
 export function buildStoreUrl(
   store: StoreLink,
   url: string | null | undefined,
   deepLink?: string | null,
 ): string {
+  // أي رابط غير http(s) يُسقَط تماماً بدل أن يُعرض
+  if (url && !isSafeHttpUrl(url)) url = null;
+  if (deepLink && !isSafeHttpUrl(deepLink)) deepLink = null;
   // شبكات الروابط العميقة: الرابط المولَّد وحده يجمع العمولة والهبوط على المنتج
   if (store.usesDeepLinks) {
     if (isCazasouqTrackingUrl(deepLink)) return deepLink!.trim();

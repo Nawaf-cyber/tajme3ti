@@ -149,6 +149,51 @@ export async function deleteComponent(formData: FormData) {
   revalidatePath('/');
 }
 
+/** رسالة من الإدارة في محادثة الطلب — يراها صاحبه في «تجميعاتي» ويردّ عليها */
+export async function replyToPartRequest(formData: FormData) {
+  await assertAdmin();
+  const id = formData.get('id') as string;
+  const body = ((formData.get('adminNote') as string) || '').trim().slice(0, 400);
+  if (!id || !body) return;
+
+  await prisma.partRequestMessage.create({
+    data: { requestedPartId: id, userId: null, body, seenByAdmin: true },
+  });
+
+  /* الرسالة حدثٌ يخصّ أصحاب الطلب: نلمس الطلب لتتحرّك updatedAt، ونصفّر
+     seenAt لأصواتهم كي تظهر لهم النقطة. بلا هذا يبقى السؤال صامتاً. */
+  await prisma.requestedPart.update({ where: { id }, data: { updatedAt: new Date() } });
+  await prisma.partVote.updateMany({
+    where: { requestedPartId: id, userId: { not: null } },
+    data: { seenAt: null },
+  });
+
+  revalidatePath('/admin/part-requests');
+  revalidatePath('/my-builds');
+}
+
+/** يُعلّم ردود المستخدمين كمقروءة — تُطفئ نقطة «ردود جديدة» عند الأدمن */
+export async function markPartMessagesSeen() {
+  await assertAdmin();
+  await prisma.partRequestMessage.updateMany({
+    where: { userId: { not: null }, seenByAdmin: false },
+    data: { seenByAdmin: true },
+  });
+  revalidatePath('/admin');
+  revalidatePath('/admin/part-requests');
+}
+
+/** يُعلّم الطلبات المعروضة كمقروءة — تُطفئ نقطة «طلبات جديدة» */
+export async function markPartRequestsSeen() {
+  await assertAdmin();
+  await prisma.requestedPart.updateMany({
+    where: { adminSeenAt: null },
+    data: { adminSeenAt: new Date() },
+  });
+  revalidatePath('/admin');
+  revalidatePath('/admin/part-requests');
+}
+
 /* ============ إدارة طلبات القطع ============ */
 const PART_STATUSES = ['REVIEWING', 'ADDING', 'ADDED'] as const;
 

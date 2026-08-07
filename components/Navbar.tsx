@@ -10,8 +10,18 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  /* تحديثات طلبات القطع التي لم يرها — نقطة على "تجميعاتي" */
+  const [unseen, setUnseen] = useState(0);
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!session) { setUnseen(0); return; }
+    fetch('/api/part-requests/unseen')
+      .then((r) => r.json())
+      .then((d) => setUnseen(Number(d?.unseen) || 0))
+      .catch(() => {});
+  }, [session]);
 
   return (
     <nav className="relative w-full bg-white/70 dark:bg-[#0B1120]/40 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
@@ -97,6 +107,12 @@ export default function Navbar() {
                 <Link href="/my-builds" className="text-sm font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/40 px-4 py-2 rounded-xl transition-colors border border-cyan-100 dark:border-cyan-800/30 flex items-center gap-1.5">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                   تجميعاتي
+                  {unseen > 0 && (
+                    <span className="relative flex h-2 w-2" title={`${unseen} تحديث على طلباتك`}>
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-70 animate-ping" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+                    </span>
+                  )}
                 </Link>
 
                 <div className="relative group ml-1">
@@ -181,6 +197,11 @@ export default function Navbar() {
                 <Link href="/my-builds" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 px-4 py-3.5 rounded-xl border border-cyan-100 dark:border-cyan-800/30 flex items-center justify-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                   تجميعاتي المحفوظة
+                  {unseen > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center tabular-nums">
+                      {unseen}
+                    </span>
+                  )}
                 </Link>
                 
                 {session.user?.role === 'ADMIN' && (
