@@ -36,7 +36,10 @@ const MAX_SHOWN = 14;
 /** ثوانٍ لكل بطاقة — الضابط الوحيد للسرعة الظاهرة (أكبر = أبطأ) */
 const SECONDS_PER_CARD = 8;
 
-/** أيقونة الريال — نفس النمط المعتمد في بقيّة الصفحات */
+/* أيقونة الريال — نفس النمط المعتمد في بقيّة الصفحات، لكن بـspan لا div.
+   النسخ الأخرى تعيش داخل عناصر تسمح بـdiv؛ هنا الأيقونة تظهر داخل <p>
+   في سطر التلخيص، و<div> داخل <p> غير صالح في HTML: المتصفّح يغلق الفقرة
+   عنده فيختلف شجر العميل عن شجر السيرفر وتفشل الـhydration. */
 const RiyalIcon = ({
   size = 'h-3.5 w-3.5',
   colorClass = 'bg-emerald-600 dark:bg-emerald-400',
@@ -44,7 +47,7 @@ const RiyalIcon = ({
   size?: string;
   colorClass?: string;
 }) => (
-  <div
+  <span
     className={`${size} ${colorClass} inline-block align-middle shrink-0`}
     style={{
       maskImage: "url('/riyal.svg')",
