@@ -63,9 +63,12 @@ body {
   }
 }
 
+/* الحركة وحدها هنا. أمّا التخطيط (flex + max-content) فمكتوب في الـstyle
+   المضمّن على العنصر عمداً: لو وصل ملف الأنماط ناقصاً أو قديماً — وهو ما
+   حدث فعلاً مع الحفظ المؤقّت لخادم التطوير — يبقى الشريط صفّاً واحداً
+   ساكناً بدل أن ينهار إلى عمودين مكرّرين. التدهور يكون في الحركة لا في
+   الشكل. */
 .marquee-track {
-  display: flex;
-  width: max-content;
   animation: marquee-drift var(--marquee-duration, 60s) linear infinite;
 }
 

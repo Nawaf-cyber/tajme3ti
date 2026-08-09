@@ -88,7 +88,15 @@ export default async function PriceDropsSection() {
       {/* الشريط يمتدّ لعرض الشاشة كاملاً — الحدّ الأقصى للعرض يقطع الإيهام
           بأنه قادم من خارج الإطار */}
       <div className="marquee-viewport relative overflow-hidden py-1">
-        <div className="marquee-track" style={{ ['--marquee-duration' as any]: `${duration}s` }}>
+        <div
+          className="marquee-track"
+          /* التخطيط مضمّن لا صفّي — انظر التعليق في globals.css */
+          style={{
+            display: 'flex',
+            width: 'max-content',
+            ['--marquee-duration' as any]: `${duration}s`,
+          }}
+        >
           {lane.map(({ items, clone }, laneIndex) => (
             <ul
               key={laneIndex}
