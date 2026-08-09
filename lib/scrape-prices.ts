@@ -47,6 +47,42 @@ export const isPlausible = (next: number, previous: number | null | undefined): 
   return ratio >= 0.4 && ratio <= 1.6;
 };
 
+/* ---- شاهد مستقل من بيانات schema.org ----
+   الحارس أعلاه يفترض أن القفزة الكبيرة = خطأ قراءة. لكنها أحياناً ارتفاع
+   حقيقي (رصدنا ٢٠٢٦-٠٨-٠٨: قرص ارتفع من ٦٠٠ إلى ٩٨٠ عند كازاسوق، فرفضه
+   الحارس وبقي الموقع يعرض السعر القديم — أسوأ من الخطأ الذي يحمينا منه).
+   الحلّ: إن أكّد مصدر ثانٍ في الصفحة (JSON-LD) الرقمَ نفسه، فالقراءة سليمة
+   والقفزة واقع سوق. لا نتجاوز الحارس إلا بهذا التطابق. */
+export type LdOffer = { price: number | null; inStock: boolean | null };
+
+export const jsonLdOffer = ($: cheerio.CheerioAPI): LdOffer => {
+  const found: LdOffer = { price: null, inStock: null };
+  $('script[type="application/ld+json"]').each((_, el) => {
+    if (found.price != null || found.inStock != null) return;
+    try {
+      const parsed = JSON.parse($(el).text());
+      const nodes = Array.isArray(parsed) ? parsed : [parsed];
+      for (const node of nodes) {
+        if (node?.['@type'] !== 'Product' || !node.offers) continue;
+        const offer = Array.isArray(node.offers) ? node.offers[0] : node.offers;
+        const p = parseFloat(String(offer?.price ?? '').replace(/,/g, ''));
+        if (p > 0) found.price = p;
+        const av = String(offer?.availability ?? '').toLowerCase();
+        if (av.includes('outofstock') || av.includes('soldout') || av.includes('discontinued')) found.inStock = false;
+        else if (av.includes('instock') || av.includes('limitedavailability') || av.includes('preorder')) found.inStock = true;
+        if (found.price != null || found.inStock != null) return;
+      }
+    } catch { /* JSON-LD مكسور ليس خطأً نُبلغ عنه — نتجاهله فحسب */ }
+  });
+  return found;
+};
+
+export const jsonLdPrice = ($: cheerio.CheerioAPI): number | null => jsonLdOffer($).price;
+
+/** هل يطابق الشاهدُ السعرَ المقروء (بفارق ١٪ يستوعب التقريب)؟ */
+export const confirmsPrice = (witness: number | null, price: number): boolean =>
+  witness != null && witness > 0 && Math.abs(witness - price) / price <= 0.01;
+
 /* ============ حدّ التزامن — بوّابة واحدة لكل طلبات Scrape.do ============
  *
  * خطة Scrape.do تسمح بعدد محدّد من الطلبات المتزامنة، وتجاوزه يردّ 429.
@@ -185,12 +221,29 @@ export async function scrapeAmazon(t: OfferTarget, token: string): Promise<Store
     }
     const $ = cheerio.load(html);
 
+    /* ---- التوفّر — من مسار الشراء لا من نصّ #availability وحده ----
+       رُصد ٢٠٢٦-٠٨-٠٨: حين لا يوجد عرض إطلاقاً، تعيد أمازون استخدام
+       #availability لكتلة جافاسكربت، فيخرج نصّاً بلا كلمة «unavailable»
+       والفحص القديم يستنتج "متوفّر". النتيجة أن كرت RTX 5090 بقي معروضاً
+       متوفّراً بسعر قديم، والسعر الوحيد في صفحته يخصّ ملحقاً (٢٨١ ﷼).
+
+       الإشارة الموثوقة: هل توجد وسيلة شراء؟ ومع ذلك لا نعلن النفاد إلا إن
+       كانت الصفحة مقروءة (فيها عنوان منتج) — صفحةٌ لم نفهمها تُبقي الحالة
+       السابقة، وهو الدرس نفسه الذي كلّفنا ٥٦ منتجاً في كازاسوق. */
     const availability = $('#availability').text().toLowerCase();
-    out.inStock = !(
+    const saysUnavailable =
       availability.includes('currently unavailable') ||
       availability.includes('غير متوفر') ||
-      availability.includes('لا يتوفر')
-    );
+      availability.includes('لا يتوفر');
+    const canBuy = $('#add-to-cart-button').length > 0 || $('#buy-now-button').length > 0;
+    const hasPriceBlock =
+      $('#corePriceDisplay_desktop_feature_div').length > 0 || $('#corePrice_feature_div').length > 0;
+    const isProductPage = $('#productTitle').length > 0;
+
+    if (saysUnavailable) out.inStock = false;
+    else if (canBuy) out.inStock = true;
+    else if (isProductPage && !hasPriceBlock) out.inStock = false; // صفحة منتج مقروءة بلا أي عرض
+    // وإلّا: لم نتعرّف على الصفحة → out.inStock يبقى على قيمته السابقة
 
     let priceText = $('#corePriceDisplay_desktop_feature_div .a-price-whole').first().text();
     if (!priceText) priceText = $('#corePrice_feature_div .a-price-whole').first().text();
@@ -276,8 +329,17 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
            div.product-price-new  (الحالي)
            div.product-price-old  (قبل الخصم — يظهر عند وجود عرض) */
     const priceScope = $('.price-wrapper, .product-price-group').first();
-    const curText = priceScope.find('.product-price-new').first().text();
+    const newText = priceScope.find('.product-price-new').first().text();
     const oldText = priceScope.find('.product-price-old').first().text();
+
+    /* بنيتان لا واحدة (رُصدت ٢٠٢٦-٠٨-٠٨):
+         عليه خصم  → .product-price-old + .product-price-new
+         بلا خصم   → .product-price وحده، ولا وجود لـ new إطلاقاً
+       قراءة new فقط كانت تُسقط كل منتج بلا خصم — ٢٥ عرضاً بخطأ معلن،
+       وأخرى صامتة أبقت سعراً قديماً بلا تنبيه. الاحتياط داخل النطاق نفسه
+       كي لا يعود خطأ الكاروسيل. */
+    const plainText = priceScope.find('.product-price').first().text();
+    const curText = parseMoney(newText) > 0 ? newText : plainText;
 
     let price = parseMoney(curText);
     let listPrice = parseMoney(oldText);
@@ -289,27 +351,30 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
        فبدا رقماً معقولاً ومرّ. */
     const currencyText = `${curText} ${oldText}`;
     const isBHD = /BHD/i.test(currencyText) || currencyText.includes('د.ب');
+    /* الشاهد يُقرأ بالعملة نفسها، فيخضع للتحويل نفسه — وإلا قارنّا ديناراً بريال */
+    let witness = jsonLdPrice($);
     if (isBHD) {
       // الدينار البحريني ≈ ١٠ ريالات (المتجر يستخدم هذا التحويل نفسه)
       if (price > 0) price *= 10;
       if (listPrice > 0) listPrice *= 10;
+      if (witness != null && witness > 0) witness *= 10;
     }
 
     price = round2(price);
     listPrice = round2(listPrice);
 
     if (price > 0) {
-      if (isPlausible(price, t.price)) {
+      if (isPlausible(price, t.price) || confirmsPrice(witness, price)) {
         out.price = price;
         out.listPrice = acceptListPrice(listPrice, price);
       } else {
-        out.errors.push(`كازاسوق (${t.name}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${t.price} سابقاً) — تحقّق من بنية الصفحة.`);
+        out.errors.push(`كازاسوق (${t.name}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${t.price} سابقاً) ولم تؤكّده بيانات الصفحة — تحقّق من بنية الصفحة.`);
       }
     } else if (out.inStock) {
       /* غياب السعر مع كون المنتج **متوفّراً** = عطل حقيقي (محدّد مكسور).
          أمّا النافد فلا يعرض سعراً أصلاً — والإبلاغ عنه كخطأ يملأ لوحة
          التنبيهات بضوضاء تُخفي الأعطال الفعلية. */
-      out.errors.push(`كازاسوق (${t.name}): لم يتم العثور على سعر في كتلة المنتج (.product-price-new).`);
+      out.errors.push(`كازاسوق (${t.name}): لم يتم العثور على سعر في كتلة المنتج (.product-price / .product-price-new).`);
     }
   } catch {
     out.errors.push(`كازاسوق (${t.name}): تجاوز الوقت المسموح (Timeout) أو خطأ اتصال.`);
@@ -338,9 +403,18 @@ export async function scrapeMicroless(t: OfferTarget, token: string): Promise<St
     const $ = cheerio.load(html);
     const htmlLower = html.toLowerCase();
 
+    /* ---- التوفّر — من بيانات schema.org أولاً ----
+       رُصد ٢٠٢٦-٠٨-٠٨: صفحة مايكروليس السليمة تحتوي «add to cart» و«notify
+       me» و«no longer available» **معاً** في قالبها، فالاستدلال بوجود النصّ
+       لا يفرّق بين متوفّر ونافد. والنافد يُعلن نفسه صراحة:
+         <script type="application/ld+json"> … "availability": ".../OutOfStock"
+       فكانت ٥ أقراص نافدة تُحسب متوفّرة وتُسجَّل خطأ "لم نجد سعراً". */
+    const ld = jsonLdOffer($);
     const metaAvailability = $('meta[property="product:availability"]').attr('content') || '';
     if (metaAvailability.includes('out of stock') || metaAvailability.includes('oos')) {
       out.inStock = false;
+    } else if (ld.inStock != null) {
+      out.inStock = ld.inStock;
     } else {
       const hasAddToCart = htmlLower.includes('add to cart') || htmlLower.includes('إضافة إلى العربة');
       out.inStock = !(!hasAddToCart && (htmlLower.includes('notify me') || htmlLower.includes('no longer available')));

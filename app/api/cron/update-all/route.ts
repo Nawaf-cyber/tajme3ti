@@ -2,6 +2,7 @@ import { prisma } from "../../../../lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
+import { dropPercent } from '../../../../lib/price';
 import { recordPriceHistory } from '../../../../lib/scrape-prices';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT } from '../../../../lib/stores-server';
@@ -47,6 +48,37 @@ export async function GET(req: Request) {
     if (!isCronEnabled) {
       return NextResponse.json({ message: "التحديث التلقائي معطل حالياً من لوحة التحكم." }, { status: 200 });
     }
+
+    /* ============ بوّابة التردّد ============
+       الجدولة الخارجية تنادي هذا المسار كل ساعة، وعدد الدورات اليومية
+       يُضبط من اللوحة. فبدل تعديل ملف workflow ثم دفعه ونشره كلّما أراد
+       الأدمن تغيير التردّد، يقرّر السيرفر هنا: هل مضى ما يكفي منذ آخر دورة؟
+
+       تُطبَّق على نداء الجدولة وحده. الأدمن الضاغط على الزرّ يقصد التحديث
+       الآن — وردّ "لم يحن الموعد" على ضغطة صريحة سلوكٌ يحيّر لا يحمي.
+
+       هامش الدقيقتين: مشغّلات الكرون تتأخّر قليلاً وتتقدّم قليلاً، ومقارنة
+       صارمة كانت ستُسقط دورةً كاملة لتأخّر ثوانٍ ثم تنتظر ساعة أخرى. */
+    const perDay = Math.min(24, Math.max(1, setting?.updatesPerDay ?? 6));
+    const intervalMs = (24 / perDay) * 3600_000;
+    const lastRun = setting?.lastCronRunAt?.getTime() ?? 0;
+    const sinceLast = Date.now() - lastRun;
+
+    if (isValidCron && lastRun > 0 && sinceLast < intervalMs - 120_000) {
+      const remainingMin = Math.ceil((intervalMs - sinceLast) / 60_000);
+      return NextResponse.json({
+        message: `لم يحن موعد الدورة القادمة — التردّد ${perDay} مرّات يومياً، وتبقّى ~${remainingMin} دقيقة.`,
+        skipped: true,
+        updatesPerDay: perDay,
+      }, { status: 200 });
+    }
+
+    /* نُعلّم البداية لا النهاية: لو تعثّرت الدورة في منتصفها، لا تنطلق
+       التالية فوراً فتتراكم دورتان على نفس المتاجر. */
+    await prisma.systemSetting.update({
+      where: { id: "default" },
+      data: { lastCronRunAt: new Date() },
+    });
 
     // ملاحظة: الخدمة المستخدمة هي Scrape.do (token)، لا ScraperAPI.
     // اسم المتغيّر تاريخي — القيمة هي توكن Scrape.do من dashboard.scrape.do
@@ -120,7 +152,17 @@ export async function GET(req: Request) {
         for (const u of resolved.offerUpdates) {
           await prisma.componentOffer.update({ where: { id: u.offerId }, data: u.data });
         }
-        await prisma.component.update({ where: { id: comp.id }, data: { price: resolved.lowestPrice, lastScrapedAt: new Date() } });
+        /* رصد الانخفاض: نحفظه فقط إن تجاوز العتبة (٣٪) — دون ذلك
+           تذبذبٌ لا يستحق أن يُعلَن "تخفيضاً" في الرئيسية. */
+        const drop = dropPercent(comp.price, resolved.lowestPrice);
+        await prisma.component.update({
+          where: { id: comp.id },
+          data: {
+            price: resolved.lowestPrice,
+            lastScrapedAt: new Date(),
+            ...(drop > 0 ? { previousPrice: comp.price, priceDroppedAt: new Date() } : {}),
+          },
+        });
         await recordPriceHistory(prisma, comp.id, resolved.pricePoints);
 
         // ---- وسوم إشعار ديسكورد ----

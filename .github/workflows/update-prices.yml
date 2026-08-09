@@ -1,0 +1,95 @@
+name: تحديث أسعار المتاجر
+
+# ============ لماذا هنا لا في vercel.json ============
+# خطة فيرسل المجانية (Hobby) تسمح بكرون **مرّة واحدة يومياً** فقط، وهي
+# لا تكفي: دفعة واحدة = ٣٥ قطعة، والكتالوج ٢٢٥ — فالدورة الكاملة كانت
+# ستستغرق أسبوعاً. GitHub Actions مجاني ويستدعي نفس المسار المحمي بالسرّ.
+#
+# ============ لماذا كل ساعة والتردّد في اللوحة ============
+# التردّد الفعلي يُضبط من /admin (عدد مرّات التحديث يومياً)، وهذا الملف
+# ينادي المسار كل ساعة فحسب. السيرفر يقرأ الإعداد ويقرّر: إن لم يحن
+# الموعد ردّ skipped بلا أن يمسّ متجراً أو يحرق رصيداً.
+#
+# البديل — كتابة التردّد هنا — كان يعني أن أي تغيير يحتاج تعديل ملف
+# ودفعه وانتظار النشر، وأن اللوحة تعرض رقماً لا سلطة له عليه.
+#
+# الحساب عند التردّد الافتراضي (٦): ٦ دورات × دفعتين × ٣٥ = ٤٢٠ فرصة
+# مقابل ٢٢٥ قطعة، أي تُفحص كل قطعة ~مرّتين يومياً بهامش مريح.
+
+on:
+  schedule:
+    - cron: '0 * * * *' # كل ساعة — والتردّد الحقيقي يقرّره إعداد اللوحة
+  # زرّ «Run workflow» في تبويب Actions — تشغيل فوري بلا انتظار الموعد
+  workflow_dispatch:
+    inputs:
+      batches:
+        description: 'عدد الدفعات (٣٥ قطعة لكل دفعة · ٧ = دورة كاملة)'
+        required: false
+        default: '2'
+
+# تشغيلة واحدة في كل وقت — لو تأخّرت واحدة لا تتراكم فوقها التالية
+concurrency:
+  group: update-prices
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: استدعاء دورة التحديث
+        env:
+          SITE: https://www.tajme3ti.com
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          # الجدولة تستخدم ٢؛ والتشغيل اليدوي يأخذ ما تكتبه في الزرّ
+          BATCHES: ${{ github.event.inputs.batches || 2 }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET غير مضبوط في أسرار المستودع"
+            exit 1
+          fi
+
+          fail=0
+          for i in $(seq 1 "$BATCHES"); do
+            echo "── الدفعة $i من $BATCHES ──"
+
+            # -m 90: مهلة أطول من مهلة الدالة (٦٠ث) كي نقرأ ردّها لا أن نقطعه
+            code=$(curl -sS -m 90 -o /tmp/out.json -w '%{http_code}' \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              "$SITE/api/cron/update-all") || code=000
+
+            echo "HTTP $code"
+
+            if [ "$code" != "200" ]; then
+              echo "::warning::الدفعة $i فشلت (HTTP $code)"
+              head -c 300 /tmp/out.json || true
+              fail=1
+            else
+              # ملخّص مقروء في سجلّ التشغيل بدل JSON خام
+              node -e '
+                const d = require("/tmp/out.json");
+                // موقوف من اللوحة، أو لم يحن الموعد → رسالة بلا success
+                if (!d.success) { console.log("ℹ️", d.message || "لم تُنفَّذ دورة"); process.exit(d.skipped ? 3 : 0); }
+                console.log(`✅ ${d.processed ?? (d.updatedNames || []).length}/${d.totalMatchingCount ?? "?"} قطعة` +
+                  ` · ${d.elapsedSeconds ?? "?"}ث · ~${d.estimatedCredits ?? "?"} رصيد` +
+                  (d.stoppedEarly ? " · ⏸ توقّف مبكر (الباقي للدفعة التالية)" : ""));
+                const e = d.errors || [];
+                if (e.length) {
+                  console.log(`⚠️ ${e.length} تنبيه:`);
+                  e.slice(0, 5).forEach((x) => console.log("   ·", x));
+                }
+              '
+              rc=$?
+              # 3 = لم يحن الموعد. الدفعة الثانية ستُردّ بالردّ نفسه، فنخرج.
+              if [ "$rc" = "3" ]; then
+                echo "⏭ إنهاء التشغيلة — التردّد يُضبط من لوحة الإدارة"
+                break
+              fi
+            fi
+
+            # فاصل بين الدفعات — يريح حدّ التزامن في Scrape.do
+            [ "$i" -lt "$BATCHES" ] && sleep 10
+          done
+
+          exit $fail

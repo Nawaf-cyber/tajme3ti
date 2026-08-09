@@ -2,6 +2,7 @@ import { prisma } from "../../../lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
+import { dropPercent } from '../../../lib/price';
 import { recordPriceHistory } from '../../../lib/scrape-prices';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT } from '../../../lib/stores-server';
@@ -63,7 +64,16 @@ export async function POST(req: Request) {
     for (const u of resolved.offerUpdates) {
       await prisma.componentOffer.update({ where: { id: u.offerId }, data: u.data });
     }
-    await prisma.component.update({ where: { id }, data: { price: resolved.lowestPrice, lastScrapedAt: new Date() } });
+    // نفس منطق الكرون: الانخفاض المعتبر يُحفظ ليظهر في الرئيسية
+    const drop = dropPercent(comp.price, resolved.lowestPrice);
+    await prisma.component.update({
+      where: { id },
+      data: {
+        price: resolved.lowestPrice,
+        lastScrapedAt: new Date(),
+        ...(drop > 0 ? { previousPrice: comp.price, priceDroppedAt: new Date() } : {}),
+      },
+    });
 
     // سجلّ الأسعار — نقطة واحدة لكل متجر في اليوم (كان مفقوداً هنا تماماً)
     await recordPriceHistory(prisma, id, resolved.pricePoints);

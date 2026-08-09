@@ -39,3 +39,19 @@ export const discountPercent = (
    المتاجر الثلاثة بأسمائها. انتقلتا إلى lib/stores.ts (cheapestOffer/offerDeal)
    تعملان على العروض، فتشملان أي متجر يُضاف. حُذفتا هنا كي لا يستوردهما أحد
    فيحصل على بيانات مجمّدة بلا أن يلاحظ. */
+
+/* ============ انخفاض السعر — عتبة العرض ============
+ * ٣٪ فأكثر: أقل من ذلك تذبذبُ ضريبة أو تقريب، وإعلانه "تخفيضاً" يُفقد
+ * القسم مصداقيته. والسقف نفسه سقفُ الخصم المعقول (٥٠٪) — ما فوقه خطأ قراءة.
+ */
+export const MIN_DROP_PERCENT = 3;
+
+export const dropPercent = (
+  previous: number | null | undefined,
+  current: number | null | undefined,
+): number => {
+  if (!previous || !current || previous <= current) return 0;
+  const pct = Math.round((1 - current / previous) * 100);
+  if (pct < MIN_DROP_PERCENT || pct > MAX_PLAUSIBLE_DISCOUNT) return 0;
+  return pct;
+};

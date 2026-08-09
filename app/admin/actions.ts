@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../api/auth/[...nextauth]/route';
 import { isCazasouqTrackingUrl } from '../../lib/affiliate';
+import { DEFAULT_UPDATES_PER_DAY, isValidFrequency } from '../../lib/cron-settings';
 
 /* رابط تتبّع كازاسوق: نقبله فقط إن كان رابط idevaffiliate صالحاً.
    قيمة خاطئة ملصوقة (رابط منتج عادي مثلاً) تُحفظ null فيسقط الكود
@@ -25,10 +26,14 @@ async function assertAdmin() {
 export async function getCronStatus() {
   try {
     const setting = await prisma.systemSetting.findUnique({ where: { id: "default" } });
-    return setting ? setting.cronEnabled : false;
+    return {
+      enabled: setting ? setting.cronEnabled : false,
+      updatesPerDay: setting?.updatesPerDay ?? DEFAULT_UPDATES_PER_DAY,
+      lastRunAt: setting?.lastCronRunAt ?? null,
+    };
   } catch (error) {
     console.error("Failed to fetch cron status:", error);
-    return false;
+    return { enabled: false, updatesPerDay: DEFAULT_UPDATES_PER_DAY, lastRunAt: null };
   }
 }
 
@@ -39,6 +44,25 @@ export async function toggleCronStatus(enabled: boolean) {
       where: { id: "default" },
       update: { cronEnabled: enabled },
       create: { id: "default", cronEnabled: enabled },
+    });
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/** يضبط عدد دورات التحديث اليومية (القيمة تُفحص مقابل القائمة المغلقة) */
+export async function setUpdateFrequency(perDay: number) {
+  await assertAdmin();
+  if (!isValidFrequency(perDay)) {
+    return { success: false, error: 'قيمة غير مسموحة.' };
+  }
+  try {
+    await prisma.systemSetting.upsert({
+      where: { id: "default" },
+      update: { updatesPerDay: perDay },
+      create: { id: "default", updatesPerDay: perDay },
     });
     revalidatePath('/admin');
     return { success: true };

@@ -43,6 +43,56 @@ body {
   }
 }
 
+/* ===== شريط منساب (Marquee) — قسم «انخفضت أسعارها» =====
+ *
+ * القائمة تُطبع مرّتين داخل المسار، والحركة تنقله بمقدار نصفه بالضبط
+ * (-50%) ثم تعود للصفر. عند لحظة العودة تكون النسخة الثانية في محلّ
+ * الأولى تماماً، فلا تُرى قفزة — وهذا ما يجعل الانسياب بلا بداية ولا نهاية.
+ *
+ * المدّة تُمرَّر من المكوّن كمتغيّر (--marquee-duration) محسوبةً من عدد
+ * القطع: كلّما زادت، طال الشريط وطالت المدّة بنفس النسبة — فتبقى السرعة
+ * الظاهرة ثابتة مهما كثرت التخفيضات، ولا يتحوّل الشريط إلى سباق.
+ */
+@keyframes marquee-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* الصفحة RTL: الاتجاه الموجب هنا يعني انسياباً بصرياً نحو اليسار */
+    transform: translateX(50%);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-drift var(--marquee-duration, 60s) linear infinite;
+}
+
+/* التوقّف عند مرور الفأرة — القارئ يريد تثبيت البطاقة ليقرأها أو يضغطها */
+.marquee-viewport:hover .marquee-track,
+.marquee-viewport:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
+/* تلاشٍ عند الحافّتين بدل قصٍّ حادّ — هو ما يجعل الشريط يذوب في الصفحة */
+.marquee-viewport {
+  -webkit-mask-image: linear-gradient(to left, transparent, #000 6rem, #000 calc(100% - 6rem), transparent);
+  mask-image: linear-gradient(to left, transparent, #000 6rem, #000 calc(100% - 6rem), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+  /* بلا حركة يصير التمرير باليد هو الوسيلة — فنُتيحه */
+  .marquee-viewport {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
 /* ===== مسارات الطاقة (PCB traces) في الهيرو ===== */
 
 @keyframes trace-flow {

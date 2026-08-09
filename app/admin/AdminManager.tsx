@@ -49,7 +49,10 @@ const categoryFieldsMap: Record<string, { key: string, label: string, type: 'tex
   ]
 };
 
-export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [], newRequests = 0 }: { categories: any[], components: any[], news: any[], cronStatus: boolean, settings?: Record<string, string>, stores?: StoreInfo[], newRequests?: number }) {
+/** حالة التحديث الآلي كما تعيدها getCronStatus */
+type CronStatus = { enabled: boolean; updatesPerDay: number; lastRunAt: Date | string | null };
+
+export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [], newRequests = 0 }: { categories: any[], components: any[], news: any[], cronStatus: CronStatus, settings?: Record<string, string>, stores?: StoreInfo[], newRequests?: number }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news' | 'affiliates'>('components');
   
   const [editingComponent, setEditingComponent] = useState<any>(null);
@@ -232,7 +235,11 @@ export default function AdminManager({ categories, components, news, cronStatus,
       
       <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
         <UpdatePricesButton />
-        <CronControlToggle initialStatus={cronStatus} />
+        <CronControlToggle
+          initialStatus={cronStatus.enabled}
+          initialPerDay={cronStatus.updatesPerDay}
+          lastRunAt={cronStatus.lastRunAt}
+        />
       </div>
       <ManualUpdateButton />
 

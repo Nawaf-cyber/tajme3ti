@@ -62,6 +62,15 @@ model Component {
      الطابور فتتأخّر عن التحديث بلا سبب ظاهر. هذا العمود يتغيّر بالسحب فقط. */
   lastScrapedAt DateTime?
 
+  /* ============ رصد انخفاض السعر ============
+     كان `priceDropped` يُحسب في كل دورة سحب ثم يُرمى بعد إشعار ديسكورد.
+     الآن يُحفظ: كم كان، ومتى انخفض — فيبني قسم "انخفضت أسعارها" في
+     الرئيسية بلا استعلام ثقيل على سجلّ الأسعار في كل زيارة. */
+  previousPrice  Float?    // السعر قبل آخر انخفاض
+  priceDroppedAt DateTime? // متى رُصد
+
+  @@index([priceDroppedAt])
+
   priceHistory PriceHistory[]
   requestedParts RequestedPart[] // القطع المطلوبة التي رُبطت بهذه القطعة عند إضافتها
   offers      ComponentOffer[]   // عروض المتاجر — المصدر الجديد بدل الأعمدة الثابتة أعلاه
@@ -356,6 +365,14 @@ model Prebuild {
 model SystemSetting {
   id          String  @id @default("default")
   cronEnabled Boolean @default(false)
+
+  /* كم دورة تحديث في اليوم — يضبطها الأدمن من اللوحة.
+     الجدولة الخارجية (GitHub Actions) تنادي المسار كل ساعة، وهذا الرقم
+     هو الذي يقرّر أيّ نداء يُنفَّذ وأيّها يُهمَل. فتغيير التردّد صار قراراً
+     في اللوحة لا تعديلاً في ملف workflow ثم نشراً. */
+  updatesPerDay Int       @default(6)
+  /** بداية آخر دورة نُفِّذت — المرجع الذي يُقاس عليه "هل حان الموعد؟" */
+  lastCronRunAt DateTime?
 }
 
 model Setting {

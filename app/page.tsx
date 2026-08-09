@@ -6,9 +6,14 @@ export const metadata: Metadata = { alternates: { canonical: '/' } };
 import { prisma } from '../lib/prisma';
 import AutoBuildsSection from '../components/AutoBuildsSection';
 import CompareTeaser from '../components/CompareTeaser';
+import PriceDropsSection from '../components/PriceDropsSection';
 import { productImage } from '../lib/image';
 
-export const revalidate = 300; // تحديث كل 5 دقائق — توازن بين السرعة وحداثة الأسعار والصور
+/* ⚠️ كانت revalidate = 300 فتُخزَّن النسخة ٥ دقائق، ومع stale-while-revalidate
+   يرى أول زائرٍ بعدها النسخة **القديمة** ويُطلق التجديد للتالي — فالتأخير
+   العملي يقارب ١٠ دقائق، ويتضاعف بتعدّد مناطق فيرسل. الصفحة تعرض أسعاراً
+   وقسم تخفيضات، والسعر المتأخّر أسوأ من الصفحة الأبطأ بأجزاء الثانية. */
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const latestComponents = await prisma.component.findMany({
@@ -113,6 +118,8 @@ export default async function HomePage() {
       </section>
 
         {/* قسم أداة المقارنة */}
+      <PriceDropsSection />
+
       <CompareTeaser />
 
       {/* 2. قسم أحدث القطع */}

@@ -1,0 +1,26 @@
+[
+  {
+    "categoryId": "cmpfziqnv0004x4ymffnp204c",
+    "brand": "NVIDIA",
+    "name": "GeForce RTX 5060 Low Profile 8GB",
+    "price": 2210.84,
+    "tdpWattage": 145,
+    "performanceTier": 2,
+    "imageUrl": "https://microless.com/cdn/products/e48977bed22fac2fc6f7489c2598b003-md.jpg",
+    "description": "### وش يعني Low Profile؟\n\nكرت **نصف ارتفاع** — أقصر من الكرت العادي بالنصف تقريباً، ويجي معه براكيت (شريحة التثبيت الخلفية) قصير يناسب الكيسات النحيفة.\n\nالكيس العادي يقبل كروتاً بارتفاع ١٢٠مم تقريباً، أمّا كيسات **SFF** الصغيرة وأجهزة **HTPC** (اللي تُوضع تحت التلفزيون) وأجهزة المكاتب الجاهزة، فسقفها ~٧٠مم — ما يدخلها إلا Low Profile. لو حطّيت كرتاً عادياً فيها، **ما ينسكّر الكيس أصلاً**.\n\n### وهذا الكرت تحديداً\n\nنفس شريحة RTX 5060 القياسية بلا أي تنازل: **٣٨٤٠ نواة CUDA** و**8GB GDDR7** على ناقل 128-bit، فالأداء مطابق لأخواتها كاملة الارتفاع — الفرق في الحجم لا في القوة.\n\nطولها **182.5مم** فقط (العادية ~200مم)، وسمكها خانتان، وتكفيها مزوّد **550 واط**.\n\n### تنفع لمن؟\n\n- يبني جهازاً صغيراً بجانب التلفزيون أو على المكتب بلا كيس ضخم\n- يبي يرقّي جهاز مكتب جاهز (Dell / HP / Lenovo) ما يقبل كرتاً عادياً\n- ألعاب **1080p** بإعدادات عالية مع دعم DLSS 4\n\n⚠️ قبل الشراء: تأكّد أن كيسك يذكر دعم **Low Profile** وأن فيه فتحتَي توسعة (الكرت خانتان).\n\n### وإذا كيسك عادي؟\n\nلا تدفع فرق سعر الحجم الصغير بلا فائدة. النسخة القياسية [GeForce RTX 5060](/components/cmq5060xx000000ym00000001) نفس الأداء وأرخص بوضوح — تحتاج فقط كيساً يقبل ~200مم.\n\nوإن كان عندك مجال أكبر وتبي قفزة حقيقية في الأداء، [GeForce RTX 5060 Ti](/components/cmq5060tixx00000ym00000002) أقوى بفارق ملموس وتفتح لك **1440p** بارتياح — بطول 245مم وتحتاج مزوّداً أكبر.\n\nالموديل: ZOTAC ZT-B50600L-10L",
+    "specs": {
+      "vram": "8GB",
+      "lengthMm": "182.5",
+      "memoryType": "GDDR7",
+      "memoryBus": "128-bit",
+      "interface": "PCIe 5.0 x8",
+      "ports": "1x HDMI 2.1b, 2x DP 2.1b",
+      "powerConnectors": "1x 8-pin",
+      "architecture": "Blackwell",
+      "formFactor": "Low Profile (نصف ارتفاع)"
+    },
+    "microlessUrl": "https://saudi.microless.com/product/zotac-gaming-geforce-rtx-5060-low-profile-graphics-card-8gb-gddr7-128-bit-memory-2497-mhz-engine-clock-28-gbps-memory-clock-3840-cuda-cores-pci-express-5-0-x8-zt-b50600l-10l/",
+    "microlessPrice": 2210.84,
+    "microlessInStock": true
+  }
+]

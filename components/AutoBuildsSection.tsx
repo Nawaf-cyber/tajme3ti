@@ -4,11 +4,10 @@ import CountdownTimer from './CountdownTimer';
 import { isAvailable } from '../lib/stores';
 import { OFFER_INCLUDE } from '../lib/stores-server';
 
-/* تثبيت التجميعات 24 ساعة:
-   الصفحة تُعاد بناؤها كل 24 ساعة، والاختيار يعتمد على بذرة مشتقّة من
-   تاريخ اليوم — فلا يتغيّر بين طلب وآخر داخل نفس اليوم.
-   بهذا يصدق وعد العدّاد بدل العشوائية اللحظية السابقة. */
-export const revalidate = 86400;
+/* ⚠️ كان هنا `export const revalidate = 86400` — وهو **بلا أثر**: Next يقرأ
+   إعدادات المقطع من page/layout/route فقط، ويتجاهلها في ملفات المكوّنات
+   بصمت. فالتعليق القديم ("تُعاد كل ٢٤ ساعة") كان يصف سلوكاً لم يحدث.
+   التخزين تحكمه الصفحة المستضيفة (app/page.tsx). */
 
 export default async function AutoBuildsSection() {
   const categories = await prisma.category.findMany({
