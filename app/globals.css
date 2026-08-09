@@ -72,16 +72,56 @@ body {
   animation: marquee-drift var(--marquee-duration, 60s) linear infinite;
 }
 
-/* التوقّف عند مرور الفأرة — القارئ يريد تثبيت البطاقة ليقرأها أو يضغطها */
+/* التوقّف عند مرور الفأرة — القارئ يريد تثبيت البطاقة ليقرأها أو يضغطها.
+   والسحب يوقفه أيضاً: is-dragging يضيفه المكوّن بدل استدعاء pause() من
+   جافاسكربت، لأن animation-play-state تتنازع مع WAAPI فيبقى الشريط
+   ساكناً بعد الإفلات أو يقفز. القرار كلّه هنا، والجافاسكربت يضع صنفاً. */
 .marquee-viewport:hover .marquee-track,
-.marquee-viewport:focus-within .marquee-track {
+.marquee-viewport:focus-within .marquee-track,
+.marquee-viewport.is-dragging .marquee-track {
   animation-play-state: paused;
 }
 
-/* تلاشٍ عند الحافّتين بدل قصٍّ حادّ — هو ما يجعل الشريط يذوب في الصفحة */
+/* ===== السحب باليد ===== */
+.marquee-draggable {
+  cursor: grab;
+  /* المحور الرأسي يبقى للصفحة: السحب الأفقي لنا، وتمرير الجوال لا يُخطَف */
+  touch-action: pan-y;
+}
+
+.marquee-draggable.is-dragging {
+  cursor: grabbing;
+}
+
+/* السحب يجب أن ينقل الشريط لا أن يظلّل نصّاً أو يسحب صورة */
+.marquee-draggable,
+.marquee-draggable img,
+.marquee-draggable a {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* تلاشٍ عند الحافّتين بدل قصٍّ حادّ — هو ما يجعل الشريط يذوب في الصفحة.
+   المقدار نسبيّ لا ثابت: ٦rem على شاشة ٣٧٥px تعني ١٩٢px باهتة من ٣٧٥،
+   أي أكثر من نصف العرض. min() يجعل التلاشي جزءاً من الشاشة على الصغيرة
+   ومقداراً ثابتاً مريحاً على الكبيرة. */
 .marquee-viewport {
-  -webkit-mask-image: linear-gradient(to left, transparent, #000 6rem, #000 calc(100% - 6rem), transparent);
-  mask-image: linear-gradient(to left, transparent, #000 6rem, #000 calc(100% - 6rem), transparent);
+  --marquee-fade: min(6rem, 12vw);
+  -webkit-mask-image: linear-gradient(
+    to left,
+    transparent,
+    #000 var(--marquee-fade),
+    #000 calc(100% - var(--marquee-fade)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to left,
+    transparent,
+    #000 var(--marquee-fade),
+    #000 calc(100% - var(--marquee-fade)),
+    transparent
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -93,6 +133,13 @@ body {
     overflow-x: auto;
     -webkit-mask-image: none;
     mask-image: none;
+  }
+  /* وهنا يسقط سحبُنا (لا حركة يحرّكها المكوّن، فيخرج مبكراً) ويتولّى
+     المتصفّح. لولا إعادة touch-action لبقي pan-y يمنع التمرير الأفقي
+     بالإصبع — فيصير القسم بلا حركة ولا سحب ولا تمرير على الجوّال. */
+  .marquee-draggable {
+    touch-action: auto;
+    cursor: default;
   }
 }
 

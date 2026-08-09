@@ -5,6 +5,7 @@ import { cheapestOffer, isAvailable } from '../lib/stores';
 import { dropPercent, formatPrice, MIN_DROP_PERCENT } from '../lib/price';
 import { productImage } from '../lib/image';
 import { specBadges } from '../lib/spec-badges';
+import MarqueeRail from './MarqueeRail';
 
 /**
  * ============ انخفضت أسعارها ============
@@ -154,17 +155,9 @@ export default async function PriceDropsSection() {
 
       {/* الشريط يمتدّ لعرض الشاشة — الحدّ الأقصى للعرض يقطع الإيهام بأنه
           قادم من خارج الإطار. والحشو الرأسي يترك مجالاً لارتفاع البطاقة
-          وظلّها عند المرور بدل أن يقصّهما overflow-hidden. */}
-      <div className="marquee-viewport relative overflow-hidden py-5">
-        <div
-          className="marquee-track"
-          /* التخطيط مضمّن لا صفّي — انظر التعليق في globals.css */
-          style={{
-            display: 'flex',
-            width: 'max-content',
-            ['--marquee-duration' as any]: `${duration}s`,
-          }}
-        >
+          وظلّها عند المرور بدل أن يقصّهما overflow-hidden.
+          الغلاف مكوّن عميل يضيف السحب باليد؛ البطاقات تبقى من السيرفر. */}
+      <MarqueeRail durationSeconds={duration}>
           {lanes.map(({ items, clone }, laneIndex) => (
             <ul key={laneIndex} className="flex shrink-0" aria-hidden={clone || undefined}>
               {items.map(({ c, pct }) => {
@@ -181,7 +174,10 @@ export default async function PriceDropsSection() {
                     <Link
                       href={`/components/${c.id}`}
                       tabIndex={clone ? -1 : undefined}
-                      className="group flex gap-4 w-[23rem] p-4 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl hover:border-rose-400/50 dark:hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/10 hover:-translate-y-1 transition-all duration-300"
+                      /* أضيق على الجوّال ليظهر طرف البطاقة التالية — وهو
+                         الدليل البصري الوحيد على أن الشريط يُسحب. بـ23rem
+                         تملأ البطاقةُ شاشةَ 375px فيبدو القسم بطاقةً ساكنة. */
+                      className="group flex gap-4 w-[19rem] sm:w-[23rem] p-4 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl hover:border-rose-400/50 dark:hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/10 hover:-translate-y-1 transition-all duration-300"
                     >
                       {/* لوح الصورة الأبيض — نفس معالجة بطاقات «أحدث القطع» */}
                       <div className="relative w-[5.25rem] h-[5.25rem] shrink-0 bg-slate-50 dark:bg-white rounded-2xl border border-slate-100 dark:border-slate-200 flex items-center justify-center p-2.5">
@@ -210,8 +206,12 @@ export default async function PriceDropsSection() {
                           )}
                         </div>
 
+                        {/* صندوق سطرين ثابت لا مرن: بعض الأسماء سطر وبعضها
+                            سطران، فكانت البطاقات بارتفاعات مختلفة (١٧٠ مقابل
+                            ١٥١) وتتبعها الأسعار على مستويات متفاوتة — شريطٌ
+                            متحرّك بحوافّ غير مستوية يبدو مكسوراً لا حيّاً. */}
                         <h3
-                          className="text-[13.5px] font-extrabold text-slate-900 dark:text-white leading-snug line-clamp-2 mt-0.5 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors"
+                          className="text-[13.5px] font-extrabold text-slate-900 dark:text-white leading-snug line-clamp-2 mt-0.5 min-h-[2.32rem] group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors"
                           dir="ltr"
                         >
                           {c.brand} {c.name}
@@ -259,8 +259,7 @@ export default async function PriceDropsSection() {
               })}
             </ul>
           ))}
-        </div>
-      </div>
+      </MarqueeRail>
     </section>
   );
 }
