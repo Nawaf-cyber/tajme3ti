@@ -105,13 +105,26 @@ export default function MarqueeRail({
       travelled = 0;
     };
 
+    /* ============ إبطال السحب الأصلي ============
+     * الروابط والصور قابلة للسحب افتراضياً في HTML. فأوّل تحريك بعد الضغط
+     * كان يُطلق سحب-وإفلات المتصفّح، وهو يُلغي سلسلة المؤشّر (pointercancel)
+     * ويمنع click — فلا الشريط يتحرّك ولا البطاقة تُفتح.
+     *
+     * السمة draggable={false} موضوعة على الرابط والصورة، وهذا الحاجز
+     * احتياطٌ على مستوى الحاوية: أي عنصر يُضاف لاحقاً (نصّ مُظلَّل، أيقونة
+     * SVG) يرثه بلا أن يتذكّره أحد. dragstart هو الحدث الصحيح للمنع —
+     * preventDefault على pointerdown كان سيُسقط النقرة معه. */
+    const blockNativeDrag = (e: DragEvent) => e.preventDefault();
+
     viewport.addEventListener('pointerdown', onPointerDown);
     viewport.addEventListener('pointermove', onPointerMove);
     viewport.addEventListener('pointerup', endDrag);
     viewport.addEventListener('pointercancel', endDrag);
     viewport.addEventListener('click', onClickCapture, true);
+    viewport.addEventListener('dragstart', blockNativeDrag);
 
     return () => {
+      viewport.removeEventListener('dragstart', blockNativeDrag);
       viewport.removeEventListener('pointerdown', onPointerDown);
       viewport.removeEventListener('pointermove', onPointerMove);
       viewport.removeEventListener('pointerup', endDrag);

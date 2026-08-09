@@ -174,6 +174,13 @@ export default async function PriceDropsSection() {
                     <Link
                       href={`/components/${c.id}`}
                       tabIndex={clone ? -1 : undefined}
+                      /* ⚠️ سمة حقيقية لا CSS: الروابط والصور قابلة للسحب
+                         افتراضياً في HTML، فكان أول تحريك يبدأ سحب-وإفلات
+                         أصلياً يُلغي سلسلة المؤشّر — فلا الشريط يتحرّك ولا
+                         النقرة تفتح المنتج. و‎-webkit-user-drag لا يكفي:
+                         بادئة غير قياسية لا تدعمها فايرفوكس ولا تُبطل
+                         السحب على الروابط. */
+                      draggable={false}
                       /* أضيق على الجوّال ليظهر طرف البطاقة التالية — وهو
                          الدليل البصري الوحيد على أن الشريط يُسحب. بـ23rem
                          تملأ البطاقةُ شاشةَ 375px فيبدو القسم بطاقةً ساكنة. */
@@ -185,6 +192,7 @@ export default async function PriceDropsSection() {
                           src={productImage(c.imageUrl, `/images/${c.categoryId}/boxed.png`)}
                           alt={c.name}
                           loading="lazy"
+                          draggable={false}
                           className="max-w-full max-h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                         />
                         <span className="absolute -top-2 -left-2 font-mono text-[11px] font-black text-white bg-rose-500 px-1.5 py-0.5 rounded-lg shadow-[0_0_12px_rgba(244,63,94,0.5)] tabular-nums">
