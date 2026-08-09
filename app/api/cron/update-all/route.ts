@@ -58,13 +58,28 @@ export async function GET(req: Request) {
        الآن — وردّ "لم يحن الموعد" على ضغطة صريحة سلوكٌ يحيّر لا يحمي.
 
        هامش الدقيقتين: مشغّلات الكرون تتأخّر قليلاً وتتقدّم قليلاً، ومقارنة
-       صارمة كانت ستُسقط دورةً كاملة لتأخّر ثوانٍ ثم تنتظر ساعة أخرى. */
+       صارمة كانت ستُسقط دورةً كاملة لتأخّر ثوانٍ ثم تنتظر ساعة أخرى.
+
+       ---- ولماذا نافذة التشغيلة ----
+       الدورة الواحدة ليست نداءً واحداً: مهلة الدالة ٦٠ث لا تكفي إلا لـ٣٥
+       قطعة، فالـworkflow ينادي المسار دفعتين متتاليتين. بمقارنة زمنية
+       ساذجة تكتب الدفعةُ الأولى الطابعَ فتُرفض الثانية بعد ثوانٍ — فتنزل
+       التغطية من ٤٢٠ فرصة يومياً إلى ٢١٠، أي أقلّ من عدد القطع، وهو الخلل
+       نفسه الذي أصلحناه من البداية عائداً من باب آخر.
+
+       فالنداء ضمن RUN_WINDOW من بداية الدورة يُعدّ **استكمالاً** لها لا
+       دورةً جديدة: يمرّ، ولا يُحرّك الطابع. النافذة (١٠د) أقصر من أقصر
+       فترة ممكنة (ساعة عند تردّد ٢٤) فلا تبتلع دورةً تالية. */
     const perDay = Math.min(24, Math.max(1, setting?.updatesPerDay ?? 6));
     const intervalMs = (24 / perDay) * 3600_000;
+    const RUN_WINDOW_MS = 10 * 60_000;
     const lastRun = setting?.lastCronRunAt?.getTime() ?? 0;
     const sinceLast = Date.now() - lastRun;
 
-    if (isValidCron && lastRun > 0 && sinceLast < intervalMs - 120_000) {
+    const isContinuation = lastRun > 0 && sinceLast < RUN_WINDOW_MS;
+    const isDue = lastRun === 0 || sinceLast >= intervalMs - 120_000;
+
+    if (isValidCron && !isContinuation && !isDue) {
       const remainingMin = Math.ceil((intervalMs - sinceLast) / 60_000);
       return NextResponse.json({
         message: `لم يحن موعد الدورة القادمة — التردّد ${perDay} مرّات يومياً، وتبقّى ~${remainingMin} دقيقة.`,
@@ -74,11 +89,15 @@ export async function GET(req: Request) {
     }
 
     /* نُعلّم البداية لا النهاية: لو تعثّرت الدورة في منتصفها، لا تنطلق
-       التالية فوراً فتتراكم دورتان على نفس المتاجر. */
-    await prisma.systemSetting.update({
-      where: { id: "default" },
-      data: { lastCronRunAt: new Date() },
-    });
+       التالية فوراً فتتراكم دورتان على نفس المتاجر.
+       والاستكمال لا يُعيد الكتابة، وإلا زحف الطابع مع كل دفعة فامتدّت
+       نافذة التشغيلة بلا نهاية. */
+    if (!isContinuation) {
+      await prisma.systemSetting.update({
+        where: { id: "default" },
+        data: { lastCronRunAt: new Date() },
+      });
+    }
 
     // ملاحظة: الخدمة المستخدمة هي Scrape.do (token)، لا ScraperAPI.
     // اسم المتغيّر تاريخي — القيمة هي توكن Scrape.do من dashboard.scrape.do
