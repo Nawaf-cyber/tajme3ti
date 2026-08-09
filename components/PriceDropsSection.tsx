@@ -4,6 +4,7 @@ import { OFFER_INCLUDE } from '../lib/stores-server';
 import { cheapestOffer, isAvailable } from '../lib/stores';
 import { dropPercent, formatPrice, MIN_DROP_PERCENT } from '../lib/price';
 import { productImage } from '../lib/image';
+import { specBadges } from '../lib/spec-badges';
 
 /**
  * ============ انخفضت أسعارها ============
@@ -142,6 +143,9 @@ export default async function PriceDropsSection() {
               {items.map(({ c, pct }) => {
                 const best = cheapestOffer((c as any).offers);
                 const saved = (c.previousPrice as number) - c.price;
+                /* ثلاث شارات كما في صفحة القطع — الاسم وحده لا يقول
+                   إن كان المعالج AM4 أو AM5، وهو أول ما يسأل عنه المشتري */
+                const badges = specBadges(c as any, 3);
 
                 return (
                   /* الحشو على العنصر لا فجوة flex: يبقى عرض الطبعة مضاعفاً
@@ -150,7 +154,7 @@ export default async function PriceDropsSection() {
                     <Link
                       href={`/components/${c.id}`}
                       tabIndex={clone ? -1 : undefined}
-                      className="group flex gap-4 w-[21rem] p-4 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl hover:border-rose-400/50 dark:hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/10 hover:-translate-y-1 transition-all duration-300"
+                      className="group flex gap-4 w-[23rem] p-4 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl hover:border-rose-400/50 dark:hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/10 hover:-translate-y-1 transition-all duration-300"
                     >
                       {/* لوح الصورة الأبيض — نفس معالجة بطاقات «أحدث القطع» */}
                       <div className="relative w-[5.25rem] h-[5.25rem] shrink-0 bg-slate-50 dark:bg-white rounded-2xl border border-slate-100 dark:border-slate-200 flex items-center justify-center p-2.5">
@@ -177,7 +181,23 @@ export default async function PriceDropsSection() {
                           {c.brand} {c.name}
                         </h3>
 
-                        <div className="flex items-baseline gap-2 mt-auto pt-1.5">
+                        {/* شارات المواصفات — نفس تنسيق صفحة القطع.
+                            nowrap لأن البطاقة ضيّقة، والالتفاف يزيد ارتفاعها
+                            فيختلّ اتّساق الشريط بين قطعة وأخرى. */}
+                        {badges.length > 0 && (
+                          <div className="flex gap-1.5 mt-2 overflow-hidden" dir="ltr">
+                            {badges.map((b, i) => (
+                              <span
+                                key={i}
+                                className="font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60 px-1.5 py-0.5 rounded-sm border border-slate-200 dark:border-slate-700/50 whitespace-nowrap shrink-0"
+                              >
+                                {b}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-baseline gap-2 mt-auto pt-2">
                           <span className="font-black text-lg text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 leading-none tabular-nums">
                             {formatPrice(c.price)}
                             <RiyalIcon size="h-3.5 w-3.5" />

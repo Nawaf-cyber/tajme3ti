@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { isAvailable, offerDeal } from '../../lib/stores';
 import { formatPrice } from '../../lib/price';
+import { specBadges as getSpecBadges } from '../../lib/spec-badges';
 import SuggestPartCard from '../../components/SuggestPartCard';
 import { productImage } from '../../lib/image';
 
@@ -266,19 +267,8 @@ export default function ComponentsClient({ components, categories }: { component
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {visible.map((comp) => {
               const available = isAvailable(comp);
-              // استخراج أهم 3 مواصفات سريعة من specs + الطاقة
-              const specBadges: string[] = [];
-              try {
-                const sp = typeof comp.specs === 'string' ? JSON.parse(comp.specs) : (comp.specs || {});
-                const priority = ['capacity', 'Capacity', 'memory', 'wattage', 'socket', 'chipset', 'speed', 'Speed', 'type', 'Type', 'cores', 'formFactor', 'architecture'];
-                for (const key of priority) {
-                  if (sp[key] && specBadges.length < 3) {
-                    const val = String(sp[key]).replace(/\s*\(.*\)/, '').slice(0, 12);
-                    if (val && !specBadges.includes(val)) specBadges.push(val);
-                  }
-                }
-              } catch {}
-              if (comp.tdpWattage && specBadges.length < 3) specBadges.push(`${comp.tdpWattage}W`);
+              // أهم 3 مواصفات — المنطق مشترك مع شريط التخفيضات في lib/spec-badges
+              const specBadges = getSpecBadges(comp, 3);
               // كود القطعة المختصر من الـ id
               const partCode = comp.id.slice(-4).toUpperCase();
 
