@@ -93,6 +93,26 @@ export default async function PriceDropsSection() {
      بطاقةً واحدة، ويعطي سبباً للتوقّف عند الشريط. */
   const topSaving = Math.max(...drops.map(({ c }) => (c.previousPrice as number) - c.price));
 
+  /* ---- تعليم صاحب أعلى نسبة ----
+   * القائمة مرتّبة بالنسبة تنازلياً، لكن **الترتيب في شريط متحرّك لا يُرى**:
+   * الزائر يرى ما يمرّ أمامه لا ما هو «أوّل». فمعلومة "أعلى تخفيض" كانت
+   * محسوبةً وضائعة. الشارة تجعلها تسافر مع البطاقة أينما بلغت.
+   *
+   * بالنسبة لا بالريال عمداً: النسبة هي ما تعرضه كل بطاقة، فلو علّمنا
+   * صاحب أكبر توفير بالريال لظهرت الشارة على بطاقة نسبتها أصغر مما
+   * بجانبها — تناقضٌ ظاهر للعين.
+   */
+  const topPct = drops[0].pct;
+  const topPctId = drops[0].c.id;
+
+  /* تمييز العدد في العربية: ٣–١٠ جمعُ قلّة، وما عداه مفرد منصوب.
+     «٦ قطعة» خطأ يلفت النظر في سطرٍ هدفه بناء الثقة. */
+  const countLabel =
+    drops.length === 1 ? 'قطعة واحدة'
+    : drops.length === 2 ? 'قطعتان'
+    : drops.length <= 10 ? `${drops.length} قطع`
+    : `${drops.length} قطعة`;
+
   /* الطبعة الثانية للانسياب المتّصل، وهي مكرّرة بصرياً فتُخفى عن القارئ
      الآلي (aria-hidden) كي لا تُقرأ القائمة مرّتين. */
   const lanes = [
@@ -112,18 +132,22 @@ export default async function PriceDropsSection() {
             {/* الإزاحة = عرض الشريط الجانبي (0.375rem) + الفجوة (0.75rem)،
                 فيبدأ السطر تحت أول حرف من العنوان لا تحت الشريط */}
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium ms-[1.125rem]">
-              {drops.length} قطعة نزل سعرها خلال آخر {WINDOW_DAYS} أيام · أكبر توفير{' '}
+              {countLabel} نزل سعرها خلال آخر {WINDOW_DAYS} أيام · أعلى خصم{' '}
+              <span className="font-black text-rose-600 dark:text-rose-400 tabular-nums">{topPct}٪</span> · أكبر توفير{' '}
               <span className="font-black text-rose-600 dark:text-rose-400 inline-flex items-baseline gap-1">
                 {formatPrice(topSaving)}
                 <RiyalIcon size="h-3 w-3" colorClass="bg-rose-600 dark:bg-rose-400" />
               </span>
             </p>
           </div>
+          {/* «عرض الكل» كان وعداً فارغاً: الشريط يعرض كل الانخفاضات فعلاً
+              (سقفه ١٤ وعددها أقلّ)، والضغط كان ينقل الزائر إلى ٢٢٥ قطعة غير
+              مرتّبة — تنزيلٌ لا ترقية. النصّ الآن يقول وجهته بصدق. */}
           <Link
             href="/components"
             className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors shrink-0"
           >
-            عرض الكل &larr;
+            تصفّح كل القطع &larr;
           </Link>
         </div>
       </div>
@@ -173,9 +197,18 @@ export default async function PriceDropsSection() {
                       </div>
 
                       <div className="min-w-0 flex-1 flex flex-col">
-                        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                          {c.category?.name}
-                        </span>
+                        {/* ارتفاع ثابت للصفّ: الشارة تظهر على بطاقة واحدة،
+                            وبلا تثبيت يصير ارتفاعها مختلفاً عن جاراتها */}
+                        <div className="flex items-center gap-1.5 h-[1.15rem]">
+                          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                            {c.category?.name}
+                          </span>
+                          {c.id === topPctId && (
+                            <span className="text-[9.5px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/15 border border-amber-400/50 dark:border-amber-500/30 px-1.5 rounded-full whitespace-nowrap leading-[1.1rem]">
+                              ★ الأعلى خصماً
+                            </span>
+                          )}
+                        </div>
 
                         <h3
                           className="text-[13.5px] font-extrabold text-slate-900 dark:text-white leading-snug line-clamp-2 mt-0.5 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors"
