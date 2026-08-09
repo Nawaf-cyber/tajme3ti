@@ -3,26 +3,24 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 
 /**
- * ============ غلاف الشريط المنساب — السحب باليد ============
+ * ============ الشريط المنساب — الحركة والسحب ============
  *
- * لماذا مكوّن عميل صغير لا مكوّن كامل: البطاقات كلّها تبقى مرسومة من
- * السيرفر وتُمرَّر children؛ ما يهبط للمتصفّح هو هذا الملف وحده.
+ * البطاقات كلّها مرسومة من السيرفر وتُمرَّر children؛ ما يهبط للمتصفّح هو
+ * هذا الملف وحده.
  *
- * ---- الفكرة التي تجعل السحب نظيفاً ----
- * لا نحرّك الشريط بأنفسنا. الحركة CSS من translateX(0) إلى translateX(50%)
- * على مدّة D، أي إزاحةٌ خطّية من صفر إلى عرض طبعة واحدة L. فبدل أن نضيف
- * تحويلاً يدوياً ثم نحتار كيف نوفّق بينه وبين الحركة عند الإفلات، نُحرّك
- * **ساعة الحركة**:
+ * ---- لماذا الحركة هنا لا في CSS (تصحيح معماري) ----
+ * كانت الحركة @keyframes في globals.css والسحب هنا، فصار السلوك موزّعاً
+ * على مصدرين وعطلُ أحدهما يشلّ الآخر:
+ *   • وصل الملف قديماً مرّةً (حفظ Turbopack المؤقّت) فاختفت الحركة، فصارت
+ *     getAnimations() فارغة والسحب يخرج مبكراً بلا أثر.
+ *   • واختفت معها قاعدة :hover التي توقف الشريط، فظلّ يزحف تحت المؤشّر —
+ *     فيقع mousedown على بطاقة وmouseup على أخرى، والمتصفّح لا يُطلق click
+ *     حين يختلف الهدفان. فلا سحب ولا فتح.
+ * وكان الإيقاف عبر animation-play-state يتنازع مع pause()/play() من WAAPI.
  *
- *     سحبُ Δ بكسل  ⇔  تقديم الساعة (Δ / L) × D
- *
- * فالسحب والانسياب في نظام إحداثيات واحد. الإفلات لا يحتاج مزامنة: تعود
- * الحركة من حيث تركتها بالضبط، بلا قفزة.
- *
- * ---- الإيقاف ----
- * لا نستدعي pause()/play() من جافاسكربت: خاصية animation-play-state في
- * CSS تتنازع معهما فيبقى الشريط ساكناً أو يقفز. نضيف صنفاً فقط، وCSS
- * وحدها تقرّر الإيقاف — للمرور بالفأرة وللسحب معاً.
+ * الآن مصدر واحد: الحركة تُنشأ بـWAAPI، والإيقاف والسحب يخاطبان الكائن
+ * نفسه. ملف الأنماط لم يبقَ له إلا المظهر (التلاشي والمؤشّر). ولو تعطّل
+ * جافاسكربت كلّه، يبقى الشريط صفّاً ساكناً مقروءاً وروابطه تعمل.
  */
 export default function MarqueeRail({
   durationSeconds,
@@ -39,29 +37,46 @@ export default function MarqueeRail({
     const track = trackRef.current;
     if (!viewport || !track) return;
 
-    let anim: Animation | undefined;
+    /* احترام تفضيل تقليل الحركة: لا حركة ولا سحب، ويتولّى المتصفّح
+       التمرير الأفقي (globals.css تفتح overflow-x وتعيد touch-action). */
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let anim: Animation | null = null;
+    if (!reduced) {
+      /* النسبة المئوية محسوبة على عرض العنصر نفسه: 50% من المسار = طبعة
+         واحدة بالضبط. فحين تنتهي الدورة تكون الطبعة الثانية في محلّ الأولى
+         تماماً — وهذا سرّ الالتفاف بلا قفزة. وهي تتكيّف تلقائياً لو تغيّر
+         عرض المسار بعد تحميل الصور. */
+      anim = track.animate(
+        [{ transform: 'translateX(0)' }, { transform: 'translateX(50%)' }],
+        { duration: durationSeconds * 1000, iterations: Infinity, easing: 'linear' },
+      );
+    }
+
     let startX = 0;
     let startTime = 0;
     let dragging = false;
     let travelled = 0;
 
-    const currentAnim = () =>
-      track.getAnimations().find((a) => (a as CSSAnimation).animationName === 'marquee-drift') ??
-      track.getAnimations()[0];
+    /* :hover حالةٌ في المتصفّح لا قاعدةٌ في ملف الأنماط، فقراءتها هنا
+       تعمل حتى لو ضاع الملف — وهو ما جعل الإيقاف يفشل سابقاً. */
+    const pointerIsOver = () => viewport.matches(':hover');
+
+    const pause = () => anim?.pause();
+    const resume = () => {
+      if (!anim || dragging || pointerIsOver()) return;
+      anim.play();
+    };
 
     const onPointerDown = (e: PointerEvent) => {
-      // الزرّ الأيمن ووسط الفأرة لهما وظائفهما؛ لا نخطفهما
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-
-      anim = currentAnim();
-      /* بلا حركة (تفضيل «تقليل الحركة») لا شيء نحرّكه — وهناك تمرير
-         أصلي مفعّل في CSS، فتركُ الحدث يمرّ أفضل من تعطيله. */
+      if (e.pointerType === 'mouse' && e.button !== 0) return; // الأيمن والأوسط لهما وظائفهما
       if (!anim) return;
 
       dragging = true;
       travelled = 0;
       startX = e.clientX;
       startTime = Number(anim.currentTime ?? 0);
+      anim.pause();
       viewport.classList.add('is-dragging');
       viewport.setPointerCapture(e.pointerId);
     };
@@ -70,15 +85,15 @@ export default function MarqueeRail({
       if (!dragging || !anim) return;
 
       const laneWidth = track.scrollWidth / 2; // طبعة واحدة = مدى دورة كاملة
-      const duration = Number(anim.effect?.getTiming().duration ?? 0);
-      if (!laneWidth || !duration) return;
+      const duration = durationSeconds * 1000;
+      if (!laneWidth) return;
 
       const dx = e.clientX - startX;
       travelled = Math.max(travelled, Math.abs(dx));
 
-      /* الالتفاف بالباقي: السحب بلا حدّ في الاتجاهين، وعند تجاوز الدورة
-         تعود الساعة لبدايتها — وهي اللحظة التي تحلّ فيها الطبعة الثانية
-         محلّ الأولى تماماً، فلا يرى الساحب حافّة ولا فراغاً. */
+      /* سحبُ Δ بكسل ⇔ تقديم الساعة (Δ / L) × D — فالسحب والانسياب في نظام
+         إحداثيات واحد، والإفلات لا يحتاج مزامنة. والالتفاف بالباقي يجعل
+         السحب بلا حدّ في الاتجاهين. */
       const next = startTime + (dx / laneWidth) * duration;
       anim.currentTime = ((next % duration) + duration) % duration;
     };
@@ -90,13 +105,14 @@ export default function MarqueeRail({
       try {
         viewport.releasePointerCapture(e.pointerId);
       } catch {
-        /* المؤشّر قد يكون أُفلت أصلاً (pointercancel) */
+        /* قد يكون أُفلت أصلاً (pointercancel) */
       }
+      resume(); // يبقى واقفاً إن كان المؤشّر ما زال فوق الشريط
     };
 
     /* سحبٌ انتهى فوق بطاقة ليس نقرةً عليها. بلا هذا يفتح كلُّ سحبٍ صفحةَ
-       القطعة التي تصادف وجودها تحت الإصبع — وهو أسوأ ما يمكن أن يحدث
-       لمن كان يحاول إرجاع قطعة فاتته. العتبة ٦ بكسل تسمح باهتزاز اليد. */
+       القطعة التي تصادف وجودها تحت الإصبع — وهو أسوأ ما يحدث لمن كان
+       يحاول إرجاع قطعة فاتته. العتبة ٦ بكسل تسمح باهتزاز اليد. */
     const onClickCapture = (e: MouseEvent) => {
       if (travelled > 6) {
         e.preventDefault();
@@ -105,17 +121,15 @@ export default function MarqueeRail({
       travelled = 0;
     };
 
-    /* ============ إبطال السحب الأصلي ============
-     * الروابط والصور قابلة للسحب افتراضياً في HTML. فأوّل تحريك بعد الضغط
-     * كان يُطلق سحب-وإفلات المتصفّح، وهو يُلغي سلسلة المؤشّر (pointercancel)
-     * ويمنع click — فلا الشريط يتحرّك ولا البطاقة تُفتح.
-     *
-     * السمة draggable={false} موضوعة على الرابط والصورة، وهذا الحاجز
-     * احتياطٌ على مستوى الحاوية: أي عنصر يُضاف لاحقاً (نصّ مُظلَّل، أيقونة
-     * SVG) يرثه بلا أن يتذكّره أحد. dragstart هو الحدث الصحيح للمنع —
-     * preventDefault على pointerdown كان سيُسقط النقرة معه. */
+    /* الروابط والصور قابلة للسحب افتراضياً في HTML، وسحبُ المتصفّح الأصلي
+       يُلغي سلسلة المؤشّر ويمنع click. السمة draggable={false} موضوعة على
+       الرابط والصورة، وهذا احتياطٌ يرثه أي عنصر يُضاف لاحقاً. */
     const blockNativeDrag = (e: DragEvent) => e.preventDefault();
 
+    viewport.addEventListener('pointerenter', pause);
+    viewport.addEventListener('pointerleave', resume);
+    viewport.addEventListener('focusin', pause);
+    viewport.addEventListener('focusout', resume);
     viewport.addEventListener('pointerdown', onPointerDown);
     viewport.addEventListener('pointermove', onPointerMove);
     viewport.addEventListener('pointerup', endDrag);
@@ -124,29 +138,28 @@ export default function MarqueeRail({
     viewport.addEventListener('dragstart', blockNativeDrag);
 
     return () => {
-      viewport.removeEventListener('dragstart', blockNativeDrag);
+      anim?.cancel();
+      viewport.removeEventListener('pointerenter', pause);
+      viewport.removeEventListener('pointerleave', resume);
+      viewport.removeEventListener('focusin', pause);
+      viewport.removeEventListener('focusout', resume);
       viewport.removeEventListener('pointerdown', onPointerDown);
       viewport.removeEventListener('pointermove', onPointerMove);
       viewport.removeEventListener('pointerup', endDrag);
       viewport.removeEventListener('pointercancel', endDrag);
       viewport.removeEventListener('click', onClickCapture, true);
+      viewport.removeEventListener('dragstart', blockNativeDrag);
     };
-  }, []);
+  }, [durationSeconds]);
 
   return (
-    <div
-      ref={viewportRef}
-      className="marquee-viewport marquee-draggable relative overflow-hidden py-5"
-    >
+    <div ref={viewportRef} className="marquee-viewport marquee-draggable relative overflow-hidden py-5">
       <div
         ref={trackRef}
         className="marquee-track"
-        /* التخطيط مضمّن لا صفّي — انظر التعليق في globals.css */
-        style={{
-          display: 'flex',
-          width: 'max-content',
-          ['--marquee-duration' as any]: `${durationSeconds}s`,
-        }}
+        /* التخطيط مضمّن لا صفّي: ملفُ أنماطٍ ناقص يوقف الحركة ولا يكسر
+           الشكل — انظر التعليق في globals.css */
+        style={{ display: 'flex', width: 'max-content' }}
       >
         {children}
       </div>
