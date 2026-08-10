@@ -133,9 +133,14 @@ export default function ComparePriceHistory({
       </div>
 
       <div className="overflow-x-auto">
+        {/* الصفحة RTL والـSVG يرث الاتجاه، وفي RTL ينقلب معنى text-anchor:
+            start تعني اليمين وend تعني اليسار — عكس ما بُنيت عليه إحداثيات
+            هذا الرسم، فتزحف تسمياتُ المحاور إلى الهوامش. النصّ العربي نفسه
+            يبقى صحيحاً لأن خوارزمية ثنائي الاتجاه تتولّى كل مقطع على حدة. */}
         <svg
           viewBox={`0 0 ${W} ${H}`}
           className="w-full h-auto min-w-[560px]"
+          style={{ direction: 'ltr' }}
           role="img"
           aria-label="مقارنة تاريخ أسعار القطع المختارة"
         >

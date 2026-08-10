@@ -258,11 +258,26 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
         ))}
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="رسم تاريخ السعر لكل متجر">
+      {/* direction مضمّن لا صفّي: تثبيت الهندسة أهمّ من أن يعتمد على قاعدة
+          قد تصل ناقصة — انظر التعليق في <style> أدناه */}
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full h-auto"
+        style={{ direction: 'ltr' }}
+        role="img"
+        aria-label="رسم تاريخ السعر لكل متجر"
+      >
         {/* الأنماط داخل الـSVG لا في globals.css: القسم يبقى مكوّن خادم بلا
             جافاسكربت، ولا يتعطّل التلميح لو وصل ملف الأنماط قديماً — وهو
             عطلٌ وقعنا فيه فعلاً في شريط التخفيضات. */}
         <style>{`
+          /* ⚠️ الصفحة RTL والـSVG يرث الاتجاه، وفي RTL ينقلب معنى
+             text-anchor: start تعني اليمين وend تعني اليسار — عكس ما بُنيت
+             عليه إحداثيات هذا الرسم. النتيجة نصوصٌ تخرج من صناديقها
+             (رُصد: سعرٌ يمتدّ إلى ١٣٤ في صندوق عرضه ١٢٦) وتسمياتُ محاورٍ
+             تمتدّ إلى الهامش. نثبّت الهندسة على LTR، والنصّ العربي نفسه
+             يبقى صحيحاً لأن خوارزمية الاتجاه ثنائي الاتجاه تتولّى كل مقطع
+             على حدة. والترتيب البصري العربي نصنعه بالإحداثيات لا بالوراثة. */
           .ph-col .ph-tip, .ph-col .ph-guide { opacity: 0; transition: opacity .12s ease; }
           .ph-col:hover .ph-tip, .ph-col:hover .ph-guide,
           .ph-col:active .ph-tip, .ph-col:active .ph-guide { opacity: 1; }
@@ -391,9 +406,12 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
                   className="fill-white dark:fill-slate-800 stroke-slate-200 dark:stroke-slate-600"
                   strokeWidth="1"
                 />
+                {/* الترتيب عربي بالإحداثيات: التاريخ والمتجر يميناً والسعر
+                    يساراً — والهندسة LTR فـ end تعني اليمين بيقين */}
                 <text
-                  x="10"
+                  x={tipW - 10}
                   y="15"
+                  textAnchor="end"
                   fontSize="10"
                   fontWeight="800"
                   className="fill-slate-500 dark:fill-slate-400"
@@ -404,10 +422,11 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
                   const ry = 22 + i * rowH + 9;
                   return (
                     <g key={e.name}>
-                      <circle cx="15" cy={ry - 3.5} r="3.5" fill={e.color} />
+                      <circle cx={tipW - 14} cy={ry - 3.5} r="3.5" fill={e.color} />
                       <text
-                        x="25"
+                        x={tipW - 24}
                         y={ry}
+                        textAnchor="end"
                         fontSize="10.5"
                         fontWeight="700"
                         className="fill-slate-600 dark:fill-slate-300"
@@ -415,9 +434,9 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
                         {e.name}
                       </text>
                       <text
-                        x={tipW - 10}
+                        x="10"
                         y={ry}
-                        textAnchor="end"
+                        textAnchor="start"
                         fontSize="10.5"
                         fontWeight="900"
                         className="fill-slate-900 dark:fill-white"
