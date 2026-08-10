@@ -68,6 +68,16 @@ export default function MarqueeRail({
       anim.play();
     };
 
+    /* ============ لماذا لا setPointerCapture ============
+     * كانت الحاوية تلتقط سلسلة المؤشّر عند الضغط. والالتقاط يُعيد توجيه
+     * أحداث الفأرة التوافقية إلى العنصر الملتقِط، فيُطلق المتصفّح click
+     * على **الحاوية** لا على الرابط الذي تحته — فلا تُفتح صفحة القطعة
+     * أبداً. سحبٌ يعمل ونقرةٌ ميّتة، وهو ما رآه المستخدم.
+     *
+     * البديل: نستمع للحركة والإفلات على window. يمنحنا ما كنّا نريده من
+     * الالتقاط (متابعة السحب خارج حدود الشريط) بلا أن نمسّ هدف النقرة.
+     * ولمس الشاشة أصلاً له التقاطٌ ضمنيّ من المتصفّح لا يكسر النقر.
+     */
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return; // الأيمن والأوسط لهما وظائفهما
       if (!anim) return;
@@ -77,8 +87,6 @@ export default function MarqueeRail({
       startX = e.clientX;
       startTime = Number(anim.currentTime ?? 0);
       anim.pause();
-      viewport.classList.add('is-dragging');
-      viewport.setPointerCapture(e.pointerId);
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -91,6 +99,10 @@ export default function MarqueeRail({
       const dx = e.clientX - startX;
       travelled = Math.max(travelled, Math.abs(dx));
 
+      /* الصنف يُضاف بعد تجاوز العتبة لا عند الضغط: ضغطةٌ ساكنة تمهيداً
+         لنقرة ليست سحباً، ولا يصحّ أن يتحوّل المؤشّر إلى قبضة لأجلها. */
+      if (travelled > 6) viewport.classList.add('is-dragging');
+
       /* سحبُ Δ بكسل ⇔ تقديم الساعة (Δ / L) × D — فالسحب والانسياب في نظام
          إحداثيات واحد، والإفلات لا يحتاج مزامنة. والالتفاف بالباقي يجعل
          السحب بلا حدّ في الاتجاهين. */
@@ -98,15 +110,10 @@ export default function MarqueeRail({
       anim.currentTime = ((next % duration) + duration) % duration;
     };
 
-    const endDrag = (e: PointerEvent) => {
+    const endDrag = () => {
       if (!dragging) return;
       dragging = false;
       viewport.classList.remove('is-dragging');
-      try {
-        viewport.releasePointerCapture(e.pointerId);
-      } catch {
-        /* قد يكون أُفلت أصلاً (pointercancel) */
-      }
       resume(); // يبقى واقفاً إن كان المؤشّر ما زال فوق الشريط
     };
 
@@ -131,11 +138,13 @@ export default function MarqueeRail({
     viewport.addEventListener('focusin', pause);
     viewport.addEventListener('focusout', resume);
     viewport.addEventListener('pointerdown', onPointerDown);
-    viewport.addEventListener('pointermove', onPointerMove);
-    viewport.addEventListener('pointerup', endDrag);
-    viewport.addEventListener('pointercancel', endDrag);
     viewport.addEventListener('click', onClickCapture, true);
     viewport.addEventListener('dragstart', blockNativeDrag);
+    /* على النافذة لا على الشريط: يستمرّ السحب ولو خرج المؤشّر من حدوده،
+       وينتهي ولو أُفلت الزرّ خارج الصفحة. */
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
 
     return () => {
       anim?.cancel();
@@ -144,11 +153,11 @@ export default function MarqueeRail({
       viewport.removeEventListener('focusin', pause);
       viewport.removeEventListener('focusout', resume);
       viewport.removeEventListener('pointerdown', onPointerDown);
-      viewport.removeEventListener('pointermove', onPointerMove);
-      viewport.removeEventListener('pointerup', endDrag);
-      viewport.removeEventListener('pointercancel', endDrag);
       viewport.removeEventListener('click', onClickCapture, true);
       viewport.removeEventListener('dragstart', blockNativeDrag);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', endDrag);
+      window.removeEventListener('pointercancel', endDrag);
     };
   }, [durationSeconds]);
 
