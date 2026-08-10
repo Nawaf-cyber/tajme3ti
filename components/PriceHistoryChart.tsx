@@ -155,6 +155,66 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
 
   const fmtDate = (d: Date) => d.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' });
 
+  /* ============ أعمدة التأشير ============
+   * تلميح لكل **يوم** لا لكل نقطة، لثلاثة أسباب:
+   *  ١) ما يريده القارئ هو المقارنة: كم كان سعر كل متجر في ذلك اليوم.
+   *  ٢) SVG بلا z-index — تلميحُ نقطةٍ مبكرة يختفي تحت ما يُرسم بعدها.
+   *     الأعمدة لا تتقاطع أفقياً وواحدٌ فقط ظاهر، فترتيب الطبقات ينحلّ.
+   *  ٣) منطقة التأشير تصير عموداً كامل الارتفاع بدل دائرة نصف قطرها ٣ —
+   *     إصابتها بالفأرة (والإصبع) أسهل بكثير.
+   */
+  const dayKeys = Array.from(new Set(allPoints.map((p) => p.date.toISOString().slice(0, 10)))).sort();
+  const colW = dayKeys.length > 1 ? plotW / (dayKeys.length - 1) : plotW;
+
+  const columns = dayKeys.map((key) => {
+    const date = new Date(key);
+    const cx = x(date);
+    const entries = storeSeries
+      .map((s) => {
+        const hit = s.points.find((p) => p.date.toISOString().slice(0, 10) === key);
+        return hit ? { name: s.label, color: s.color, price: hit.price } : null;
+      })
+      .filter((e): e is { name: string; color: string; price: number } => e !== null)
+      .sort((a, b) => a.price - b.price);
+    return { key, date, cx, entries };
+  }).filter((c) => c.entries.length > 0);
+
+  /* ============ تسميات فوق النقاط ============
+   * لا نسمّي كل نقطة: السعر الثابت أسبوعاً يعطي سبع تسميات متطابقة تحجب
+   * الخط ولا تضيف خبراً. نسمّي أوّل نقطة وآخرها وكلَّ نقطة تغيّر فيها
+   * السعر — وهي مواضع الخبر بالضبط.
+   *
+   * ثم مرشّح تصادم: التسمية تسقط إن تداخل صندوقها مع صندوق سُمّي قبله.
+   * الترتيب من اليمين (الأحدث) فالأولوية للأقرب زمناً.
+   */
+  type Label = { cx: number; cy: number; text: string; color: string };
+  const candidates: Label[] = [];
+  for (const s of storeSeries) {
+    s.points.forEach((p, i) => {
+      const isEdge = i === 0 || i === s.points.length - 1;
+      const changed = i > 0 && s.points[i - 1].price !== p.price;
+      if (!isEdge && !changed) return;
+      candidates.push({
+        cx: x(p.date),
+        cy: y(p.price),
+        text: Math.round(p.price).toLocaleString('en-US'),
+        color: s.color,
+      });
+    });
+  }
+
+  const placed: { x1: number; y1: number; x2: number; y2: number }[] = [];
+  const labels = candidates
+    .sort((a, b) => b.cx - a.cx) // الأحدث أوّلاً
+    .filter((l) => {
+      const w = l.text.length * 5.6 + 6;
+      const box = { x1: l.cx - w / 2, y1: l.cy - 18, x2: l.cx + w / 2, y2: l.cy - 6 };
+      const clash = placed.some((b) => !(box.x2 < b.x1 || box.x1 > b.x2 || box.y2 < b.y1 || box.y1 > b.y2));
+      if (clash) return false;
+      placed.push(box);
+      return true;
+    });
+
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-900/40">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -199,6 +259,16 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
       </div>
 
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="رسم تاريخ السعر لكل متجر">
+        {/* الأنماط داخل الـSVG لا في globals.css: القسم يبقى مكوّن خادم بلا
+            جافاسكربت، ولا يتعطّل التلميح لو وصل ملف الأنماط قديماً — وهو
+            عطلٌ وقعنا فيه فعلاً في شريط التخفيضات. */}
+        <style>{`
+          .ph-col .ph-tip, .ph-col .ph-guide { opacity: 0; transition: opacity .12s ease; }
+          .ph-col:hover .ph-tip, .ph-col:hover .ph-guide,
+          .ph-col:active .ph-tip, .ph-col:active .ph-guide { opacity: 1; }
+          .ph-col { cursor: crosshair; -webkit-tap-highlight-color: transparent; }
+        `}</style>
+
         {/* شبكة أفقية + تسميات المحور الرأسي */}
         {gridLines.map((g, i) => (
           <g key={i}>
@@ -256,6 +326,112 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
           </g>
         ))}
 
+        {/* تسميات الأسعار فوق النقاط — بحاشية بلون الخلفية (paint-order)
+            كي تُقرأ فوق الخطوط بدل أن تختلط بها */}
+        {labels.map((l, i) => (
+          <text
+            key={i}
+            x={l.cx}
+            y={l.cy - 8}
+            textAnchor="middle"
+            fontSize="9.5"
+            fontWeight="800"
+            fill={l.color}
+            paintOrder="stroke"
+            strokeWidth="3"
+            strokeLinejoin="round"
+            className="stroke-white dark:stroke-slate-900"
+          >
+            {l.text}
+          </text>
+        ))}
+
+        {/* أعمدة التأشير — آخر طبقة كي يعلو التلميح على كل ما سبق */}
+        {columns.map((col) => {
+          const rowH = 15;
+          const tipH = 22 + col.entries.length * rowH;
+          const tipW = Math.max(
+            126,
+            ...col.entries.map((e) => 40 + e.name.length * 6.6 + String(Math.round(e.price)).length * 6.4),
+          );
+          // ينقلب إلى اليسار قرب الحافّة اليمنى كي لا يخرج عن الإطار
+          const flip = col.cx + 10 + tipW > W - 4;
+          const tx = flip ? col.cx - 10 - tipW : col.cx + 10;
+          const ty = Math.min(PAD.top + 4, H - tipH - 4);
+
+          return (
+            <g key={col.key} className="ph-col">
+              {/* نصّ بديل: يقرؤه قارئ الشاشة، ويظهر كتلميح أصلي لو تعطّل
+                  الـCSS لأي سبب — التلميح المرسوم ليس المسار الوحيد للمعلومة */}
+              <title>
+                {`${fmtDate(col.date)}: ${col.entries.map((e) => `${e.name} ${Math.round(e.price)}`).join('، ')}`}
+              </title>
+              {/* منطقة التقاط بعرض المسافة بين يومين */}
+              <rect
+                x={col.cx - colW / 2}
+                y={PAD.top}
+                width={colW}
+                height={plotH}
+                fill="transparent"
+              />
+              <line
+                className="ph-guide stroke-slate-400 dark:stroke-slate-500"
+                x1={col.cx}
+                y1={PAD.top}
+                x2={col.cx}
+                y2={PAD.top + plotH}
+                strokeWidth="1"
+                strokeDasharray="3 3"
+              />
+              <g className="ph-tip" transform={`translate(${tx.toFixed(1)}, ${ty.toFixed(1)})`}>
+                <rect
+                  width={tipW}
+                  height={tipH}
+                  rx="8"
+                  className="fill-white dark:fill-slate-800 stroke-slate-200 dark:stroke-slate-600"
+                  strokeWidth="1"
+                />
+                <text
+                  x="10"
+                  y="15"
+                  fontSize="10"
+                  fontWeight="800"
+                  className="fill-slate-500 dark:fill-slate-400"
+                >
+                  {fmtDate(col.date)}
+                </text>
+                {col.entries.map((e, i) => {
+                  const ry = 22 + i * rowH + 9;
+                  return (
+                    <g key={e.name}>
+                      <circle cx="15" cy={ry - 3.5} r="3.5" fill={e.color} />
+                      <text
+                        x="25"
+                        y={ry}
+                        fontSize="10.5"
+                        fontWeight="700"
+                        className="fill-slate-600 dark:fill-slate-300"
+                      >
+                        {e.name}
+                      </text>
+                      <text
+                        x={tipW - 10}
+                        y={ry}
+                        textAnchor="end"
+                        fontSize="10.5"
+                        fontWeight="900"
+                        className="fill-slate-900 dark:fill-white"
+                      >
+                        {Math.round(e.price).toLocaleString('en-US')}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+            </g>
+          );
+        })}
+
         {/* تسميات المحور الأفقي: البداية والنهاية */}
         <text
           x={PAD.left}
@@ -280,7 +456,7 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
       </svg>
 
       <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2 text-center font-medium">
-        سعر كل متجر عبر الزمن — الخط المنقّط يمثّل أدنى سعر متاح
+        أشِر على أي يوم (أو المس واستمرّ) لترى أسعار المتاجر فيه — الخط المنقّط يمثّل أدنى سعر متاح
       </p>
     </div>
   );
