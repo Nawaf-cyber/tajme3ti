@@ -49,7 +49,7 @@ const LABELS: Record<string, string> = {
   // الرام
   speed: 'السرعة',
   kit: 'الطقم',
-  casLatency: 'الكمون',
+  casLatency: 'زمن الاستجابة',
   profile: 'البروفايل',
   rgb: 'إضاءة RGB',
 
