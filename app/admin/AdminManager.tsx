@@ -550,8 +550,16 @@ export default function AdminManager({ categories, components, news, cronStatus,
                             if (!window.confirm(`حذف (${comp.name})؟`)) return;
                             const t = toast.loading('جاري الحذف...');
                             try {
-                              await deleteComponent(formData);
-                              toast.success('تم الحذف بنجاح', { id: t });
+                              const res = await deleteComponent(formData);
+                              /* نُخبر بعدد الأوصاف التي نُظّفت: الأدمن يعرف أن
+                                 قطعاً أخرى كانت تشير إليها، فيراجع جملها إن شاء. */
+                              const cleaned = res?.cleanedRefs ?? 0;
+                              toast.success(
+                                cleaned > 0
+                                  ? `تم الحذف · ونُزعت الإشارة إليها من ${cleaned} وصفاً`
+                                  : 'تم الحذف بنجاح',
+                                { id: t, duration: cleaned > 0 ? 7000 : 4000 },
+                              );
                             } catch (e) {
                               toast.error('حدث خطأ أثناء الحذف', { id: t });
                             }

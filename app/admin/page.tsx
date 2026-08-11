@@ -119,6 +119,19 @@ export default async function AdminDashboard() {
     lastReportedAt: r.lastReportedAt.toISOString(),
   }));
 
+  /* 6. روابط داخلية مكسورة في الأوصاف.
+     يُحسب من نفس القطع المجلوبة أعلاه — بلا استعلام إضافي. وسببه أن ١٨
+     رابطاً عاشت مكسورة شهوراً لأن لا شيء كان يفحصها: نصوص نائبة لم تُستبدل،
+     وقطعٌ حُذفت وبقيت الإشارة إليها. الحذف صار ينظّف أثره، وهذا يكشف ما
+     يتسرّب من طريق آخر (لصق يدوي، استيراد، تعديل وصف). */
+  const componentIds = new Set(components.map((c) => c.id));
+  const brokenLinks: { name: string; id: string }[] = [];
+  for (const c of components) {
+    for (const m of (c.description || '').matchAll(/\/components\/([A-Za-z0-9_-]+)/g)) {
+      if (!componentIds.has(m[1])) brokenLinks.push({ name: c.name, id: m[1] });
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
@@ -133,6 +146,29 @@ export default async function AdminDashboard() {
             والبلاغ البشري قبل الرصد الآلي — لأن أحداً رأى الخطأ بعينه. */}
         <PriceReportsPanel rows={reportRows} />
         <PriceReviewPanel rows={reviewRows} />
+
+        {/* لا يظهر إلا عند وجود مكسور — لوحة تقول «كل شيء سليم» ضجيج دائم */}
+        {brokenLinks.length > 0 && (
+          <div className="mb-8 rounded-xl border border-rose-300 dark:border-rose-500/40 bg-rose-50/70 dark:bg-rose-500/5 px-4 py-3">
+            <h3 className="font-black text-sm text-rose-900 dark:text-rose-200 flex items-center gap-2">
+              <span>🔗</span> {brokenLinks.length} رابط داخلي مكسور في أوصاف القطع
+            </h3>
+            <p className="text-[11px] text-rose-700/80 dark:text-rose-300/70 font-medium mt-1 mb-2">
+              الزائر يضغط «البديل» فيصل إلى صفحة غير موجودة. أصلحها بـ
+              <span className="font-mono mx-1">node scripts/fix-broken-links.mjs</span>
+            </p>
+            <ul className="text-[11.5px] font-mono text-rose-800 dark:text-rose-300 space-y-0.5">
+              {brokenLinks.slice(0, 8).map((b, i) => (
+                <li key={i} dir="ltr" className="truncate">
+                  {b.name} → /components/{b.id}
+                </li>
+              ))}
+              {brokenLinks.length > 8 && (
+                <li className="opacity-70">… و{brokenLinks.length - 8} غيرها</li>
+              )}
+            </ul>
+          </div>
+        )}
 
         {/* 3. تمرير القيمة المستخرجة كمستند أساسي إلى المكون الإداري */}
         <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} newRequests={newRequests} />

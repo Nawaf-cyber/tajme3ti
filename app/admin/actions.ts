@@ -168,9 +168,37 @@ export async function updateComponent(formData: FormData) {
 export async function deleteComponent(formData: FormData) {
   await assertAdmin();
   const id = formData.get('id') as string;
+  if (!id) return { cleanedRefs: 0 };
+
+  /* ============ تنظيف الإشارات قبل الحذف ============
+   * ستّة روابط مكسورة في الكتالوج نشأت بالضبط هكذا: حُذفت قطعة وبقيت
+   * أوصافُ غيرها تشير إليها، فيضغط الزائر «البديل الأرخص» ويصل إلى 404 —
+   * في اللحظة التي أقنعه فيها الوصف بأن يشتري الأرخص.
+   *
+   * ننزع الرابط ونُبقي الاسم نصّاً: الجملة تبقى مفهومة، ولا يبقى وعدٌ
+   * بوجهة لا وجود لها. والتنظيف تلقائي لا تحذير يُتجاهَل — التحذير يُنسى،
+   * وهذا لا يُنسى. */
+  const marker = `/components/${id}`;
+  const referrers = await prisma.component.findMany({
+    where: { description: { contains: marker } },
+    select: { id: true, description: true },
+  });
+
+  const safeId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const r of referrers) {
+    const cleaned = (r.description || '')
+      .replace(new RegExp(`\\[([^\\]]+)\\]\\(${safeId ? `/components/${safeId}` : ''}\\)`, 'g'), '$1')
+      // مسارٌ عارٍ بلا صيغة رابط — يُحذف كلّياً فلا معنى له نصّاً
+      .replace(new RegExp(`\\s*/components/${safeId}`, 'g'), '');
+    if (cleaned !== r.description) {
+      await prisma.component.update({ where: { id: r.id }, data: { description: cleaned } });
+    }
+  }
+
   await prisma.component.delete({ where: { id } });
   revalidatePath('/admin');
   revalidatePath('/');
+  return { cleanedRefs: referrers.length };
 }
 
 /** رسالة من الإدارة في محادثة الطلب — يراها صاحبه في «تجميعاتي» ويردّ عليها */
