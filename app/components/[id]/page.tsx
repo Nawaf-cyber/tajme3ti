@@ -12,6 +12,7 @@ import { cheapestStoreNames, offerDeal } from '../../../lib/stores';
 import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
 import { productImage } from '../../../lib/image';
+import RichDescription from '../../../components/RichDescription';
 
 /* عنوان ووصف وcanonical خاصّان بكل قطعة.
    كانت ٢٢٤ صفحة ترث عنوان الرئيسية وcanonical يشير إليها — أي "محتوى مكرّر"
@@ -74,94 +75,6 @@ const RiyalIcon = ({ size = 'h-6 w-6' }: { size?: string }) => (
   />
 );
 
-const formatTextWithLinks = (text: string) => {
-  if (!text) return null;
-
-  // معالجة المقاطع داخل السطر: روابط، ألوان، ونص عريض **...**
-  const renderInline = (line: string, keyPrefix: string) => {
-    const regex = /(\[[^\]]+\]\([^\)]+\)|\[red\].*?\[\/red\]|\[green\].*?\[\/green\]|\[blue\].*?\[\/blue\]|\[yellow\].*?\[\/yellow\]|\*\*[^*]+\*\*|https?:\/\/[^\s]+)/g;
-    const parts = line.split(regex);
-
-    return parts.map((part, i) => {
-      if (!part) return null;
-      const key = `${keyPrefix}-${i}`;
-
-      // نص عريض **...**
-      if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
-        return <strong key={key} className="font-black text-slate-900 dark:text-white">{part.slice(2, -2)}</strong>;
-      }
-
-      if (part.match(/^\[([^\]]+)\]\(([^\)]+)\)$/)) {
-        const [, linkText, linkUrl] = part.match(/^\[([^\]]+)\]\(([^\)]+)\)$/)!;
-        return (
-          <a
-            key={key}
-            href={linkUrl}
-            target={linkUrl.startsWith('http') ? "_blank" : "_self"}
-            /* روابط المتاجر داخل الوصف تجارية بطبيعتها — جوجل يشترط
-               sponsored/nofollow عليها، وغيابها مخالفة صريحة لإرشاداته. */
-            rel={linkUrl.startsWith('http') ? "nofollow sponsored noopener noreferrer" : ""}
-            className="text-cyan-600 dark:text-cyan-400 font-bold underline hover:text-cyan-800 dark:hover:text-cyan-300 transition-colors mx-1"
-          >
-            {linkText}
-          </a>
-        );
-      }
-
-      if (part.match(/^https?:\/\/[^\s]+$/)) {
-        return (
-          <span key={key} className="block mt-8 flex justify-end w-full">
-            <a
-              href={part}
-              {...AFFILIATE_LINK_PROPS}
-              className="inline-flex items-center gap-2 px-5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-full transition-all border border-slate-300 dark:border-slate-700 shadow-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
-              الموقع الرسمي
-            </a>
-          </span>
-        );
-      }
-
-      if (part.startsWith('[red]') && part.endsWith('[/red]')) return <span key={key} className="text-rose-600 dark:text-rose-400 font-black">{part.slice(5, -6)}</span>;
-      if (part.startsWith('[green]') && part.endsWith('[/green]')) return <span key={key} className="text-emerald-600 dark:text-emerald-400 font-black">{part.slice(7, -8)}</span>;
-      if (part.startsWith('[blue]') && part.endsWith('[/blue]')) return <span key={key} className="text-cyan-600 dark:text-cyan-400 font-black">{part.slice(6, -7)}</span>;
-      if (part.startsWith('[yellow]') && part.endsWith('[/yellow]')) return <span key={key} className="text-amber-600 dark:text-amber-400 font-black">{part.slice(8, -9)}</span>;
-
-      return <span key={key}>{part}</span>;
-    });
-  };
-
-  // معالجة النص سطراً سطراً لدعم عناوين Markdown (###, ##, #)
-  const lines = text.split('\n');
-
-  return lines.map((line, idx) => {
-    const trimmed = line.trim();
-
-    // عنوان: ### أو ## أو #
-    const headingMatch = trimmed.match(/^(#{1,3})\s*(.+?)\s*#*$/);
-    if (headingMatch) {
-      const cleanTitle = headingMatch[2];
-      return (
-        <span key={`h-${idx}`} className="block text-lg md:text-xl font-black text-slate-900 dark:text-white mt-6 mb-2 first:mt-0">
-          {renderInline(cleanTitle, `h${idx}`)}
-        </span>
-      );
-    }
-
-    // سطر فارغ = مسافة
-    if (trimmed === '') {
-      return <span key={`br-${idx}`} className="block h-3" />;
-    }
-
-    // سطر عادي
-    return (
-      <span key={`p-${idx}`} className="block mb-1">
-        {renderInline(line, `p${idx}`)}
-      </span>
-    );
-  });
-};
 
 export default async function ComponentDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -312,7 +225,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             <div className="relative bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm border-t-2 border-t-cyan-500/70 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-6 md:p-8 shadow-sm h-full">
               <div className="prose prose-slate dark:prose-invert max-w-none">
                 <div className="text-slate-700 dark:text-slate-300 leading-loose font-medium text-[15px] md:text-base">
-                  {comp.description ? formatTextWithLinks(comp.description) : "لا يوجد وصف إضافي متاح لهذه القطعة حالياً."}
+                  {comp.description ? <RichDescription text={comp.description} /> : "لا يوجد وصف إضافي متاح لهذه القطعة حالياً."}
                 </div>
               </div>
             </div>

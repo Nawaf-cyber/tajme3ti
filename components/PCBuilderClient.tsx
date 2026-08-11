@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { isAvailable, liveOffers, type Offer } from '../lib/stores';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { productImage } from '../lib/image';
+import RichDescription from './RichDescription';
 
 type Component = {
   id: string;
@@ -77,57 +78,6 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-700 dark:bg-emer
   />
 );
 
-const formatTextWithLinks = (text: string) => {
-  if (!text) return null;
-  
-  const regex = /(\[[^\]]+\]\([^\)]+\)|\[red\].*?\[\/red\]|\[green\].*?\[\/green\]|\[blue\].*?\[\/blue\]|\[yellow\].*?\[\/yellow\]|https?:\/\/[^\s]+)/g;
-  const parts = text.split(regex);
-  
-  return parts.map((part, i) => {
-    if (!part) return null;
-
-    const mdLinkMatch = part.match(/^\[([^\]]+)\]\(([^\)]+)\)$/);
-    if (mdLinkMatch) {
-      const [, linkText, linkUrl] = mdLinkMatch;
-      return (
-        <a 
-          key={i} 
-          href={linkUrl} 
-          target={linkUrl.startsWith('http') ? "_blank" : "_self"}
-          /* روابط المتاجر داخل الوصف تجارية — جوجل يشترط sponsored/nofollow */
-          rel={linkUrl.startsWith('http') ? "nofollow sponsored noopener noreferrer" : ""}
-          className="text-cyan-600 dark:text-cyan-400 font-bold underline hover:text-cyan-800 dark:hover:text-cyan-300 transition-colors mx-1"
-        >
-          {linkText}
-        </a>
-      );
-    }
-
-    if (part.match(/^https?:\/\/[^\s]+$/)) {
-      return (
-        <a 
-          key={i} 
-          href={part}
-          target="_blank"
-          /* رابط خارجي داخل وصف منتج — نُعلّمه nofollow احتياطاً لأنه قد
-             يكون رابط متجر أو صفحة مصنّع في سياق تجاري. */
-          rel="nofollow noopener noreferrer"
-          className="inline-flex items-center gap-2 mt-3 mb-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-400 font-bold text-xs rounded-xl transition-all w-fit border border-slate-200 dark:border-slate-700 shadow-sm"
-        >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
-          الموقع الرسمي
-        </a>
-      );
-    }
-    
-    if (part.startsWith('[red]') && part.endsWith('[/red]')) return <span key={i} className="text-rose-600 dark:text-rose-400 font-bold">{part.slice(5, -6)}</span>;
-    if (part.startsWith('[green]') && part.endsWith('[/green]')) return <span key={i} className="text-emerald-600 dark:text-emerald-400 font-bold">{part.slice(7, -8)}</span>;
-    if (part.startsWith('[blue]') && part.endsWith('[/blue]')) return <span key={i} className="text-cyan-600 dark:text-cyan-400 font-bold">{part.slice(6, -7)}</span>;
-    if (part.startsWith('[yellow]') && part.endsWith('[/yellow]')) return <span key={i} className="text-amber-600 dark:text-amber-400 font-bold">{part.slice(8, -9)}</span>;
-    
-    return <span key={i}>{part}</span>;
-  });
-};
 
 const getBrandColor = (comp: Component, categoryName: string) => {
   if (categoryName !== 'CPU' && categoryName !== 'GPU') return 'text-cyan-700 dark:text-cyan-400';
@@ -2255,8 +2205,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                   <span className="text-cyan-600">📄</span> نظرة عامة
                 </h4>
                 <div className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed font-medium bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/30">
-                  {detailsModal.comp.description 
-                    ? formatTextWithLinks(detailsModal.comp.description) 
+                  {detailsModal.comp.description
+                    ? <RichDescription text={detailsModal.comp.description} />
                     : "لا يوجد وصف إضافي متوفر لهذه القطعة حالياً."}
                 </div>
               </div>
