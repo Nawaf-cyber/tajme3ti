@@ -12,6 +12,7 @@
  */
 
 import * as cheerio from 'cheerio';
+import { classifyPriceChange } from './price';
 
 /* ---- تدوير لمنزلتين ----
    يمنع نواتج الفاصلة العائمة مثل 409.09*10 = 4090.8999999999996
@@ -221,11 +222,55 @@ export type StoreOutcome = {
   listPrice: number | null | undefined;
   inStock: boolean;
   errors: string[];
+  /** سعر قُرئ بنجاح لكنه ارتفاع مشبوه — يُعلَّق للمراجعة ولا يُطبَّق */
+  heldPrice?: number;
 };
 
 const emptyOutcome = (inStock: boolean): StoreOutcome => ({
   price: null, listPrice: undefined, inStock, errors: [],
 });
+
+/**
+ * القرار المشترك لكل المتاجر: يُطبَّق، أم يُعلَّق للمراجعة، أم يُرفض؟
+ *
+ * كان كل محرّك متجر يكرّر الشرط بنفسه، فأي تعديل على السياسة يحتاج تحريره
+ * في أربعة مواضع — وهو الطريق الذي جعل خطأ محدّد كازاسوق يعيش في نسختين.
+ *
+ * @param witness سعر من مصدر ثانٍ في الصفحة (JSON-LD). تطابقه يعني أن
+ *                القراءة سليمة، فالقفزة واقعُ سوقٍ لا خطأ — فتُعتمد بلا سؤال.
+ */
+export function applyPriceVerdict(
+  out: StoreOutcome,
+  storeName: string,
+  itemName: string,
+  price: number,
+  listPrice: number,
+  previous: number | null | undefined,
+  witness?: number | null,
+): void {
+  if (confirmsPrice(witness ?? null, price)) {
+    out.price = price;
+    out.listPrice = acceptListPrice(listPrice, price);
+    return;
+  }
+
+  switch (classifyPriceChange(price, previous)) {
+    case 'ok':
+      out.price = price;
+      out.listPrice = acceptListPrice(listPrice, price);
+      return;
+    case 'hold':
+      /* لا نلمس السعر: يبقى القديم معروضاً حتى يقرّر الأدمن. ولا نُسجّله
+         خطأً — الخطأ يعني عطلاً يُصلَح، وهذا سؤالٌ يُجاب. */
+      out.heldPrice = price;
+      return;
+    case 'reject':
+      out.errors.push(
+        `${storeName} (${itemName}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${previous ?? '؟'} سابقاً) — تحقّق من بنية الصفحة.`,
+      );
+      return;
+  }
+}
 
 const scrapeUrl = (token: string, target: string, premium: boolean) =>
   `https://api.scrape.do/?token=${token}&url=${encodeURIComponent(target)}${premium ? '&super=true' : ''}`;
@@ -289,12 +334,7 @@ export async function scrapeAmazon(t: OfferTarget, token: string): Promise<Store
 
     const price = round2(parseMoney(priceText));
     if (price > 0) {
-      if (isPlausible(price, t.price)) {
-        out.price = price;
-        out.listPrice = acceptListPrice(round2(parseMoney(listText)), price);
-      } else {
-        out.errors.push(`أمازون (${t.name}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${t.price} سابقاً).`);
-      }
+      applyPriceVerdict(out, 'أمازون', t.name, price, round2(parseMoney(listText)), t.price);
     } else if (out.inStock) {
       // النافد لا يعرض سعراً — الإبلاغ عنه كخطأ ضوضاء تُخفي الأعطال الحقيقية
       out.errors.push(`أمازون (${t.name}): لم يتم العثور على سعر صالح.`);
@@ -393,12 +433,7 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
     listPrice = round2(listPrice);
 
     if (price > 0) {
-      if (isPlausible(price, t.price) || confirmsPrice(witness, price)) {
-        out.price = price;
-        out.listPrice = acceptListPrice(listPrice, price);
-      } else {
-        out.errors.push(`كازاسوق (${t.name}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${t.price} سابقاً) ولم تؤكّده بيانات الصفحة — تحقّق من بنية الصفحة.`);
-      }
+      applyPriceVerdict(out, 'كازاسوق', t.name, price, listPrice, t.price, witness);
     } else if (out.inStock) {
       /* غياب السعر مع كون المنتج **متوفّراً** = عطل حقيقي (محدّد مكسور).
          أمّا النافد فلا يعرض سعراً أصلاً — والإبلاغ عنه كخطأ يملأ لوحة
@@ -461,20 +496,13 @@ export async function scrapeMicroless(t: OfferTarget, token: string): Promise<St
     }
 
     if (price > 0) {
-      if (isPlausible(price, t.price)) {
-        out.price = price;
-        /* ⚠️ سعر ما قبل الخصم لمايكرولس **معطّل** حتى نتحقّق من محدّده.
-           المحاولة الأولى (meta[product:original_price] ثم del/.price-was)
-           أنتجت خصماً وهمياً ١٠٠٪ من الحالات: 7554.03 لكرت سعره 3042 (‎-60%).
-           والمبدأ نفسه المطبَّق على معامل عمولة مايكرولس ينطبق هنا:
-           خصم بسعر خاطئ أسوأ من لا خصم — يبدو عرضاً حقيقياً ويضلّل المشتري.
-           لإعادة تشغيله: افتح صفحة منتج مخفّض على مايكرولس، اقرأ بنية DOM
-           الفعلية، ثم أعد المحدّد المؤكّد هنا.
-           null (لا undefined) عن قصد: يمسح أي قيمة خاطئة مخزّنة سابقاً. */
-        out.listPrice = null;
-      } else {
-        out.errors.push(`مايكروليس (${t.name}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${t.price} سابقاً).`);
-      }
+      /* سعر ما قبل الخصم لمايكرولس **معطّل** حتى نتحقّق من محدّده: المحاولة
+         الأولى (meta[product:original_price] ثم del/.price-was) أنتجت خصماً
+         وهمياً ١٠٠٪ من الحالات — 7554.03 لكرت سعره 3042 (‎-60%). وخصمٌ بسعر
+         خاطئ أسوأ من لا خصم: يبدو عرضاً حقيقياً ويضلّل المشتري.
+         نُمرّر 0 فيسقط acceptListPrice إلى null، وnull يمسح أي قيمة خاطئة
+         مخزّنة سابقاً. لإعادة تشغيله: اقرأ بنية DOM لصفحة منتج مخفّض. */
+      applyPriceVerdict(out, 'مايكروليس', t.name, price, 0, t.price, ld.price);
     } else if (out.inStock) {
       // النافد لا يعرض سعراً — الإبلاغ عنه كخطأ ضوضاء تُخفي الأعطال الحقيقية
       out.errors.push(`مايكروليس (${t.name}): لم يتم العثور على سعر صالح.`);

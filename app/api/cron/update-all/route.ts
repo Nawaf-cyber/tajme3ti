@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { dropPercent, MIN_DROP_PERCENT } from '../../../../lib/price';
 import { recordPriceHistory, setScrapeDeadline } from '../../../../lib/scrape-prices';
+import { recordPriceHolds } from '../../../../lib/price-review';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT } from '../../../../lib/stores-server';
 
@@ -141,6 +142,7 @@ export async function GET(req: Request) {
     });
 
     let updatedCount = 0;
+    let heldCount = 0; // ارتفاعات جديدة تنتظر قرارك في اللوحة
     let updatedItems: { name: string; tags: string; storeLinks: string[]; notable: boolean }[] = [];
     let allErrors: string[] = [];
 
@@ -194,6 +196,7 @@ export async function GET(req: Request) {
           },
         });
         await recordPriceHistory(prisma, comp.id, resolved.pricePoints);
+        heldCount += await recordPriceHolds(prisma, comp.id, resolved.holds, resolved.settled);
 
         /* ---- ما الذي يستحقّ إشعاراً؟ ----
            كان الإشعار يسرد كل قطعة فُحصت — ثلاثين اسماً في كل دورة أغلبها
@@ -317,6 +320,7 @@ export async function GET(req: Request) {
       processed: updatedCount,
       elapsedSeconds: elapsedSec,
       stoppedEarly,
+      heldForReview: heldCount, // يظهر في سجلّ الـworkflow فتعرف أن ثمّة ما يُراجَع
       /* على المُنجَز لا على حجم الدفعة، وبالمعامل المقيس لا المقدَّر:
          قِيس فعلياً من عدّاد Scrape.do (٢٠٢٦-٠٨-١١) أن الطلب العادي = ١
          والمتقدّم super=true = ١٠، وأن القطعة تكلّف ١٦٫١ طلباً وسطياً. */

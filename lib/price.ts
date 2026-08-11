@@ -55,3 +55,47 @@ export const dropPercent = (
   if (pct < MIN_DROP_PERCENT || pct > MAX_PLAUSIBLE_DISCOUNT) return 0;
   return pct;
 };
+
+/* ============ حكم تغيّر السعر ============
+ *
+ * ثلاثة أحكام لا اثنان:
+ *   ok     → يُطبَّق فوراً
+ *   hold   → يُعلَّق للمراجعة، ويبقى القديم معروضاً حتى يقرّر الأدمن
+ *   reject → يُرفض بلا سؤال (هبوطٌ شديد لا يكون إلا خطأ قراءة)
+ *
+ * ---- لماذا حدّان معاً لا حدّ واحد ----
+ * الاعتماد على النسبة وحدها يُغرق اللوحة بأسئلة تافهة ويُسكت عن الجادّ:
+ *   مبرّد ٦٠ → ٩٠ ريال    = ‎+٥٠٪ لكنها ٣٠ ريالاً — لا تستحقّ وقتك
+ *   كرت ١٦٬٩٠٠ → ٢٠٬٠٠٠   = ‎+١٨٪ لكنها ٣٬١٠٠ ريال — حركة سوق معتادة لهذه الفئة
+ * والاعتماد على المبلغ وحده يُعلّق كل قطعة غالية عند أي حركة طبيعية.
+ * فالشرط أن يتجاوز الارتفاع الحدّين **معاً**: نسبةً كبيرة **و** مبلغاً يُشعر
+ * به المشتري. عندها فقط يكون السؤال مستحقّاً.
+ *
+ * ---- الهبوط ----
+ * يبقى رفضاً صامتاً كما كان: عرضُ سعرٍ أقلّ من الحقيقة يجرّ المشتري إلى
+ * خيبة عند المتجر، والخطأ في هذا الاتجاه أشدّ ضرراً من تفويت تخفيض.
+ */
+export const SPIKE_MIN_PERCENT = 40;   // نسبة الارتفاع
+export const SPIKE_MIN_AMOUNT = 200;   // ومقداره بالريال
+/** ما دون هذه النسبة من السعر السابق = خطأ قراءة لا هبوط */
+export const IMPLAUSIBLE_DROP_RATIO = 0.4;
+
+export type PriceVerdict = 'ok' | 'hold' | 'reject';
+
+export const classifyPriceChange = (
+  next: number | null | undefined,
+  previous: number | null | undefined,
+): PriceVerdict => {
+  if (!next || next <= 0) return 'reject';
+  if (!previous || previous <= 0) return 'ok'; // لا مرجع نقيس عليه
+  if (next / previous < IMPLAUSIBLE_DROP_RATIO) return 'reject';
+
+  const rise = next - previous;
+  if (rise <= 0) return 'ok';
+  const risePct = (rise / previous) * 100;
+  return risePct >= SPIKE_MIN_PERCENT && rise >= SPIKE_MIN_AMOUNT ? 'hold' : 'ok';
+};
+
+/** نسبة الارتفاع صحيحةً — للعرض في اللوحة */
+export const risePercent = (previous: number, next: number): number =>
+  previous > 0 ? Math.round(((next - previous) / previous) * 100) : 0;

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { getCronStatus } from "./actions"; // 1. استيراد دالة جلب الحالة من الـ actions
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import { getStores, OFFER_INCLUDE } from "../../lib/stores-server";
+import PriceReviewPanel from "./PriceReviewPanel";
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
@@ -55,6 +56,41 @@ export default async function AdminDashboard() {
     settingRows.map((r) => [r.key, r.value])
   );
 
+  /* 4. الارتفاعات المعلَّقة — أقدمها أوّلاً: السؤال الذي طال انتظاره يعني
+     سعراً قديماً معروضاً للزوار منذ أطول مدّة. */
+  const pendingReviews = await prisma.priceReview.findMany({
+    where: { status: 'PENDING' },
+    orderBy: { detectedAt: 'asc' },
+    take: 50,
+    include: {
+      component: { select: { name: true, brand: true } },
+      offer: {
+        select: {
+          url: true,
+          affiliateUrl: true,
+          store: { select: { name: true, color: true } },
+        },
+      },
+    },
+  });
+
+  const reviewRows = pendingReviews.map((r) => ({
+    id: r.id,
+    componentId: r.componentId,
+    componentName: r.component.name,
+    brand: r.component.brand,
+    storeName: r.offer.store.name,
+    storeColor: r.offer.store.color,
+    /* الرابط المباشر لا رابط العمولة: الغرض فحصُ الصفحة لا كسبُ عمولة،
+       ورابط التتبّع قد يمرّ بوسيط يعقّد التحقّق. */
+    url: r.offer.url,
+    oldPrice: r.oldPrice,
+    newPrice: r.newPrice,
+    changePct: r.changePct,
+    seenCount: r.seenCount,
+    detectedAt: r.detectedAt.toISOString(),
+  }));
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
@@ -65,6 +101,9 @@ export default async function AdminDashboard() {
           </span>
         </div>
         
+        {/* فوق كل شيء: سعرٌ خاطئ معروض للزوار أعجل من أي إعداد */}
+        <PriceReviewPanel rows={reviewRows} />
+
         {/* 3. تمرير القيمة المستخرجة كمستند أساسي إلى المكون الإداري */}
         <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} newRequests={newRequests} />
       </div>

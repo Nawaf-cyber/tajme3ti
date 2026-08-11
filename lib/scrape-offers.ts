@@ -12,7 +12,7 @@
  */
 
 import {
-  round2, isPlausible, acceptListPrice,
+  round2, applyPriceVerdict,
   scrapeAmazon, scrapeCazasouq, scrapeMicroless,
   type OfferTarget, type StoreOutcome,
 } from './scrape-prices';
@@ -68,17 +68,12 @@ export async function scrapeComponentOffers(
       const outcome: StoreOutcome = { price: null, listPrice: undefined, inStock: g.inStock, errors: g.errors };
 
       if (g.price != null && g.price > 0) {
-        /* حارس الانحراف يسري على المتاجر الجديدة أيضاً: قفزة تتجاوز ٦٠٪ عن
-           آخر سعر معروف تُرفض بدل أن تُخزَّن — نفس الحماية التي كشفت خطأ
-           قراءة كازاسوق سابقاً. */
-        if (isPlausible(g.price, o.price)) {
-          outcome.price = round2(g.price);
-          outcome.listPrice = g.listPrice != null ? acceptListPrice(g.listPrice, outcome.price) : null;
-        } else {
-          outcome.errors.push(
-            `${o.store.name} (${comp.name}): سعر مرفوض لانحرافه الشديد (${g.price} مقابل ${o.price} سابقاً).`,
-          );
-        }
+        /* نفس حكم المتاجر المكتوبة بالكود: المتجر الذي يضيفه الأدمن يخضع
+           للسياسة نفسها — يُطبَّق، أو يُعلَّق للمراجعة، أو يُرفض. */
+        applyPriceVerdict(
+          outcome, o.store.name, comp.name,
+          round2(g.price), g.listPrice ?? 0, o.price,
+        );
       }
       return { ...base, outcome };
     }),
@@ -99,6 +94,10 @@ export type ResolvedOffers = {
   pricePoints: { store: string; price: number }[];
   /** سطر لكل متجر لإشعار ديسكورد */
   lines: { label: string; url: string | null; price: number | null; inStock: boolean }[];
+  /** ارتفاعات مشبوهة عُلّقت — يكتبها المسار في طابور المراجعة */
+  holds: { offerId: string; storeName: string; oldPrice: number; newPrice: number }[];
+  /** عروض عاد سعرها إلى الطبيعي، فبطل سؤالٌ معلَّق عليها إن وُجد */
+  settled: string[];
 };
 
 /**
@@ -115,6 +114,8 @@ export function resolveOfferPrices(
   const pricePoints: { store: string; price: number }[] = [];
   const lines: ResolvedOffers['lines'] = [];
   const candidates: { store: string; price: number; list: number | null }[] = [];
+  const holds: ResolvedOffers['holds'] = [];
+  const settled: string[] = [];
 
   let restocked = false;
 
@@ -145,6 +146,15 @@ export function resolveOfferPrices(
     if (o.price != null && o.price > 0) pricePoints.push({ store: r.storeSlug, price: o.price });
     if (prev.inStock === false && o.inStock && o.price != null) restocked = true;
 
+    if (o.heldPrice != null && prev.price != null) {
+      holds.push({ offerId: r.offerId, storeName: r.storeName, oldPrice: prev.price, newPrice: o.heldPrice });
+    } else if (o.price != null) {
+      /* قُرئ سعرٌ واعتُمد، فأي سؤال معلَّق على هذا العرض بطل: إمّا عاد المتجر
+         لسعره أو تدرّج إليه. تركُه في الطابور يجعل الأدمن يراجع رقماً لم يعد
+         موجوداً — وهو أسوأ من عدم السؤال. */
+      settled.push(r.offerId);
+    }
+
     lines.push({ label: r.storeName, url: r.url, price: price ?? null, inStock: o.inStock });
   }
 
@@ -167,5 +177,7 @@ export function resolveOfferPrices(
     priceDropped: lowestPrice > 0 && lowestPrice < comp.price,
     pricePoints,
     lines,
+    holds,
+    settled,
   };
 }

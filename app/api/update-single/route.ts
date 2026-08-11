@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { dropPercent } from '../../../lib/price';
 import { recordPriceHistory, setScrapeDeadline } from '../../../lib/scrape-prices';
+import { recordPriceHolds } from '../../../lib/price-review';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT } from '../../../lib/stores-server';
 
@@ -82,9 +83,12 @@ export async function POST(req: Request) {
 
     // سجلّ الأسعار — نقطة واحدة لكل متجر في اليوم (كان مفقوداً هنا تماماً)
     await recordPriceHistory(prisma, id, resolved.pricePoints);
+    // والطابور نفسه: الزرّ اليدوي لا يُفلت ارتفاعاً يوقفه الكرون
+    const held = await recordPriceHolds(prisma, id, resolved.holds, resolved.settled);
 
     return NextResponse.json({
       success: true,
+      heldForReview: held,
       price: resolved.lowestPrice,
       previousPrice: comp.price,
       cheapestStore: resolved.cheapestStore,

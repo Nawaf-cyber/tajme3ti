@@ -95,6 +95,8 @@ jobs:
                 console.log(`✅ ${d.processed ?? (d.updatedNames || []).length}/${d.totalMatchingCount ?? "?"} قطعة` +
                   ` · ${d.elapsedSeconds ?? "?"}ث · ~${d.estimatedCredits ?? "?"} رصيد` +
                   (d.stoppedEarly ? " · ⏸ توقّف مبكر (الباقي للدفعة التالية)" : ""));
+                // الارتفاعات المعلّقة تُذكر هنا كي تُعرف بلا فتح اللوحة
+                if (d.heldForReview) console.log(`⚠️ ${d.heldForReview} ارتفاع سعري يحتاج مراجعتك في /admin`);
                 const e = d.errors || [];
                 if (e.length) {
                   console.log(`⚠️ ${e.length} تنبيه:`);

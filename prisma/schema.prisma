@@ -74,6 +74,7 @@ model Component {
   priceHistory PriceHistory[]
   requestedParts RequestedPart[] // القطع المطلوبة التي رُبطت بهذه القطعة عند إضافتها
   offers      ComponentOffer[]   // عروض المتاجر — المصدر الجديد بدل الأعمدة الثابتة أعلاه
+  priceReviews PriceReview[]
 
   @@index([categoryId])
 }
@@ -160,11 +161,52 @@ model ComponentOffer {
   lastCheckedAt DateTime?
   lastError     String?  // null = آخر محاولة نجحت
 
+  reviews      PriceReview[]
+
   updatedAt    DateTime @updatedAt
 
   // عرض واحد لكل قطعة في كل متجر
   @@unique([componentId, storeId])
   @@index([storeId])
+}
+
+/**
+ * ============ مراجعة الارتفاعات السعرية ============
+ *
+ * كان الحارس يرفض أي قفزة كبيرة صامتاً ويُبقي السعر القديم. والنتيجة أسوأ
+ * من الخطأ الذي يحمي منه: قرصٌ ارتفع عند المتجر من ٦٠٠ إلى ٩٨٠ ظلّ معروضاً
+ * على الموقع بـ٦٠٠، فيصل المشتري إلى المتجر ويجد الضعف — وثقته تذهب مرّة
+ * واحدة. والرفض الصامت يعني أيضاً أن لا أحد يعلم أن هناك ما يُراجَع.
+ *
+ * الآن: القفزة المشبوهة **تُعلَّق** لا تُرفض. تُعرض في اللوحة، ويقرّر الأدمن
+ * بعد فتح الرابط: اعتماد (يُطبَّق السعر ويُسجَّل في التاريخ) أو رفض (يبقى
+ * القديم ويُحفظ الرقم المرفوض كي لا يتكرّر السؤال كل ساعة).
+ */
+model PriceReview {
+  id          String   @id @default(cuid())
+
+  offerId     String
+  offer       ComponentOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  componentId String
+  component   Component      @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  oldPrice    Float    // السعر المعتمد وقت الرصد
+  newPrice    Float    // السعر المرصود المعلَّق
+  changePct   Int      // نسبة الارتفاع — للفرز والعرض بلا حساب
+
+  /** كم مرّة رُصد الرقم نفسه — تكراره يرجّح أنه حقيقي لا خطأ قراءة */
+  seenCount   Int      @default(1)
+  detectedAt  DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  /* PENDING بانتظار القرار · APPROVED اعتُمد · REJECTED رُفض
+     · OBSOLETE عاد السعر لطبيعته فبطل السؤال */
+  status      String   @default("PENDING")
+  reviewedAt  DateTime?
+  reviewedBy  String?   // بريد الأدمن — أثرٌ يبقى بعد القرار
+
+  @@index([status, detectedAt])
+  @@index([offerId, status])
 }
 
 // 3. جدول المستخدمين (Users)
