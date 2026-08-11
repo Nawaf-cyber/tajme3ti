@@ -91,3 +91,40 @@ const humanize = (key: string): string =>
     .replace(/^./, (ch) => ch.toUpperCase());
 
 export const specLabel = (key: string): string => LABELS[key] ?? humanize(key);
+
+/* ============ ترتيب العرض ============
+ *
+ * ⚠️ لماذا هنا لا في القاعدة: عمود specs من نوع Json، وPostgres يخزّنه
+ * jsonb — وjsonb **يعيد ترتيب المفاتيح بطول الاسم ثم أبجدياً** ويتجاهل
+ * ترتيب الإدخال. فأي ترتيب نكتبه عند الحفظ يضيع، والجدول يظهر مرتّباً
+ * بطول اسم المفتاح: vram ثم ports ثم lengthMm — ترتيبٌ بلا معنى للقارئ.
+ *
+ * فالترتيب يُفرض وقت العرض: ما يقرّر التوافق أولاً (المقبس، الطول، السعة)
+ * ثم الأداء ثم الوصفي. وما ليس في القائمة يُلحق بآخرها كما هو.
+ */
+const ORDER: Record<string, string[]> = {
+  CPU: ['socket', 'cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'pCores', 'eCores', 'integratedGraphics', 'memorySupport', 'architecture'],
+  GPU: ['vram', 'memoryType', 'memoryBus', 'lengthMm', 'powerConnectors', 'interface', 'ports', 'architecture', 'formFactor'],
+  Motherboard: ['socket', 'chipset', 'formFactor', 'ramType', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion'],
+  RAM: ['type', 'capacity', 'kit', 'speed', 'casLatency', 'profile', 'rgb', 'color'],
+  Storage: ['type', 'capacity', 'interface', 'formFactor', 'readSpeed', 'writeSpeed'],
+  PSU: ['wattage', 'rating', 'modularity', 'formFactor'],
+  Case: ['formFactor', 'maxGpuLength', 'includedFans', 'radiatorSupport', 'airflow', 'sidePanel', 'frontPanel', 'cableManagement', 'verticalGpu', 'dualChamber', 'pcieRiser', 'coolingModes', 'orientation', 'design', 'screen', 'glass', 'handles', 'storage', 'color', 'modular', 'acoustics'],
+};
+
+/** أزواج [مفتاح، قيمة] بترتيب العرض المعتمد للفئة */
+export function sortedSpecs(
+  categoryName: string | null | undefined,
+  specs: Record<string, unknown>,
+): [string, unknown][] {
+  const order = ORDER[categoryName || ''] || [];
+  const rank = (k: string) => {
+    const i = order.indexOf(k);
+    return i === -1 ? order.length : i;
+  };
+  return Object.entries(specs || {}).sort((a, b) => {
+    const d = rank(a[0]) - rank(b[0]);
+    // المفاتيح غير المذكورة تبقى بترتيبها بينها، فلا تقفز عشوائياً
+    return d !== 0 ? d : 0;
+  });
+}

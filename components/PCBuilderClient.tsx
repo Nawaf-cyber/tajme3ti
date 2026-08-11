@@ -19,7 +19,7 @@ import { isAvailable, liveOffers, type Offer } from '../lib/stores';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { productImage } from '../lib/image';
 import RichDescription from './RichDescription';
-import { specLabel } from '../lib/spec-labels';
+import { specLabel, sortedSpecs } from '../lib/spec-labels';
 
 type Component = {
   id: string;
@@ -1666,13 +1666,15 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     }
   };
 
-  const renderSpecs = (specsStr: any) => {
+  /* الفئة تُمرَّر للترتيب: jsonb يعيد ترتيب المفاتيح بطول الاسم، فالترتيب
+     المفيد يُفرض هنا لا عند الحفظ — انظر التعليق في lib/spec-labels */
+  const renderSpecs = (specsStr: any, categoryName?: string) => {
     if (!specsStr) return <p className="text-sm text-slate-500 font-medium">لا توجد مواصفات فنية مسجلة.</p>;
     try {
       const parsed = parseSpecs(specsStr);
       return (
         <div className="grid grid-cols-2 gap-3 mt-3">
-          {Object.entries(parsed).map(([key, value]) => (
+          {sortedSpecs(categoryName, parsed).map(([key, value]) => (
             <div key={key} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/50">
               <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest mb-1">{specLabel(key)}</span>
               <span className="block text-sm font-bold text-slate-900 dark:text-slate-200" dir="ltr">{String(value)}</span>
@@ -2198,7 +2200,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 <h4 className="font-extrabold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                   <span className="text-cyan-600">⚙️</span> المواصفات الفنية
                 </h4>
-                {renderSpecs(detailsModal.comp.specs)}
+                {renderSpecs(detailsModal.comp.specs, detailsModal.categoryName)}
               </div>
 
               <div>

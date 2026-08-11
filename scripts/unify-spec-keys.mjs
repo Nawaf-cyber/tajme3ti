@@ -80,9 +80,11 @@ const CANON = {
   Storage: {},
 };
 
-/* ترتيب العرض: المفاتيح التي يقرؤها منطق التوافق أولاً، ثم الوصفية.
-   الترتيب في الكائن هو ترتيب العرض في صفحة القطعة — فالتوحيد يشمل
-   الترتيب لا التسمية وحدها. */
+/* ⚠️ الترتيب هنا **لا أثر له في القاعدة**: عمود specs من نوع Json وPostgres
+   يخزّنه jsonb، وjsonb يعيد ترتيب المفاتيح بطول الاسم ثم أبجدياً ويتجاهل
+   ترتيب الإدخال (تحقّقنا: أطوال المفاتيح تخرج تصاعدية دائماً).
+   فترتيب العرض يُفرض وقت الرسم في lib/spec-labels (sortedSpecs)، ويبقى هذا
+   هنا لأن الملف يقرؤه بشر — وليُبقى مصدراً واحداً للترتيب المقصود. */
 const ORDER = {
   CPU: ['socket', 'cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'pCores', 'eCores', 'integratedGraphics', 'memorySupport', 'architecture'],
   GPU: ['vram', 'memoryType', 'memoryBus', 'lengthMm', 'powerConnectors', 'interface', 'ports', 'architecture', 'formFactor'],
@@ -160,9 +162,13 @@ for (const c of comps) {
   for (const k of order) if (out[k] !== undefined) ordered[k] = out[k];
   for (const k of Object.keys(out)) if (ordered[k] === undefined) ordered[k] = out[k];
 
-  const before = JSON.stringify(src);
-  const after = JSON.stringify(ordered);
-  if (before !== after) changes.push({ id: c.id, cat, name: c.name, renamed, specs: ordered, reordered: renamed.length === 0 });
+  /* المقارنة بمجموعة المفاتيح والقيم لا بترتيبها: القاعدة لا تحفظ الترتيب،
+     فمقارنةُ نصّ JSON كانت تُبلّغ عن «٢٢٤ قطعة ستتغيّر» في كل تشغيلة وإن لم
+     يبقَ شيء يُصلَح — إنذارٌ كاذب يُفقد الفاحص قيمته. */
+  const flat = (o) => Object.keys(o).sort().map((k) => `${k}=${o[k]}`).join('|');
+  if (flat(src) !== flat(ordered)) {
+    changes.push({ id: c.id, cat, name: c.name, renamed, specs: ordered, reordered: renamed.length === 0 });
+  }
 }
 
 console.log(`الوضع: ${APPLY ? '🔴 تطبيق' : '🟢 معاينة (لا كتابة)'}\n`);

@@ -13,7 +13,7 @@ import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
 import { productImage } from '../../../lib/image';
 import RichDescription from '../../../components/RichDescription';
-import { specLabel } from '../../../lib/spec-labels';
+import { specLabel, sortedSpecs } from '../../../lib/spec-labels';
 
 /* عنوان ووصف وcanonical خاصّان بكل قطعة.
    كانت ٢٢٤ صفحة ترث عنوان الرئيسية وcanonical يشير إليها — أي "محتوى مكرّر"
@@ -203,7 +203,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-px bg-slate-200 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
-                  {Object.entries(specs).map(([key, value]) => (
+                  {sortedSpecs(comp.category?.name, specs).map(([key, value]) => (
                     <div key={key} className="bg-white dark:bg-[#0B1120] p-3.5 hover:bg-cyan-50 dark:hover:bg-cyan-950/20 transition-colors group">
                       {/* التسمية للإنسان والمفتاح للكود — بلا هذا يقرأ الزائر
                           «powerConnectors» بعد توحيد المفاتيح إلى camelCase */}
