@@ -43,6 +43,16 @@ export default function UpdateSingleButton({ id, name }: { id: string, name: str
 
         toast.success(parts.join('  '), { id: loadingToast, duration: 6000 });
 
+        /* ارتفاع عُلّق: بلا هذا السطر يرى الأدمن «السعر نفسه» ويظنّ أن
+           لا جديد، بينما رُصد ارتفاع كبير ينتظر قراره في أعلى اللوحة.
+           صمتُ الواجهة عن قرارٍ مطلوب أسوأ من عدم رصده. */
+        if (data.heldForReview > 0) {
+          toast(
+            `⚠️ رُصد ارتفاع كبير — عُلّق بانتظار مراجعتك أعلى الصفحة.\nالسعر المعروض لم يتغيّر.`,
+            { icon: '🛑', duration: 10000 },
+          );
+        }
+
         // تنبيهات جزئية: نجح التحديث لكن متجر أو أكثر تعذّر قراءته
         if (Array.isArray(data.errors) && data.errors.length) {
           toast(data.errors.slice(0, 3).join('\n'), { icon: '⚠️', duration: 9000 });
