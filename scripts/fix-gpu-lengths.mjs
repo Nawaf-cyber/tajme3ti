@@ -62,6 +62,27 @@ const L = [
   ['Radeon RX 9070 XT OC',            'Sapphire PURE OC',               320,  'sapphiretech.com'],
 ];
 
+/* ============ كروت لم يُتحقّق من طولها ============
+ *
+ * تُركت بقيمها الحالية عن قصد، لا سهواً. السبب في كل حالة:
+ *   Arc A750E   ASRock Challenger — ASRock لا تنشر الأبعاد، والبحث يرجع
+ *               بمواصفات Challenger **SE** وهو موديل آخر.
+ *   Arc B570    Sparkle Guardian OC — Sparkle لا تنشر الأبعاد.
+ *   GTX 1650    ASUS TUF OC — أسوس تنشر ثلاث نسخ TUF بأطوال ٢٠٠/٢٠٦/٢٢٩،
+ *               ولم يتبيّن أيّها في رابط المتجر.
+ *   RX 6950 XT  الرابط يقول «AMD Radeon RX 6950 XT» بلا اسم مصنّع، فقد
+ *               يكون التصميم المرجعي (٢٦٧ صحيح) وقد يكون AIB.
+ *   RX 9060 XT  Sapphire تنشر أبعاد PULSE لا PURE، ومبرّداهما مختلفان.
+ *
+ * ولماذا لا يستحقّ الأمر توقّفاً: أطولها ٢٦٧مم، وأصغر صندوق في الكتالوج
+ * يقبل ٣٢٥مم. فحتى بخطأ ٥٠مم لا ينقلب أي حكم توافق. يُراجَع إن أُضيف
+ * صندوق أقصر من ٢٨٠مم — عندها يصير الرقم فاصلاً.
+ */
+export const UNVERIFIED_LENGTHS = [
+  'Arc A750E', 'Arc B570 10GB', 'GeForce GTX 1650 GDDR6 4GB',
+  'Radeon RX 6950 XT', 'Radeon RX 9060 XT 16GB',
+];
+
 const parse = (s) => { try { return typeof s === 'string' ? JSON.parse(s || '{}') : (s || {}); } catch { return {}; } };
 const comps = await prisma.component.findMany({ where: { category: { name: 'GPU' } } });
 const byName = new Map(comps.map((c) => [c.name, c]));

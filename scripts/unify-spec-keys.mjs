@@ -105,9 +105,23 @@ for (const c of comps) {
   const map = CANON[cat];
   if (!map) continue;
 
-  const src = parse(c.specs);
+  const src = { ...parse(c.specs) };
   const out = {};
   const renamed = [];
+
+  /* ---- إنقاذ تركيبة الطقم قبل الدمج ----
+   * قطعتان تكتبان السعة مرّتين: capacity="48GB" وCapacity="48GB (2x24GB)".
+   * قاعدة «المعتمد يفوز» كانت ستُبقي «48GB» وتُسقط تركيبة الطقم — ومعلومة
+   * «شريحتان × 24GB» ليست زخرفاً: عليها يتوقّف عدد فتحات الرام المشغولة
+   * ومجال الترقية. فننقلها إلى مفتاحها الصحيح قبل أن تضيع. */
+  if (cat === 'RAM' && !(src.kit ?? src.Kit)) {
+    const rich = String(src.Capacity ?? '');
+    const m = rich.match(/\(([^)]+)\)/);
+    if (m) {
+      src.kit = m[1];
+      renamed.push(`أُنقذ الطقم من Capacity → kit = ${m[1]}`);
+    }
+  }
 
   // ١) نجمع كل صيغة إلى مفتاحها المعتمد
   const aliasOf = {};
