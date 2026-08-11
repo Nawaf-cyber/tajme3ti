@@ -13,7 +13,7 @@ import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
 import { productImage } from '../../../lib/image';
 import RichDescription from '../../../components/RichDescription';
-import { specLabel, sortedSpecs } from '../../../lib/spec-labels';
+import SpecSheet from '../../../components/SpecSheet';
 
 /* عنوان ووصف وcanonical خاصّان بكل قطعة.
    كانت ٢٢٤ صفحة ترث عنوان الرئيسية وcanonical يشير إليها — أي "محتوى مكرّر"
@@ -196,27 +196,10 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
               المواصفات التقنية
             </h3>
-            <div className="relative bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm border-t-2 border-t-cyan-500/70 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-6 shadow-sm h-full">
-              {Object.keys(specs).length === 0 ? (
-                <div className="flex items-center justify-center h-full text-slate-400 font-bold text-sm">
-                  لا توجد مواصفات فنية مسجلة.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-px bg-slate-200 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
-                  {sortedSpecs(comp.category?.name, specs).map(([key, value]) => (
-                    <div key={key} className="bg-white dark:bg-[#0B1120] p-3.5 hover:bg-cyan-50 dark:hover:bg-cyan-950/20 transition-colors group">
-                      {/* التسمية للإنسان والمفتاح للكود — بلا هذا يقرأ الزائر
-                          «powerConnectors» بعد توحيد المفاتيح إلى camelCase */}
-                      <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 tracking-widest mb-1 group-hover:text-cyan-500 transition-colors">
-                        {specLabel(key)}
-                      </span>
-                      <span className="block text-sm font-black text-slate-900 dark:text-white font-mono" dir="ltr">
-                        {String(value)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+            {/* بلا h-full: اللوحة كانت تُشدّ لطول الوصف، فتترك تحت ثماني
+                مواصفات ٢٤٢ بكسل فراغاً يبدو خللاً. تحتضن محتواها الآن. */}
+            <div className="relative bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm border-t-2 border-t-cyan-500/70 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm px-6 py-4 shadow-sm">
+              <SpecSheet categoryName={comp.category?.name} specs={specs} />
             </div>
           </div>
 

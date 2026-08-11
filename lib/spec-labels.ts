@@ -34,7 +34,7 @@ const LABELS: Record<string, string> = {
   vram: 'ذاكرة الكرت',
   memoryType: 'نوع الذاكرة',
   memoryBus: 'ناقل الذاكرة',
-  lengthMm: 'الطول (مم)',
+  lengthMm: 'الطول',
   powerConnectors: 'موصّلات الطاقة',
   ports: 'المنافذ',
 
@@ -58,7 +58,7 @@ const LABELS: Record<string, string> = {
   writeSpeed: 'سرعة الكتابة',
 
   // المزوّد
-  wattage: 'القدرة (واط)',
+  wattage: 'القدرة',
   rating: 'شهادة الكفاءة',
   modularity: 'الكابلات',
 
@@ -111,6 +111,69 @@ const ORDER: Record<string, string[]> = {
   PSU: ['wattage', 'rating', 'modularity', 'formFactor'],
   Case: ['formFactor', 'maxGpuLength', 'includedFans', 'radiatorSupport', 'airflow', 'sidePanel', 'frontPanel', 'cableManagement', 'verticalGpu', 'dualChamber', 'pcieRiser', 'coolingModes', 'orientation', 'design', 'screen', 'glass', 'handles', 'storage', 'color', 'modular', 'acoustics'],
 };
+
+/* ============ الوحدات ============
+ *
+ * القاعدة كانت حشو الوحدة في التسمية: «الطول (مم)» والقيمة «303». فيقرأ
+ * الزائر رقماً عارياً ويعود بعينه إلى التسمية ليعرف وحدته. الوحدة تلتصق
+ * بالرقم — «303 مم» — وتُرسم أخفت منه لأنها ثابتة والرقم هو المتغيّر.
+ */
+const UNITS: Record<string, string> = {
+  lengthMm: 'مم',
+  maxGpuLength: 'مم',
+  wattage: 'واط',
+  speed: 'MT/s',
+};
+
+export const specUnit = (key: string): string | undefined => UNITS[key];
+
+/* قيم إنجليزية مفردة يقرؤها العربي أسرع مترجمة. المطابقة تامّة عمداً:
+   الترجمة الجزئية تُفسد قيماً مركّبة مثل «High Airflow Mesh». */
+const VALUE_LABELS: Record<string, string> = {
+  Yes: 'نعم',
+  No: 'لا',
+  None: 'لا يوجد',
+  Included: 'مرفق',
+  Supported: 'مدعوم',
+  Full: 'كاملة الفكّ',
+  'Semi-Modular': 'نصف قابلة للفكّ',
+  'Non-Modular': 'غير قابلة للفكّ',
+};
+
+/**
+ * القيمة مقسّمة لسطور ووحدة.
+ *
+ * المنافذ تُخزَّن سطراً واحداً: «1x HDMI 2.1, 3x DP 2.1» — وهي في الحقيقة
+ * قائمة، فتُعرض قائمةً. القيم القصيرة تبقى سطراً واحداً مهما فيها فواصل.
+ */
+export function specValueLines(key: string, value: unknown): { lines: string[]; unit?: string } {
+  const raw = String(value ?? '').trim();
+  const translated = VALUE_LABELS[raw];
+  if (translated) return { lines: [translated] };
+
+  const segments = raw.split(/,\s*/).filter(Boolean);
+  const lines = segments.length > 1 && raw.length > 16 ? segments : [raw];
+  return { lines, unit: UNITS[key] };
+}
+
+/* ============ المفاتيح التي يقرأها محرّك التوافق ============
+ *
+ * ليست «أهمّ المواصفات» بالرأي — بل ما تقارنه دوالّ الفحص فعلاً في
+ * PCBuilderClient. فوسمها في الجدول وعدٌ يمكن التحقّق منه: تغييرُ هذا
+ * الرقم يغيّر نتيجة الفحص. أي وسمٍ لمفتاح لا يقرؤه المحرّك يكون كذباً
+ * مهذّباً، فليبقَ الاثنان متطابقين.
+ */
+const COMPAT_KEYS: Record<string, string[]> = {
+  CPU: ['socket'],
+  Motherboard: ['socket', 'ramType'],
+  RAM: ['type'],
+  GPU: ['lengthMm'],
+  Case: ['maxGpuLength'],
+  PSU: ['wattage'],
+};
+
+export const isCompatKey = (categoryName: string | null | undefined, key: string): boolean =>
+  (COMPAT_KEYS[categoryName || ''] || []).includes(key);
 
 /** أزواج [مفتاح، قيمة] بترتيب العرض المعتمد للفئة */
 export function sortedSpecs(

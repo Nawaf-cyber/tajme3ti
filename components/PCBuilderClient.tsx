@@ -19,7 +19,7 @@ import { isAvailable, liveOffers, type Offer } from '../lib/stores';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { productImage } from '../lib/image';
 import RichDescription from './RichDescription';
-import { specLabel, sortedSpecs } from '../lib/spec-labels';
+import SpecSheet from './SpecSheet';
 
 type Component = {
   id: string;
@@ -1673,13 +1673,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     try {
       const parsed = parseSpecs(specsStr);
       return (
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          {sortedSpecs(categoryName, parsed).map(([key, value]) => (
-            <div key={key} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/50">
-              <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest mb-1">{specLabel(key)}</span>
-              <span className="block text-sm font-bold text-slate-900 dark:text-slate-200" dir="ltr">{String(value)}</span>
-            </div>
-          ))}
+        <div className="mt-3 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/30 px-4 py-2">
+          <SpecSheet categoryName={categoryName} specs={parsed} dense />
         </div>
       );
     } catch (e) {
