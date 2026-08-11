@@ -2,7 +2,7 @@ import { prisma } from "../../../../lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { dropPercent } from '../../../../lib/price';
+import { dropPercent, MIN_DROP_PERCENT } from '../../../../lib/price';
 import { recordPriceHistory, setScrapeDeadline } from '../../../../lib/scrape-prices';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT } from '../../../../lib/stores-server';
@@ -141,7 +141,7 @@ export async function GET(req: Request) {
     });
 
     let updatedCount = 0;
-    let updatedItems: { name: string; storeLinks: string[] }[] = [];
+    let updatedItems: { name: string; tags: string; storeLinks: string[]; notable: boolean }[] = [];
     let allErrors: string[] = [];
 
     /* ============ حماية زمنية بطبقتين ============
@@ -195,14 +195,26 @@ export async function GET(req: Request) {
         });
         await recordPriceHistory(prisma, comp.id, resolved.pricePoints);
 
-        // ---- وسوم إشعار ديسكورد ----
-        const alertTag = resolved.priceDropped
-          ? " 📉 **سعر لقطة!** <@&1510204041588900023>"
+        /* ---- ما الذي يستحقّ إشعاراً؟ ----
+           كان الإشعار يسرد كل قطعة فُحصت — ثلاثين اسماً في كل دورة أغلبها
+           بلا تغيير، فيصير الإشعار ضجيجاً يُتجاوَز بالنظر وتضيع فيه الأخبار
+           الحقيقية. الآن لا يُذكر إلا ما فيه جديد.
+
+           والعتبة هي نفسها عتبة قسم «انخفضت أسعارها» في الرئيسية (٣٪):
+           كان وسم «سعر لقطة» يُطلق على أي انخفاض ولو ريالاً واحداً — فينبّه
+           المشتركين في الرتبة على تذبذب تقريب. dropPercent يُصفّر ما دون
+           العتبة، فيكفي أن يكون أكبر من صفر. */
+        const dropPct = drop;
+        const hasStoreDiscount = resolved.discountPct >= MIN_DROP_PERCENT;
+        const notable = dropPct > 0 || hasStoreDiscount || resolved.restocked;
+
+        const alertTag = dropPct > 0
+          ? ` 📉 **نزل ${dropPct}%!** <@&1510204041588900023>`
           : "";
         const restockTag = resolved.restocked
           ? " 📦 **توفرت من جديد!** <@&1510206266243416127>"
           : "";
-        const discountTag = resolved.discountPct >= 3
+        const discountTag = hasStoreDiscount
           ? ` 🔻 **خصم ${resolved.discountPct}%**`
           : "";
 
@@ -225,21 +237,32 @@ export async function GET(req: Request) {
           });
 
         updatedCount++;
+        /* الاسم والوسوم منفصلان: الوسوم تحمل خطّها العريض بنفسها، ولفّ
+           السطر كلّه بـ** كان يُنتج **اسم **خصم ١٣٪**** — تعشيشٌ يكسر
+           ماركداون ديسكورد فيظهر النجم حرفاً. */
         updatedItems.push({
-          name: `${comp.name}${alertTag}${restockTag}${discountTag}`,
-          storeLinks: stores
+          name: comp.name,
+          tags: `${alertTag}${restockTag}${discountTag}`,
+          storeLinks: stores,
+          notable,
         });
       }));
     }
 
-    const updatedNames = updatedItems.map(item => item.name);
+    /* يبقى شاملاً كل ما فُحص: زرّ اللوحة يقرأ طوله ليعرف هل بقيت قطع
+       (updatedNames.length === 0 → توقّف). تصفيته للإشعار كانت ستوقف
+       الزرّ بعد أوّل دفعة بلا تخفيضات. */
+    const updatedNames = updatedItems.map(item => `${item.name}${item.tags}`);
 
-    if (updatedCount > 0 && process.env.DISCORD_WEBHOOK_URL) {
+    // الإشعار للأحداث لا للجرد: صمتٌ حين لا جديد أصدق من قائمة بلا خبر
+    const notableItems = updatedItems.filter(item => item.notable);
+
+    if (notableItems.length > 0 && process.env.DISCORD_WEBHOOK_URL) {
       try {
-        let descriptionText = `تم فحص وتحديث **${updatedCount}** قطعة.\n\n` +
-          updatedItems.map(item => {
+        let descriptionText = `فُحصت **${updatedCount}** قطعة · **${notableItems.length}** عليها جديد.\n\n` +
+          notableItems.map(item => {
             const linksText = item.storeLinks.length > 0 ? item.storeLinks.join(" | ") : "لا توجد روابط ⚠️";
-            return `**${item.name}**\n↳ ${linksText}`;
+            return `**${item.name}**${item.tags}\n↳ ${linksText}`;
           }).join("\n\n");
 
         if (descriptionText.length > 4000) {
@@ -249,9 +272,11 @@ export async function GET(req: Request) {
         const discordPayload = {
           embeds: [
             {
-              title: "✅ تم تحديث الأسعار والتوفر",
+              // العنوان يصف الخبر لا العملية — الإشعار لم يعد جرداً لما فُحص
+              title: "📉 تغيّرات في الأسعار والتوفّر",
               description: descriptionText,
-              color: 3066993,
+              color: 15277667, // وردي — لون التخفيضات نفسه في الموقع
+
               timestamp: new Date().toISOString()
             }
           ]
@@ -292,7 +317,10 @@ export async function GET(req: Request) {
       processed: updatedCount,
       elapsedSeconds: elapsedSec,
       stoppedEarly,
-      estimatedCredits: components.length * 21, // ~21 credit/قطعة (premium لأمازون ومايكروليس)
+      /* على المُنجَز لا على حجم الدفعة، وبالمعامل المقيس لا المقدَّر:
+         قِيس فعلياً من عدّاد Scrape.do (٢٠٢٦-٠٨-١١) أن الطلب العادي = ١
+         والمتقدّم super=true = ١٠، وأن القطعة تكلّف ١٦٫١ طلباً وسطياً. */
+      estimatedCredits: Math.round(updatedCount * 16.1),
       errors: allErrors.length > 0 ? allErrors : null
     });
 
