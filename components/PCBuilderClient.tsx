@@ -19,6 +19,7 @@ import { isAvailable, liveOffers, type Offer } from '../lib/stores';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { productImage } from '../lib/image';
 import RichDescription from './RichDescription';
+import { specLabel } from '../lib/spec-labels';
 
 type Component = {
   id: string;
@@ -1673,7 +1674,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         <div className="grid grid-cols-2 gap-3 mt-3">
           {Object.entries(parsed).map(([key, value]) => (
             <div key={key} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/50">
-              <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{key}</span>
+              <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest mb-1">{specLabel(key)}</span>
               <span className="block text-sm font-bold text-slate-900 dark:text-slate-200" dir="ltr">{String(value)}</span>
             </div>
           ))}

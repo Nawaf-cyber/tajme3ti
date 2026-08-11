@@ -12,6 +12,7 @@ import ExportComponentsButton from './ExportComponentsButton';
 import StoreFieldsGroup from './StoreFieldsGroup';
 import ScrapeStatusBadge, { isStale } from './ScrapeStatusBadge';
 import { storeVars, type StoreInfo } from '../../lib/stores';
+import { specLabel } from '../../lib/spec-labels';
 
 // خريطة الحقول التلقائية بناءً على الفئة
 const categoryFieldsMap: Record<string, { key: string, label: string, type: 'text' | 'number' | 'select', options?: string[] }[]> = {
@@ -373,7 +374,9 @@ export default function AdminManager({ categories, components, news, cronStatus,
                   {Object.keys(specs).length === 0 && <span className="text-gray-500 text-sm">لا توجد خصائص مضافة حالياً.</span>}
                   {Object.entries(specs).map(([key, value]) => (
                     <div key={key} className="flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 rounded-full text-sm font-medium border border-emerald-200 dark:border-emerald-800/50">
-                      <span dir="ltr">{key}: {value as string}</span>
+                      {/* في اللوحة نعرض الاثنين: التسمية لتقرأها، والمفتاح
+                          لأنك تكتبه في النموذج ويجب أن تعرف اسمه الحقيقي */}
+                      <span>{specLabel(key)} <span className="opacity-50 font-mono text-[11px]" dir="ltr">({key})</span>: <span dir="ltr">{value as string}</span></span>
                       <button onClick={(e) => handleRemoveSpec(key, e)} className="text-emerald-600 dark:text-emerald-400 hover:text-red-600 font-bold ml-2">×</button>
                     </div>
                   ))}

@@ -13,6 +13,7 @@ import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
 import { productImage } from '../../../lib/image';
 import RichDescription from '../../../components/RichDescription';
+import { specLabel } from '../../../lib/spec-labels';
 
 /* عنوان ووصف وcanonical خاصّان بكل قطعة.
    كانت ٢٢٤ صفحة ترث عنوان الرئيسية وcanonical يشير إليها — أي "محتوى مكرّر"
@@ -204,8 +205,10 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                 <div className="grid grid-cols-2 gap-px bg-slate-200 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
                   {Object.entries(specs).map(([key, value]) => (
                     <div key={key} className="bg-white dark:bg-[#0B1120] p-3.5 hover:bg-cyan-50 dark:hover:bg-cyan-950/20 transition-colors group">
-                      <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 font-mono group-hover:text-cyan-500 transition-colors">
-                        {key}
+                      {/* التسمية للإنسان والمفتاح للكود — بلا هذا يقرأ الزائر
+                          «powerConnectors» بعد توحيد المفاتيح إلى camelCase */}
+                      <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 tracking-widest mb-1 group-hover:text-cyan-500 transition-colors">
+                        {specLabel(key)}
                       </span>
                       <span className="block text-sm font-black text-slate-900 dark:text-white font-mono" dir="ltr">
                         {String(value)}
