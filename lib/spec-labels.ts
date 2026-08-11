@@ -175,6 +175,36 @@ const COMPAT_KEYS: Record<string, string[]> = {
 export const isCompatKey = (categoryName: string | null | undefined, key: string): boolean =>
   (COMPAT_KEYS[categoryName || ''] || []).includes(key);
 
+/* ============ الثلاث التي تُعرّف القطعة ============
+ *
+ * قائمةٌ مسطّحة تُعطي «المعمارية» وزنَ «الطول»، والزائر لا يقرأ ثمانية
+ * أسطر ليصل إلى الثلاثة التي تهمّه. فتُرفَع ثلاثٌ إلى شريط علوي.
+ *
+ * المعيار: ما يقرّر الشراء. مفتاحُ التوافق أولاً حيث وُجد (المقبس، الطول،
+ * القدرة)، ثم الحجم، ثم السرعة. وقيمها قصيرة عمداً — الشريط يعرضها
+ * كبيرةً، والقيمة الطويلة تُصغّر البطاقات الثلاث معاً.
+ */
+const HERO: Record<string, string[]> = {
+  CPU: ['socket', 'cores', 'boostClock'],
+  GPU: ['vram', 'lengthMm', 'memoryBus'],
+  Motherboard: ['socket', 'chipset', 'formFactor'],
+  RAM: ['capacity', 'type', 'speed'],
+  Storage: ['capacity', 'type', 'readSpeed'],
+  PSU: ['wattage', 'rating', 'modularity'],
+  Case: ['formFactor', 'maxGpuLength', 'includedFans'],
+};
+
+/**
+ * ثلاثة مفاتيح موجودة فعلاً في القطعة — أو لا شيء.
+ *
+ * «أو لا شيء» مقصودة: شريطٌ ببطاقتين يبدو ناقصاً لا مختصراً، وقطعةٌ
+ * ينقصها مفتاحان من الثلاثة بياناتها أنقص من أن تُبرَز.
+ */
+export function heroKeys(categoryName: string | null | undefined, present: string[]): string[] {
+  const picked = (HERO[categoryName || ''] || []).filter((k) => present.includes(k));
+  return picked.length === 3 ? picked : [];
+}
+
 /** أزواج [مفتاح، قيمة] بترتيب العرض المعتمد للفئة */
 export function sortedSpecs(
   categoryName: string | null | undefined,
