@@ -9,6 +9,7 @@ import { getCronStatus } from "./actions"; // 1. استيراد دالة جلب 
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import { getStores, OFFER_INCLUDE } from "../../lib/stores-server";
 import PriceReviewPanel from "./PriceReviewPanel";
+import PriceReportsPanel from "./PriceReportsPanel";
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
@@ -91,6 +92,33 @@ export default async function AdminDashboard() {
     detectedAt: r.detectedAt.toISOString(),
   }));
 
+  /* 5. بلاغات الزوّار — الأكثر تبليغاً أوّلاً: تعدّد المبلّغين عن الشيء
+     نفسه إشارةٌ أقوى من بلاغ واحد. */
+  const openReports = await prisma.priceReport.findMany({
+    where: { status: 'OPEN' },
+    orderBy: [{ count: 'desc' }, { lastReportedAt: 'desc' }],
+    take: 50,
+    include: {
+      component: { select: { name: true, brand: true } },
+      offer: { select: { url: true, price: true, store: { select: { name: true, color: true } } } },
+    },
+  });
+
+  const reportRows = openReports.map((r) => ({
+    id: r.id,
+    componentId: r.componentId,
+    componentName: r.component.name,
+    brand: r.component.brand,
+    storeName: r.offer.store.name,
+    storeColor: r.offer.store.color,
+    url: r.offer.url,
+    ourPriceNow: r.offer.price,
+    ourPriceAtReport: r.ourPrice,
+    reportedPrice: r.reportedPrice,
+    count: r.count,
+    lastReportedAt: r.lastReportedAt.toISOString(),
+  }));
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
@@ -101,7 +129,9 @@ export default async function AdminDashboard() {
           </span>
         </div>
         
-        {/* فوق كل شيء: سعرٌ خاطئ معروض للزوار أعجل من أي إعداد */}
+        {/* فوق كل شيء: سعرٌ خاطئ معروض للزوار أعجل من أي إعداد.
+            والبلاغ البشري قبل الرصد الآلي — لأن أحداً رأى الخطأ بعينه. */}
+        <PriceReportsPanel rows={reportRows} />
         <PriceReviewPanel rows={reviewRows} />
 
         {/* 3. تمرير القيمة المستخرجة كمستند أساسي إلى المكون الإداري */}

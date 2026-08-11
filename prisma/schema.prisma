@@ -75,6 +75,7 @@ model Component {
   requestedParts RequestedPart[] // القطع المطلوبة التي رُبطت بهذه القطعة عند إضافتها
   offers      ComponentOffer[]   // عروض المتاجر — المصدر الجديد بدل الأعمدة الثابتة أعلاه
   priceReviews PriceReview[]
+  priceReports PriceReport[]
 
   @@index([categoryId])
 }
@@ -162,6 +163,7 @@ model ComponentOffer {
   lastError     String?  // null = آخر محاولة نجحت
 
   reviews      PriceReview[]
+  reports      PriceReport[]
 
   updatedAt    DateTime @updatedAt
 
@@ -206,6 +208,44 @@ model PriceReview {
   reviewedBy  String?   // بريد الأدمن — أثرٌ يبقى بعد القرار
 
   @@index([status, detectedAt])
+  @@index([offerId, status])
+}
+
+/**
+ * ============ بلاغ الزائر عن فرق سعر ============
+ *
+ * السحب يعرف أن السعر تغيّر، ولا يعرف أنه **خاطئ**: رابطٌ يشير لمنتج آخر،
+ * أو محدّدٌ يقرأ سعر نسخة مختلفة، أو صفحة تعرض سعراً لمنطقة أخرى — كلّها
+ * تُنتج رقماً معقولاً يمرّ من كل الحرّاس. الزائر الذي فتح المتجر هو الوحيد
+ * الذي يرى الفرق، وكان لا يملك وسيلة لإخبارنا.
+ *
+ * البلاغ يخصّ **عرض متجر بعينه** لا القطعة: «مختلف» بلا تحديد المتجر لا
+ * يقول للأدمن أي رابط يفتح.
+ */
+model PriceReport {
+  id          String   @id @default(cuid())
+
+  componentId String
+  component   Component      @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  offerId     String
+  offer       ComponentOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  /** ما رآه الزائر في المتجر — اختياري، فإلزامه يُسقط البلاغات المستعجلة */
+  reportedPrice Float?
+  /** سعرنا لحظة البلاغ — بدونه لا يعرف الأدمن هل تغيّر بعده أم لا */
+  ourPrice      Float
+
+  /** بلاغ واحد لكل عرض؛ تكراره من زوّار آخرين يرفع العدّاد لا يُنشئ صفاً */
+  count       Int      @default(1)
+  userId      String?  // الزائر غير المسجّل مسموح — والإبلاغ لا يستحقّ بوّابة
+
+  status      String   @default("OPEN") // OPEN | RESOLVED | DISMISSED
+  createdAt   DateTime @default(now())
+  lastReportedAt DateTime @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?
+
+  @@index([status, lastReportedAt])
   @@index([offerId, status])
 }
 

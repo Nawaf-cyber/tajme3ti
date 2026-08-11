@@ -32,6 +32,8 @@ export type StoreInfo = {
 
 /** عرض متجر واحد لقطعة واحدة، ومعه بيانات متجره */
 export type Offer = {
+  /** معرّف صفّ العرض — يحتاجه بلاغ فرق السعر ليحدّد المتجر المقصود بعينه */
+  id: string;
   storeId: string;
   url: string | null;
   affiliateUrl: string | null;

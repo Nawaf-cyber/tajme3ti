@@ -5,6 +5,7 @@ import ImageZoom from '../ImageZoom';
 import { AFFILIATE_LINK_PROPS } from '../../../lib/affiliate';
 import PriceHistoryChart from '../../../components/PriceHistoryChart';
 import StoreOfferList from '../../../components/StoreOfferList';
+import PriceMismatchReport from '../../../components/PriceMismatchReport';
 import StoreNotices from '../../../components/StoreNotice';
 import { OFFER_INCLUDE, getStoreNotices } from '../../../lib/stores-server';
 import { cheapestStoreNames, offerDeal } from '../../../lib/stores';
@@ -269,6 +270,8 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             {/* إعلانات المتاجر السارية — تشمل الموقوف، فيعرف الزائر سبب اختفائه */}
             <StoreNotices stores={notices as any} />
             <StoreOfferList offers={comp.offers as any} />
+            {/* تحت الأسعار مباشرةً — عند النظر إلى الرقم لا في أسفل الصفحة */}
+            <PriceMismatchReport offers={comp.offers as any} />
           </div>
         </div>
 

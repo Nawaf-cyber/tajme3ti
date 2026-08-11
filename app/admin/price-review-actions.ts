@@ -35,6 +35,37 @@ export async function approvePriceReview(reviewId: string) {
   }
 }
 
+/**
+ * إغلاق بلاغ زائر.
+ * @param dismissed true = فحصتُ والسعر سليم · false = كان مختلفاً وصُحّح
+ * التفريق ليس تجميلاً: نسبة «سليم» العالية على متجرٍ بعينه تعني أن مشكلته
+ * في مكان آخر (رابط، أو منطقة عرض)، ونسبة «صُحّح» تعني أن السحب متأخّر.
+ */
+export async function resolvePriceReport(reportId: string, dismissed: boolean) {
+  try {
+    const email = await requireAdmin();
+    if (!isId(reportId)) return { success: false, error: 'معرّف غير صالح.' };
+
+    const report = await prisma.priceReport.findUnique({ where: { id: reportId } });
+    if (!report) return { success: false, error: 'البلاغ غير موجود.' };
+    if (report.status !== 'OPEN') return { success: false, error: 'هذا البلاغ أُغلق من قبل.' };
+
+    await prisma.priceReport.update({
+      where: { id: reportId },
+      data: {
+        status: dismissed ? 'DISMISSED' : 'RESOLVED',
+        resolvedAt: new Date(),
+        resolvedBy: email,
+      },
+    });
+
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function rejectPriceReview(reviewId: string) {
   try {
     const email = await requireAdmin();
