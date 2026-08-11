@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { dropPercent } from '../../../lib/price';
-import { recordPriceHistory } from '../../../lib/scrape-prices';
+import { recordPriceHistory, setScrapeDeadline } from '../../../lib/scrape-prices';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT } from '../../../lib/stores-server';
 
@@ -36,6 +36,11 @@ export async function POST(req: Request) {
   try {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "معرف القطعة مطلوب" }, { status: 400 });
+
+    /* المهلة متغيّر على مستوى الوحدة تشاركه المسارات في نسخة الدالة الواحدة.
+       لو ورثنا مهلةً منتهية من دورة كرون سابقة في نسخة دافئة، لقُصّت مهلة كل
+       طلب هنا إلى حدّها الأدنى وفشل التحديث بلا سبب ظاهر. فنضبطها لأنفسنا. */
+    setScrapeDeadline(52000);
 
     const comp = await prisma.component.findUnique({
       where: { id },

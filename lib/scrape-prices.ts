@@ -122,16 +122,45 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function scrapeFetch(url: string, timeout = 20000): Promise<Response> {
   await acquireSlot();
   try {
-    let res = await fetchWithTimeout(url, { cache: 'no-store' }, timeout);
-    if (res.status === 429) {
+    let res = await fetchWithTimeout(url, { cache: 'no-store' }, budgetedTimeout(timeout));
+    // لا نُعيد المحاولة إن لم يبقَ وقتٌ يكفيها — الردّ الذي يصل بعد موت الدالة لا ينفع أحداً
+    if (res.status === 429 && remainingBudget() > 6000) {
       await sleep(2000 + Math.floor(Math.random() * 1000)); // تشتيت لتفادي الارتطام
-      res = await fetchWithTimeout(url, { cache: 'no-store' }, timeout);
+      res = await fetchWithTimeout(url, { cache: 'no-store' }, budgetedTimeout(timeout));
     }
     return res;
   } finally {
     releaseSlot();
   }
 }
+
+/* ============ المهلة الصارمة للدورة ============
+ *
+ * درس ٢٠٢٦-٠٨-١١: دالة فيرسل سقفها ٦٠ ثانية، وكانت الدورة تفحص ميزانيتها
+ * الزمنية **بين كل عشر قطع فقط**. فإن مرّت العشرة الأخيرة والساعة عند ٤٥ث
+ * ثم احتاجت ٢٠ث، تجاوزت الدالة السقف فقتلها فيرسل وردّ 504 — وهو ما أسقط
+ * الدفعة الثانية في أول تشغيلة جدولة عملت فعلاً.
+ *
+ * فحصُ الميزانية بين الدفعات لا يكفي: الطلب الواحد نفسه قد يستغرق ٢٠ث،
+ * ومع إعادة محاولة 429 يبلغ ٤٣ث. الحلّ أن يعرف **كل طلب** متى ينتهي وقت
+ * الدورة، فيقصّر مهلته بنفسه بدل أن يتجاوزها.
+ */
+let deadlineAt = 0;
+
+/** يضبطه المسار في بداية الدورة؛ 0 = بلا مهلة (تحديث قطعة واحدة) */
+export const setScrapeDeadline = (msFromNow: number) => {
+  deadlineAt = msFromNow > 0 ? Date.now() + msFromNow : 0;
+};
+
+export const remainingBudget = (): number =>
+  deadlineAt === 0 ? Number.POSITIVE_INFINITY : Math.max(0, deadlineAt - Date.now());
+
+/** مهلة الطلب مقصوصة على ما تبقّى من الدورة (بحدّ أدنى ٣ث كي لا نُجهض بلا داعٍ) */
+const budgetedTimeout = (wanted: number): number => {
+  const left = remainingBudget();
+  if (!Number.isFinite(left)) return wanted;
+  return Math.max(3000, Math.min(wanted, left));
+};
 
 /* ============ حارس الصفحة المعطّلة ============
  *

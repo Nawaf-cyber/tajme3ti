@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { dropPercent } from '../../../../lib/price';
-import { recordPriceHistory } from '../../../../lib/scrape-prices';
+import { recordPriceHistory, setScrapeDeadline } from '../../../../lib/scrape-prices';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT } from '../../../../lib/stores-server';
 
@@ -144,13 +144,24 @@ export async function GET(req: Request) {
     let updatedItems: { name: string; storeLinks: string[] }[] = [];
     let allErrors: string[] = [];
 
-    // حماية زمنية: نتوقف قبل انتهاء مهلة Vercel (60 ثانية) لنحفظ ما أُنجز.
+    /* ============ حماية زمنية بطبقتين ============
+       سقف دالة فيرسل ٦٠ث، وتجاوزه يعني 504 وضياع الردّ (وإن حُفظت البيانات).
+
+       الطبقة الأولى — الميزانية: نتوقّف عن بدء عمل جديد بعد ٤٢ث.
+       الطبقة الثانية — المهلة الصارمة: كل طلب شبكة يعرف متى تنتهي الدورة
+       فيقصّر مهلته بنفسه. بلا هذه، طلبٌ واحد بطيء (٢٠ث، و٤٣ث مع إعادة
+       محاولة 429) يتجاوز السقف مهما ضيّقنا الميزانية — وهو ما حدث في أوّل
+       تشغيلة جدولة عملت فعلاً: الدفعة الأولى ٣٦ث ✓ والثانية 504.
+
+       والفحص صار كل ٥ قطع لا كل ١٠: الفحص بين الدفعات يترك تجاوزاً بمقدار
+       زمن الدفعة كاملة، وتنصيفها ينصّف التجاوز. (التزامن لا يتأثّر — يحكمه
+       بوّابة SCRAPE_CONCURRENCY لا حجم الدفعة.) */
     const startTime = Date.now();
-    const TIME_BUDGET_MS = 50000; // 50 ثانية — هامش أمان 10 ثوانٍ
+    const TIME_BUDGET_MS = 42000;
+    setScrapeDeadline(52000); // آخر لحظة يُسمح فيها لطلب شبكة أن يتنفّس
     let stoppedEarly = false;
 
-    // chunkSize يطابق عدد الطلبات المتزامنة في الخطة (10)
-    const chunkSize = 10;
+    const chunkSize = 5;
     for (let i = 0; i < components.length; i += chunkSize) {
       // إن اقترب الوقت من الحد، نتوقف بأمان بدل أن تُقطع العملية فجأة
       if (Date.now() - startTime > TIME_BUDGET_MS) {
@@ -246,11 +257,22 @@ export async function GET(req: Request) {
           ]
         };
 
-        await fetch(process.env.DISCORD_WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(discordPayload)
-        });
+        /* مهلة صريحة: هذا النداء يأتي **بعد** انتهاء ميزانية الدورة، وكان
+           بلا مهلة إطلاقاً. فديسكورد بطيء أو محجوب يعلّق الدالة حتى يقتلها
+           فيرسل بـ504 — فيضيع ردٌّ عن عملٍ اكتمل كلّه. الإشعار كماليّ،
+           والدورة ليست كذلك. */
+        const discordCtrl = new AbortController();
+        const discordTimer = setTimeout(() => discordCtrl.abort(), 4000);
+        try {
+          await fetch(process.env.DISCORD_WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(discordPayload),
+            signal: discordCtrl.signal,
+          });
+        } finally {
+          clearTimeout(discordTimer);
+        }
       } catch (error) {
         console.error("فشل إرسال إشعار الديسكورد:", error);
       }
@@ -265,7 +287,9 @@ export async function GET(req: Request) {
       totalMatchingCount,
       // معلومات تشغيلية للمراقبة
       batchSize: BATCH_SIZE,
-      processed: components.length,
+      /* العدد المُنجَز فعلاً لا حجم الدفعة المجلوبة: مع التوقّف المبكر كان
+         السجلّ يقول «35/225 قطعة» وقد فُحصت 25، ويحسب الرصيد على 35. */
+      processed: updatedCount,
       elapsedSeconds: elapsedSec,
       stoppedEarly,
       estimatedCredits: components.length * 21, // ~21 credit/قطعة (premium لأمازون ومايكروليس)
