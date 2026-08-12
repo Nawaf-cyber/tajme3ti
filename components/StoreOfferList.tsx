@@ -32,8 +32,10 @@ export default function StoreOfferList({ offers }: { offers: Offer[] }) {
 
   return (
     <div className="flex flex-col gap-3 mt-4 w-full relative z-0">
-      <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 mb-3 font-mono uppercase tracking-widest">
-        مقارنة الأسعار · STORES
+      {/* كان: font-mono uppercase tracking-widest بحجم ١٠ بكسل — وهو مقبول
+          على اللاتينية وثلاثةُ أخطاء على العربية. انظر MicroLabel */}
+      <h3 className="mb-3 text-[11.5px] font-bold text-slate-400 dark:text-slate-500">
+        مقارنة الأسعار في المتاجر
       </h3>
 
       {rows.map((o) => {

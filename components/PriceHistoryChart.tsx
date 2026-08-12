@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { Panel, SectionHeading, StatStrip, type Stat } from './Panel';
 
 /* ============ رسم تاريخ السعر ============
    مكوّن خادم بحت (بلا 'use client') — يرندر SVG على الخادم،
@@ -86,11 +87,14 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
   const maxLen = Math.max(lowestPoints.length, ...storeSeries.map((s) => s.points.length), 0);
   if (maxLen < 2) {
     return (
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-6 text-center">
-        <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-          نجمع بيانات الأسعار لهذه القطعة — سيظهر الرسم البياني قريباً.
-        </p>
-      </div>
+      <section className="flex flex-col gap-4">
+        <SectionHeading note="آخر 90 يوماً">تاريخ السعر</SectionHeading>
+        <Panel className="px-6 py-8 text-center">
+          <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+            نجمع بيانات الأسعار لهذه القطعة — سيظهر الرسم البياني قريباً.
+          </p>
+        </Panel>
+      </section>
     );
   }
 
@@ -215,11 +219,37 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
       return true;
     });
 
+  /* ============ شريط الملخّص ============
+   * الرسم يُجيب «كيف تحرّك السعر»، ولا يُجيب «كم أدنى ما بلغ» إلا بتتبّع
+   * العين للخطّ وقراءة المحور. وهو أوّل ما يريده من يفكّر في الشراء الآن:
+   * أرخصُ ما رأته الصفحة، وأغلاه، وإلى أين انتهى.
+   *
+   * المصدر خطُّ أدنى سعر لا سلسلةُ متجر بعينه — لأن الزائر يشتري الأرخص.
+   */
+  const lowPrices = lowestPoints.map((p) => p.price);
+  const periodLow = Math.min(...lowPrices);
+  const periodHigh = Math.max(...lowPrices);
+  const netChange = Math.round(lowestPoints[lowestPoints.length - 1].price - lowestPoints[0].price);
+  const money = (n: number) => Math.round(n).toLocaleString('en-US');
+
+  const summary: Stat[] = [
+    { label: 'أدنى سعر بلغه', value: money(periodLow), unit: '﷼', accent: 'emerald' },
+    { label: 'أعلى سعر بلغه', value: money(periodHigh), unit: '﷼', accent: 'none' },
+    netChange === 0
+      ? { label: 'التغيّر خلال الفترة', value: '—', accent: 'none' }
+      : {
+          label: 'التغيّر خلال الفترة',
+          value: `${netChange < 0 ? '-' : '+'}${money(Math.abs(netChange))}`,
+          unit: '﷼',
+          accent: netChange < 0 ? 'emerald' : 'rose',
+        },
+  ];
+
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-900/40">
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h3 className="text-base font-black text-slate-900 dark:text-white">تاريخ السعر (آخر 90 يوماً)</h3>
-      </div>
+    <section className="flex flex-col gap-4">
+      <SectionHeading note="آخر 90 يوماً">تاريخ السعر</SectionHeading>
+      <Panel className="px-5 py-5 md:px-6">
+      <StatStrip stats={summary} />
 
       {/* مفتاح الألوان مع تغيّر كل متجر */}
       <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mb-3">
@@ -474,9 +504,10 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
         </text>
       </svg>
 
-      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2 text-center font-medium">
+      <p className="mt-3 border-t border-dashed border-slate-200 pt-3 text-center text-[11.5px] font-semibold text-slate-400 dark:border-slate-800 dark:text-slate-500">
         أشِر على أي يوم (أو المس واستمرّ) لترى أسعار المتاجر فيه — الخط المنقّط يمثّل أدنى سعر متاح
       </p>
-    </div>
+      </Panel>
+    </section>
   );
 }

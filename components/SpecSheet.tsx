@@ -1,4 +1,5 @@
 import { specLabel, sortedSpecs, specValueLines, isCompatKey, heroKeys } from '../lib/spec-labels';
+import { StatStrip, type Stat } from './Panel';
 
 /**
  * ============ جدول المواصفات ============
@@ -30,16 +31,6 @@ type Props = {
   dense?: boolean;
 };
 
-/* حجمٌ واحد للبطاقات الثلاث يُشتقّ من أطولها. اشتقاقُ كلٍّ على حدة يُخرج
-   ثلاثة أحجام متجاورة فيبدو الشريط مضطرباً لا مقصوداً. */
-const stripSize = (values: string[]): string => {
-  const longest = Math.max(...values.map((v) => v.length));
-  if (longest <= 6) return 'text-[22px]';
-  if (longest <= 9) return 'text-[18px]';
-  if (longest <= 13) return 'text-[15px]';
-  return 'text-[13px]';
-};
-
 export default function SpecSheet({ categoryName, specs, dense = false }: Props) {
   const all = sortedSpecs(categoryName, specs);
 
@@ -57,62 +48,23 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
   const heroRows = hero.map((k) => all.find(([key]) => key === k)!);
   const listRows = all.filter(([k]) => !hero.includes(k));
 
-  /* الوحدة تُحسب في الطول: بدونها قيست «6000» ستّةَ أحرف فأُعطيت ٢٢ بكسل،
-     ثم رُسمت «6000 MT/s» فانكسرت سطرين وبقيت «MT/s» وحدها في الثاني. */
-  const heroTexts = heroRows.map(([k, v]) => {
-    const { lines, unit } = specValueLines(k, v);
-    return lines.join(' ') + (unit ? ` ${unit}` : '');
+  const heroStats: Stat[] = heroRows.map(([key, value]) => {
+    const { lines, unit } = specValueLines(key, value);
+    const compat = isCompatKey(categoryName, key);
+    return {
+      label: specLabel(key),
+      value: lines.join(' '),
+      unit,
+      accent: compat ? 'cyan' : 'none',
+      marker: compat ? 'يدخل في فحص التوافق' : undefined,
+    };
   });
-  const heroFont = heroRows.length > 0 ? stripSize(heroTexts) : '';
+
   const hasCompat = all.some(([key]) => isCompatKey(categoryName, key));
 
   return (
     <div>
-      {heroRows.length > 0 && (
-        <div className={`grid grid-cols-3 ${dense ? 'gap-1.5 mb-3' : 'gap-2 mb-4'}`}>
-          {heroRows.map(([key, value]) => {
-            const { lines, unit } = specValueLines(key, value);
-            const compat = isCompatKey(categoryName, key);
-
-            return (
-              <div
-                key={key}
-                className={`relative rounded-lg border px-2 py-3 text-center transition-colors ${
-                  compat
-                    ? 'border-cyan-400/70 bg-cyan-50/80 dark:border-cyan-500/40 dark:bg-cyan-950/30'
-                    : 'border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/50'
-                }`}
-              >
-                {compat && (
-                  <span
-                    title="يدخل في فحص التوافق"
-                    aria-label="يدخل في فحص التوافق"
-                    className="absolute end-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-cyan-500 shadow-[0_0_6px] shadow-cyan-500/70"
-                  />
-                )}
-                <div
-                  dir="ltr"
-                  className={`font-black leading-tight tabular-nums break-words ${heroFont} ${
-                    compat ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-900 dark:text-white'
-                  }`}
-                >
-                  {lines.join(' ')}
-                  {unit && (
-                    <>
-                      {' '}
-                      <span className="text-[11px] font-bold opacity-60">{unit}</span>
-                    </>
-                  )}
-                </div>
-                {/* بلا tracking: العربية متّصلة والتباعد يكسر الوصل */}
-                <div className="mt-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  {specLabel(key)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <StatStrip stats={heroStats} dense={dense} />
 
       <dl className="divide-y divide-slate-200/80 dark:divide-slate-800">
         {listRows.map(([key, value]) => {

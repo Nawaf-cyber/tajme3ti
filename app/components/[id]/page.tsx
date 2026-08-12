@@ -14,6 +14,7 @@ import type { Metadata } from 'next';
 import { productImage } from '../../../lib/image';
 import RichDescription from '../../../components/RichDescription';
 import SpecSheet from '../../../components/SpecSheet';
+import { Panel, SectionHeading, MicroLabel } from '../../../components/Panel';
 
 /* عنوان ووصف وcanonical خاصّان بكل قطعة.
    كانت ٢٢٤ صفحة ترث عنوان الرئيسية وcanonical يشير إليها — أي "محتوى مكرّر"
@@ -157,7 +158,9 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
             <div className="flex flex-wrap items-end gap-5 mb-4 pb-6 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-2 font-mono uppercase tracking-widest">أقل سعر · SAR</p>
+                {/* كان: font-mono uppercase tracking-widest بحجم ١٠ بكسل.
+                    ثلاثتها تؤذي العربية — انظر MicroLabel في Panel.tsx */}
+                <MicroLabel className="mb-2">أقل سعر متاح</MicroLabel>
                 <div className="text-4xl md:text-5xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-2 font-mono">
                   {formatPrice(comp.price)} <RiyalIcon size="h-9 w-9" />
                 </div>
@@ -189,32 +192,26 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
           <div className="lg:col-span-5 flex flex-col gap-4">
-            <h3 className="text-xl font-black text-slate-900 dark:text-white px-2 flex items-center gap-2">
-              <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
-              المواصفات التقنية
-            </h3>
+            <SectionHeading>المواصفات التقنية</SectionHeading>
             {/* بلا h-full: اللوحة كانت تُشدّ لطول الوصف، فتترك تحت ثماني
                 مواصفات ٢٤٢ بكسل فراغاً يبدو خللاً. تحتضن محتواها الآن. */}
-            <div className="relative bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm border-t-2 border-t-cyan-500/70 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm px-6 py-4 shadow-sm">
+            <Panel className="px-6 py-4">
               <SpecSheet categoryName={comp.category?.name} specs={specs} />
-            </div>
+            </Panel>
           </div>
 
           <div className="lg:col-span-7 flex flex-col gap-4">
-            <h3 className="text-xl font-black text-slate-900 dark:text-white px-2 flex items-center gap-2">
-              <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
-              نظرة عامة
-            </h3>
-            <div className="relative bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm border-t-2 border-t-cyan-500/70 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-6 md:p-8 shadow-sm h-full">
+            <SectionHeading>نظرة عامة</SectionHeading>
+            <Panel className="p-6 md:p-8">
               <div className="prose prose-slate dark:prose-invert max-w-none">
                 <div className="text-slate-700 dark:text-slate-300 leading-loose font-medium text-[15px] md:text-base">
                   {comp.description ? <RichDescription text={comp.description} /> : "لا يوجد وصف إضافي متاح لهذه القطعة حالياً."}
                 </div>
               </div>
-            </div>
+            </Panel>
           </div>
 
         </div>

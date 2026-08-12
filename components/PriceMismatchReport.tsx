@@ -95,7 +95,7 @@ export default function PriceMismatchReport({ offers }: { offers: Offer[] }) {
       {open && (
         <div className="border-t border-dashed border-slate-300 dark:border-slate-700 p-3.5 flex flex-col gap-3">
           <div>
-            <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 font-mono">
+            <p className="mb-2 text-[12px] font-bold text-slate-500 dark:text-slate-400">
               أي متجر؟
             </p>
             <div className="flex flex-wrap gap-2">
@@ -122,8 +122,8 @@ export default function PriceMismatchReport({ offers }: { offers: Offer[] }) {
           </div>
 
           <div>
-            <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 font-mono">
-              كم السعر في المتجر؟ <span className="normal-case tracking-normal font-bold">(اختياري)</span>
+            <label className="mb-2 block text-[12px] font-bold text-slate-500 dark:text-slate-400">
+              كم السعر في المتجر؟ <span className="font-medium opacity-70">(اختياري)</span>
             </label>
             <input
               type="number"
