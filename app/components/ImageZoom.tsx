@@ -1,8 +1,12 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function ImageZoom({ src, alt }: { src: string, alt: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  /* البوّابة تحتاج document، وهو غير موجود عند الرسم على الخادم */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // إغلاق بمفتاح Escape + منع تمرير الصفحة خلف المودال
   useEffect(() => {
@@ -16,19 +20,19 @@ export default function ImageZoom({ src, alt }: { src: string, alt: string }) {
     };
   }, [isOpen]);
 
-  return (
-    <>
-      {/* الصورة المصغرة القابلة للضغط */}
-      <img 
-        src={src} 
-        alt={alt} 
-        onClick={() => setIsOpen(true)}
-        className="w-full h-full object-contain mix-blend-multiply filter drop-shadow-2xl hover:scale-110 transition-transform duration-500 cursor-zoom-in relative z-10"
-      />
-      
-      {/* نافذة العرض المكبرة */}
-      {isOpen && (
-        <div 
+  /* ============ لماذا بوّابة إلى body ============
+   *
+   * كان المودال `fixed inset-0` ويُرسم مكانه في الشجرة — أي داخل لوحة
+   * الرأس. واللوحة عليها `backdrop-blur-sm`، و`backdrop-filter` يُنشئ
+   * كتلةً حاويةً للأبناء ذوي `position: fixed`. فبدل أن يُقاس المودال على
+   * إطار العرض قيس على اللوحة.
+   *
+   * رُصد بالقياس: المودال ١١٥٠×٧٨٦ عند (٥٨، ١٥٤) بدل أن يملأ الشاشة —
+   * فالخلفية المعتمة تغطّي صندوق الصورة وحده ويبقى أسفل الصفحة مكشوفاً
+   * خلفها. والبوّابة تنقله إلى body فيخرج من تلك الكتلة الحاوية.
+   */
+  const modal = (
+    <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-2 md:p-6 cursor-zoom-out transition-opacity"
           onClick={() => setIsOpen(false)}
         >
@@ -51,8 +55,20 @@ export default function ImageZoom({ src, alt }: { src: string, alt: string }) {
               className="max-w-[92vw] max-h-[88vh] w-auto h-auto object-contain"
             />
           </div>
-        </div>
-      )}
+    </div>
+  );
+
+  return (
+    <>
+      {/* الصورة المصغرة القابلة للضغط */}
+      <img
+        src={src}
+        alt={alt}
+        onClick={() => setIsOpen(true)}
+        className="w-full h-full object-contain mix-blend-multiply filter drop-shadow-2xl hover:scale-110 transition-transform duration-500 cursor-zoom-in relative z-10"
+      />
+
+      {isOpen && mounted && createPortal(modal, document.body)}
     </>
   );
 }
