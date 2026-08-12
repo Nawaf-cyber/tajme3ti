@@ -185,24 +185,28 @@ export const isCompatKey = (categoryName: string | null | undefined, key: string
  * كبيرةً، والقيمة الطويلة تُصغّر البطاقات الثلاث معاً.
  */
 const HERO: Record<string, string[]> = {
-  CPU: ['socket', 'cores', 'boostClock'],
-  GPU: ['vram', 'lengthMm', 'memoryBus'],
-  Motherboard: ['socket', 'chipset', 'formFactor'],
-  RAM: ['capacity', 'type', 'speed'],
-  Storage: ['capacity', 'type', 'readSpeed'],
-  PSU: ['wattage', 'rating', 'modularity'],
-  Case: ['formFactor', 'maxGpuLength', 'includedFans'],
+  CPU: ['socket', 'cores', 'boostClock', 'threads', 'l3Cache'],
+  GPU: ['vram', 'lengthMm', 'memoryBus', 'memoryType'],
+  Motherboard: ['socket', 'chipset', 'formFactor', 'ramType'],
+  RAM: ['capacity', 'type', 'speed', 'kit'],
+  Storage: ['capacity', 'type', 'readSpeed', 'interface'],
+  PSU: ['wattage', 'rating', 'modularity', 'formFactor'],
+  Case: ['formFactor', 'maxGpuLength', 'radiatorSupport', 'includedFans', 'airflow'],
 };
 
 /**
  * ثلاثة مفاتيح موجودة فعلاً في القطعة — أو لا شيء.
  *
- * «أو لا شيء» مقصودة: شريطٌ ببطاقتين يبدو ناقصاً لا مختصراً، وقطعةٌ
- * ينقصها مفتاحان من الثلاثة بياناتها أنقص من أن تُبرَز.
+ * «أو لا شيء» مقصودة: شريطٌ ببطاقتين يبدو ناقصاً لا مختصراً.
+ *
+ * والقائمة **تفضيلٌ مرتَّب لا شرط**: تُؤخذ أوّل ثلاثٍ متوفّرة منها. كانت
+ * تشترط الثلاثة الأولى بأعيانها، فسقط الشريط عن أي كيسٍ بلا `includedFans`
+ * — وهو مفتاح نادر (تسع قطع) — رغم أن الكيس يحمل ستّ مواصفات. فالقاعدة
+ * الآن: من كان عنده ما يُبرَز أُبرِز، بترتيب ما يقرّر الشراء.
  */
 export function heroKeys(categoryName: string | null | undefined, present: string[]): string[] {
   const picked = (HERO[categoryName || ''] || []).filter((k) => present.includes(k));
-  return picked.length === 3 ? picked : [];
+  return picked.length >= 3 ? picked.slice(0, 3) : [];
 }
 
 /** أزواج [مفتاح، قيمة] بترتيب العرض المعتمد للفئة */
