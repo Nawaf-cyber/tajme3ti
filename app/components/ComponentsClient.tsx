@@ -37,7 +37,25 @@ const getBrandColor = (brand: string) => {
 export default function ComponentsClient({ components, categories }: { components: any[], categories: any[] }) {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(20000);
+
+  /* ============ سقف شريط السعر ============
+   *
+   * كان الرقم ٢٠٬٠٠٠ مكتوباً في خمسة مواضع: الحالة الابتدائية، وشرط
+   * «هل من فلتر مفعّل»، وزرّ المسح، وحدّ الشريط، والتسمية تحته.
+   *
+   * فكل قطعة أغلى من ٢٠٬٠٠٠ كانت **تختفي من الصفحة نهائياً** — ولا يملك
+   * الزائر إظهارها لأن الشريط نفسه لا يتجاوز ذلك الحدّ. ظهر العطل فعلاً
+   * حين دخل ROG Astral RTX 5090 بـ٢٤٬١٤٣ ﷼ فلم يُعرض إطلاقاً.
+   *
+   * الآن يُشتقّ من أغلى قطعة موجودة ويُقرَّب لأعلى ألف — فلا يشيخ الرقم
+   * كلّما دخلت قطعة أغلى.
+   */
+  const priceCeiling = useMemo(() => {
+    const top = Math.max(0, ...components.map((c) => Number(c.price) || 0));
+    return Math.max(1000, Math.ceil(top / 1000) * 1000);
+  }, [components]);
+
+  const [maxPrice, setMaxPrice] = useState(priceCeiling);
   const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc'>('newest');
   const [onlyDeals, setOnlyDeals] = useState(false);
 
@@ -47,12 +65,12 @@ export default function ComponentsClient({ components, categories }: { component
     [components]
   );
 
-  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== 20000 || sortBy !== 'newest' || onlyDeals;
+  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== priceCeiling || sortBy !== 'newest' || onlyDeals;
 
   const handleClearFilters = () => {
     setSearch('');
     setSelectedCat('all');
-    setMaxPrice(20000);
+    setMaxPrice(priceCeiling);
     setSortBy('newest');
     setOnlyDeals(false);
   };
@@ -167,22 +185,30 @@ export default function ComponentsClient({ components, categories }: { component
           <div className="bg-slate-50 dark:bg-[#0B1120] p-4 rounded-sm border border-slate-200 dark:border-slate-700/60">
             <div className="flex justify-between items-center mb-5">
               <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400">أقصى سعر</label>
+              {/* عند السقف لا حدّ فعلاً — و«بلا حدّ» أصدق من رقمٍ يوهم
+                  الزائر أن هناك ما هو أغلى منه محجوب */}
               <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-sm border border-emerald-100 dark:border-emerald-800/30 shadow-sm">
-                {formatPrice(maxPrice)} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                {maxPrice >= priceCeiling ? (
+                  'بلا حدّ'
+                ) : (
+                  <>
+                    {formatPrice(maxPrice)} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                  </>
+                )}
               </span>
             </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="20000"
+            <input
+              type="range"
+              min="0"
+              max={priceCeiling}
               step="100"
               value={maxPrice}
               onChange={(e) => setMaxPrice(Number(e.target.value))}
               className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-600 dark:accent-cyan-500 hover:accent-cyan-500 transition-all"
             />
-            <div className="flex justify-between text-[10px] text-slate-400 mt-3 font-bold uppercase tracking-wider">
+            <div className="mt-3 flex justify-between text-[11px] font-bold text-slate-400 tabular-nums">
               <span>0</span>
-              <span>20,000</span>
+              <span>{formatPrice(priceCeiling)}</span>
             </div>
           </div>
 
