@@ -118,7 +118,10 @@ export function StatStrip({ stats, dense = false }: { stats: Stat[]; dense?: boo
         return (
           <div
             key={s.label}
-            className={`relative rounded-lg border px-2 py-3 text-center transition-colors ${a.box}`}
+            /* rounded-sm لا rounded-lg: مسحُ الصفحة أظهر أن استدارتها ٤ بكسل
+               في كل شيء — اللوحات والشارات وصفوف المتاجر — وكانت بطاقاتي
+               وحدها بثمانية، فهي الشاذّة لا هم. */
+            className={`relative rounded-sm border px-2 py-3 text-center transition-colors ${a.box}`}
           >
             {s.marker && (
               <span

@@ -393,11 +393,15 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
 
         {/* أعمدة التأشير — آخر طبقة كي يعلو التلميح على كل ما سبق */}
         {columns.map((col) => {
-          const rowH = 15;
-          const tipH = 22 + col.entries.length * rowH;
+          /* مقاسات التلميح مرفوعة درجةً: كان التاريخ عند ١٠ بكسل واسم
+             المتجر عند ١٠٫٥ — وكلاهما عربي، والعربية دون ١١ بكسل تُقرأ
+             بمشقّة لأن حروفها متّصلة وصواعدها تحتاج ارتفاعاً أكبر من
+             اللاتينية. ورفعُ الخطّ يوجب رفع الصندوق وإلا خرج النصّ منه. */
+          const rowH = 16;
+          const tipH = 24 + col.entries.length * rowH;
           const tipW = Math.max(
-            126,
-            ...col.entries.map((e) => 40 + e.name.length * 6.6 + String(Math.round(e.price)).length * 6.4),
+            134,
+            ...col.entries.map((e) => 42 + e.name.length * 7.2 + String(Math.round(e.price)).length * 7),
           );
           // ينقلب إلى اليسار قرب الحافّة اليمنى كي لا يخرج عن الإطار
           const flip = col.cx + 10 + tipW > W - 4;
@@ -440,16 +444,16 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
                     يساراً — والهندسة LTR فـ end تعني اليمين بيقين */}
                 <text
                   x={tipW - 10}
-                  y="15"
+                  y="16"
                   textAnchor="end"
-                  fontSize="10"
+                  fontSize="11"
                   fontWeight="800"
                   className="fill-slate-500 dark:fill-slate-400"
                 >
                   {fmtDate(col.date)}
                 </text>
                 {col.entries.map((e, i) => {
-                  const ry = 22 + i * rowH + 9;
+                  const ry = 24 + i * rowH + 10;
                   return (
                     <g key={e.name}>
                       <circle cx={tipW - 14} cy={ry - 3.5} r="3.5" fill={e.color} />
@@ -457,7 +461,7 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
                         x={tipW - 24}
                         y={ry}
                         textAnchor="end"
-                        fontSize="10.5"
+                        fontSize="11.5"
                         fontWeight="700"
                         className="fill-slate-600 dark:fill-slate-300"
                       >
@@ -467,7 +471,7 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
                         x="10"
                         y={ry}
                         textAnchor="start"
-                        fontSize="10.5"
+                        fontSize="11.5"
                         fontWeight="900"
                         className="fill-slate-900 dark:fill-white"
                       >
