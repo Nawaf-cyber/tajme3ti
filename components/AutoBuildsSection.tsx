@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import CountdownTimer from './CountdownTimer';
 import { isAvailable } from '../lib/stores';
 import { OFFER_INCLUDE } from '../lib/stores-server';
+import { boardFitsCase } from '../lib/fit';
 
 /* ⚠️ كان هنا `export const revalidate = 86400` — وهو **بلا أثر**: Next يقرأ
    إعدادات المقطع من page/layout/route فقط، ويتجاهلها في ملفات المكوّنات
@@ -121,8 +122,10 @@ export default async function AutoBuildsSection() {
     const reqGpuLength = parseFloat(gpuSpecs.lengthMm || gpuSpecs.length || '320');
 
     /* 3. اللوحة الأم — بالمستوى لا بقائمة شرائح ثابتة.
-       الفلتر السابق كان يبحث عن H610/A620/A520/B450/H510 وهي غير موجودة
-       في الكتالوج إطلاقاً، فكان فرع "الاقتصادي" ميتاً دائماً. */
+       الفلتر السابق كان يبحث عن أسماء شرائح مكتوبة يدوياً (H610/A620/…)
+       ولم تكن في الكتالوج حينها، فكان فرع «الاقتصادي» ميتاً دائماً.
+       (صارت A620 وH610 وH810 موجودة اليوم — وهذا بالضبط سبب اختيار
+       المستوى بدل الأسماء: القائمة اليدوية تشيخ، والمستوى لا يشيخ.) */
     const compMobos = mobos.filter(
       mb => String(parseSpecs(mb.specs).socket || '').trim() === String(cpuSpecs.socket || '').trim()
     );
@@ -174,21 +177,42 @@ export default async function AutoBuildsSection() {
     const psuPool = pickByTier(compPsus, tier);
     const psu = pickSeeded(psuPool, tier + ':psu') || psuPool[0] || psus[0];
 
-    // 6. التخزين — بنطاق سعة محسوب لا بمطابقة نصية
+    /* 6. التخزين — سعةً **وسعراً**.
+       كان يُختار بالسعة وحدها بلا أي حدّ سعري، فوقعت التجميعة الاقتصادية
+       على Kingston KC3000 بـ١٥٦٦ ﷼ — ربعُ ثمن التجميعة كلّها في قرص
+       إقلاع، والكتالوج فيه NVMe بـ٣٧٣. */
     const stMin = tier === 'high' ? 2048 : tier === 'mid' ? 1024 : 0;
     const stMax = tier === 'economy' ? 1024 : tier === 'mid' ? 2048 : 999999;
-    let filteredStorages = storages.filter(st => {
+    const stPriceCap = tier === 'economy' ? 700 : tier === 'mid' ? 1200 : Infinity;
+    /* ⚠️ القرص الميكانيكي يُستبعد من قرص النظام. سقفُ السعر وحده دفع
+       التجميعتين الاقتصادية والمتوسطة إلى Seagate BarraCuda 1TB — قرصٌ
+       دوّار في جهاز ألعابٍ سنة ٢٠٢٦، والكتالوج فيه NVMe بسعرٍ مقارب.
+       يُقبل احتياطياً فقط إن لم يوجد سواه. */
+    const isSSD = (st: any) => !/^HDD$/i.test(String(parseSpecs(st.specs).type || '').trim());
+    const inRange = (st: any) => {
       const c = capacityToGB(parseSpecs(st.specs).capacity);
       const cap = c == null ? 0 : c;
-      return cap >= stMin && cap <= stMax;
-    });
+      return cap >= stMin && cap <= stMax && st.price <= stPriceCap;
+    };
+    let filteredStorages = storages.filter(st => inRange(st) && isSSD(st));
+    if (filteredStorages.length === 0) filteredStorages = storages.filter(st => st.price <= stPriceCap && isSSD(st));
+    if (filteredStorages.length === 0) filteredStorages = storages.filter(isSSD);
     if (filteredStorages.length === 0) filteredStorages = storages;
     const storage = pickSeeded(filteredStorages, tier + ':storage') || filteredStorages[0];
 
-    // 7. الكيس — التوافق مع طول الكرت أولاً، ثم السعر حسب الفئة
+    /* 7. الكيس — يقبل طول الكرت **ومقاس اللوحة**.
+       فحص المقاس لم يكن موجوداً إطلاقاً، فكانت تُقترح لوحة ATX في كيس
+       Micro-ATX ولوحة Micro-ATX في كيس Mini-ITX — تجميعتان لا تُركَّبان.
+       انظر lib/fit.ts. */
     let compCases = cases.filter(
       c => parseFloat(parseSpecs(c.specs).maxGpuLength || '999') >= reqGpuLength
+        && boardFitsCase(moboSpecs.formFactor, parseSpecs(c.specs).formFactor)
     );
+    /* السقوط الاحتياطي يتخلّى عن الطول لا عن المقاس: كرتٌ أطول بقليل قد
+       يدخل بنزع قفص الأقراص، أمّا لوحة ATX في كيس Mini-ITX فلا حيلة فيها. */
+    if (compCases.length === 0) {
+      compCases = cases.filter(c => boardFitsCase(moboSpecs.formFactor, parseSpecs(c.specs).formFactor));
+    }
     if (compCases.length === 0) compCases = cases;
 
     let filteredCases = compCases.filter(c => {
