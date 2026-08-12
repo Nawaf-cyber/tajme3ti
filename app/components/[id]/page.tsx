@@ -8,7 +8,7 @@ import StoreOfferList from '../../../components/StoreOfferList';
 import PriceMismatchReport from '../../../components/PriceMismatchReport';
 import StoreNotices from '../../../components/StoreNotice';
 import { OFFER_INCLUDE, getStoreNotices } from '../../../lib/stores-server';
-import { cheapestStoreNames, offerDeal } from '../../../lib/stores';
+import { cheapestStoreNames, offerDeal, liveOffers } from '../../../lib/stores';
 import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
 import { productImage } from '../../../lib/image';
@@ -215,7 +215,12 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
           </div>
 
         </div>
-        <PriceHistoryChart componentId={comp.id} />
+        {/* المتاجر التي تبيعها الآن — الرسم يحتاجها لأن سجلّ الأسعار لا
+            يخزّن التوفّر، فبدونها يلخّص سعراً لا يبيعه أحد */}
+        <PriceHistoryChart
+          componentId={comp.id}
+          liveStores={liveOffers(comp.offers as any).map((o) => o.store.slug)}
+        />
       </div>
     </div>
   );

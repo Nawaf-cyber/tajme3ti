@@ -31,7 +31,14 @@ const RiyalMark = () => (
   />
 );
 
-export default async function PriceHistoryChart({ componentId }: { componentId: string }) {
+export default async function PriceHistoryChart({
+  componentId,
+  liveStores = [],
+}: {
+  componentId: string;
+  /** slugs المتاجر التي تبيع القطعة الآن — انظر «شريط الملخّص» أدناه */
+  liveStores?: string[];
+}) {
   // آخر 90 يوماً
   const since = new Date();
   since.setDate(since.getDate() - 90);
@@ -221,29 +228,51 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
 
   /* ============ شريط الملخّص ============
    * الرسم يُجيب «كيف تحرّك السعر»، ولا يُجيب «كم أدنى ما بلغ» إلا بتتبّع
-   * العين للخطّ وقراءة المحور. وهو أوّل ما يريده من يفكّر في الشراء الآن:
-   * أرخصُ ما رأته الصفحة، وأغلاه، وإلى أين انتهى.
+   * العين للخطّ وقراءة المحور. وهو أوّل ما يريده من يفكّر في الشراء الآن.
    *
-   * المصدر خطُّ أدنى سعر لا سلسلةُ متجر بعينه — لأن الزائر يشتري الأرخص.
+   * ⚠️ ولماذا لا يُبنى على خطّ «أدنى سعر» المنقّط رغم أنه الأقرب شكلاً:
+   * جدول PriceHistory يخزّن السعر ولا يخزّن التوفّر، والسحب يسجّل سعر
+   * المتجر النافد كما يسجّل سعر المتوفّر. فمتجرٌ معلَّق بسعرٍ قديم منخفض
+   * يقود ذلك الخطّ إلى الأبد.
+   *
+   * رُصد فعلاً على RTX 5070 Ti: كازاسوق يسجّل ٣٩٥٠ يومياً وهو نافد، بينما
+   * أرخص ما يُشترى ٥٢٩٠. فكان الشريط سيصدّر عنواناً يقول «أدنى سعر بلغه
+   * ٣٧٠٨ ﷼» لسعرٍ لا يبيعه أحد — وهو أسوأ من ألّا يُكتب.
+   *
+   * فالملخّص يُحسب من سلاسل المتاجر التي تبيع القطعة **الآن** فقط. تقريبٌ
+   * لا يقين — فقد ينفد أحدها في يومٍ ماضٍ ولا نعلم — لكنه رقمٌ يقابله
+   * زرُّ شراء، والخطوط تحته تبقى كاملة كما هي.
    */
-  const lowPrices = lowestPoints.map((p) => p.price);
-  const periodLow = Math.min(...lowPrices);
-  const periodHigh = Math.max(...lowPrices);
-  const netChange = Math.round(lowestPoints[lowestPoints.length - 1].price - lowestPoints[0].price);
+  const liveSet = new Set(liveStores);
+  const liveDaily = new Map<string, number>();
+  for (const s of storeSeries) {
+    if (!liveSet.has(s.slug)) continue;
+    for (const p of s.points) {
+      const day = p.date.toISOString().slice(0, 10);
+      const cur = liveDaily.get(day);
+      if (cur == null || p.price < cur) liveDaily.set(day, p.price);
+    }
+  }
+  const livePoints = toPoints(liveDaily);
   const money = (n: number) => Math.round(n).toLocaleString('en-US');
 
-  const summary: Stat[] = [
-    { label: 'أدنى سعر بلغه', value: money(periodLow), unit: '﷼', accent: 'emerald' },
-    { label: 'أعلى سعر بلغه', value: money(periodHigh), unit: '﷼', accent: 'none' },
-    netChange === 0
-      ? { label: 'التغيّر خلال الفترة', value: '—', accent: 'none' }
-      : {
-          label: 'التغيّر خلال الفترة',
-          value: `${netChange < 0 ? '-' : '+'}${money(Math.abs(netChange))}`,
-          unit: '﷼',
-          accent: netChange < 0 ? 'emerald' : 'rose',
-        },
-  ];
+  let summary: Stat[] = [];
+  if (livePoints.length >= 2) {
+    const prices = livePoints.map((p) => p.price);
+    const netChange = Math.round(prices[prices.length - 1] - prices[0]);
+    summary = [
+      { label: 'أدنى ما بلغه', value: money(Math.min(...prices)), unit: '﷼', accent: 'emerald' },
+      { label: 'أعلى ما بلغه', value: money(Math.max(...prices)), unit: '﷼', accent: 'none' },
+      netChange === 0
+        ? { label: 'التغيّر خلال الفترة', value: '—', accent: 'none' }
+        : {
+            label: 'التغيّر خلال الفترة',
+            value: `${netChange < 0 ? '-' : '+'}${money(Math.abs(netChange))}`,
+            unit: '﷼',
+            accent: netChange < 0 ? 'emerald' : 'rose',
+          },
+    ];
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -509,7 +538,8 @@ export default async function PriceHistoryChart({ componentId }: { componentId: 
       </svg>
 
       <p className="mt-3 border-t border-dashed border-slate-200 pt-3 text-center text-[11.5px] font-semibold text-slate-400 dark:border-slate-800 dark:text-slate-500">
-        أشِر على أي يوم (أو المس واستمرّ) لترى أسعار المتاجر فيه — الخط المنقّط يمثّل أدنى سعر متاح
+        أشِر على أي يوم (أو المس واستمرّ) لترى أسعار المتاجر فيه — الخط المنقّط يمثّل أدنى سعر مسجّل
+        {summary.length > 0 && '، والملخّص أعلاه يحسب المتاجر التي تبيعها الآن'}
       </p>
       </Panel>
     </section>
