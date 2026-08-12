@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 import CountdownTimer from './CountdownTimer';
 import { isAvailable } from '../lib/stores';
 import { OFFER_INCLUDE } from '../lib/stores-server';
-import { boardFitsCase } from '../lib/fit';
+import { boardFitsCase, psuFitsCase } from '../lib/fit';
 
 /* ⚠️ كان هنا `export const revalidate = 86400` — وهو **بلا أثر**: Next يقرأ
    إعدادات المقطع من page/layout/route فقط، ويتجاهلها في ملفات المكوّنات
@@ -207,6 +207,7 @@ export default async function AutoBuildsSection() {
     let compCases = cases.filter(
       c => parseFloat(parseSpecs(c.specs).maxGpuLength || '999') >= reqGpuLength
         && boardFitsCase(moboSpecs.formFactor, parseSpecs(c.specs).formFactor)
+        && psuFitsCase(parseSpecs(psu?.specs).formFactor, parseSpecs(c.specs).psuFormFactor)
     );
     /* السقوط الاحتياطي يتخلّى عن الطول لا عن المقاس: كرتٌ أطول بقليل قد
        يدخل بنزع قفص الأقراص، أمّا لوحة ATX في كيس Mini-ITX فلا حيلة فيها. */

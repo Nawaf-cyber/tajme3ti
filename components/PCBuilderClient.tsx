@@ -20,6 +20,7 @@ import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { productImage } from '../lib/image';
 import RichDescription from './RichDescription';
 import SpecSheet from './SpecSheet';
+import { boardFitsCase, fitReason, psuFitsCase, psuFitReason } from '../lib/fit';
 
 type Component = {
   id: string;
@@ -973,6 +974,23 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       }
     }
 
+    /* مقاس اللوحة: تغيير أحدهما قد يُبطل الآخر — فيُزال المُبطَل بدل أن
+       تبقى تجميعةٌ مستحيلة معروضة على أنها سليمة */
+    if (categoryName === 'Case' && selectedComponents['Motherboard']) {
+      const moboSpecs = parseSpecs(selectedComponents['Motherboard']!.specs);
+      if (!boardFitsCase(moboSpecs.formFactor, specs.formFactor)) {
+        newSelections['Motherboard'] = null;
+        toastMessage = `تم إزالة اللوحة (${moboSpecs.formFactor}) لأنها لا تدخل كيساً من نوع ${specs.formFactor}`;
+      }
+    }
+    if (categoryName === 'Motherboard' && selectedComponents['Case']) {
+      const caseSpecs = parseSpecs(selectedComponents['Case']!.specs);
+      if (!boardFitsCase(specs.formFactor, caseSpecs.formFactor)) {
+        newSelections['Case'] = null;
+        toastMessage = `تم إزالة الكيس (${caseSpecs.formFactor}) لأنه لا يتّسع للوحة ${specs.formFactor}`;
+      }
+    }
+
     setSelectedComponents(newSelections);
     
     if (toastMessage) {
@@ -1036,7 +1054,43 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           reason = `طول الكرت الحالي (${gpuSpecs.lengthMm}mm) يتجاوز مساحة الكيس (${specs.maxGpuLength}mm)`;
         }
       }
-      
+
+      /* ============ مقاس اللوحة مقابل الكيس ============
+         لم يكن يُفحص إطلاقاً: تختار لوحة ATX وكيس Mini-ITX فيقول
+         «متوافق». والكيس يقبل مقاسه وما دونه لا ما فوقه — انظر lib/fit */
+      if (categoryName === 'Case' && mobo) {
+        const moboSpecs = parseSpecs(mobo.specs);
+        if (!boardFitsCase(moboSpecs.formFactor, specs.formFactor)) {
+          isCompatible = false;
+          reason = `اللوحة المختارة من مقاس ${moboSpecs.formFactor} ولا تدخل كيساً من نوع ${specs.formFactor}`;
+        }
+      }
+
+      if (categoryName === 'Motherboard' && isCompatible && pcCase) {
+        const caseSpecs = parseSpecs(pcCase.specs);
+        if (!boardFitsCase(specs.formFactor, caseSpecs.formFactor)) {
+          isCompatible = false;
+          reason = `الكيس المختار (${caseSpecs.formFactor}) لا يتّسع للوحة من مقاس ${specs.formFactor}`;
+        }
+      }
+
+      /* مقاس المزوّد: كيسات SFF تقبل SFX وحدها، وهو ما لا يظهر من الحجم */
+      if (categoryName === 'PSU' && pcCase) {
+        const caseSpecs = parseSpecs(pcCase.specs);
+        if (!psuFitsCase(specs.formFactor, caseSpecs.psuFormFactor)) {
+          isCompatible = false;
+          reason = `الكيس يقبل مزوّدات ${caseSpecs.psuFormFactor} فقط`;
+        }
+      }
+
+      if (categoryName === 'Case' && isCompatible && selectedComponents['PSU']) {
+        const psuSpecs = parseSpecs(selectedComponents['PSU']!.specs);
+        if (!psuFitsCase(psuSpecs.formFactor, specs.psuFormFactor)) {
+          isCompatible = false;
+          reason = `يقبل مزوّدات ${specs.psuFormFactor} والمزوّد المختار ${psuSpecs.formFactor}`;
+        }
+      }
+
       if (categoryName === 'GPU' && pcCase) {
         const caseSpecs = parseSpecs(pcCase.specs);
         if (specs.lengthMm && caseSpecs.maxGpuLength && parseFloat(specs.lengthMm) > parseFloat(caseSpecs.maxGpuLength)) {
@@ -1329,9 +1383,16 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       const minW = Math.min(...okPsus.map(ps => parseFloat(parseSpecs(ps.specs).wattage || '0')));
       picks['PSU'] = okPsus.filter(ps => parseFloat(parseSpecs(ps.specs).wattage || '0') === minW)[0];
 
-      /* ---- الكيس: أرخص يتسع للكرت ---- */
+      /* ---- الكيس: أرخص يتسع للكرت **وللوحة** ----
+         كان يفحص طول الكرت وحده، فيختار أرخص كيس ولو كان Mini-ITX واللوحة
+         ATX — تجميعةٌ تُقترح على الزائر وهي لا تُركَّب. */
       const gpuLen = parseFloat(parseSpecs(picks['GPU'].specs).lengthMm || '320');
-      const okCases = cases.filter(c => parseFloat(parseSpecs(c.specs).maxGpuLength || '999') >= gpuLen);
+      const moboFF = parseSpecs(picks['Motherboard'].specs).formFactor;
+      const psuFF = parseSpecs(picks['PSU'].specs).formFactor;
+      const okCases = cases.filter(c =>
+        parseFloat(parseSpecs(c.specs).maxGpuLength || '999') >= gpuLen
+        && boardFitsCase(moboFF, parseSpecs(c.specs).formFactor)
+        && psuFitsCase(psuFF, parseSpecs(c.specs).psuFormFactor));
       if (!okCases.length) continue;
       picks['Case'] = okCases[0];
 
@@ -1468,6 +1529,20 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     const caseMaxGpu = parseFloat(caseSpecs?.maxGpuLength);
     if (!isNaN(gpuLen) && !isNaN(caseMaxGpu) && gpuLen > caseMaxGpu) {
       setResult({ status: 'error', message: `عدم توافق: طول الكرت (${gpuLen}mm) أكبر من مساحة الكيس (${caseMaxGpu}mm).`, totalTdp, totalPrice });
+      return;
+    }
+
+    /* مقاس اللوحة مقابل الكيس — الفحص الذي لم يكن موجوداً، فكانت لوحة ATX
+       في كيس Mini-ITX تُعلن «متوافقة» وهي لا تُركَّب */
+    const fitMsg = fitReason(moboSpecs?.formFactor, caseSpecs?.formFactor);
+    if (fitMsg) {
+      setResult({ status: 'error', message: `عدم توافق: ${fitMsg}`, totalTdp, totalPrice });
+      return;
+    }
+
+    const psuFitMsg = psuFitReason(psuSpecs?.formFactor, caseSpecs?.psuFormFactor);
+    if (psuFitMsg) {
+      setResult({ status: 'error', message: `عدم توافق: ${psuFitMsg}`, totalTdp, totalPrice });
       return;
     }
 
