@@ -125,28 +125,12 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
           <div className="absolute -top-24 -left-24 w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/8 blur-3xl rounded-full pointer-events-none"></div>
           
           <div className="w-full lg:w-1/2 flex justify-center relative z-[100]">
-            {/* إطار الصورة: كان لوحاً أبيض عارياً بظلٍّ خفيف، يقطع الخلفية
-                الداكنة بلا وساطة. الآن حدٌّ وظلٌّ أعمق يفصله عنها، وقوسا
-                زاوية سماويّان من لغة الصفحة نفسها — وهما الزاوية الهندسية
-                التي تعلو اللوحة، مكرّرةً على قطرَي الإطار. */}
-            <div className="relative w-full max-w-[450px]">
-              <span aria-hidden className="pointer-events-none absolute -top-1 -right-1 z-20 h-6 w-6 border-t-2 border-r-2 border-cyan-500/70" />
-              <span aria-hidden className="pointer-events-none absolute -bottom-1 -left-1 z-20 h-6 w-6 border-b-2 border-l-2 border-cyan-500/70" />
+            <div className="w-full max-w-[450px] aspect-square bg-white rounded-sm flex items-center justify-center p-6 shadow-md">
 
-              <div className="aspect-square w-full rounded-sm border border-slate-200 bg-white p-6 shadow-lg shadow-slate-900/10 dark:border-slate-700/60 dark:shadow-black/50 flex items-center justify-center">
-                <ImageZoom
-                  src={productImage(comp.imageUrl, `/images/${comp.categoryId}/boxed.png`)}
-                  alt={comp.name}
-                />
-              </div>
-
-              {/* الخصم على الصورة لا بجانب العنوان: العنوان سطرٌ يُقرأ،
-                  والشارة رقمٌ يُلمح — وجمعُهما يكسر السطر ويزاحم الاسم */}
-              {mainDiscount > 0 && (
-                <span className="absolute top-3 left-3 z-20 rounded-sm bg-rose-500 px-2.5 py-1 font-mono text-[12px] font-black tabular-nums text-white shadow-md shadow-rose-500/40">
-                  ‎-{mainDiscount}%
-                </span>
-              )}
+              <ImageZoom 
+                src={productImage(comp.imageUrl, `/images/${comp.categoryId}/boxed.png`)} 
+                alt={comp.name} 
+              />
             </div>
           </div>
 
@@ -161,9 +145,16 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               </span>
             </div>
             
-            <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight mb-6">
-              {comp.name}
-            </h1>
+            <div className="flex items-start gap-3 mb-6">
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight">
+                {comp.name}
+              </h1>
+              {mainDiscount > 0 && (
+                <span className="shrink-0 mt-2 px-2.5 py-1 rounded-sm bg-rose-500 text-white text-xs font-black font-mono shadow-[0_0_12px_rgba(244,63,94,0.5)]">
+                  ‎-{mainDiscount}%
+                </span>
+              )}
+            </div>
 
             <div className="flex flex-wrap items-end gap-5 mb-4 pb-6 border-b border-slate-100 dark:border-slate-800">
               <div>
