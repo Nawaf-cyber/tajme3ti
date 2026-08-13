@@ -240,6 +240,7 @@ export default function AdminManager({ categories, components, news, cronStatus,
           initialStatus={cronStatus.enabled}
           initialPerDay={cronStatus.updatesPerDay}
           lastRunAt={cronStatus.lastRunAt}
+          catalogCount={components.length}
         />
       </div>
       <ManualUpdateButton />

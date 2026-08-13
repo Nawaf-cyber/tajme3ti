@@ -7,6 +7,7 @@ import { recordPriceHistory, setScrapeDeadline } from '../../../../lib/scrape-pr
 import { recordPriceHolds } from '../../../../lib/price-review';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT } from '../../../../lib/stores-server';
+import { BATCH_SIZE } from '../../../../lib/cron-settings';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -47,7 +48,13 @@ export async function GET(req: Request) {
     const isCronEnabled = setting ? setting.cronEnabled : false;
 
     if (!isCronEnabled) {
-      return NextResponse.json({ message: "التحديث التلقائي معطل حالياً من لوحة التحكم." }, { status: 200 });
+      /* `disabled` علمٌ صريح: كان الزرّ في اللوحة يميّز هذه الحالة بمقارنة
+         نصّ الرسالة حرفاً بحرف، فأي تحسينٍ لصياغتها كان سيحوّل «موقوف من
+         اللوحة» إلى «خطأ غير معروف» في وجه الأدمن. */
+      return NextResponse.json({
+        disabled: true,
+        message: "التحديث التلقائي معطل حالياً من لوحة التحكم.",
+      }, { status: 200 });
     }
 
     /* ============ بوّابة التردّد ============
@@ -92,8 +99,16 @@ export async function GET(req: Request) {
     /* نُعلّم البداية لا النهاية: لو تعثّرت الدورة في منتصفها، لا تنطلق
        التالية فوراً فتتراكم دورتان على نفس المتاجر.
        والاستكمال لا يُعيد الكتابة، وإلا زحف الطابع مع كل دفعة فامتدّت
-       نافذة التشغيلة بلا نهاية. */
-    if (!isContinuation) {
+       نافذة التشغيلة بلا نهاية.
+
+       ⚠️ ونداء الأدمن لا يكتبه إطلاقاً. كان يكتبه، فصار ضغطُ زرّ «تحديث
+       يدوي» — وهو دفعةٌ واحدة تمسّ عشر قطع — يُزيح الدورة المجدولة ساعاتٍ
+       عن موعدها، فتبقى بقيّة الكتالوج بلا سحبٍ لأن أحداً حدّث عشر قطع.
+       رُصد فعلاً يوم 2026-08-13: كنسةٌ يدوية عند 08:38 جعلت كل نداءات
+       الجدولة من 09:00 إلى 14:00 تُردّ بـskipped.
+
+       والطابع الآن يعني ما يقوله: **آخر دورة مجدولة**. */
+    if (isValidCron && !isContinuation) {
       await prisma.systemSetting.update({
         where: { id: "default" },
         data: { lastCronRunAt: new Date() },
@@ -126,13 +141,13 @@ export async function GET(req: Request) {
        ?limit=N يقلّص الدفعة (للطلبات المصرَّح لها فقط) — لاختبار السحب بعد إضافة متجر
        أو تغيير محدّد، بلا إحراق رصيد دفعة كاملة. */
     const limitParam = parseInt(new URL(req.url).searchParams.get('limit') || '', 10);
-    const BATCH_SIZE = limitParam > 0 ? Math.min(limitParam, 35) : 35;
+    const batchSize = limitParam > 0 ? Math.min(limitParam, BATCH_SIZE) : BATCH_SIZE;
     const components = await prisma.component.findMany({
       where: searchConditions,
       /* الأقدم سحباً أولاً، والتي لم تُسحب قط في المقدّمة تماماً.
          (كان الترتيب بـ updatedAt فتقفز أي قطعة تعدّلها لآخر الطابور.) */
       orderBy: { lastScrapedAt: { sort: 'asc', nulls: 'first' } },
-      take: BATCH_SIZE,
+      take: batchSize,
       include: {
         offers: {
           where: { store: { active: true, scrapeMode: { not: 'off' } } },
@@ -314,7 +329,7 @@ export async function GET(req: Request) {
       updatedNames,
       totalMatchingCount,
       // معلومات تشغيلية للمراقبة
-      batchSize: BATCH_SIZE,
+      batchSize,
       /* العدد المُنجَز فعلاً لا حجم الدفعة المجلوبة: مع التوقّف المبكر كان
          السجلّ يقول «35/225 قطعة» وقد فُحصت 25، ويحسب الرصيد على 35. */
       processed: updatedCount,

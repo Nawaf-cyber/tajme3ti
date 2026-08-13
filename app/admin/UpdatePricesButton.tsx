@@ -58,7 +58,10 @@ export default function UpdatePricesButton() {
           }
         } else {
           hasMore = false;
-          if (data.message === "التحديث التلقائي معطل حالياً من لوحة التحكم.") {
+          /* علمٌ من السيرفر لا مطابقةُ نصّ: كانت المقارنة على الرسالة حرفاً
+             بحرف، فتعديل كلمةٍ فيها يحوّل «موقوف من اللوحة» إلى «خطأ غير
+             معروف». (يُقبل النصّ القديم أيضاً حتى ينتشر النشر.) */
+          if (data.disabled || data.message === "التحديث التلقائي معطل حالياً من لوحة التحكم.") {
             toast.error(data.message, { id: toastId });
             setLoading(false);
             setStatusText('🔄 تحديث أسعار المتاجر');

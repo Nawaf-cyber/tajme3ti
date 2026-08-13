@@ -15,6 +15,7 @@ import { productImage } from '../../../lib/image';
 import RichDescription from '../../../components/RichDescription';
 import SpecSheet from '../../../components/SpecSheet';
 import { Panel, SectionHeading, MicroLabel } from '../../../components/Panel';
+import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
 
 /* عنوان ووصف وcanonical خاصّان بكل قطعة.
    كانت ٢٢٤ صفحة ترث عنوان الرئيسية وcanonical يشير إليها — أي "محتوى مكرّر"
@@ -109,6 +110,19 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
   const cheapestListPrice = deal.listPrice;
   const savedAmount = mainDiscount > 0 && cheapestListPrice ? cheapestListPrice - comp.price : 0;
 
+  /* ============ متى قُرئ هذا السعر؟ ============
+     الرقم المعروض مسحوبٌ من المتجر لا مكتوبٌ بيدنا، وعمرُه جزءٌ من معناه:
+     «٥٬٢٩٠ ﷼» قبل ساعتين معلومة، ونفسها قبل أسبوع تخمين. وبدون الطابع كان
+     الزائر يفترض الأحدث دائماً، فإن وجد المتجر مختلفاً ظنّ الموقع كاذباً لا
+     متأخّراً.
+
+     المصدر `lastScrapedAt` على القطعة: يُكتب في المعاملة نفسها التي تكتب
+     أسعار العروض (راجع مسار الكرون)، فهو طابع السعر المعروض نفسه لا طابعاً
+     مجاوراً له. */
+  const priceAge = timeAgoAr(comp.lastScrapedAt);
+  const priceAgeExact = exactAr(comp.lastScrapedAt);
+  const priceStale = isPriceStale(comp.lastScrapedAt);
+
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -173,6 +187,23 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                     <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-2 py-0.5 rounded-sm">
                       وفّرت {formatPrice(savedAmount)} ﷼
                     </span>
+                  </div>
+                )}
+
+                {/* عمر السعر — تحت الرقم مباشرةً لأنه صفةٌ له لا معلومةٌ جانبية.
+                    يصفرّ بعد يوم كامل: إشارةٌ هادئة أن الدورة تأخّرت، بلا
+                    إنذارٍ أحمر يخيف من رقمٍ غالباً ما يزال صحيحاً. */}
+                {priceAge && (
+                  <div
+                    title={priceAgeExact}
+                    className={`flex items-center gap-1.5 mt-2.5 text-[12px] font-bold ${
+                      priceStale
+                        ? 'text-amber-600 dark:text-amber-500'
+                        : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    <span aria-hidden>{priceStale ? '⏸' : '🕒'}</span>
+                    <span>آخر تحديث للسعر {priceAge}</span>
                   </div>
                 )}
               </div>

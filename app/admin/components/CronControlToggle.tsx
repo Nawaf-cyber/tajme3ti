@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toggleCronStatus, setUpdateFrequency } from '../actions';
-import { UPDATE_FREQUENCIES } from '../../../lib/cron-settings';
+import { UPDATE_FREQUENCIES, BATCHES_PER_RUN, PER_RUN } from '../../../lib/cron-settings';
 import toast from 'react-hot-toast';
 
 /**
@@ -19,10 +19,13 @@ export default function CronControlToggle({
   initialStatus,
   initialPerDay,
   lastRunAt,
+  catalogCount = 0,
 }: {
   initialStatus: boolean;
   initialPerDay: number;
   lastRunAt?: Date | string | null;
+  /** حجم الكتالوج الحقيقي — كان مكتوباً في النصّ «٢٢٥» وقد صار ٢٥٦ */
+  catalogCount?: number;
 }) {
   const [isEnabled, setIsEnabled] = useState(initialStatus);
   const [perDay, setPerDay] = useState(initialPerDay);
@@ -65,6 +68,16 @@ export default function CronControlToggle({
     ? new Intl.DateTimeFormat('ar-SA', { dateStyle: 'short', timeStyle: 'short' }).format(lastRun)
     : 'لم تُنفَّذ بعد';
 
+  /* تغطية اليوم — تُحسب ولا تُكتب. الجملة المكتوبة قالت «دفعتين (~٧٠ قطعة)»
+     بعد أن صارت التشغيلة ثلاث دفعات، و«الكتالوج ٢٢٥» بعد أن صار ٢٥٦، فكان
+     الأدمن يضبط التردّد على حسابٍ لم يعد صحيحاً. */
+  const dailyChecks = PER_RUN * perDay;
+  const coverage = catalogCount > 0 ? dailyChecks / catalogCount : 0;
+  const coverageLabel =
+    coverage >= 1
+      ? `كل قطعة ~${coverage.toFixed(1)} مرّة يومياً`
+      : `~${Math.round(coverage * 100)}٪ من الكتالوج يومياً`;
+
   return (
     <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/60 w-full sm:w-auto">
       <div className="flex items-center justify-between gap-8">
@@ -99,7 +112,9 @@ export default function CronControlToggle({
         <div className="flex items-baseline justify-between gap-3 mb-2 flex-wrap">
           <span className="font-bold text-xs text-slate-900 dark:text-white">عدد مرّات التحديث يومياً</span>
           <span className="font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
-            {gapLabel} · آخر دورة: {lastRunLabel}
+            {/* «مجدولة» صراحةً: الطابع لم يعد يُكتب عند الضغط اليدوي، فقولُ
+                «آخر دورة» وحدها كان سيوهم أن الجدولة عملت وإنّما عمل الزرّ. */}
+            {gapLabel} · آخر دورة مجدولة: {lastRunLabel}
           </span>
         </div>
 
@@ -122,9 +137,10 @@ export default function CronControlToggle({
 
         {/* تحذير التكلفة: كل دورة تستهلك رصيد سحب، والرقم يتضاعف بصمت */}
         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-          كل دورة تفحص دفعتين (~٧٠ قطعة) وتستهلك رصيد السحب. الكتالوج ٢٢٥ قطعة، فـ
-          <span className="font-bold text-slate-700 dark:text-slate-200"> ٦ مرّات </span>
-          تكفي لفحص كل قطعة مرّتين يومياً.
+          كل دورة تفحص {BATCHES_PER_RUN} دفعات (~{PER_RUN} قطعة) وتستهلك رصيد السحب.
+          {catalogCount > 0 && <> الكتالوج {catalogCount} قطعة، فـ
+            <span className="font-bold text-slate-700 dark:text-slate-200"> {perDay} {perDay === 1 ? 'مرّة' : 'مرّات'} </span>
+            تفحص {coverageLabel}.</>}
         </p>
       </div>
     </div>
