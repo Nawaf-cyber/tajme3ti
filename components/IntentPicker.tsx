@@ -13,8 +13,10 @@ export type TierPlan = {
 type Intent = {
   use: string | null;
   resolution: string | null;
-  fpsTarget: number | null;
-  budget: number | null;
+  /* ⚠️ حُذف من هنا `fpsTarget` و`budget`: كانا يُرسلان في كل نداء
+     (144 للشوتر و60 لغيره، والميزانية null دائماً) ولا يقرؤهما buildPlans
+     إطلاقاً. حقلان يوهمان قارئ الكود بأن للـFPS المستهدف أو للميزانية
+     أثراً في الاختيار — ولا أثر لهما. */
   alsoStreams: boolean | null;
   /* تفضيل الشركة — اختياري. null = لا يهمّه، فيبني النظام بمنطقه المعتاد. */
   gpuBrand: string | null;
@@ -80,8 +82,6 @@ export default function IntentPicker({
     const plans = buildPlans({
       use,
       resolution: needsResolution ? res : null,
-      fpsTarget: use === 'competitive-shooter' ? 144 : 60,
-      budget: null,
       alsoStreams: (over.alsoStreams ?? alsoStreams) || use === 'streaming',
       gpuBrand: over.gpuBrand !== undefined ? over.gpuBrand : gpuBrand,
       cpuBrand: over.cpuBrand !== undefined ? over.cpuBrand : cpuBrand,
@@ -106,7 +106,7 @@ export default function IntentPicker({
     if (k === 'office' || k === 'editing') {
       setTimeout(() => {
         const plans = buildPlans({
-          use: k, resolution: null, fpsTarget: null, budget: null,
+          use: k, resolution: null,
           alsoStreams, gpuBrand, cpuBrand,
         });
         if (plans?.length) onPlans(plans);

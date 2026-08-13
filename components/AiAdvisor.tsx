@@ -7,8 +7,6 @@ import toast from 'react-hot-toast';
 type Intent = {
   use: string | null;
   resolution: string | null;
-  fpsTarget: number | null;
-  budget: number | null;
   alsoStreams: boolean | null;
   question: string | null;
   summary: string | null;
