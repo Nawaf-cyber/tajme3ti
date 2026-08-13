@@ -14,12 +14,24 @@
  * والقاعدة بسيطة: الكيس يقبل مقاسه وما دونه، لا ما فوقه.
  */
 
-/** رتبة مقاس اللوحة — الأصغر أوّلاً */
-const BOARD_RANK: Record<string, number> = {
+/**
+ * أصغر كيسٍ تحتاجه كل لوحة.
+ *
+ * ⚠️ E-ATX تحتاج **Mid Tower** لا Full Tower.
+ * أوّل صياغة أعطتها رتبةً رابعة تقصرها على Full Tower، فمنعت لوحتَي
+ * E-ATX من ٢١ كيساً من ٢٤ — ومنها Corsair 5000D وO11 Dynamic EVO
+ * وMeshify 2 وLancool III، وكلّها تقبل E-ATX فعلاً. فكان الحارس يخترع
+ * منعاً بدل أن يمنع مستحيلاً، وهو نقيض الغرض منه.
+ *
+ * و«Mid Tower» في الاستعمال الحديث تعني ATX/E-ATX. والدقّة التامّة تحتاج
+ * حقلاً على كل كيس يقول أكبر لوحة يقبلها — وهو ما يستحقّ التسجيل لاحقاً،
+ * ولا يجوز أن يُستبدل به تخمينٌ يمنع الصحيح.
+ */
+const BOARD_MIN_CASE: Record<string, number> = {
   'Mini-ITX': 1,
   'Micro-ATX': 2,
   'ATX': 3,
-  'E-ATX': 4,
+  'E-ATX': 3,
 };
 
 /** أكبر لوحة يقبلها كل نوع كيس */
@@ -30,8 +42,9 @@ const CASE_RANK: Record<string, number> = {
   'Full Tower': 4,
 };
 
+/** أصغر رتبة كيسٍ تقبل هذه اللوحة */
 export const boardRank = (formFactor: unknown): number | null =>
-  BOARD_RANK[String(formFactor || '').trim()] ?? null;
+  BOARD_MIN_CASE[String(formFactor || '').trim()] ?? null;
 
 export const caseRank = (formFactor: unknown): number | null =>
   CASE_RANK[String(formFactor || '').trim()] ?? null;
