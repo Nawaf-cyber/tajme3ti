@@ -60,6 +60,7 @@ const SPEC_LABELS: Record<string, string> = {
 
   // كروت شاشة
   vram: 'ذاكرة الكرت',
+  includedaio: 'تبريد مائي مرفق',
   memorytype: 'نوع ذاكرة الكرت',
   memorybus: 'ناقل الذاكرة',
   memoryspeed: 'سرعة الذاكرة',
@@ -103,6 +104,8 @@ const SPEC_LABELS: Record<string, string> = {
   verticalgpumount: 'تركيب عمودي للكرت',
   gpumount: 'تركيب عمودي للكرت',
   maxgpulength: 'أقصى طول للكرت',
+  maxcoolerheight: 'أقصى ارتفاع مبرّد',
+  psuformfactor: 'مقاس المزوّد المقبول',
   radiatorsupport: 'دعم الرادييتر',
   coolingmodes: 'أنماط التبريد',
   airflow: 'تدفّق الهواء',
@@ -132,7 +135,8 @@ const ROW_ORDER = [
   'النوع', 'السعة', 'السرعة', 'الطقم', 'زمن الوصول', 'ملف التعريف',
   'الواجهة', 'سرعة القراءة', 'سرعة الكتابة',
   'القدرة', 'شهادة الكفاءة', 'الكابلات',
-  'الحجم', 'المراوح', 'دعم الرادييتر', 'أنماط التبريد', 'أقصى طول للكرت',
+  'الحجم', 'المراوح', 'دعم الرادييتر', 'أنماط التبريد',
+  'أقصى طول للكرت', 'أقصى ارتفاع مبرّد', 'مقاس المزوّد المقبول', 'تبريد مائي مرفق',
   'تركيب عمودي للكرت', 'كابل PCIe Riser', 'غرفتان منفصلتان',
   'اللوح الجانبي', 'اللوح الأمامي', 'الزجاج', 'تدفّق الهواء', 'العزل الصوتي',
   'ترتيب الكابلات', 'خانات التخزين', 'المقابض', 'شاشة مدمجة', 'التصميم',
@@ -201,7 +205,7 @@ export default function CompareClient({
   starterComponents,
   activeCategoryId,
   droppedNames = [],
-  history = [],
+  history = [],
 }: {
   selected: Comp[];
   available: Comp[];
@@ -209,7 +213,7 @@ export default function CompareClient({
   starterComponents: Comp[];
   activeCategoryId: string | null;
   droppedNames?: string[];
-  history?: HistorySeries[];
+  history?: HistorySeries[];
 }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);

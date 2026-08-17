@@ -85,6 +85,10 @@ const LABELS: Record<string, string> = {
   /* ⚠️ كان بلا تسمية رغم أنه **مفتاح توافق** يقرؤه psuFitsCase — فيظهر
      في الجدول بالإنجليزية عبر humanize: «Psu Form Factor». */
   psuFormFactor: 'مقاس المزوّد المقبول',
+  /* حقلٌ جديد مُلئ للسبعة والعشرين كلّها — ولا يقرؤه محرّك التوافق بعد.
+     هو الشرط الذي كانت تنتظره فئة المبرّدات: مبرّدٌ هوائي أطول من هذا
+     الرقم لا يُغلق اللوح الجانبي. */
+  maxCoolerHeight: 'أقصى ارتفاع مبرّد',
   includedFans: 'المراوح المرفقة',
   radiatorSupport: 'دعم الرادييتر',
   sidePanel: 'اللوح الجانبي',
@@ -121,7 +125,7 @@ const ORDER: Record<string, string[]> = {
   RAM: ['type', 'capacity', 'kit', 'speed', 'casLatency', 'profile', 'rgb', 'color'],
   Storage: ['type', 'capacity', 'interface', 'formFactor', 'readSpeed', 'writeSpeed'],
   PSU: ['wattage', 'rating', 'modularity', 'formFactor'],
-  Case: ['formFactor', 'maxGpuLength', 'psuFormFactor', 'radiatorSupport', 'includedFans', 'frontPanel', 'sidePanel', 'dualChamber', 'verticalGpu', 'pcieRiser', 'cableManagement', 'screen', 'color'],
+  Case: ['formFactor', 'maxGpuLength', 'maxCoolerHeight', 'radiatorSupport', 'psuFormFactor', 'includedFans', 'frontPanel', 'sidePanel', 'dualChamber', 'verticalGpu', 'pcieRiser', 'cableManagement', 'screen', 'color'],
 };
 
 /* ============ الوحدات ============
@@ -133,6 +137,7 @@ const ORDER: Record<string, string[]> = {
 const UNITS: Record<string, string> = {
   lengthMm: 'مم',
   maxGpuLength: 'مم',
+  maxCoolerHeight: 'مم',
   wattage: 'واط',
   speed: 'MT/s',
 };
@@ -180,7 +185,12 @@ const COMPAT_KEYS: Record<string, string[]> = {
   Motherboard: ['socket', 'ramType'],
   RAM: ['type'],
   GPU: ['lengthMm'],
-  Case: ['maxGpuLength'],
+  /* `psuFormFactor` يقرؤه `psuFitsCase` فعلاً — وكان غائباً عن هذه القائمة
+     لأنه كان مسجّلاً على أربعة كيسات فقط، فوسمُه وعدٌ لا يُوفى. وقد صار
+     على السبعة والعشرين.
+     و`maxCoolerHeight` **لا يُوسم بعد**: لا سطر يقرؤه حتى تدخل المبرّدات،
+     ووسمُ ما لا يُفحص كذبٌ مهذّب. */
+  Case: ['maxGpuLength', 'psuFormFactor'],
   PSU: ['wattage'],
 };
 
