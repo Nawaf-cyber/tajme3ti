@@ -26,8 +26,13 @@ import * as cheerio from 'cheerio';
 import 'dotenv/config';
 import { scrapeFetch, setScrapeDeadline } from '../lib/scrape-prices';
 
-/** الترتيب هو التفضيل؛ وما ليس في القائمة لا يُستعمل مصدراً للصور */
-const SOURCE_ORDER = ['amazon', 'cazasouq'];
+/** الترتيب هو التفضيل؛ وما ليس في القائمة لا يُستعمل مصدراً للصور
+ *
+ * ⚠️ نون أُضيفت بعد أن خرجت دفعتان متتاليتان بقطعٍ بلا صور لأن عرضها
+ * الوحيد نوني: خمسٌ في دفعة و اثنتان قبلها، جُلبت صورها يدوياً في كل مرّة.
+ * والمعالجة اليدوية المتكرّرة علامةُ نقصٍ في الأداة لا في الدفعة.
+ * وهي آخر الترتيب لأن صور أمازون وكازاسوق أعلى دقّةً وأثبت روابط. */
+const SOURCE_ORDER = ['amazon', 'cazasouq', 'noon'];
 const PREMIUM = new Set(['amazon']);
 
 const ALLOWED_HOSTS = new Set([
@@ -37,6 +42,7 @@ const ALLOWED_HOSTS = new Set([
   'cazasouq.com',
   'www.cazasouq.com',
   'static.cazasouq.com',
+  'f.nooncdn.com',
 ]);
 
 const scrapeUrl = (token: string, target: string, premium: boolean) =>
@@ -69,9 +75,38 @@ function extractCazasouq($: cheerio.CheerioAPI): string | null {
   return $('meta[property="og:image"]').attr('content') || null;
 }
 
+function extractNoon($: cheerio.CheerioAPI): string | null {
+  /* ⚠️ أوّل صورة في صفحة نون ليست صورة المنتج: الصفحة تبدأ بإعلانٍ برعاية
+     وسمُه `alt="topSlotContent"` (رُصد فعلاً وهو يعيد صورة ماوس بدل كرت
+     شاشة). فالمصدر الموثوق هو الصورة التي يطابق alt-ها عنوان المنتج.
+
+     ونونسدن يقدّم أحجاماً عبر ?width=، فتُقصّ لتُطلب الصورة الأصل. */
+  const title = ($('meta[property="og:title"]').attr('content') || $('title').text() || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 25)
+    .toLowerCase();
+
+  let best: string | null = null;
+  $('img').each((_, el) => {
+    if (best) return;
+    const src = $(el).attr('src') || '';
+    if (!/f\.nooncdn\.com\/p\//.test(src)) return;
+    const alt = ($(el).attr('alt') || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!alt || alt === 'topslotcontent') return;
+    if (title && !alt.includes(title.slice(0, 12))) return;
+    best = src.split('?')[0];
+  });
+  if (best) return best;
+
+  const og = $('meta[property="og:image"]').attr('content');
+  return og && /nooncdn/.test(og) ? og.split('?')[0] : null;
+}
+
 const EXTRACT: Record<string, ($: cheerio.CheerioAPI) => string | null> = {
   amazon: extractAmazon,
   cazasouq: extractCazasouq,
+  noon: extractNoon,
 };
 
 async function main() {
