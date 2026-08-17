@@ -216,11 +216,15 @@ export default async function AutoBuildsSection() {
     }
     if (compCases.length === 0) compCases = cases;
 
-    let filteredCases = compCases.filter(c => {
-      if (tier === 'economy') return c.price <= 500;
-      if (tier === 'mid') return c.price <= 800;
-      return true;
-    });
+    /* ⚠️ كان هنا سقفٌ سعري (٥٠٠ للاقتصادي و٨٠٠ للمتوسط) بدل المستوى —
+       لأن ٢٣ كيساً من ٢٧ كانت بلا `performanceTier`، فلا شيء يُصفّى به.
+       وقد صُنّفت كلّها (scripts/set-case-tiers.ts)، فصار الكيس يُختار
+       كما تُختار بقيّة القطع: بمستواه.
+
+       والفرق ليس شكلياً: السقف السعري كان يُدخل HYTE Y60 بـ١٠٦٨ في
+       التجميعة العليا وسعة كرته ٣٧٥ مم، ويُقصي Meshify 2 بـ٥٢٥ وسعته
+       ٤٦٧ من المتوسطة لأنه… أرخص من أن يُستبعد لكنه لم يُفضَّل. */
+    let filteredCases = pickByTier(compCases, tier);
     if (filteredCases.length === 0) filteredCases = compCases;
     const pcase = pickSeeded(filteredCases, tier + ':case') || filteredCases[0] || cases[0];
 

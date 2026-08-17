@@ -236,14 +236,17 @@ export default function BuildTuner({
        و RTX 4070 SUPER بـ5,417 أضعف من 5070 Ti بـ3,950.
        الترتيب بالسعر كان يكذب على المستخدم.
 
-       الكيس بلا performanceTier إطلاقاً (صفر من 23) — السعر معياره الوحيد.
-       الباقي: نرتّب بالمستوى، ثم بالسعر داخل المستوى الواحد. */
-    const usesTier = catName !== 'Case';
+       ⚠️ كان الكيس مستثنىً هنا ويُرتَّب بالسعر وحده، لأن ٢٣ من ٢٧ كيساً
+       كانت بلا `performanceTier`. وقد صُنّفت كلّها (راجع
+       scripts/set-case-tiers.ts: سعة الكرت، وقدرة التبريد، والبناء)،
+       فسقط سبب الاستثناء. وترتيبُ الكيسات بالسعر كان يقول إن XT View
+       بـ٥٧٢ أقدرُ من Meshify 2 بـ٥٢٥ — والثاني يبتلع كرتاً أطول بـ٥٢ مم.
 
+       نرتّب بالمستوى، ثم بالسعر داخل المستوى الواحد. */
     let pool = cat.components.filter((c: any) => c.price > 0);
     if (pool.length === 0) return [];
 
-    if (usesTier) {
+    {
       // قطعة بلا مستوى: نقدّر رتبتها من موقعها السعري بين أقرانها
       const withTier = pool.filter((c: any) => c.performanceTier != null);
       const tiers = withTier.map((c: any) => c.performanceTier as number);
@@ -265,8 +268,6 @@ export default function BuildTuner({
         const d = effTier(a) - effTier(b);
         return Math.abs(d) > 0.01 ? d : a.price - b.price;
       });
-    } else {
-      pool = [...pool].sort((a: any, b: any) => a.price - b.price);
     }
 
     /* لو هذه الفئة هي محلّ تعارض، نعرض المتوافقة أولاً —
