@@ -37,6 +37,11 @@ const LABELS: Record<string, string> = {
   lengthMm: 'الطول',
   powerConnectors: 'موصّلات الطاقة',
   ports: 'المنافذ',
+  /* ⚠️ كان اسمه `radiatorSupport` — وهو مفتاح **الكيس**، استُعير لكرتٍ
+     واحد فيه تبريدٌ مائي مدمج (ROG Astral LC). المعلومة صحيحة والمفتاح
+     خاطئ: يوم تدخل فئة المبرّدات سيحمل الاسم الواحد معنيين متناقضين —
+     «الكيس يقبل راديتر ٣٦٠» و«الكرت يأتي براديتر ٣٦٠». */
+  includedAio: 'تبريد مائي مرفق',
 
   // اللوحة الأم
   chipset: 'الشيبست',
@@ -62,26 +67,33 @@ const LABELS: Record<string, string> = {
   rating: 'شهادة الكفاءة',
   modularity: 'الكابلات',
 
-  // الصندوق
+  /* ============ الصندوق ============
+   *
+   * ⚠️ كانت هنا تسعُ تسمياتٍ أُسقطت: design وairflow وglass وhandles
+   * وstorage وmodular وcoolingModes وacoustics وorientation.
+   *
+   * سببها أن الكيس بلغ **٢٢ مفتاحاً وشاملَين اثنين** — أسوأ فئةٍ انضباطاً
+   * في الكتالوج (التخزين ٦ مفاتيح كلّها شاملة). وثمانيةٌ منها على قطعةٍ
+   * واحدة في الكتالوج كلّه، فجدول `/compare` كان يعرض قائمتين متجاورتين
+   * لا مقارنة: ستّة صفوف من ثمانية نصفها فارغ.
+   *
+   * وقبل الحذف فُحص وصفُ كل قطعة: سبعٌ من عشر قيمٍ يتيمة كانت مذكورةً في
+   * الوصف بجملةٍ أوضح من المفتاح، والثلاث الباقية نُقلت إليه.
+   * راجع scripts/tidy-case-specs.ts — فيه سبب كل حذفٍ مفرداً.
+   */
   maxGpuLength: 'أقصى طول كرت',
+  /* ⚠️ كان بلا تسمية رغم أنه **مفتاح توافق** يقرؤه psuFitsCase — فيظهر
+     في الجدول بالإنجليزية عبر humanize: «Psu Form Factor». */
+  psuFormFactor: 'مقاس المزوّد المقبول',
   includedFans: 'المراوح المرفقة',
   radiatorSupport: 'دعم الرادييتر',
-  airflow: 'تدفّق الهواء',
   sidePanel: 'اللوح الجانبي',
   frontPanel: 'الواجهة الأمامية',
   cableManagement: 'تنظيم الكابلات',
   verticalGpu: 'تركيب عمودي للكرت',
   dualChamber: 'حجرتان',
   pcieRiser: 'كابل رايزر',
-  coolingModes: 'أنماط التبريد',
-  orientation: 'الوضعية',
-  design: 'التصميم',
   screen: 'شاشة',
-  glass: 'زجاج',
-  handles: 'مقابض',
-  storage: 'التخزين',
-  modular: 'قابل للفكّ',
-  acoustics: 'العزل الصوتي',
 };
 
 /** camelCase → «كلمتان» حين لا توجد تسمية مسجّلة — أفضل من عرض المفتاح خاماً */
@@ -104,12 +116,12 @@ export const specLabel = (key: string): string => LABELS[key] ?? humanize(key);
  */
 const ORDER: Record<string, string[]> = {
   CPU: ['socket', 'cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'pCores', 'eCores', 'integratedGraphics', 'memorySupport', 'architecture'],
-  GPU: ['vram', 'memoryType', 'memoryBus', 'lengthMm', 'powerConnectors', 'interface', 'ports', 'architecture', 'formFactor'],
+  GPU: ['vram', 'memoryType', 'memoryBus', 'lengthMm', 'powerConnectors', 'interface', 'ports', 'architecture', 'formFactor', 'includedAio'],
   Motherboard: ['socket', 'chipset', 'formFactor', 'ramType', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion'],
   RAM: ['type', 'capacity', 'kit', 'speed', 'casLatency', 'profile', 'rgb', 'color'],
   Storage: ['type', 'capacity', 'interface', 'formFactor', 'readSpeed', 'writeSpeed'],
   PSU: ['wattage', 'rating', 'modularity', 'formFactor'],
-  Case: ['formFactor', 'maxGpuLength', 'includedFans', 'radiatorSupport', 'airflow', 'sidePanel', 'frontPanel', 'cableManagement', 'verticalGpu', 'dualChamber', 'pcieRiser', 'coolingModes', 'orientation', 'design', 'screen', 'glass', 'handles', 'storage', 'color', 'modular', 'acoustics'],
+  Case: ['formFactor', 'maxGpuLength', 'psuFormFactor', 'radiatorSupport', 'includedFans', 'frontPanel', 'sidePanel', 'dualChamber', 'verticalGpu', 'pcieRiser', 'cableManagement', 'screen', 'color'],
 };
 
 /* ============ الوحدات ============
@@ -191,7 +203,7 @@ const HERO: Record<string, string[]> = {
   RAM: ['capacity', 'type', 'speed', 'kit'],
   Storage: ['capacity', 'type', 'readSpeed', 'interface'],
   PSU: ['wattage', 'rating', 'modularity', 'formFactor'],
-  Case: ['formFactor', 'maxGpuLength', 'radiatorSupport', 'includedFans', 'airflow'],
+  Case: ['formFactor', 'maxGpuLength', 'radiatorSupport', 'includedFans', 'sidePanel'],
 };
 
 /**
