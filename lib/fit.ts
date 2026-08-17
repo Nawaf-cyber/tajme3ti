@@ -91,6 +91,22 @@ const normPsu = (raw: unknown): string => {
   return s;
 };
 
+/**
+ * المقاسات مرتّبة: الحاملُ الأكبر يقبل الأصغر.
+ *
+ * ⚠️ كانت المقارنة عضويةً حرفية في القائمة، مع استثناءٍ يدويّ واحد
+ * (SFX داخل حامل SFX-L). وهي تكذب في اتجاهين:
+ *
+ *   · كيسٌ سُجّل عليه «ATX» يرفض مزوّد SFX — وهو يدخله فعلاً بالحامل
+ *     المرفق معه. وهذا وحده كان سيولّد ١١٥ منعاً خاطئاً من ٨٦٤ زوجاً
+ *     لحظةَ تُملأ حقول الأبراج الثلاثة والعشرين.
+ *   · وNZXT H210 المسجّل «ATX / SFX» يرفض اليوم مزوّد SFX-L — وهو كيسٌ
+ *     يبتلع مزوّد ATX بطول ٣١١ مم، فرفضُه ما هو أصغر منه تناقض.
+ *
+ * والرتب تحسم الاتجاهين بقاعدةٍ واحدة بدل استثناءات تُضاف واحداً واحداً.
+ */
+const PSU_RANK: Record<string, number> = { SFX: 1, 'SFX-L': 2, ATX: 3 };
+
 export function psuFitsCase(psuFormFactor: unknown, casePsuSupport: unknown): boolean {
   const psu = normPsu(psuFormFactor);
   const support = String(casePsuSupport || '').trim();
@@ -99,9 +115,13 @@ export function psuFitsCase(psuFormFactor: unknown, casePsuSupport: unknown): bo
   const accepted = support.split('/').map((x) => normPsu(x)).filter(Boolean);
   if (accepted.length === 0) return true;
 
-  // كيسٌ يقبل SFX-L يقبل SFX الأصغر منه بالضرورة
-  if (psu === 'SFX' && accepted.includes('SFX-L')) return true;
-  return accepted.includes(psu);
+  /* أكبر حاملٍ يذكره الكيس. ومقاسٌ لا نعرف رتبته (معيارٌ جديد لم يُسجَّل
+     بعد) يُسقطنا إلى المطابقة الحرفية بدل أن نخمّن له موضعاً في السلّم. */
+  const topRank = Math.max(...accepted.map((a) => PSU_RANK[a] ?? 0));
+  const psuRank = PSU_RANK[psu] ?? 0;
+  if (topRank === 0 || psuRank === 0) return accepted.includes(psu);
+
+  return psuRank <= topRank;
 }
 
 export function psuFitReason(psuFormFactor: unknown, casePsuSupport: unknown): string | null {
