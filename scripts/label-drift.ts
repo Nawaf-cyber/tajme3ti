@@ -64,6 +64,29 @@ for (const key of LIB_KEYS) {
 
 console.log(`مفاتيح مفحوصة: ${LIB_KEYS.length}\n`);
 
+/* ============ تصادم التسميات ============
+ *
+ * صفحة المقارنة تبني الصفّ من التسمية ثم تبحث عن مفتاحها هكذا:
+ *   Object.keys(specs).find((k) => specLabel(k) === label)
+ *
+ * فلو حملت قطعةٌ **مفتاحين** يؤدّيان إلى التسمية نفسها، عُرض أوّلهما
+ * وسقط الثاني بصمت — بلا خطأ ولا أثر. لذا يُفحص التصادم هنا لا في صفحة.
+ */
+const byLabel: Record<string, string[]> = {};
+for (const key of LIB_KEYS) {
+  const l = cmp[norm(key)];
+  if (!l) continue;
+  (byLabel[l] = byLabel[l] || []).push(key);
+}
+const clashes = Object.entries(byLabel).filter(([, keys]) => keys.length > 1);
+if (clashes.length) {
+  console.log(`⚠️ تسميةٌ واحدة لمفتاحين أو أكثر (${clashes.length}) — لو اجتمعا في قطعة سقط أحدهما بصمت:`);
+  for (const [l, keys] of clashes) console.log(`   «${l}»  ←  ${keys.join('، ')}`);
+  console.log('');
+} else {
+  console.log('✔ لا تسمية مشتركة بين مفتاحين\n');
+}
+
 if (onlyLib.length) {
   console.log(`⛔ في lib/spec-labels ولا تسمية لها في المقارنة (${onlyLib.length}) — ستظهر بالإنجليزية:`);
   onlyLib.forEach((l) => console.log('   ' + l));
