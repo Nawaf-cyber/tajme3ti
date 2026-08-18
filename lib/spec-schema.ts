@@ -192,6 +192,29 @@ export const readFeatures = (specs: Record<string, unknown> | null | undefined):
   return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : [];
 };
 
+/* ============ الملاحظات — تحفّظٌ لا ميزة ============
+ *
+ * «المزايا» جُمَلٌ في صالح القطعة. وهناك ما يجب أن يعرفه المشتري وليس في
+ * صالحها: أن الشركة أوقفت المبرّد المرفق، أو أن ما في العلبة اليوم غير ما
+ * كان فيها أمس. ووضعُ ذلك تحت «مزايا إضافية» يقلب معناه، ودفنُه في الوصف
+ * التسويقيّ يُضيعه.
+ *
+ * فهذه طبقةٌ ثالثة بجانب المواصفات والمزايا: خبرٌ عن القطعة لا يُقارَن ولا
+ * يُفحص، ويُعرض بلونٍ يقول «انتبه» لا بلونٍ يقول «اشترِ».
+ *
+ * ⚠️ ولأنها مفتاحٌ داخل specs، وجب إدخالها في allowedKeys وإلّا ردّها
+ * الاستيراد مفتاحاً دخيلاً — وهو ما تفعله البوّابة بحقّ بكل مفتاحٍ لا
+ * يعرفه المخطّط.
+ */
+export const NOTES_KEY = 'notes';
+
+export const isNoteKey = (key: string): boolean => key === NOTES_KEY;
+
+export const readNotes = (specs: Record<string, unknown> | null | undefined): string[] => {
+  const raw = specs?.[NOTES_KEY];
+  return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : [];
+};
+
 /** ما يُفرض فعلاً: التوافق والمقارنة. المشروطة والرمادية تُقاس ولا تُطالَب. */
 export const requiredKeys = (category: string): string[] => {
   const s = SPEC_SCHEMA[category];

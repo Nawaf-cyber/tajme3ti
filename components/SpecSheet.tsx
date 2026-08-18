@@ -1,5 +1,5 @@
 import { specLabel, sortedSpecs, specValueLines, isCompatKey, heroKeys } from '../lib/spec-labels';
-import { isFeatureKey, readFeatures } from '../lib/spec-schema';
+import { isFeatureKey, readFeatures, isNoteKey, readNotes } from '../lib/spec-schema';
 import { StatStrip, type Stat } from './Panel';
 
 /**
@@ -38,9 +38,12 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
      في خانةٍ عرضها خانة — والأسوأ أن صفّاً باسم «Features» يَعِد بمقابلٍ
      في القطع الأخرى وهو غير موجود. */
   const features = readFeatures(specs);
-  const all = sortedSpecs(categoryName, specs).filter(([k]) => !isFeatureKey(k));
+  /* الملاحظات تُستخرج مثل المزايا وتُستبعد من الجدول لنفس السبب — لكنها
+     ليست مثلها في المعنى: تلك في صالح القطعة وهذه تحفّظٌ عليها. */
+  const notes = readNotes(specs);
+  const all = sortedSpecs(categoryName, specs).filter(([k]) => !isFeatureKey(k) && !isNoteKey(k));
 
-  if (all.length === 0 && features.length === 0) {
+  if (all.length === 0 && features.length === 0 && notes.length === 0) {
     return (
       <p className="py-6 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
         لا توجد مواصفات فنية مسجلة.
@@ -81,6 +84,26 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
               className="rounded-sm border border-slate-200 bg-slate-50 px-2 py-1 text-[11.5px] font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300"
             >
               {f}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+
+  /* كهرمانيّ لا رماديّ — واللون هنا معنىً لا زينة: القارئ يعرف قبل أن
+     يقرأ أن هذا ممّا يُنتبه له، لا ممّا يُغري بالشراء. */
+  const NoteBlock = () =>
+    notes.length === 0 ? null : (
+      <div className="mt-4 rounded-sm border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/60 dark:bg-amber-900/10">
+        <p className="mb-1.5 text-[11px] font-black text-amber-700 dark:text-amber-400">ملاحظات</p>
+        <ul className="space-y-1.5">
+          {notes.map((n) => (
+            <li
+              key={n}
+              className="flex gap-2 text-[12.5px] font-semibold leading-relaxed text-amber-800 dark:text-amber-200"
+            >
+              <span className="mt-[0.5em] h-1 w-1 shrink-0 rounded-full bg-amber-500" />
+              <span>{n}</span>
             </li>
           ))}
         </ul>
@@ -162,6 +185,8 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
       </dl>
 
       <FeatureBadges />
+      {/* بعد المزايا: التحفّظ يُقرأ بعد الوصف لا قبله */}
+      <NoteBlock />
 
       {/* الوسم بلا مفتاحٍ يقرؤه لغزٌ صغير. والسطر يشرح ما يميّز الموقع:
           هذه الأرقام ليست زينة — عليها يُبنى قبول التجميعة أو رفضها. */}

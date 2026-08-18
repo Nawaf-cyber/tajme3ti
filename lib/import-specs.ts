@@ -8,7 +8,7 @@
  * القاعدة: التوافق يمنع، والمقارنة تحذّر، والدخيل يُرفض.
  */
 
-import { SPEC_SCHEMA, FEATURES_KEY, unannouncedKeys } from './spec-schema';
+import { SPEC_SCHEMA, FEATURES_KEY, NOTES_KEY, unannouncedKeys } from './spec-schema';
 import { specLabel } from './spec-labels';
 
 export type Specs = Record<string, any>;
@@ -48,7 +48,8 @@ export const allowedKeys = (categoryName: string): Set<string> | null => {
   const schema = SPEC_SCHEMA[categoryName];
   if (!schema) return null;
   return new Set<string>([
-    ...schema.compat, ...schema.compare, ...schema.conditional, ...schema.undecided, FEATURES_KEY,
+    ...schema.compat, ...schema.compare, ...schema.conditional, ...schema.undecided,
+    FEATURES_KEY, NOTES_KEY,
   ]);
 };
 
