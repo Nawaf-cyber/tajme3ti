@@ -10,6 +10,7 @@
    SVG خالص بلا مكتبة رسم، والألوان تطابق ترتيب أعمدة الجدول. */
 
 import { formatPrice } from '../../lib/price';
+import { Panel, SectionHeading } from '../../components/Panel';
 
 export type HistorySeries = { componentId: string; points: { d: string; p: number }[] };
 
@@ -30,12 +31,14 @@ export default function ComparePriceHistory({
 
   if (series.length < 1) {
     return (
-      <div className="mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-6 text-center shadow-sm">
-        <h2 className="text-lg font-black text-slate-900 dark:text-white mb-2">تاريخ السعر</h2>
-        <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-          نجمع بيانات الأسعار لهذه القطع — سيظهر الرسم بعد عدة أيام من التتبّع.
-        </p>
-      </div>
+      <section className="mt-8 flex flex-col gap-4">
+        <SectionHeading note="آخر 90 يوماً">تاريخ السعر</SectionHeading>
+        <Panel className="px-6 py-8 text-center">
+          <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+            نجمع بيانات الأسعار لهذه القطع — سيظهر الرسم بعد عدة أيام من التتبّع.
+          </p>
+        </Panel>
+      </section>
     );
   }
 
@@ -83,50 +86,48 @@ export default function ComparePriceHistory({
   };
 
   return (
-    <div className="relative mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-5 md:p-6 shadow-sm animate-fade-up">
-      {/* الزاوية الهندسية — بصمة بطاقات الموقع */}
-      <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent pointer-events-none"></div>
-      <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
-        <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
-          تاريخ السعر
-          <span className="font-mono text-[10px] font-normal text-slate-400 tracking-wider">آخر 90 يوماً</span>
-        </h2>
-      </div>
+    /* ⚠️ كان هنا غلافٌ وعنوانٌ مكتوبان يدوياً — نسخةٌ ثانية من `Panel` و
+       `SectionHeading` بأرقامٍ مقاربة لا مطابقة: حدٌّ علويّ `border-t-cyan-500`
+       بدل `/70`، وخلفيةٌ `/50` بدل `/60`، وعنوانٌ `text-lg` وشريطٌ `h-7` بدل
+       `text-xl` و`h-8`، وملحوظةٌ بخطٍّ أحاديّ المسافة (لا يحمل حروفاً عربية).
 
-      {/* مفتاح الألوان: القطعة + تغيّرها + أدنى سعر مسجّل */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mb-5">
+       فبدا القسمان متشابهين ومختلفين معاً — وهو أسوأ من اختلافٍ صريح.
+       والآن مصدرٌ واحد: أي تعديلٍ على `Panel` يصل الصفحتين. */
+    <section className="mt-8 flex flex-col gap-4 animate-fade-up">
+      <SectionHeading note="آخر 90 يوماً">تاريخ السعر</SectionHeading>
+      <Panel className="px-5 py-5 md:px-6">
+
+      {/* ============ مفتاح الألوان ============
+          كان بطاقاتٍ محاطةً في شبكة — إطارٌ داخل إطار، وهو ما لا تفعله
+          صفحة القطعة: مفتاحها سطرٌ واحد من شرطاتٍ رفيعة بلون الخطّ نفسه،
+          فتربط العين الشرطةَ بالخطّ في الرسم بلا وسيط.
+
+          فأُخذ النمط نفسه هنا: شرطةٌ بلون السلسلة، ثم الاسم، ثم تغيّره —
+          وبقيت شارة «أدنى سعر مسجّل» لأنها خبرٌ لا زينة. */}
+      <div className="flex items-center flex-wrap gap-x-5 gap-y-2 mb-4">
         {series.map((s) => {
           const st = stat(s.points);
           return (
-            <div
-              key={s.componentId}
-              className="flex items-start gap-2.5 p-2.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/30"
-            >
-              <span className="mt-1 w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: s.color }} />
-              <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-black text-slate-800 dark:text-slate-200 truncate">
-                  {s.label?.name ?? '—'}
-                </div>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span
-                    className={`font-mono text-[10px] font-black ${
-                      st.change < 0 ? 'text-emerald-500' : st.change > 0 ? 'text-red-500' : 'text-slate-400'
-                    }`}
-                  >
-                    {st.change === 0 ? 'بلا تغيّر' : `${st.change < 0 ? '▼' : '▲'} ${formatPrice(Math.abs(st.change))}`}
-                  </span>
-                  {st.atLowest ? (
-                    <span className="font-mono text-[9px] font-black text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 px-1.5 py-0.5 rounded-sm">
-                      أدنى سعر مسجّل
-                    </span>
-                  ) : (
-                    <span className="font-mono text-[9px] font-bold text-slate-400 dark:text-slate-500">
-                      أدناه {formatPrice(st.lowest)}
-                    </span>
-                  )}
-                </div>
-              </div>
+            <div key={s.componentId} className="flex items-center gap-1.5 min-w-0">
+              <span
+                className="inline-block w-5 h-0.5 rounded-full shrink-0"
+                style={{ backgroundColor: s.color }}
+              />
+              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[190px]">
+                {s.label?.name ?? '—'}
+              </span>
+              <span
+                className={`text-[11px] font-black flex items-center gap-0.5 shrink-0 ${
+                  st.change < 0 ? 'text-emerald-500' : st.change > 0 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'
+                }`}
+              >
+                {st.change === 0 ? '—' : `${st.change < 0 ? '▼' : '▲'} ${formatPrice(Math.abs(st.change))}`}
+              </span>
+              {st.atLowest && (
+                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 px-1.5 py-0.5 rounded-sm shrink-0">
+                  أدنى سعر مسجّل
+                </span>
+              )}
             </div>
           );
         })}
@@ -205,6 +206,7 @@ export default function ComparePriceHistory({
       <p className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 font-mono text-[10px] text-slate-400 dark:text-slate-500 text-center leading-relaxed">
         أدنى سعر متاح لكل قطعة في كل يوم — نقاط حقيقية مسجّلة، بلا تقدير للفجوات
       </p>
-    </div>
+      </Panel>
+    </section>
   );
 }
