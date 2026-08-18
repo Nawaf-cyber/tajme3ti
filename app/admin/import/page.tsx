@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import ImportTemplate from './ImportTemplate';
 
 /* ترجمة أسماء الحقول للعربية في جدول "وش تغيّر" */
 const FIELD_AR: Record<string, string> = {
@@ -134,6 +135,8 @@ export default function BulkImportPage() {
           )}
         </div>
       </div>
+
+      <ImportTemplate />
 
       {/* ===== المعاينة ===== */}
       {result && (
