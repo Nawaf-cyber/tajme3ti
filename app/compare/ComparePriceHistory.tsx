@@ -76,6 +76,37 @@ export default function ComparePriceHistory({
   const fmtDate = (t: number) =>
     new Date(t).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' });
 
+  /* ============ أعمدة التأشير ============
+   * منقولةٌ عن صفحة القطعة بالآلية نفسها — كان الرسمان يعرضان البيانات
+   * ذاتها بتفاعلَين مختلفين: هناك تلميحٌ مرسوم يقارن الأسعار في يومٍ واحد،
+   * وهنا تلميح المتصفّح الأصلي على نقطةٍ نصف قطرها ٢٫٨ بكسل.
+   *
+   * والعمود لا النقطة، للأسباب الثلاثة نفسها:
+   *  ١) المطلوب المقارنة: كم كان سعر كل **قطعة** في ذلك اليوم.
+   *  ٢) SVG بلا z-index — تلميحُ نقطةٍ مبكرة يختفي تحت ما يُرسم بعدها.
+   *     والأعمدة لا تتقاطع أفقياً وواحدٌ فقط ظاهر، فينحلّ ترتيب الطبقات.
+   *  ٣) منطقة التقاطٍ بعرض اليوم كامل الارتفاع تُصاب بالفأرة والإصبع،
+   *     بخلاف دائرةٍ نصف قطرها ٢٫٨.
+   *
+   * وبـCSS خالص بلا حالة React: الرسم يبقى يعمل ولو تعطّلت الجافاسكربت.
+   */
+  const dayKeys = Array.from(new Set(all.map((p) => p.d))).sort();
+  const colW = dayKeys.length > 1 ? plotW / (dayKeys.length - 1) : plotW;
+
+  const columns = dayKeys
+    .map((key) => ({
+      key,
+      cx: x(key),
+      entries: series
+        .map((s) => {
+          const hit = s.points.find((p) => p.d === key);
+          return hit ? { name: s.label?.name ?? '—', color: s.color, price: hit.p } : null;
+        })
+        .filter((e): e is { name: string; color: string; price: number } => e !== null)
+        .sort((a, b) => a.price - b.price),
+    }))
+    .filter((c) => c.entries.length > 0);
+
   /* لكل قطعة: التغيّر خلال الفترة + أدنى سعر سُجّل.
      "أدنى سعر مسجّل" هو المرجع الذي يحكم به الزائر على السعر الحالي. */
   const stat = (pts: { d: string; p: number }[]) => {
@@ -145,6 +176,15 @@ export default function ComparePriceHistory({
           role="img"
           aria-label="مقارنة تاريخ أسعار القطع المختارة"
         >
+          {/* الأنماط داخل الـSVG لا في globals.css — نفس سبب صفحة القطعة:
+              لا يتعطّل التلميح لو وصل ملفُ الأنماط قديماً من الذاكرة. */}
+          <style>{`
+            .cph-col .cph-tip, .cph-col .cph-guide { opacity: 0; transition: opacity .12s ease; }
+            .cph-col:hover .cph-tip, .cph-col:hover .cph-guide,
+            .cph-col:active .cph-tip, .cph-col:active .cph-guide { opacity: 1; }
+            .cph-col { cursor: crosshair; -webkit-tap-highlight-color: transparent; }
+          `}</style>
+
           {/* شبكة أفقية + تسميات السعر */}
           {grid.map((g, i) => (
             <g key={i}>
@@ -187,12 +227,97 @@ export default function ComparePriceHistory({
                 strokeLinecap="round"
               />
               {s.points.map((pt, idx) => (
-                <circle key={idx} cx={x(pt.d)} cy={y(pt.p)} r="2.8" fill={s.color}>
-                  <title>{`${s.label?.name ?? ''} · ${pt.d} · ${formatPrice(pt.p)} ﷼`}</title>
-                </circle>
+                <circle key={idx} cx={x(pt.d)} cy={y(pt.p)} r="2.8" fill={s.color} />
               ))}
             </g>
           ))}
+
+          {/* ============ التلميح — يوماً بيوم ============
+              يُرسم **بعد** الخطوط كي يعلوها: SVG يرتّب بالطبقات لا بـz-index. */}
+          {columns.map((col) => {
+            const rowH = 16;
+            const tipH = 24 + col.entries.length * rowH;
+            const tipW = Math.max(
+              150,
+              ...col.entries.map((e) => 46 + Math.min(e.name.length, 26) * 6.4 + String(Math.round(e.price)).length * 7),
+            );
+            // ينقلب يساراً قرب الحافّة كي لا يخرج عن الإطار
+            const flip = col.cx + 10 + tipW > W - 4;
+            const tx = flip ? col.cx - 10 - tipW : col.cx + 10;
+            const ty = Math.min(PAD.top + 4, H - tipH - 4);
+
+            return (
+              <g key={col.key} className="cph-col">
+                {/* نصٌّ بديل: يقرؤه قارئ الشاشة، ويظهر تلميحاً أصلياً لو
+                    تعطّل الـCSS — التلميح المرسوم ليس المسار الوحيد للخبر */}
+                <title>
+                  {`${fmtDate(new Date(col.key).getTime())}: ${col.entries
+                    .map((e) => `${e.name} ${Math.round(e.price)}`)
+                    .join('، ')}`}
+                </title>
+                <rect x={col.cx - colW / 2} y={PAD.top} width={colW} height={plotH} fill="transparent" />
+                <line
+                  className="cph-guide stroke-slate-400 dark:stroke-slate-500"
+                  x1={col.cx}
+                  y1={PAD.top}
+                  x2={col.cx}
+                  y2={PAD.top + plotH}
+                  strokeWidth="1"
+                  strokeDasharray="3 3"
+                />
+                <g className="cph-tip" transform={`translate(${tx.toFixed(1)}, ${ty.toFixed(1)})`}>
+                  <rect
+                    width={tipW}
+                    height={tipH}
+                    rx="8"
+                    className="fill-white dark:fill-slate-800 stroke-slate-200 dark:stroke-slate-600"
+                    strokeWidth="1"
+                  />
+                  {/* الترتيب عربي بالإحداثيات: التاريخ والاسم يميناً والسعر
+                      يساراً — والهندسة LTR فـ end تعني اليمين بيقين */}
+                  <text
+                    x={tipW - 10}
+                    y="16"
+                    textAnchor="end"
+                    fontSize="11"
+                    fontWeight="800"
+                    className="fill-slate-500 dark:fill-slate-400"
+                  >
+                    {fmtDate(new Date(col.key).getTime())}
+                  </text>
+                  {col.entries.map((e, i) => {
+                    const ry = 24 + i * rowH + 10;
+                    const short = e.name.length > 26 ? e.name.slice(0, 25) + '…' : e.name;
+                    return (
+                      <g key={e.name}>
+                        <circle cx={tipW - 14} cy={ry - 3.5} r="3.5" fill={e.color} />
+                        <text
+                          x={tipW - 24}
+                          y={ry}
+                          textAnchor="end"
+                          fontSize="11.5"
+                          fontWeight="700"
+                          className="fill-slate-600 dark:fill-slate-300"
+                        >
+                          {short}
+                        </text>
+                        <text
+                          x="10"
+                          y={ry}
+                          textAnchor="start"
+                          fontSize="11.5"
+                          fontWeight="900"
+                          className="fill-slate-900 dark:fill-white"
+                        >
+                          {Math.round(e.price).toLocaleString('en-US')}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </g>
+              </g>
+            );
+          })}
 
           <text x={PAD.left} y={H - 8} textAnchor="start" className="fill-slate-400 dark:fill-slate-500" fontSize="11" fontWeight="700">
             {fmtDate(t0)}
@@ -204,7 +329,7 @@ export default function ComparePriceHistory({
       </div>
 
       <p className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 font-mono text-[10px] text-slate-400 dark:text-slate-500 text-center leading-relaxed">
-        أدنى سعر متاح لكل قطعة في كل يوم — نقاط حقيقية مسجّلة، بلا تقدير للفجوات
+        أشر على أي يوم (أو المس واستمرّ) لترى أسعار القطع فيه — أدنى سعر متاح لكل قطعة، نقاط حقيقية مسجّلة بلا تقدير للفجوات
       </p>
       </Panel>
     </section>
