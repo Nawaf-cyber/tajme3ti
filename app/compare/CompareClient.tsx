@@ -413,7 +413,30 @@ export default function CompareClient({
       bestValueIdx: validScores.length > 1 ? scores.indexOf(Math.max(...validScores)) : -1,
       topPerfIdx: isTierUnique && topTier > 0 ? tiers.indexOf(topTier) : -1,
       cheapestIdx: validPrices.length > 1 ? prices.indexOf(Math.min(...validPrices)) : -1,
-      lowTdpIdx: validTdps.length > 1 ? tdps.indexOf(Math.min(...validTdps)) : -1,
+      /* ⚠️ ثلاث علل كانت هنا، كشفها توحيدُ استهلاك اللوحات:
+       *
+       * أ) **بلا حارس تساوٍ.** `indexOf(min)` يعيد **أوّل** من يحمل
+       *    الأدنى — فلوحتان عند ١٠ واط تُتوَّج إحداهما اعتباطاً. وجدول
+       *    الاستهلاك نفسه يحرس هذا (`winnerIdx = []` عند تساوي الجميع)،
+       *    فافترق الجدول عن الخلاصة في الحكم على البيانات نفسها.
+       *
+       * ب) **الفارق يُطبع ولو كان صفراً**: «الأقل استهلاكاً بـ 0 واط».
+       *
+       * ج) والأهمّ: «أقلّ استهلاكاً» ليست ميزةً في لوحةٍ أو كيس أصلاً —
+       *    وقد أُزيلت نجمتها من الجدول، وبقي الحكم في الخلاصة. فتناقض
+       *    الصفّ مع خلاصته.
+       *
+       * ⚠️ ولا يُقرأ `categoryName` هنا: تعريفه يأتي **بعد** هذا الـmemo
+       *    في ترتيب الملف، وجسم الـmemo يُنفَّذ وقت الاستدعاء لا وقت
+       *    العرض — فقراءته تُلقي ReferenceError. تُقرأ الفئة من القطعة. */
+      lowTdpIdx: (() => {
+        const cat = selected[0]?.category?.name ?? '';
+        if (!TDP_JUDGED.includes(cat)) return -1;
+        if (validTdps.length < 2) return -1;
+        const lo = Math.min(...validTdps);
+        if (validTdps.every((t) => t === lo)) return -1;   // تساوٍ ⇒ لا فائز
+        return tdps.indexOf(lo);
+      })(),
       minPrice: validPrices.length ? Math.min(...validPrices) : 0,
     };
   }, [selected]);
@@ -481,7 +504,8 @@ export default function CompareClient({
 
       if (i === lowTdpIdx && c.tdpWattage > 0) {
         const others = selected.filter((_, j) => j !== i).map((x) => x.tdpWattage).filter((t) => t > 0);
-        if (others.length) parts.push(`الأقل استهلاكاً بـ ${Math.min(...others) - c.tdpWattage} واط`);
+        const gap = others.length ? Math.min(...others) - c.tdpWattage : 0;
+        if (gap > 0) parts.push(`الأقل استهلاكاً بـ ${gap} واط`);
       }
 
       if (parts.length) out.push({ name: c.name, text: parts.join('، و') });
