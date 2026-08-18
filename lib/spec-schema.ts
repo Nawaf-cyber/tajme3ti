@@ -40,49 +40,88 @@ export type CategorySchema = {
 };
 
 export const SPEC_SCHEMA: Record<string, CategorySchema> = {
+  /* المعالج — المقبس وحده يقرؤه المحرّك. وذاكرة L3 في المقارنة لأنها
+     الفارق الحاسم في الألعاب (سلسلة X3D قائمة عليها). */
   CPU: {
     compat: ['socket'],
-    compare: ['cores', 'threads', 'baseClock', 'boostClock', 'l3Cache'],
+    compare: ['cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'architecture'],
     conditional: ['pCores', 'eCores', 'integratedGraphics', 'memorySupport'],
-    undecided: ['architecture'],
+    undecided: [],
   },
+
+  /* الكرت — الطول يقرؤه المحرّك (يدخل الكيس أو لا).
+     ⚠️ formFactor هنا مشروط لا إلزامي: قيمته «Low Profile» أو «2.5 Slot»
+     أي أنها تصف الشاذّ لا القاعدة. وسُمك الكرت بالفتحات يستحقّ حقلاً
+     مستقلّاً يوماً ما (كرتٌ بثلاث فتحات يحجب الفتحة تحته) — ولا قاعدة
+     توافق تقرؤه اليوم، فلا يُفرض. */
   GPU: {
     compat: ['lengthMm'],
-    compare: ['vram', 'memoryType', 'memoryBus', 'interface', 'powerConnectors', 'ports'],
+    compare: ['vram', 'memoryType', 'memoryBus', 'interface', 'powerConnectors', 'ports', 'architecture'],
     conditional: ['formFactor', 'includedAio'],
-    undecided: ['architecture'],
+    undecided: [],
   },
+
   Motherboard: {
     compat: ['socket', 'ramType', 'formFactor'],
     compare: ['chipset', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion'],
     conditional: [],
     undecided: [],
   },
+
+  /* الرام — `kit` رُفع إلى المقارنة: ٣٢ جيجابايت في شريحتين غير ٣٢ في
+     واحدة (قناة مزدوجة)، وهو فرقٌ في الأداء لا في الشكل. */
   RAM: {
     compat: ['type'],
-    compare: ['capacity', 'speed', 'casLatency', 'profile', 'rgb'],
-    conditional: ['kit'],
-    undecided: ['color'],
+    compare: ['capacity', 'kit', 'speed', 'casLatency', 'profile', 'rgb'],
+    conditional: ['color'],
+    undecided: [],
   },
+
+  /* التخزين — الفئة الوحيدة المكتملة أصلاً، وهي النموذج.
+     ⚠️ `formFactor` مرشّحٌ ليصير مفتاح توافق: قرص 2.5 بوصة يحتاج منفذ
+     SATA وخانةً في الكيس، وM.2 يحتاج فتحةً في اللوحة — ولا فحص لذلك بعد. */
   Storage: {
     compat: [],
     compare: ['type', 'capacity', 'interface', 'formFactor', 'readSpeed', 'writeSpeed'],
     conditional: [],
     undecided: [],
   },
+
   PSU: {
     compat: ['wattage', 'formFactor'],
     compare: ['rating', 'modularity'],
-    conditional: [],
-    undecided: ['color'],
+    conditional: ['color'],
+    undecided: [],
   },
+
+  /* الكيس — الثلاثة الأولى يقرؤها المحرّك.
+     و`includedFans` تبقى في المقارنة **نصّاً يُقرأ بلا نجمة**: قيمتها
+     مركّبة («2x 160mm + 1x 140mm») لا تُقارَن رقمياً، وعدُّ المراوح ليس
+     مقياس تبريد أصلاً — مروحتا ١٦٠ تدفعان أكثر من أربع ١٢٠. */
   Case: {
     compat: ['formFactor', 'maxGpuLength', 'psuFormFactor'],
     compare: ['maxCoolerHeight', 'radiatorSupport', 'includedFans'],
-    conditional: ['dualChamber', 'verticalGpu', 'pcieRiser', 'screen'],
-    undecided: ['frontPanel', 'sidePanel', 'cableManagement', 'color'],
+    conditional: ['dualChamber', 'verticalGpu', 'pcieRiser', 'screen', 'color'],
+    undecided: [],
   },
 };
+
+/* ============ ما نزل إلى «المزايا» ============
+ *
+ * ليست مفاتيح بعد اليوم — جُمَلٌ حرّة تظهر في صفحة القطعة وحدها:
+ *
+ *   frontPanel · sidePanel · cableManagement
+ *
+ * السبب واحد: تصف **مظهراً** لا بُعداً يُقاس. «Mesh» مقابل «Tempered Glass»
+ * ليست أكبر ولا أصغر، و«RapidRoute» اسمٌ تجاريّ لا يعني شيئاً لمن لا يعرف
+ * كورسير. وصفّها في المقارنة كان يمتلئ بالشرطات لأن سبعةً من ٢٧ تحمله.
+ *
+ * ============ `color` مشروط بقاعدة صريحة ============
+ *
+ * يُسجَّل **حين يكون غير الأسود**. جُرّب رفعه إلى المقارنة فتبيّن أن ثمنه
+ * ٧٢ قيمة عبر ثلاث فئات، مقابل صفٍّ يقول «أسود / أسود» في أغلب الحالات.
+ * وقيمته الحقيقية في **التصفية** لا المقارنة — والتصفية غير مبنيّة بعد.
+ */
 
 /** ما يُفرض فعلاً: التوافق والمقارنة. المشروطة والرمادية تُقاس ولا تُطالَب. */
 export const requiredKeys = (category: string): string[] => {
