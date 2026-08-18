@@ -44,7 +44,11 @@ export const SPEC_SCHEMA: Record<string, CategorySchema> = {
      الفارق الحاسم في الألعاب (سلسلة X3D قائمة عليها). */
   CPU: {
     compat: ['socket'],
-    compare: ['cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'architecture'],
+    /* `includedCooler` في المقارنة لا في المشروطة عمداً: الفراغ في المشروطة
+       يعني «لا يوجد»، وهنا لا يُفرَّق بين «لا يأتي بمبرّد» و«لم نتحقّق» —
+       وهو الفرق الذي يجعل المُجمّع يسكت حين يجب أن ينبّه. فيُملأ على كل
+       معالج صراحةً: اسم المبرّد المرفق، أو «لا يوجد». */
+    compare: ['cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'architecture', 'includedCooler'],
     conditional: ['pCores', 'eCores', 'integratedGraphics', 'memorySupport'],
     undecided: [],
   },
@@ -106,6 +110,43 @@ export const SPEC_SCHEMA: Record<string, CategorySchema> = {
     compare: ['maxCoolerHeight', 'radiatorSupport', 'includedFans'],
     conditional: ['dualChamber', 'verticalGpu', 'pcieRiser', 'screen', 'color'],
     undecided: [],
+  },
+
+  /* ============ المبرّد — نوعان في فئةٍ واحدة ============
+   *
+   * وهذا لبّ تصميمه: الهوائي يُقاس ارتفاعه مقابل `maxCoolerHeight`،
+   * والمائي يُقاس رادييتره مقابل `radiatorSupport`. حقلان مختلفان في
+   * الكيس، وقاعدتا فحصٍ مختلفتان.
+   *
+   * ⚠️ وبوّابتنا تسأل سؤالاً **مسطّحاً**: «هل كل مفاتيح compat موجودة؟».
+   * لا تعرف أن تقول «إن كان هوائياً فالارتفاع إلزاميّ». فلو وُضع الحقلان
+   * معاً لرُفض **كل** هوائيّ (لا رادييتر له) و**كل** مائيّ (لا ارتفاع له).
+   * ولو لم يوضع أيٌّ منهما لَقُبل مبرّدٌ بلا مقاسٍ إطلاقاً — فيقول المحرّك
+   * «يدخل كل كيس»، وهو أسوأ من الرفض لأنه يكذب بثقة.
+   *
+   * فالمقاس رقمٌ واحد `sizeMm`، و`type` يقرّر بأيّ عمودٍ يُقارَن. كلاهما
+   * موجودٌ في كل مبرّدٍ بلا استثناء، فتبقى البوّابة مسطّحةً كما هي ولا
+   * يتغيّر سطرٌ في الأماكن الأربعة التي تقرأ المخطّط.
+   *
+   *   type = Air  →  sizeMm يُقارن بـ maxCoolerHeight
+   *   type = AIO  →  sizeMm يُقارن بـ radiatorSupport
+   *
+   * والدليل من كتالوجنا: Lian Li A4-H2O X5 ارتفاعه 55 ورادييتره 240 —
+   * فـ NH-D15 (هوائي 165) لا يدخله، و LF III (مائي 240) يدخله. كيسٌ واحد
+   * وحكمان متعاكسان، والفرق في **أيّ عمودٍ يُقاس عليه** لا في حجم الرقم.
+   *
+   * ⚠️ وثمنُ ذلك أن صفّ المقارنة يعرض 165 لهوائيّ و360 لمائيّ وهما شيئان
+   * مختلفان فيزيائياً — يُعالَج بوضع «النوع» فوقه مباشرةً في `ORDER`.
+   *
+   * و`clearanceMm` (الخلوص فوق الرام) في `undecided` لا `conditional`:
+   * كثيرٌ من المصنّعين لا ينشره، ففراغه «لم نعرف» لا «لا يوجد». ويكتمل
+   * معناه حين تُقرأ `heightMm` على الرام — وهي مملوءةٌ الآن على ٢٧ من ٢٨.
+   */
+  Cooler: {
+    compat: ['type', 'sizeMm', 'sockets'],
+    compare: ['tdpRating', 'fanCount', 'fanSize', 'rgb'],
+    conditional: ['color'],
+    undecided: ['clearanceMm'],
   },
 };
 

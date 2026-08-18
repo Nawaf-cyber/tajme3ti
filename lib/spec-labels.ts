@@ -56,6 +56,13 @@ const LABELS: Record<string, string> = {
   kit: 'الطقم',
   casLatency: 'زمن الاستجابة',
   heightMm: 'ارتفاع الشريحة',
+  sockets: 'المقابس المدعومة',
+  sizeMm: 'المقاس',
+  tdpRating: 'قدرة التبديد',
+  fanCount: 'عدد المراوح',
+  fanSize: 'مقاس المروحة',
+  includedCooler: 'مبرّد مرفق',
+  clearanceMm: 'الخلوص فوق الرام',
   profile: 'البروفايل',
   rgb: 'إضاءة RGB',
 
@@ -142,6 +149,9 @@ const ORDER: Record<string, string[]> = {
   GPU: ['vram', 'memoryType', 'memoryBus', 'lengthMm', 'powerConnectors', 'interface', 'ports', 'architecture', 'formFactor', 'includedAio'],
   Motherboard: ['socket', 'chipset', 'formFactor', 'ramType', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion'],
   RAM: ['type', 'capacity', 'kit', 'speed', 'casLatency', 'profile', 'rgb', 'heightMm', 'color'],
+  /* النوع فوق المقاس مباشرةً: 165 لهوائيّ و360 لمائيّ شيئان مختلفان،
+     ولا يُقرأ المقاس إلا بعد معرفة نوعه. */
+  Cooler: ['type', 'sizeMm', 'sockets', 'tdpRating', 'fanCount', 'fanSize', 'rgb', 'clearanceMm', 'color'],
   Storage: ['type', 'capacity', 'interface', 'formFactor', 'readSpeed', 'writeSpeed'],
   PSU: ['wattage', 'rating', 'modularity', 'formFactor'],
   Case: ['formFactor', 'maxGpuLength', 'maxCoolerHeight', 'radiatorSupport', 'psuFormFactor', 'includedFans', 'frontPanel', 'sidePanel', 'dualChamber', 'verticalGpu', 'pcieRiser', 'cableManagement', 'screen', 'color'],
@@ -158,6 +168,9 @@ const UNITS: Record<string, string> = {
   maxGpuLength: 'مم',
   maxCoolerHeight: 'مم',
   heightMm: 'مم',
+  sizeMm: 'مم',
+  clearanceMm: 'مم',
+  tdpRating: 'واط',
   wattage: 'واط',
   speed: 'MT/s',
 };

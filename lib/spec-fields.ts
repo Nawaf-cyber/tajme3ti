@@ -109,6 +109,15 @@ const BY_CATEGORY: Record<string, Record<string, FieldMeta>> = {
     formFactor: { type: 'select', options: ['M.2 2280', 'M.2 2230', '2.5-inch', '3.5-inch'] },
     interface: { type: 'select', options: ['PCIe 5.0 x4', 'PCIe 4.0 x4', 'PCIe 3.0 x4', 'SATA III'] },
   },
+  Cooler: {
+    type: { type: 'select', options: ['Air', 'AIO'] },
+    sizeMm: { type: 'number', hint: '165' },
+    sockets: { type: 'text', hint: 'AM5/AM4/LGA1700/LGA1851' },
+    tdpRating: { type: 'number', hint: '220' },
+    fanCount: { type: 'number', hint: '2' },
+    fanSize: { type: 'text', hint: '120mm' },
+    clearanceMm: { type: 'number', hint: '32' },
+  },
   PSU: { formFactor: { type: 'select', options: ['ATX', 'ATX 3.0', 'ATX 3.1', 'SFX', 'SFX-L'] } },
   Case: { formFactor: { type: 'select', options: ['Mid Tower', 'Full Tower', 'Micro-ATX Tower', 'Mini-ITX'] } },
 };
