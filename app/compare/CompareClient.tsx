@@ -13,6 +13,7 @@ import ComparePriceHistory, { SERIES_COLORS, type HistorySeries } from './Compar
 import SuggestPartCard from '../../components/SuggestPartCard';
 import { productImage } from '../../lib/image';
 import { specLabelLoose } from '../../lib/spec-labels';
+import { isFeatureKey } from '../../lib/spec-schema';
 
 type Comp = any;
 
@@ -244,7 +245,10 @@ export default function CompareClient({
     const labels = new Set<string>();
     selected.forEach((c) => {
       const sp = typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {};
-      Object.keys(sp).forEach((k) => labels.add(specLabel(k)));
+      /* ⚠️ المزايا تُستبعد من الصفوف: هي مصفوفة جُمَل تخصّ قطعةً بعينها،
+         ولا يُنتظر لها نظيرٌ في القطع الأخرى — فصفّها يمتلئ بالشرطات،
+         وهو بالضبط ما أُخرجت من أجله. مكانها صفحة القطعة وحدها. */
+      Object.keys(sp).filter((k) => !isFeatureKey(k)).forEach((k) => labels.add(specLabel(k)));
     });
     return Array.from(labels).sort((a, b) => {
       const ia = ROW_ORDER.indexOf(a);
@@ -259,7 +263,7 @@ export default function CompareClient({
   const rowData = (label: string) => {
     const values = selected.map((c) => {
       const sp = typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {};
-      const key = Object.keys(sp).find((k) => specLabel(k) === label);
+      const key = Object.keys(sp).filter((k) => !isFeatureKey(k)).find((k) => specLabel(k) === label);
       return key ? sp[key] : null;
     });
     let winnerIdx: number[] = [];

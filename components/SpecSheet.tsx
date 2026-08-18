@@ -1,4 +1,5 @@
 import { specLabel, sortedSpecs, specValueLines, isCompatKey, heroKeys } from '../lib/spec-labels';
+import { isFeatureKey, readFeatures } from '../lib/spec-schema';
 import { StatStrip, type Stat } from './Panel';
 
 /**
@@ -32,9 +33,14 @@ type Props = {
 };
 
 export default function SpecSheet({ categoryName, specs, dense = false }: Props) {
-  const all = sortedSpecs(categoryName, specs);
+  /* ⚠️ المزايا تُستخرج قبل الجدول وتُستبعد منه.
+     هي مصفوفة جُمَل لا قيمةً مفردة، فلو دخلت الصفوف طُبعت مسرودةً بفواصل
+     في خانةٍ عرضها خانة — والأسوأ أن صفّاً باسم «Features» يَعِد بمقابلٍ
+     في القطع الأخرى وهو غير موجود. */
+  const features = readFeatures(specs);
+  const all = sortedSpecs(categoryName, specs).filter(([k]) => !isFeatureKey(k));
 
-  if (all.length === 0) {
+  if (all.length === 0 && features.length === 0) {
     return (
       <p className="py-6 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
         لا توجد مواصفات فنية مسجلة.
@@ -61,6 +67,25 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
   });
 
   const hasCompat = all.some(([key]) => isCompatKey(categoryName, key));
+
+  /* شارات لا صفوف: الميزة خبرٌ مفردٌ يُقرأ حيث هو، ولا يُنتظر له نظيرٌ في
+     قطعةٍ أخرى — فلا تُوضع في جدولٍ يوحي بالمقابلة. */
+  const FeatureBadges = () =>
+    features.length === 0 ? null : (
+      <div className="mt-4 border-t border-slate-200/80 pt-4 dark:border-slate-800">
+        <p className="mb-2 text-[11px] font-black text-slate-400 dark:text-slate-500">مزايا إضافية</p>
+        <ul className="flex flex-wrap gap-1.5">
+          {features.map((f) => (
+            <li
+              key={f}
+              className="rounded-sm border border-slate-200 bg-slate-50 px-2 py-1 text-[11.5px] font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300"
+            >
+              {f}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
 
   return (
     <div>
@@ -135,6 +160,8 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
           );
         })}
       </dl>
+
+      <FeatureBadges />
 
       {/* الوسم بلا مفتاحٍ يقرؤه لغزٌ صغير. والسطر يشرح ما يميّز الموقع:
           هذه الأرقام ليست زينة — عليها يُبنى قبول التجميعة أو رفضها. */}

@@ -123,6 +123,31 @@ export const SPEC_SCHEMA: Record<string, CategorySchema> = {
  * وقيمته الحقيقية في **التصفية** لا المقارنة — والتصفية غير مبنيّة بعد.
  */
 
+/* ============ المزايا ============
+ *
+ * كل ما ليس في الطبقات الأربع أعلاه يعيش هنا: قائمة **جُمَل** لا مفاتيح.
+ *
+ * ولماذا جُمَل: المفتاح يَعِد بالمقارنة ضمناً — فإن كتبنا `frontPanel` توقّع
+ * الجدول صفّاً يقابله في كل قطعة، وسبعةٌ من ٢٧ تحمله فيمتلئ الصفّ بالشرطات.
+ * والجملة لا تَعِد بشيء: تُقرأ حيث هي، ولا يُنتظر لها نظير.
+ *
+ * ⚠️ وهي المكان الذي يُغري بالفوضى: لو قبلت أزواج مفتاح/قيمة عدنا إلى
+ * اثنين وعشرين مفتاحاً في دلوٍ آخر. فالنوع `string[]` عمداً — لا مفتاح
+ * يُخترع، ولا توقّع بأنها تُقارَن.
+ *
+ * وتظهر في صفحة القطعة وحدها. و`isFeatureKey` هو الحارس: تستدعيه صفحة
+ * المقارنة وجدول المواصفات ليُخرجاها من صفوفهما.
+ */
+export const FEATURES_KEY = 'features';
+
+export const isFeatureKey = (key: string): boolean => key === FEATURES_KEY;
+
+/** المزايا المسجّلة على قطعة — أو مصفوفة فارغة */
+export const readFeatures = (specs: Record<string, unknown> | null | undefined): string[] => {
+  const raw = specs?.[FEATURES_KEY];
+  return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : [];
+};
+
 /** ما يُفرض فعلاً: التوافق والمقارنة. المشروطة والرمادية تُقاس ولا تُطالَب. */
 export const requiredKeys = (category: string): string[] => {
   const s = SPEC_SCHEMA[category];

@@ -17,7 +17,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { SPEC_SCHEMA, requiredKeys } from '../lib/spec-schema';
+import { SPEC_SCHEMA, requiredKeys, isFeatureKey } from '../lib/spec-schema';
 import 'dotenv/config';
 
 const parse = (s: unknown): Record<string, any> =>
@@ -86,7 +86,8 @@ async function main() {
     const known = new Set([...schema.compat, ...schema.compare, ...schema.conditional, ...schema.undecided]);
     const extras: Record<string, number> = {};
     for (const c of list) for (const k of Object.keys(parse(c.specs))) {
-      if (!known.has(k)) { extras[k] = (extras[k] || 0) + 1; extrasAll[k] = (extrasAll[k] || 0) + 1; }
+      /* المزايا ليست «خارج المخطّط» — لها مكانٌ معرَّف فيه */
+      if (!known.has(k) && !isFeatureKey(k)) { extras[k] = (extras[k] || 0) + 1; extrasAll[k] = (extrasAll[k] || 0) + 1; }
     }
     const ex = Object.entries(extras).sort((a, b) => b[1] - a[1]);
     if (ex.length) console.log(`  ── خارج المخطّط (مرشّحة للمزايا): ${ex.map(([k, n]) => `${k}:${n}`).join('  ')}`);
