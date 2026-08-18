@@ -1,44 +1,33 @@
 /**
- * ============ خريطتا تسميات، ولا أحد يحرسهما ============
+ * ============ القوائم التي ما زالت تُعرَّف بالنصّ العربي ============
  *
- * تسميات المواصفات مكتوبة **مرّتين**:
- *   · `lib/spec-labels.ts`        ← صفحة القطعة وجدول المواصفات
- *   · `app/compare/CompareClient.tsx` ← صفحة المقارنة (نسخة مستقلّة)
+ * كانت التسميات مكتوبة **مرّتين**: في `lib/spec-labels.ts` وفي نسخةٍ
+ * مستقلّة داخل `app/compare/CompareClient.tsx`. وقد افترقتا فعلاً —
+ * ١٧ مفتاحاً بحمل اسمين حسب الصفحة — وانكشف الأمر حين ظهر مفتاحٌ جديد
+ * في المقارنة بالإنجليزية خاماً. فوُحّدت الخريطة وصار المصدر واحداً.
  *
- * وقد افترقتا فعلاً: المفتاح الواحد يظهر باسمين مختلفين حسب الصفحة التي
- * فتحها الزائر. وانكشف ذلك حين أُضيف `maxCoolerHeight` إلى الأولى فظهر في
- * المقارنة **بالإنجليزية خاماً** — أي أن كل مفتاح جديد يحتاج تذكّر مكانين.
+ * لكن بقي خطرٌ من نوعٍ آخر: صفحة المقارنة تُعرّف صفوفها **بتسميتها
+ * العربية** لا بمفتاحها — الترتيب (`ROW_ORDER`) ومنطق الفائز
+ * (`HIGHER_IS_BETTER` و`LOWER_IS_BETTER`) كلّها مصفوفات نصوص عربية.
  *
- * وهذا الدرس نفسه دفعناه في السحب من قبل: منطقٌ مشترك عاش في نسختين،
- * فاحتاج خطأ كازاسوق إصلاحاً مزدوجاً.
+ * فتغييرُ كلمةٍ في `lib/spec-labels.ts` يقطع الوصلة بصمت:
+ *   · الصفّ يسقط إلى آخر الجدول (لأنه لم يعد في ROW_ORDER)
+ *   · أو يفقد نجمة «الأفضل» (لأنه لم يعد في HIGHER_IS_BETTER)
+ * بلا خطأ في البناء ولا في الأنواع.
  *
- * توحيد الخريطتين ليس تعديلاً صغيراً: صفحة المقارنة تُعرّف كل صفٍّ
- * **بتسميته العربية** لا بمفتاحه (الترتيب، ومنطق الفائز، والفروق المئوية
- * كلّها تقارن نصوصاً عربية). فحتى يُعاد ذلك التصميم، هذه الأداة تجعل
- * الافتراق مرئياً بدل أن يُكتشف بالصدفة في صفحة.
+ * هذه الأداة تمسك ذلك: تقرأ القوائم الثلاث نصّياً وتتأكّد أن كل نصٍّ فيها
+ * تسميةٌ حقيقية تُنتجها الخريطة.
  *
  *   npx tsx scripts/label-drift.ts
  */
 import { readFileSync } from 'node:fs';
-import { specLabel } from '../lib/spec-labels';
+import { specLabelLoose } from '../lib/spec-labels';
 
-/** يقرأ SPEC_LABELS من ملف المقارنة نصّياً — لأنه مكوّن 'use client' */
-function compareLabels(): Record<string, string> {
-  const src = readFileSync('app/compare/CompareClient.tsx', 'utf8');
-  const start = src.indexOf('const SPEC_LABELS');
-  const end = src.indexOf('};', start);
-  if (start === -1 || end === -1) throw new Error('لم يُعثر على SPEC_LABELS في CompareClient');
-  const body = src.slice(start, end);
+const SRC = 'app/compare/CompareClient.tsx';
+const src = readFileSync(SRC, 'utf8');
 
-  const out: Record<string, string> = {};
-  for (const m of body.matchAll(/^\s*([a-z0-9]+)\s*:\s*'([^']+)'/gim)) out[m[1]] = m[2];
-  return out;
-}
-
-const norm = (k: string) => k.toLowerCase().replace(/[\s_-]/g, '');
-
-/** المفاتيح المستعملة فعلاً في الكتالوج — تُمرَّر من catalog-gaps أو تُكتب هنا */
-const LIB_KEYS = [
+/** كل مفتاحٍ يظهر فعلاً في الكتالوج */
+const KEYS = [
   'socket', 'cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'pCores', 'eCores',
   'integratedGraphics', 'memorySupport', 'architecture',
   'vram', 'memoryType', 'memoryBus', 'lengthMm', 'powerConnectors', 'ports', 'includedAio',
@@ -50,56 +39,37 @@ const LIB_KEYS = [
   'frontPanel', 'sidePanel', 'dualChamber', 'verticalGpu', 'pcieRiser', 'cableManagement', 'screen',
 ];
 
-const cmp = compareLabels();
+const KNOWN = new Set(KEYS.map(specLabelLoose));
 
-const onlyLib: string[] = [];
-const differs: [string, string, string][] = [];
-
-for (const key of LIB_KEYS) {
-  const a = specLabel(key);
-  const b = cmp[norm(key)];
-  if (b == null) { onlyLib.push(`${key}  →  «${a}»`); continue; }
-  if (a !== b) differs.push([key, a, b]);
+/** يستخرج نصوص مصفوفةٍ مسمّاة من الملف */
+function arrayStrings(name: string): string[] {
+  const i = src.indexOf(`const ${name} = [`);
+  if (i === -1) throw new Error(`لم تُوجد ${name}`);
+  const j = src.indexOf('];', i);
+  return [...src.slice(i, j).matchAll(/'([^']+)'/g)].map((m) => m[1]);
 }
 
-console.log(`مفاتيح مفحوصة: ${LIB_KEYS.length}\n`);
+let bad = 0;
+for (const name of ['ROW_ORDER', 'HIGHER_IS_BETTER', 'LOWER_IS_BETTER']) {
+  const items = arrayStrings(name);
+  const orphans = items.filter((x) => !KNOWN.has(x));
+  console.log(`${orphans.length ? '⛔' : '✔'} ${name.padEnd(18)} ${items.length} نصّاً` +
+    (orphans.length ? `  ← ${orphans.length} بلا تسمية مقابلة` : ''));
+  for (const o of orphans) console.log(`      «${o}» لا تُنتجها الخريطة — الصفّ سيسقط بصمت`);
+  bad += orphans.length;
+}
 
-/* ============ تصادم التسميات ============
- *
- * صفحة المقارنة تبني الصفّ من التسمية ثم تبحث عن مفتاحها هكذا:
- *   Object.keys(specs).find((k) => specLabel(k) === label)
- *
- * فلو حملت قطعةٌ **مفتاحين** يؤدّيان إلى التسمية نفسها، عُرض أوّلهما
- * وسقط الثاني بصمت — بلا خطأ ولا أثر. لذا يُفحص التصادم هنا لا في صفحة.
- */
+/* والعكس: تسميةٌ موجودة ولا ترتيب لها → تظهر في آخر الجدول */
+const order = new Set(arrayStrings('ROW_ORDER'));
+const unordered = [...KNOWN].filter((l) => !order.has(l));
+console.log(`${unordered.length ? '⚠️' : '✔'} تسميات بلا ترتيب: ${unordered.length}` +
+  (unordered.length ? `  (${unordered.join('، ')})` : ''));
+
+/* تصادم: مفتاحان بتسمية واحدة → أحدهما يسقط في rowData بصمت */
 const byLabel: Record<string, string[]> = {};
-for (const key of LIB_KEYS) {
-  const l = cmp[norm(key)];
-  if (!l) continue;
-  (byLabel[l] = byLabel[l] || []).push(key);
-}
-const clashes = Object.entries(byLabel).filter(([, keys]) => keys.length > 1);
-if (clashes.length) {
-  console.log(`⚠️ تسميةٌ واحدة لمفتاحين أو أكثر (${clashes.length}) — لو اجتمعا في قطعة سقط أحدهما بصمت:`);
-  for (const [l, keys] of clashes) console.log(`   «${l}»  ←  ${keys.join('، ')}`);
-  console.log('');
-} else {
-  console.log('✔ لا تسمية مشتركة بين مفتاحين\n');
-}
+for (const k of KEYS) (byLabel[specLabelLoose(k)] ||= []).push(k);
+const clashes = Object.entries(byLabel).filter(([, ks]) => ks.length > 1);
+console.log(`${clashes.length ? '⛔' : '✔'} تسميةٌ لمفتاحين: ${clashes.length}`);
+for (const [l, ks] of clashes) console.log(`      «${l}» ← ${ks.join('، ')}`);
 
-if (onlyLib.length) {
-  console.log(`⛔ في lib/spec-labels ولا تسمية لها في المقارنة (${onlyLib.length}) — ستظهر بالإنجليزية:`);
-  onlyLib.forEach((l) => console.log('   ' + l));
-} else {
-  console.log('✔ كل مفتاح في lib له تسمية في المقارنة');
-}
-
-if (differs.length) {
-  console.log(`\n⚠️ تسميتان مختلفتان للمفتاح الواحد (${differs.length}) — الاسم يتغيّر بتغيّر الصفحة:`);
-  console.log(`   ${'المفتاح'.padEnd(20)} ${'صفحة القطعة'.padEnd(24)} صفحة المقارنة`);
-  for (const [k, a, b] of differs) console.log(`   ${k.padEnd(20)} ${a.padEnd(24)} ${b}`);
-} else {
-  console.log('\n✔ لا اختلاف في التسميات');
-}
-
-process.exit(onlyLib.length ? 1 : 0);
+process.exit(bad || clashes.length ? 1 : 0);

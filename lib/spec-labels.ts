@@ -108,6 +108,24 @@ const humanize = (key: string): string =>
 
 export const specLabel = (key: string): string => LABELS[key] ?? humanize(key);
 
+/* ============ بحثٌ متساهل عن التسمية ============
+ *
+ * صفحة المقارنة كانت تحمل **نسخةً ثانية** من خريطة التسميات، وفيها مرادفات
+ * للمفتاح الواحد (`performanceCores` و`pCores`، و`gpuMount` و`verticalGpu`).
+ * وحين وُحّدت الخريطتان لزم ألّا تضيع تلك التساهلية: مفتاحٌ بحالة أحرفٍ
+ * مختلفة أو بشرطةٍ زائدة يجب أن يجد تسميته لا أن يظهر بالإنجليزية.
+ *
+ * فالبحث: تطابقٌ تامّ أوّلاً، ثم تطابقٌ بعد تجريد الفواصل وحالة الأحرف.
+ */
+const normKey = (k: string) => k.toLowerCase().replace(/[\s_-]/g, '');
+
+const NORMALIZED: Record<string, string> = Object.fromEntries(
+  Object.entries(LABELS).map(([k, v]) => [normKey(k), v]),
+);
+
+export const specLabelLoose = (key: string): string =>
+  LABELS[key] ?? NORMALIZED[normKey(key)] ?? humanize(key);
+
 /* ============ ترتيب العرض ============
  *
  * ⚠️ لماذا هنا لا في القاعدة: عمود specs من نوع Json، وPostgres يخزّنه
