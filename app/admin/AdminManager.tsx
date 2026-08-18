@@ -13,7 +13,7 @@ import StoreFieldsGroup from './StoreFieldsGroup';
 import ScrapeStatusBadge, { isStale } from './ScrapeStatusBadge';
 import { storeVars, type StoreInfo } from '../../lib/stores';
 import { specLabel } from '../../lib/spec-labels';
-import { SPEC_SCHEMA, FEATURES_KEY, readFeatures } from '../../lib/spec-schema';
+import { SPEC_SCHEMA, FEATURES_KEY, NOTES_KEY, readFeatures, readNotes } from '../../lib/spec-schema';
 import { fieldMeta } from '../../lib/spec-fields';
 
 /* ⚠️ حُذفت من هنا `categoryFieldsMap` — خريطةُ حقولٍ **ثالثة** مستقلّة عن
@@ -41,6 +41,11 @@ export default function AdminManager({ categories, components, news, cronStatus,
      بلا مفتاحٍ يُخترع. */
   const [featureText, setFeatureText] = useState('');
   const [features, setFeatures] = useState<string[]>([]);
+  /* الملاحظات: تحفّظ لا ميزة. حالتها منفصلة عن المزايا عمداً — خلطهما في
+     حقل واحد يعني أن المحرّر يقرّر المعنى بنبرة الجملة، والقارئ يخسر
+     الفرق بين ما يُغري وما يُنبّه. */
+  const [noteText, setNoteText] = useState('');
+  const [notes, setNotes] = useState<string[]>([]);
   const [missingWarn, setMissingWarn] = useState<string[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedCategoryName, setSelectedCategoryName] = useState('');
@@ -88,13 +93,27 @@ export default function AdminManager({ categories, components, news, cronStatus,
     setFeatures(features.filter((x) => x !== f));
   };
 
+  const handleAddNote = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const t = noteText.trim();
+    if (t && !notes.includes(t)) setNotes([...notes, t]);
+    setNoteText('');
+  };
+
+  const handleRemoveNote = (n: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    setNotes(notes.filter((x) => x !== n));
+  };
+
 
   const startEditComponent = (comp: any) => {
     setEditingComponent(comp);
     setSelectedCategoryId(comp.categoryId);
     const raw = { ...(comp.specs || {}) };
     setFeatures(readFeatures(raw));
+    setNotes(readNotes(raw));
     delete raw[FEATURES_KEY];
+    delete raw[NOTES_KEY];
     setSpecs(raw);
     setMissingWarn([]);
     
@@ -112,6 +131,8 @@ export default function AdminManager({ categories, components, news, cronStatus,
     setSelectedCategoryId('');
     setSpecs({});
     setFeatures([]);
+    setNotes([]);
+    setNoteText('');
     setFeatureText('');
     setMissingWarn([]);
   };
@@ -444,9 +465,49 @@ export default function AdminManager({ categories, components, news, cronStatus,
                     ))}
                   </div>
                 </div>
+
+                {/* ============ الملاحظات ============
+                    تحفّظٌ لا ميزة. أوّل ما دعا إليها: «مبرّد مرفق: لا يوجد»
+                    يقول ماذا ولا يقول لماذا — والمشتري الذي قرأ مراجعةً
+                    قديمة يظنّ بياناتنا خاطئة. فاللون كهرمانيّ لا أخضر. */}
+                <div>
+                  <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-1 text-sm">⚠️ ملاحظات</h4>
+                  <p className="text-[12px] text-gray-500 dark:text-gray-400 mb-3">
+                    تحفّظٌ يجب أن يعرفه المشتري وليس في صالح القطعة — تظهر في صفحتها بلون تنبيه.
+                    مثال: «أوقفت الشركة المبرّد المرفق في أغسطس ٢٠٢٥».
+                  </p>
+                  <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-3">
+                    <input
+                      type="text"
+                      placeholder="اكتب الملاحظة جملةً…"
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddNote(e as any); } }}
+                      className="flex-1 min-w-[200px] p-2 border border-gray-300 dark:border-slate-700 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                    <button onClick={handleAddNote} disabled={!selectedCategoryId} className="px-4 py-2 bg-amber-700 hover:bg-amber-600 disabled:bg-gray-400 text-white font-bold rounded shrink-0">أضف ملاحظة</button>
+                  </div>
+                  <div className="flex flex-col gap-2 p-3 bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-700 min-h-[50px]">
+                    {notes.length === 0 && <span className="text-gray-500 text-sm">لا ملاحظات.</span>}
+                    {notes.map((n) => (
+                      <div key={n} className="flex items-start gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-lg text-sm font-medium border border-amber-200 dark:border-amber-800/50">
+                        <span className="flex-1 leading-relaxed">{n}</span>
+                        <button onClick={(e) => handleRemoveNote(n, e)} className="text-amber-600 dark:text-amber-400 hover:text-red-600 font-bold shrink-0">×</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              <input type="hidden" name="specs" value={JSON.stringify(features.length ? { ...specs, [FEATURES_KEY]: features } : specs)} />
+              <input
+                type="hidden"
+                name="specs"
+                value={JSON.stringify({
+                  ...specs,
+                  ...(features.length ? { [FEATURES_KEY]: features } : {}),
+                  ...(notes.length ? { [NOTES_KEY]: notes } : {}),
+                })}
+              />
               
               <div className="md:col-span-2 flex gap-4 mt-2">
                 <button type="submit" className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm">
