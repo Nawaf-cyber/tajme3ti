@@ -13,42 +13,17 @@ import StoreFieldsGroup from './StoreFieldsGroup';
 import ScrapeStatusBadge, { isStale } from './ScrapeStatusBadge';
 import { storeVars, type StoreInfo } from '../../lib/stores';
 import { specLabel } from '../../lib/spec-labels';
+import { SPEC_SCHEMA, FEATURES_KEY, readFeatures } from '../../lib/spec-schema';
+import { fieldMeta } from '../../lib/spec-fields';
 
-// خريطة الحقول التلقائية بناءً على الفئة
-const categoryFieldsMap: Record<string, { key: string, label: string, type: 'text' | 'number' | 'select', options?: string[] }[]> = {
-  'CPU': [
-    { key: 'socket', label: 'المقبس (Socket)', type: 'select', options: ['AM5', 'AM4', 'LGA1700', 'LGA1200', 'LGA1851'] },
-    { key: 'cores', label: 'عدد الأنوية', type: 'number' },
-    { key: 'threads', label: 'عدد المسارات (Threads)', type: 'number' },
-    { key: 'baseClock', label: 'التردد الأساسي (GHz)', type: 'text' },
-  ],
-  'Motherboard': [
-    { key: 'socket', label: 'المقبس (Socket)', type: 'select', options: ['AM5', 'AM4', 'LGA1700', 'LGA1200', 'LGA1851'] },
-    { key: 'ramType', label: 'نوع الرام المدعوم', type: 'select', options: ['DDR5', 'DDR4'] },
-    { key: 'formFactor', label: 'الحجم (Form Factor)', type: 'select', options: ['ATX', 'Micro-ATX', 'Mini-ITX', 'E-ATX'] },
-  ],
-  'RAM': [
-    { key: 'type', label: 'نوع الرام', type: 'select', options: ['DDR5', 'DDR4'] },
-    { key: 'speed', label: 'السرعة (MHz)', type: 'number' },
-    { key: 'capacity', label: 'السعة الإجمالية (GB)', type: 'select', options: ['8GB', '16GB', '32GB', '64GB', '128GB'] },
-  ],
-  'GPU': [
-    { key: 'lengthMm', label: 'طول الكرت (mm)', type: 'number' },
-    { key: 'vram', label: 'حجم الذاكرة (VRAM)', type: 'select', options: ['8GB', '10GB', '12GB', '16GB', '20GB', '24GB'] },
-  ],
-  'Case': [
-    { key: 'maxGpuLength', label: 'أقصى طول لكرت الشاشة (mm)', type: 'number' },
-    { key: 'formFactor', label: 'حجم الكيس', type: 'select', options: ['Mid Tower', 'Full Tower', 'Micro-ATX Tower', 'Mini-ITX'] },
-  ],
-  'PSU': [
-    { key: 'wattage', label: 'القدرة (Wattage)', type: 'number' },
-    { key: 'rating', label: 'التقييم (80+ Rating)', type: 'select', options: ['80+ Bronze', '80+ Gold', '80+ Platinum', '80+ Titanium', 'None'] },
-  ],
-  'Storage': [
-    { key: 'type', label: 'النوع', type: 'select', options: ['NVMe M.2', 'SATA SSD', 'HDD'] },
-    { key: 'capacity', label: 'السعة', type: 'select', options: ['500GB', '1TB', '2TB', '4TB'] },
-  ]
-};
+/* ⚠️ حُذفت من هنا `categoryFieldsMap` — خريطةُ حقولٍ **ثالثة** مستقلّة عن
+   `lib/spec-schema.ts`، وقد افترقتا: المعالج يوجب ٧ حقول وتعرض ٤، والكرت
+   يوجب ٨ وتعرض ٢، والكيس يوجب ٦ وتعرض ٢ — وثلاثةٌ من نواقصه مفاتيح توافق.
+
+   فكانت كل قطعة تُضاف من اللوحة تولد ناقصة، ونسدّ النقص بسكربتات بعدها.
+   الكتالوج بلغ صفر نقص، واللوحة تعيده من الباب الخلفي.
+
+   والحقول الآن تُشتقّ من المخطّط، وشكلُ كلٍّ منها من `lib/spec-fields.ts`. */
 
 /** حالة التحديث الآلي كما تعيدها getCronStatus */
 type CronStatus = { enabled: boolean; updatesPerDay: number; lastRunAt: Date | string | null };
@@ -60,8 +35,13 @@ export default function AdminManager({ categories, components, news, cronStatus,
   const [editingNews, setEditingNews] = useState<any>(null);
 
   const [specs, setSpecs] = useState<Record<string, string>>({});
-  const [specKey, setSpecKey] = useState('');
-  const [specValue, setSpecValue] = useState('');
+  /* ⚠️ حلّت محلّ specKey/specValue: كان النموذج يقبل أي زوج مفتاح/قيمة،
+     وهو البابُ الذي دخلت منه handles وcoolingModes وstorage — مفاتيحُ على
+     قطعةٍ واحدة قضينا يوماً في تنظيفها. الآن جملةٌ حرّة تنضمّ إلى features،
+     بلا مفتاحٍ يُخترع. */
+  const [featureText, setFeatureText] = useState('');
+  const [features, setFeatures] = useState<string[]>([]);
+  const [missingWarn, setMissingWarn] = useState<string[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedCategoryName, setSelectedCategoryName] = useState('');
 
@@ -78,26 +58,45 @@ export default function AdminManager({ categories, components, news, cronStatus,
     setSelectedCategoryName(catName);
   }, [selectedCategoryId, categories]);
 
-  const handleAddSpec = (e: React.MouseEvent) => {
+  /* ============ الحقول من المخطّط ============
+     أربع مجموعات بترتيب الإلزام. `compat` أوّلاً لأن خطأها يبني تجميعةً
+     لا تُركَّب — والباقي يُنقص عرضاً لا يكسر بناءً. */
+  const schema = SPEC_SCHEMA[selectedCategoryName];
+  const groups = schema
+    ? ([
+        { key: 'compat', title: '🔒 مفاتيح التوافق', note: 'يقرؤها محرّك الفحص — إلزامية', keys: schema.compat, required: 'block' },
+        { key: 'compare', title: '📊 حقول المقارنة', note: 'تظهر في الجدول والمقارنة — إلزامية', keys: schema.compare, required: 'warn' },
+        { key: 'conditional', title: '○ مشروطة', note: 'تُملأ إن انطبقت — وفراغها يعني «لا يوجد»', keys: schema.conditional, required: 'none' },
+      ] as const)
+    : [];
+
+  const missingOf = (keys: readonly string[]) =>
+    keys.filter((k) => String(specs[k] ?? '').trim() === '');
+
+  const blockingMissing = schema ? missingOf(schema.compat) : [];
+  const warnMissing = schema ? missingOf(schema.compare) : [];
+
+  const handleAddFeature = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (specKey.trim() && specValue.trim()) {
-      setSpecs({ ...specs, [specKey.trim()]: specValue.trim() });
-      setSpecKey('');
-      setSpecValue('');
-    }
+    const t = featureText.trim();
+    if (t && !features.includes(t)) setFeatures([...features, t]);
+    setFeatureText('');
   };
 
-  const handleRemoveSpec = (key: string, e: React.MouseEvent) => {
+  const handleRemoveFeature = (f: string, e: React.MouseEvent) => {
     e.preventDefault();
-    const newSpecs = { ...specs };
-    delete newSpecs[key];
-    setSpecs(newSpecs);
+    setFeatures(features.filter((x) => x !== f));
   };
+
 
   const startEditComponent = (comp: any) => {
     setEditingComponent(comp);
     setSelectedCategoryId(comp.categoryId);
-    setSpecs(comp.specs || {});
+    const raw = { ...(comp.specs || {}) };
+    setFeatures(readFeatures(raw));
+    delete raw[FEATURES_KEY];
+    setSpecs(raw);
+    setMissingWarn([]);
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -112,9 +111,23 @@ export default function AdminManager({ categories, components, news, cronStatus,
     setEditingNews(null);
     setSelectedCategoryId('');
     setSpecs({});
+    setFeatures([]);
+    setFeatureText('');
+    setMissingWarn([]);
   };
 
   const handleComponentSubmit = async (formData: FormData) => {
+    /* ⚠️ مفاتيح التوافق تمنع الحفظ، وحقول المقارنة تحذّر فقط.
+       والفرق مقصود: `psuFormFactor` فارغاً يعني للمحرّك «اقبل كل مزوّد»
+       — أي أن نقصه **يغيّر سلوك الفحص** لا العرض. أمّا `includedFans`
+       فنقصه صفٌّ فارغ في جدول. فلا يُسدّ الباب أمام قطعةٍ عاجلة بسبب
+       مواصفةٍ وصفية. */
+    if (blockingMissing.length > 0) {
+      setMissingWarn(blockingMissing);
+      toast.error(`لا يمكن الحفظ — ينقص مفتاح توافق: ${blockingMissing.map(specLabel).join('، ')}`);
+      return;
+    }
+    setMissingWarn([]);
     const loadingToast = toast.loading('جاري الحفظ...');
     try {
       if (editingComponent) {
@@ -330,61 +343,110 @@ export default function AdminManager({ categories, components, news, cronStatus,
               />
 
               <div className="md:col-span-2 p-6 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 mt-4">
-                <h3 className="block text-lg font-bold text-gray-900 dark:text-white mb-4">
-                  الخصائص التقنية {selectedCategoryName ? `لـ (${selectedCategoryName})` : ''}
+                <h3 className="block text-lg font-bold text-gray-900 dark:text-white mb-1">
+                  المواصفات {selectedCategoryName ? `لـ (${selectedCategoryName})` : ''}
                 </h3>
-                
-                {selectedCategoryName && categoryFieldsMap[selectedCategoryName] && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-slate-700">
-                    {categoryFieldsMap[selectedCategoryName].map((field) => (
-                      <div key={field.key} className="flex flex-col gap-1">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">{field.label}</label>
-                        {field.type === 'select' ? (
-                          <select 
-                            value={specs[field.key] || ''}
-                            onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
-                            className="p-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 dir-ltr text-left"
-                            dir="ltr"
-                          >
-                            <option value="">-- غير محدد --</option>
-                            {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                          </select>
-                        ) : (
-                          <input 
-                            type={field.type}
-                            value={specs[field.key] || ''}
-                            onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
-                            className="p-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 dir-ltr text-left"
-                            dir="ltr"
-                            placeholder={field.type === 'number' ? 'أرقام فقط' : ''}
-                          />
-                        )}
-                      </div>
-                    ))}
+                {!selectedCategoryName && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">اختر الفئة أولاً لتظهر حقولها.</p>
+                )}
+
+                {/* شريط النقص — يُقرأ قبل الضغط لا بعده */}
+                {schema && (blockingMissing.length > 0 || warnMissing.length > 0) && (
+                  <div className="mb-4 mt-2 flex flex-col gap-1.5 text-sm font-bold">
+                    {blockingMissing.length > 0 && (
+                      <p className="text-red-600 dark:text-red-400">
+                        ⛔ ينقص {blockingMissing.length} من مفاتيح التوافق — الحفظ ممنوع: {blockingMissing.map(specLabel).join('، ')}
+                      </p>
+                    )}
+                    {warnMissing.length > 0 && (
+                      <p className="text-amber-600 dark:text-amber-400">
+                        ⚠️ ينقص {warnMissing.length} من حقول المقارنة (يُحفظ ويظهر الصفّ فارغاً): {warnMissing.map(specLabel).join('، ')}
+                      </p>
+                    )}
                   </div>
                 )}
 
-                <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-3 text-sm">مواصفات إضافية يدوية (اختياري)</h4>
-                <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-4">
-                  <input type="text" placeholder="اسم الخاصية (مثال: color)" value={specKey} onChange={(e) => setSpecKey(e.target.value)} className="flex-1 min-w-[150px] p-2 border border-gray-300 dark:border-slate-700 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" dir="ltr" />
-                  <input type="text" placeholder="القيمة (مثال: Black)" value={specValue} onChange={(e) => setSpecValue(e.target.value)} className="flex-1 min-w-[150px] p-2 border border-gray-300 dark:border-slate-700 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" dir="ltr" />
-                  <button onClick={handleAddSpec} disabled={!selectedCategoryId} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:bg-gray-400 text-white font-bold rounded shrink-0">إضافة يدوية</button>
-                </div>
-                
-                <div className="flex flex-wrap gap-2 mt-4 p-3 bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-700 min-h-[50px]">
-                  {Object.keys(specs).length === 0 && <span className="text-gray-500 text-sm">لا توجد خصائص مضافة حالياً.</span>}
-                  {Object.entries(specs).map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 rounded-full text-sm font-medium border border-emerald-200 dark:border-emerald-800/50">
-                      {/* في اللوحة نعرض الاثنين: التسمية لتقرأها، والمفتاح
-                          لأنك تكتبه في النموذج ويجب أن تعرف اسمه الحقيقي */}
-                      <span>{specLabel(key)} <span className="opacity-50 font-mono text-[11px]" dir="ltr">({key})</span>: <span dir="ltr">{value as string}</span></span>
-                      <button onClick={(e) => handleRemoveSpec(key, e)} className="text-emerald-600 dark:text-emerald-400 hover:text-red-600 font-bold ml-2">×</button>
+                {groups.map((g) => g.keys.length === 0 ? null : (
+                  <div key={g.key} className="mb-6 pb-6 border-b border-gray-200 dark:border-slate-700 last:border-0">
+                    <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-1 text-sm">{g.title}</h4>
+                    <p className="text-[12px] text-gray-500 dark:text-gray-400 mb-3">{g.note}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {g.keys.map((key) => {
+                        const meta = fieldMeta(selectedCategoryName, key);
+                        const empty = String(specs[key] ?? '').trim() === '';
+                        const bad = g.required === 'block' && empty;
+                        const warn = g.required === 'warn' && empty;
+                        const ring = bad ? 'border-red-400' : warn ? 'border-amber-400' : 'border-gray-300 dark:border-slate-600';
+                        return (
+                          <div key={key} className="flex flex-col gap-1">
+                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                              {specLabel(key)}
+                              <span className="opacity-40 font-mono text-[11px]" dir="ltr"> ({key})</span>
+                              {g.required !== 'none' && <span className="text-red-500"> *</span>}
+                            </label>
+                            {meta.type === 'select' ? (
+                              <select
+                                value={specs[key] || ''}
+                                onChange={(e) => setSpecs({ ...specs, [key]: e.target.value })}
+                                className={`p-2 border rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 ${ring}`}
+                                dir="ltr"
+                              >
+                                <option value="">-- غير محدد --</option>
+                                {meta.options?.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                              </select>
+                            ) : (
+                              <input
+                                type={meta.type}
+                                value={specs[key] || ''}
+                                onChange={(e) => setSpecs({ ...specs, [key]: e.target.value })}
+                                className={`p-2 border rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 ${ring}`}
+                                dir="ltr"
+                                placeholder={meta.hint || ''}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  </div>
+                ))}
+
+                {/* ============ المزايا ============
+                    حلّت محلّ «مواصفات إضافية يدوية». والفرق ليس شكلياً: تلك
+                    كانت تقبل أي زوج مفتاح/قيمة، فتُخترع مفاتيحُ لا يعرفها
+                    المخطّط ولا الجدول ولا المقارنة — وهي التي ولّدت handles
+                    وcoolingModes وstorage. وهذه **جُمَل**: لا مفتاح يُخترع،
+                    ولا توقّعَ بأنها تُقارَن. */}
+                <div>
+                  <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-1 text-sm">✨ مزايا إضافية</h4>
+                  <p className="text-[12px] text-gray-500 dark:text-gray-400 mb-3">
+                    جملةٌ كاملة تُقرأ كما هي — تظهر في صفحة القطعة وحدها ولا تدخل المقارنة.
+                    مثال: «واجهة أمامية من خشبٍ حقيقي».
+                  </p>
+                  <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-3">
+                    <input
+                      type="text"
+                      placeholder="اكتب الميزة جملةً…"
+                      value={featureText}
+                      onChange={(e) => setFeatureText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddFeature(e as any); } }}
+                      className="flex-1 min-w-[200px] p-2 border border-gray-300 dark:border-slate-700 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button onClick={handleAddFeature} disabled={!selectedCategoryId} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:bg-gray-400 text-white font-bold rounded shrink-0">أضف ميزة</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 p-3 bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-700 min-h-[50px]">
+                    {features.length === 0 && <span className="text-gray-500 text-sm">لا مزايا مضافة.</span>}
+                    {features.map((f) => (
+                      <div key={f} className="flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 rounded-full text-sm font-medium border border-emerald-200 dark:border-emerald-800/50">
+                        <span>{f}</span>
+                        <button onClick={(e) => handleRemoveFeature(f, e)} className="text-emerald-600 dark:text-emerald-400 hover:text-red-600 font-bold">×</button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <input type="hidden" name="specs" value={JSON.stringify(specs)} />
+              <input type="hidden" name="specs" value={JSON.stringify(features.length ? { ...specs, [FEATURES_KEY]: features } : specs)} />
               
               <div className="md:col-span-2 flex gap-4 mt-2">
                 <button type="submit" className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm">
