@@ -326,12 +326,23 @@ export default function CompareClient({
   const visibleSpecRows = diffOnly && selected.length > 1 ? differingRows : specRows;
   const identicalCount = specRows.length - differingRows.length;
 
+  /* ⚠️ لا نجمة للوحات ولا للكيسات في صفّ الاستهلاك.
+   *
+   * «أقلّ استهلاكاً» ميزةٌ حقيقية في المعالج والكرت: أداءٌ مماثل بحرارةٍ
+   * وضجيجٍ أقلّ. أمّا اللوحة فاستهلاكها ثابتٌ تقريباً بحكم شيبستها، ولا
+   * أحد يفاضل بين لوحتين على خمسة واطات — بل قد يُقلب المعنى: X870E يستهلك
+   * أكثر من B650 **لأن فيه شريحتَي شيبست**، أي أنه أقدر لا أسوأ.
+   *
+   * وقد رُصد ذلك على الشاشة فعلاً: X870E Carbon توّج على B650 TOMAHAWK في
+   * هذا الصفّ. والصفّ يبقى معروضاً لأنه يغذّي تقدير الطاقة، لكن بلا حكم. */
+  const TDP_JUDGED = ['CPU', 'GPU'];
+
   const tdpRow = () => {
     const values = selected.map((c) => (c.tdpWattage > 0 ? `${c.tdpWattage}W` : null));
     const nums = selected.map((c) => (c.tdpWattage > 0 ? c.tdpWattage : null));
     const valid = nums.filter((n): n is number => n != null);
     let winnerIdx: number[] = [];
-    if (valid.length > 1) {
+    if (valid.length > 1 && TDP_JUDGED.includes(categoryName)) {
       const best = Math.min(...valid);
       winnerIdx = nums.map((n, i) => (n === best ? i : -1)).filter((i) => i >= 0);
       if (winnerIdx.length === valid.length) winnerIdx = [];
