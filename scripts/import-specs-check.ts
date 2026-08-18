@@ -117,7 +117,11 @@ async function main() {
       if (v.gaps.length) gapped.push(`${c.name}: ${v.gaps.join('، ')}`);
     }
     check(`٠ مرفوضة من ${all.length}`, rejected.length === 0, rejected.slice(0, 5).join('\n      '));
-    check(`٠ ناقصة حقول مقارنة`, gapped.length === 0, gapped.slice(0, 5).join('\n      '));
+    /* ليست ٠: Crucial لا تنشر ارتفاع شرائحها، وتركُها فارغةً قرارٌ لا سهو.
+       فالشرط أن تبقى **هي وحدها** — ويسقط الفحص إن ظهرت فجوةٌ جديدة. */
+    const KNOWN_GAPS = ['Pro DDR5 32GB 5600MHz: heightMm'];
+    const unexpected = gapped.filter((g) => !KNOWN_GAPS.includes(g));
+    check(`لا فجوة غير معروفة (المعروفة: ${KNOWN_GAPS.length})`, unexpected.length === 0, unexpected.slice(0, 5).join('\n      '));
   }
 
   console.log(`\n${'═'.repeat(40)}`);

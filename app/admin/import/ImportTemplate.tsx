@@ -204,6 +204,9 @@ export default function ImportTemplate() {
             <span className="font-mono" dir="ltr">&lt;slug&gt;AffiliateUrl</span> — مثل{' '}
             <span className="font-mono" dir="ltr">noonUrl</span>. والمتجر بلا أعمدة لا يُمسّ عرضه.
           </li>
+          <li>  
+            • الحذف بقيمةٍ فارغة "" صريحة
+          </li>
         </ul>
       </div>
     </div>

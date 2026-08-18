@@ -8,7 +8,7 @@
  * القاعدة: التوافق يمنع، والمقارنة تحذّر، والدخيل يُرفض.
  */
 
-import { SPEC_SCHEMA, FEATURES_KEY } from './spec-schema';
+import { SPEC_SCHEMA, FEATURES_KEY, unannouncedKeys } from './spec-schema';
 import { specLabel } from './spec-labels';
 
 export type Specs = Record<string, any>;
@@ -105,5 +105,7 @@ export const judgeSpecs = (
     };
   }
 
-  return { reject: null, gaps: missingKeys(effective, schema.compare), effective };
+  /* حقول المقارنة الناقصة — بالدالّة المشتركة لا بحسابٍ محلّيّ: الصفحة
+     التي ستعرض «غير معلن» يجب أن تعنيه هي وهذه الرسالةُ الشيءَ نفسه. */
+  return { reject: null, gaps: unannouncedKeys(categoryName, effective), effective };
 };

@@ -55,6 +55,7 @@ const LABELS: Record<string, string> = {
   speed: 'السرعة',
   kit: 'الطقم',
   casLatency: 'زمن الاستجابة',
+  heightMm: 'ارتفاع الشريحة',
   profile: 'البروفايل',
   rgb: 'إضاءة RGB',
 
@@ -140,7 +141,7 @@ const ORDER: Record<string, string[]> = {
   CPU: ['socket', 'cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'pCores', 'eCores', 'integratedGraphics', 'memorySupport', 'architecture'],
   GPU: ['vram', 'memoryType', 'memoryBus', 'lengthMm', 'powerConnectors', 'interface', 'ports', 'architecture', 'formFactor', 'includedAio'],
   Motherboard: ['socket', 'chipset', 'formFactor', 'ramType', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion'],
-  RAM: ['type', 'capacity', 'kit', 'speed', 'casLatency', 'profile', 'rgb', 'color'],
+  RAM: ['type', 'capacity', 'kit', 'speed', 'casLatency', 'profile', 'rgb', 'heightMm', 'color'],
   Storage: ['type', 'capacity', 'interface', 'formFactor', 'readSpeed', 'writeSpeed'],
   PSU: ['wattage', 'rating', 'modularity', 'formFactor'],
   Case: ['formFactor', 'maxGpuLength', 'maxCoolerHeight', 'radiatorSupport', 'psuFormFactor', 'includedFans', 'frontPanel', 'sidePanel', 'dualChamber', 'verticalGpu', 'pcieRiser', 'cableManagement', 'screen', 'color'],
@@ -156,6 +157,7 @@ const UNITS: Record<string, string> = {
   lengthMm: 'مم',
   maxGpuLength: 'مم',
   maxCoolerHeight: 'مم',
+  heightMm: 'مم',
   wattage: 'واط',
   speed: 'MT/s',
 };

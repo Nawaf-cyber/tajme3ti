@@ -98,6 +98,7 @@ const BY_CATEGORY: Record<string, Record<string, FieldMeta>> = {
   CPU: {},
   Motherboard: { formFactor: { type: 'select', options: ['ATX', 'Micro-ATX', 'Mini-ITX', 'E-ATX'] } },
   RAM: {
+    heightMm: { type: 'number', hint: '44' },
     type: { type: 'select', options: RAM_TYPES },
     capacity: { type: 'select', options: ['16GB', '32GB', '48GB', '64GB', '96GB', '128GB'] },
   },
