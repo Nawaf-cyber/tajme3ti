@@ -179,8 +179,14 @@ export default function ImportTemplate() {
           <li>• الملف <b>مصفوفة</b> من الكائنات — قطعةٌ واحدة تُكتب داخل <span className="font-mono" dir="ltr">[ ]</span> أيضاً.</li>
           <li>• أضف <span className="font-mono" dir="ltr">id</span> لتعديل قطعةٍ قائمة. وبدونه تُطابَق بالاسم، فإن لم تُوجد أُنشئت.</li>
           <li>
-            • ⚠️ <span className="font-mono" dir="ltr">specs</span> <b>يستبدل</b> ولا يدمج — أرسله كاملاً،
-            فإرسال مفتاحٍ واحد يمحو الباقي (ويُرفض إن كان الناقص مفتاح توافق).
+            • <span className="font-mono" dir="ltr">specs</span> <b>يُدمج</b> مع الموجود — لتعديل حقلٍ
+            واحد أرسله وحده:{' '}
+            <span className="font-mono" dir="ltr">{'{ "id": "…", "specs": { "chipset": "B650E" } }'}</span>.
+            والحذف بقيمةٍ فارغة <span className="font-mono" dir="ltr">""</span> (ومفتاح التوافق لا يُحذف).
+          </li>
+          <li>
+            • ⚠️ كل مفتاحٍ لا يعرفه المخطّط <b>يُرفض</b> باسمه — لأن الدمج يُبقي الأصل سليماً،
+            فالغلطة المطبعيّة تمرّ بلا أثرٍ لولا هذا الحصر.
           </li>
           <li>
             • <span className="font-mono" dir="ltr">features</span> مفتاحٌ <b>داخل</b>{' '}

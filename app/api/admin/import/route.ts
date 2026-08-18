@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getToken } from 'next-auth/jwt';
 import { NextRequest } from 'next/server';
 import { isCazasouqTrackingUrl } from '../../../../lib/affiliate';
-import { SPEC_SCHEMA, FEATURES_KEY } from '../../../../lib/spec-schema';
 import { specLabel } from '../../../../lib/spec-labels';
+import { asSpecs, incomingSpecs, judgeSpecs } from '../../../../lib/import-specs';
 
 /* رابط تتبّع كازاسوق من ملف الاستيراد: نقبله فقط إن كان idevaffiliate صالحاً،
    وإلا null — كي لا يوجّه رابطٌ خاطئ في الملف المشتري لوجهة غلط. */
@@ -123,55 +123,15 @@ export async function POST(req: NextRequest) {
       return null;
     };
 
-    /* ============ مفاتيح التوافق في ملف الاستيراد ============
+    /* ============ مفاتيح المواصفات في ملف الاستيراد ============
      *
-     * ⚠️ الاستيراد كان آخر بابٍ مفتوح. نموذج اللوحة صار يمنع الحفظ بلا
-     * مفاتيح التوافق، والسكربتات ترفض العمل بدونها — والاستيراد يقبل ملفاً
-     * فيه مئة قطعة بلا مفتاحٍ واحد. فيولد النقص جملةً بدل قطعةٍ قطعة.
+     * ⚠️ الاستيراد كان آخر بابٍ مفتوح. نموذج اللوحة يمنع الحفظ بلا مفاتيح
+     * التوافق، والسكربتات ترفض العمل بدونها — والاستيراد يقبل ملفاً فيه
+     * مئة قطعة بلا مفتاحٍ واحد، فيولد النقص جملةً بدل قطعةٍ قطعة.
      *
-     * ⚠️ ويشتدّ الخطر لأن الاستيراد **يستبدل** `specs` ولا يدمجها: إرسال
-     * { specs: { socket: "AM5" } } على لوحةٍ قائمة يمحو مواصفاتها الثماني
-     * ويُبقي واحدة. فالفحص هنا يمسك ذلك أيضاً — لأن المستبدَل الناقص يُرفض.
-     *
-     * والقاعدة نفسها التي في اللوحة: التوافق يمنع، والمقارنة تحذّر. فنقصُ
-     * `psuFormFactor` يعني للمحرّك «اقبل كل مزوّد» — سلوكٌ يتغيّر لا عرض.
-     */
-    const specsOf = (item: any): Record<string, any> | null => {
-      if (item.specs === undefined) return null;
-      let sp = item.specs;
-      if (typeof sp === 'string') { try { sp = JSON.parse(sp); } catch { return {}; } }
-      return sp && typeof sp === 'object' ? sp : {};
-    };
-
-    const missingKeys = (sp: Record<string, any>, keys: readonly string[]) =>
-      keys.filter((k) => String(sp?.[k] ?? '').trim() === '');
-
-    /** يُرجع رسالة رفضٍ إن نقص مفتاح توافق — أو null */
-    const validateSpecs = (item: any, isNew: boolean): string | null => {
-      const cat = catName(item.categoryId ?? '');
-      const schema = SPEC_SCHEMA[cat];
-      if (!schema) return null;
-
-      const sp = specsOf(item);
-      /* تعديلٌ لا يمسّ المواصفات (سعرٌ أو صورة) يمرّ بلا فحص — وإلّا مُنع
-         تحديثُ سعرٍ بسبب حقلٍ وصفيّ ناقص. */
-      if (sp === null) return isNew ? 'قطعة جديدة بلا specs إطلاقاً' : null;
-
-      const missing = missingKeys(sp, schema.compat);
-      if (missing.length) {
-        return `ينقصها ${missing.length} من مفاتيح التوافق: ${missing.map(specLabel).join('، ')} (${missing.join(', ')})`;
-      }
-      return null;
-    };
-
-    /** حقول المقارنة الناقصة — تُذكر ولا تمنع */
-    const compareGaps = (item: any): string[] => {
-      const cat = catName(item.categoryId ?? '');
-      const schema = SPEC_SCHEMA[cat];
-      const sp = specsOf(item);
-      if (!schema || sp === null) return [];
-      return missingKeys(sp, schema.compare);
-    };
+     * والحكم نفسه في `lib/import-specs.ts` لا هنا: هذا المسار خلف تسجيل
+     * الدخول ويكتب في الإنتاج، فلا يُشغَّل ليُرى. والقرار الذي لا يُشغَّل
+     * لا يُصدَّق. */
 
     /* ملحوظاتٌ لا ترفض — تُعرض بعد الرفع كي يعرف الرافع ما نقص */
     const warnings: string[] = [];
@@ -197,12 +157,6 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // معالجة المواصفات لتفادي أخطاء JSON
-        let parsedSpecs = item.specs;
-        if (typeof item.specs === 'string') {
-          try { parsedSpecs = JSON.parse(item.specs); } catch (e) { parsedSpecs = {}; }
-        }
-
         // البحث عن القطعة
         let existingComponent = null;
         if (item.id) {
@@ -213,15 +167,24 @@ export async function POST(req: NextRequest) {
         }
 
         /* ============ بوّابة المخطّط ============
-           تُستدعى هنا لا قبله، لأن حكمها يختلف بين الجديدة والقائمة:
-           الجديدة بلا specs مرفوضة، والقائمة يمرّ تعديلُ سعرها بلا فحص. */
-        const specsProblem = validateSpecs(item, !existingComponent);
-        if (specsProblem) {
+           تُستدعى هنا لا قبله، لأنها تحتاج القطعة القائمة مرّتين: لتدمج
+           عليها، ولأن حكمها يختلف — الجديدة بلا specs مرفوضة، والقائمة
+           يمرّ تعديلُ سعرها بلا فحص. */
+        /* الفئة من الصفّ، وإلّا من القطعة القائمة: صفٌّ يُحدّث سعراً بلا
+           categoryId كان يُفلت من الفحص كلِّه لأن المخطّط لا يُعرف بلا فئة. */
+        const verdict = judgeSpecs(
+          catName(item.categoryId ?? existingComponent?.categoryId ?? ''),
+          existingComponent ? asSpecs(existingComponent.specs) : null,
+          incomingSpecs(item),
+        );
+        const effectiveSpecs = verdict.effective;
+
+        if (verdict.reject) {
           failedCount++;
-          errors.push(`رُفضت "${item.name || item.id}": ${specsProblem}`);
+          errors.push(`رُفضت "${item.name || item.id}": ${verdict.reject}`);
           continue;
         }
-        const gaps = compareGaps(item);
+        const gaps = verdict.gaps;
         if (gaps.length) {
           warnings.push(`"${item.name || item.id}" — حُفظت وينقصها ${gaps.length} من حقول المقارنة: ${gaps.map(specLabel).join('، ')}`);
         }
@@ -245,7 +208,7 @@ export async function POST(req: NextRequest) {
               name: item.name !== undefined ? item.name : existingComponent.name,
               price: item.price !== undefined ? item.price : existingComponent.price,
               tdpWattage: item.tdpWattage !== undefined ? item.tdpWattage : existingComponent.tdpWattage,
-              specs: item.specs !== undefined ? parsedSpecs : existingComponent.specs,
+              specs: effectiveSpecs !== null ? effectiveSpecs : existingComponent.specs,
               imageUrl: item.imageUrl !== undefined ? item.imageUrl : existingComponent.imageUrl,
               description: item.description !== undefined ? item.description : existingComponent.description,
               performanceTier: item.performanceTier !== undefined ? item.performanceTier : existingComponent.performanceTier,
@@ -285,7 +248,7 @@ export async function POST(req: NextRequest) {
               name: item.name,
               price: item.price || 0,
               tdpWattage: item.tdpWattage || 0,
-              specs: parsedSpecs || {},
+              specs: effectiveSpecs || {},
               imageUrl: item.imageUrl || null,
               description: item.description || null,
               performanceTier: item.performanceTier || null,
