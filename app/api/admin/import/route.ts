@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getToken } from 'next-auth/jwt';
 import { NextRequest } from 'next/server';
 import { isCazasouqTrackingUrl } from '../../../../lib/affiliate';
+import { SPEC_SCHEMA, FEATURES_KEY } from '../../../../lib/spec-schema';
+import { specLabel } from '../../../../lib/spec-labels';
 
 /* رابط تتبّع كازاسوق من ملف الاستيراد: نقبله فقط إن كان idevaffiliate صالحاً،
    وإلا null — كي لا يوجّه رابطٌ خاطئ في الملف المشتري لوجهة غلط. */
@@ -121,6 +123,59 @@ export async function POST(req: NextRequest) {
       return null;
     };
 
+    /* ============ مفاتيح التوافق في ملف الاستيراد ============
+     *
+     * ⚠️ الاستيراد كان آخر بابٍ مفتوح. نموذج اللوحة صار يمنع الحفظ بلا
+     * مفاتيح التوافق، والسكربتات ترفض العمل بدونها — والاستيراد يقبل ملفاً
+     * فيه مئة قطعة بلا مفتاحٍ واحد. فيولد النقص جملةً بدل قطعةٍ قطعة.
+     *
+     * ⚠️ ويشتدّ الخطر لأن الاستيراد **يستبدل** `specs` ولا يدمجها: إرسال
+     * { specs: { socket: "AM5" } } على لوحةٍ قائمة يمحو مواصفاتها الثماني
+     * ويُبقي واحدة. فالفحص هنا يمسك ذلك أيضاً — لأن المستبدَل الناقص يُرفض.
+     *
+     * والقاعدة نفسها التي في اللوحة: التوافق يمنع، والمقارنة تحذّر. فنقصُ
+     * `psuFormFactor` يعني للمحرّك «اقبل كل مزوّد» — سلوكٌ يتغيّر لا عرض.
+     */
+    const specsOf = (item: any): Record<string, any> | null => {
+      if (item.specs === undefined) return null;
+      let sp = item.specs;
+      if (typeof sp === 'string') { try { sp = JSON.parse(sp); } catch { return {}; } }
+      return sp && typeof sp === 'object' ? sp : {};
+    };
+
+    const missingKeys = (sp: Record<string, any>, keys: readonly string[]) =>
+      keys.filter((k) => String(sp?.[k] ?? '').trim() === '');
+
+    /** يُرجع رسالة رفضٍ إن نقص مفتاح توافق — أو null */
+    const validateSpecs = (item: any, isNew: boolean): string | null => {
+      const cat = catName(item.categoryId ?? '');
+      const schema = SPEC_SCHEMA[cat];
+      if (!schema) return null;
+
+      const sp = specsOf(item);
+      /* تعديلٌ لا يمسّ المواصفات (سعرٌ أو صورة) يمرّ بلا فحص — وإلّا مُنع
+         تحديثُ سعرٍ بسبب حقلٍ وصفيّ ناقص. */
+      if (sp === null) return isNew ? 'قطعة جديدة بلا specs إطلاقاً' : null;
+
+      const missing = missingKeys(sp, schema.compat);
+      if (missing.length) {
+        return `ينقصها ${missing.length} من مفاتيح التوافق: ${missing.map(specLabel).join('، ')} (${missing.join(', ')})`;
+      }
+      return null;
+    };
+
+    /** حقول المقارنة الناقصة — تُذكر ولا تمنع */
+    const compareGaps = (item: any): string[] => {
+      const cat = catName(item.categoryId ?? '');
+      const schema = SPEC_SCHEMA[cat];
+      const sp = specsOf(item);
+      if (!schema || sp === null) return [];
+      return missingKeys(sp, schema.compare);
+    };
+
+    /* ملحوظاتٌ لا ترفض — تُعرض بعد الرفع كي يعرف الرافع ما نقص */
+    const warnings: string[] = [];
+
     let updatedCount = 0;
     let addedCount = 0;
     let failedCount = 0;
@@ -155,6 +210,20 @@ export async function POST(req: NextRequest) {
         }
         if (!existingComponent && item.name) {
           existingComponent = await prisma.component.findFirst({ where: { name: item.name } });
+        }
+
+        /* ============ بوّابة المخطّط ============
+           تُستدعى هنا لا قبله، لأن حكمها يختلف بين الجديدة والقائمة:
+           الجديدة بلا specs مرفوضة، والقائمة يمرّ تعديلُ سعرها بلا فحص. */
+        const specsProblem = validateSpecs(item, !existingComponent);
+        if (specsProblem) {
+          failedCount++;
+          errors.push(`رُفضت "${item.name || item.id}": ${specsProblem}`);
+          continue;
+        }
+        const gaps = compareGaps(item);
+        if (gaps.length) {
+          warnings.push(`"${item.name || item.id}" — حُفظت وينقصها ${gaps.length} من حقول المقارنة: ${gaps.map(specLabel).join('، ')}`);
         }
 
         if (existingComponent) {
@@ -251,6 +320,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: `مكتمل. تحديث: ${updatedCount} | إضافة: ${addedCount} | فشل التخطي: ${failedCount}`,
       errors: errors.length > 0 ? errors : undefined,
+      warnings: warnings.length > 0 ? warnings : undefined,
       // تفاصيل المعاينة
       added,
       updated,

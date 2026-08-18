@@ -21,6 +21,9 @@ const fmtVal = (v: any) => {
 type ImportResult = {
   message: string;
   errors?: string[];
+  /* ملحوظاتٌ لا ترفض: القطعة حُفظت وينقصها حقلُ مقارنة. تُعرض لأن الردّ
+     الذي لا يُقرأ لا يُصلح شيئاً — والرافع لن يفتح كل قطعة ليكتشف نقصها. */
+  warnings?: string[];
   added?: any[];
   updated?: any[];
 };
@@ -73,6 +76,7 @@ export default function BulkImportPage() {
   const addedCount = result?.added?.length || 0;
   const updatedCount = result?.updated?.length || 0;
   const errorCount = result?.errors?.length || 0;
+  const warnCount = result?.warnings?.length || 0;
 
   return (
     <div className="max-w-5xl mx-auto mt-10 p-6">
@@ -96,6 +100,14 @@ export default function BulkImportPage() {
             <li>قم بتجهيز بيانات القطع في ملف Excel.</li>
             <li>قم بتحويل ملف Excel إلى صيغة JSON.</li>
             <li>ارفع ملف الـ JSON هنا ليتم إدخال جميع القطع دفعة واحدة.</li>
+            <li className="font-bold">
+              كل قطعة تحتاج مفاتيح التوافق كاملةً في <span className="font-mono" dir="ltr">specs</span> —
+              وما نقص منها يُرفض ويُذكر باسمه.
+            </li>
+            <li>
+              ⚠️ حقل <span className="font-mono" dir="ltr">specs</span> <b>يستبدل</b> المواصفات ولا يدمجها:
+              أرسله كاملاً، فإرسال مفتاحٍ واحد يمحو الباقي.
+            </li>
           </ol>
         </div>
 
@@ -153,6 +165,22 @@ export default function BulkImportPage() {
                 {result.errors!.map((err, i) => (
                   <li key={i} className="text-[12.5px] text-red-600 dark:text-red-300 flex gap-2">
                     <span className="text-red-400">•</span>{err}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* حُفظت وينقصها — بين المرفوضة والمُضافة: أهمّ من النجاح وأقلّ من الرفض */}
+          {warnCount > 0 && (
+            <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-900/10 overflow-hidden">
+              <div className="px-4 py-3 bg-amber-100/60 dark:bg-amber-900/20 font-black text-sm text-amber-700 dark:text-amber-400">
+                ⚠️ حُفظت وينقصها ({warnCount}) — تظهر صفوفها فارغة في الجدول والمقارنة
+              </div>
+              <ul className="p-4 space-y-1.5">
+                {result.warnings!.map((w, i) => (
+                  <li key={i} className="text-[12.5px] text-amber-700 dark:text-amber-300 flex gap-2">
+                    <span className="text-amber-400">•</span>{w}
                   </li>
                 ))}
               </ul>
