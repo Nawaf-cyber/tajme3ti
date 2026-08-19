@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { brandColor } from '../../lib/brand';
+import { formatPrice } from '../../lib/price';
 import StoreBuyChips from '../../components/StoreBuyChips';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -229,6 +230,9 @@ export default function MyBuildsPage() {
   const [builds, setBuilds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBuild, setSelectedBuild] = useState<any>(null);
+  /* الفرز في الحالة لا في الرابط: المكتبة تُتصفَّح ولا تُشارَك برابطها،
+     فإقحام الترتيب في العنوان يُعقّد بلا فائدة. */
+  const [sort, setSort] = useState<'newest' | 'cheapest' | 'priciest'>('newest');
 
   useEffect(() => {
     fetchBuilds();
@@ -329,6 +333,51 @@ export default function MyBuildsPage() {
           </Link>
         </div>
 
+        {/* ============ شريط الحصيلة ============
+            ⚠️ المكتبة كانت شبكةً تُعرض بلا خلاصة: يفتحها صاحب ٢٢ تجميعة
+            فلا يعرف كم أنفق ولا أين يقف. وثلاثة أرقامٍ تجيب ما يسأله فعلاً
+            — كم عندي، وكم مجموعها، وما مداها.
+            والأرقام مشتقّة من `builds` لا محفوظة: قيمةٌ ثانية تتباعد. */}
+        {builds.length > 0 && (
+          <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+            {(() => {
+              const totals = builds.map((b) => Number(b.totalPrice) || 0).filter((n) => n > 0);
+              const sum = totals.reduce((a, c) => a + c, 0);
+              const stats = [
+                { label: 'تجميعاتك', value: String(builds.length), unit: '', accent: 'cyan' },
+                { label: 'مجموع قيمتها', value: formatPrice(sum), unit: 'riyal', accent: 'emerald' },
+                { label: 'أقلّها', value: totals.length ? formatPrice(Math.min(...totals)) : '—', unit: 'riyal', accent: 'slate' },
+                { label: 'أعلاها', value: totals.length ? formatPrice(Math.max(...totals)) : '—', unit: 'riyal', accent: 'slate' },
+              ];
+              return stats.map((s) => (
+                <div
+                  key={s.label}
+                  className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200 dark:border-slate-800/60 rounded-2xl px-4 py-3"
+                >
+                  <span className="block text-[10.5px] font-bold text-slate-500 dark:text-slate-400 mb-1">{s.label}</span>
+                  <span
+                    className={`flex items-center gap-1 font-black text-lg tabular-nums ${
+                      s.accent === 'cyan'
+                        ? 'text-cyan-600 dark:text-cyan-400'
+                        : s.accent === 'emerald'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-slate-700 dark:text-slate-200'
+                    }`}
+                  >
+                    {s.value}
+                    {s.unit === 'riyal' && s.value !== '—' && (
+                      <RiyalIcon
+                        size="h-3.5 w-3.5"
+                        colorClass={s.accent === 'emerald' ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-500 dark:bg-slate-300'}
+                      />
+                    )}
+                  </span>
+                </div>
+              ));
+            })()}
+          </div>
+        )}
+
         {/* ===== دعوة صريحة لمقارنة التجميعات =====
             كانت زراً صغيراً في الرأس يضيع بين العناصر. الآن بطاقة كاملة
             العرض تشرح الفائدة وتعرض عدد التجميعات الجاهزة — فالمستخدم
@@ -393,8 +442,43 @@ export default function MyBuildsPage() {
             <p className="text-slate-500 mb-4 font-bold">لا توجد تجميعات محفوظة.</p>
           </div>
         ) : (
+          <>
+            {/* ⚠️ الفرز يظهر من ثلاثٍ فصاعداً: ترتيبُ اثنتين لا يُغني عن
+                النظر إليهما، وزرٌّ بلا فائدة يشغل حيّزاً ويطلب قراراً. */}
+            {builds.length >= 3 && (
+              <div className="mb-4 flex items-center justify-end gap-1.5">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 me-1">الترتيب</span>
+                {([
+                  ['newest', 'الأحدث'],
+                  ['cheapest', 'الأقلّ سعراً'],
+                  ['priciest', 'الأعلى سعراً'],
+                ] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSort(key)}
+                    className={`text-[11.5px] font-black rounded-full px-3 py-1.5 border transition-all ${
+                      sort === key
+                        ? 'bg-cyan-500/10 border-cyan-400/70 text-cyan-700 dark:text-cyan-300 shadow-[0_0_10px] shadow-cyan-500/20'
+                        : 'bg-white/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/60 text-slate-600 dark:text-slate-400 hover:border-cyan-400/50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {builds.map((build) => {
+            {[...builds]
+              .sort((a, b) => {
+                if (sort === 'cheapest') return (Number(a.totalPrice) || 0) - (Number(b.totalPrice) || 0);
+                if (sort === 'priciest') return (Number(b.totalPrice) || 0) - (Number(a.totalPrice) || 0);
+                /* الأحدث: المسار يُرجعها مرتّبةً بـcreatedAt تنازلياً أصلاً،
+                   لكن الترتيب يُثبَّت هنا صراحةً كي لا يعتمد العرضُ على
+                   ترتيبٍ قد يتغيّر في المسار بلا أن ينتبه أحد. */
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+              })
+              .map((build) => {
               const bottleneck = getBottleneckMessage(build.parts);
               const cpu = build.parts['CPU'];
               const gpu = build.parts['GPU'];
@@ -450,6 +534,33 @@ export default function MyBuildsPage() {
                       </div>
                     )}
 
+
+                    {/* ============ شريط صور القطع ============
+                        ⚠️ البطاقة كانت نصّاً خالصاً: اسمان وتنبيه. والصور
+                        موجودةٌ عندنا لكلّ قطعة ولا تُستعمل هنا — والزائر
+                        يميّز تجميعاته بشكل الكيس والكرت أسرع ممّا يقرأ
+                        أسماءها. فصفٌّ من مصغّراتٍ يعطي البطاقة وجهاً.
+                        وتُعرض المتاحة فقط بلا مربّعاتٍ فارغة تعدّ النقص. */}
+                    {(() => {
+                      const thumbs = BUILD_ORDER
+                        .map((c) => build.parts[c])
+                        .filter((x: any) => x?.imageUrl)
+                        .slice(0, 6);
+                      if (thumbs.length < 2) return null;
+                      return (
+                        <div className="flex items-center gap-1.5 mb-4">
+                          {thumbs.map((x: any) => (
+                            <div
+                              key={x.id}
+                              title={x.name}
+                              className="h-8 w-8 shrink-0 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 p-0.5 flex items-center justify-center"
+                            >
+                              <img src={productImage(x.imageUrl)} alt="" className="max-w-full max-h-full object-contain" />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     {unavailableCount > 0 && (
                       <div className="p-2 border rounded-lg bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/40 mb-4">
                         <span className="font-bold text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
@@ -479,6 +590,7 @@ export default function MyBuildsPage() {
               );
             })}
           </div>
+          </>
         )}
 
         {/* نافذة استعراض التجميعة (Modal) */}
@@ -534,9 +646,20 @@ export default function MyBuildsPage() {
 
                 <CoolerNotice parts={selectedBuild.parts} />
 
-                <h4 className="font-extrabold text-slate-800 dark:text-slate-300 mb-3 mt-2 text-sm uppercase tracking-widest flex items-center gap-2">
-                  <span className="text-blue-500">⚙️</span> مكونات التجميعة
-                </h4>
+                {/* ⚠️ الرمز الذي لا يُشرح يُخمَّن. النقطة الخضراء تعني «أرخص
+                    متجر لهذه القطعة»، وبلا مفتاحٍ يقرؤها الزائر «متوفّر» أو
+                    «موصى به» أو لا يراها. والمفتاح في الرأس لا في التذييل
+                    لأنه يُقرأ **قبل** الشارات لا بعدها. */}
+                <div className="mb-3 mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="font-extrabold text-slate-800 dark:text-slate-300 text-sm flex items-center gap-2">
+                    <span className="w-1 h-5 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_8px] shadow-cyan-500/40" />
+                    مكونات التجميعة
+                  </h4>
+                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-full px-2.5 py-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#0F172A]" />
+                    النقطة الخضراء = أرخص متجر للقطعة
+                  </span>
+                </div>
                 
                 <div className="grid grid-cols-1 gap-3">
                   {BUILD_ORDER.map((category) => {
