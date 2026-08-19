@@ -33,7 +33,14 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' }
     });
 
-    const componentIds = builds.flatMap(b => [b.cpuId, b.gpuId, b.ramId, b.motherboardId, b.caseId, b.psuId, b.storageId]).filter(Boolean) as string[];
+    /* ⚠️ ثلاث قوائم لنفس الأعمدة الثمانية: الجلب، والخريطة، ومجموع السعر.
+       نسيان عمودٍ في إحداها يُنتج عطلاً مختلفاً في كلٍّ منها — غيابه عن
+       الجلب يجعل القطعة null، وعن المجموع ينقص السعر بلا أثر. فأي عمودٍ
+       يُضاف لاحقاً يجب أن يُضاف في الثلاث. */
+    const PART_IDS = (b: typeof builds[number]) =>
+      [b.cpuId, b.gpuId, b.ramId, b.motherboardId, b.caseId, b.psuId, b.storageId, b.coolerId];
+
+    const componentIds = builds.flatMap(PART_IDS).filter(Boolean) as string[];
     
     const components = await prisma.component.findMany({
       where: { id: { in: componentIds } },
@@ -48,6 +55,9 @@ export async function GET(req: NextRequest) {
         // مطلوبة لمقارنة التجميعات: الاستهلاك الكلي وسعة المزوّد/الرام
         tdpWattage: true,
         specs: true,
+        /* التجميعة المحفوظة تُفتح بعد أسابيع، فهي أحوج إلى عمر السعر من
+           صفحة القطعة التي تُفتح بعد بحثٍ مباشر. */
+        lastScrapedAt: true,
       }
     });
 
@@ -63,8 +73,9 @@ export async function GET(req: NextRequest) {
         Case: b.caseId ? compMap.get(b.caseId) : null,
         PSU: b.psuId ? compMap.get(b.psuId) : null,
         Storage: b.storageId ? compMap.get(b.storageId) : null,
+        Cooler: b.coolerId ? compMap.get(b.coolerId) : null,
       },
-      totalPrice: [b.cpuId, b.gpuId, b.ramId, b.motherboardId, b.caseId, b.psuId, b.storageId]
+      totalPrice: PART_IDS(b)
         .reduce((sum, id) => sum + (id ? (compMap.get(id)?.price || 0) : 0), 0)
     }));
     
@@ -96,7 +107,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, name, cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId } = body;
+    const { id, name, cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId, coolerId } = body;
 
     if (id) {
       // 1. التحقق من ملكية التجميعة قبل التعديل
@@ -108,7 +119,11 @@ export async function POST(req: NextRequest) {
       // 2. تحديث التجميعة الحالية
       await prisma.savedBuild.update({
         where: { id },
-        data: { name: name || existingBuild.name, cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId }
+        /* ⚠️ `coolerId` هنا آمنٌ مع العملاء القدامى: صفحةٌ محفوظةٌ في ذاكرة
+           المتصفّح ترسل الحمولة بلا هذا الحقل، فتصل `undefined` — و Prisma
+           تتجاهل غير المعرّف ولا تكتب null. فالمبرّد المحفوظ لا يُمحى بحفظٍ
+           من علامة تبويبٍ قديمة. */
+        data: { name: name || existingBuild.name, cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId, coolerId }
       });
       return NextResponse.json({ message: 'تم تعديل التجميعة بنجاح' }, { status: 200 });
       
@@ -116,7 +131,7 @@ export async function POST(req: NextRequest) {
       // 3. إنشاء تجميعة جديدة
       const newBuild = await prisma.savedBuild.create({
         data: {
-          userId, name: name || "تجميعة مخصصة", cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId
+          userId, name: name || "تجميعة مخصصة", cpuId, gpuId, ramId, motherboardId, caseId, psuId, storageId, coolerId
         }
       });
       return NextResponse.json({ message: 'تم الحفظ بنجاح', buildId: newBuild.id }, { status: 201 });

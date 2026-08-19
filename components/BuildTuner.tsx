@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { CATEGORY_META } from '../lib/category-meta';
 import { productImage } from '../lib/image';
 import { isAvailable } from '../lib/stores';
 
@@ -43,16 +44,9 @@ const RiyalIcon = ({ size = 'h-3 w-3', colorClass = 'bg-slate-500' }: { size?: s
   />
 );
 
-const CAT_META: Record<string, { icon: string; label: string }> = {
-  CPU: { icon: '🔲', label: 'المعالج' },
-  Motherboard: { icon: '🔳', label: 'اللوحة الأم' },
-  GPU: { icon: '🎮', label: 'كرت الشاشة' },
-  RAM: { icon: '📊', label: 'الذاكرة' },
-  Storage: { icon: '💾', label: 'التخزين' },
-  PSU: { icon: '⚡', label: 'مزوّد الطاقة' },
-  Case: { icon: '🗄️', label: 'الكيس' },
-  Cooler: { icon: '❄️', label: 'المبرّد' },
-};
+/* كانت خريطةً ثانيةً بنفس الأيقونات والتسميات — والخرائط المتطابقة تفترق
+   بمرور الوقت. صارت من `lib/category-meta`. */
+const CAT_META = CATEGORY_META;
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 

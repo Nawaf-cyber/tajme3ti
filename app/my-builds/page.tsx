@@ -8,6 +8,8 @@ import toast from 'react-hot-toast';
 import { isAvailable } from '../../lib/stores';
 import MyPartRequests from './MyPartRequests';
 import { productImage } from '../../lib/image';
+import { catMeta, BUILD_ORDER } from '../../lib/category-meta';
+import { timeAgoAr, exactAr, isPriceStale } from '../../lib/time-ago';
 
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -33,6 +35,53 @@ const getBrandColor = (brand: string, name: string, categoryName: string) => {
   if (textToSearch.includes('nvidia') || textToSearch.includes('geforce') || textToSearch.includes('rtx') || textToSearch.includes('gtx')) return 'text-[#76b900] dark:text-[#8ce600]';
   if (textToSearch.includes('intel')) return 'text-blue-600 dark:text-blue-500';
   return 'text-blue-600 dark:text-blue-400';
+};
+
+/* ============ هل يحتاج المستخدم مبرّداً؟ ============
+ *
+ * سؤالٌ يكلّف مالاً في الاتجاهين: من يشتري مبرّداً ومعالجُه يأتي بواحد يدفع
+ * بلا داعٍ، ومن يظنّ أن معالجه يأتي بمبرّد وهو لا يأتي يستلم تجميعةً لا
+ * تُقلع. والجواب مخزَّنٌ عندنا في `includedCooler` على ٤٢ معالجاً.
+ *
+ * ⚠️ ويُعرض هنا لا في الباني وحده: التجميعة تُفتح لحظةَ الشراء، وهي
+ * اللحظة التي يُتّخذ فيها القرار.
+ */
+const CoolerNotice = ({ parts }: { parts: any }) => {
+  const cpu = parts?.['CPU'];
+  if (!cpu) return null;
+
+  const specs = typeof cpu.specs === 'string' ? (() => { try { return JSON.parse(cpu.specs); } catch { return {}; } })() : cpu.specs || {};
+  const included = String(specs.includedCooler ?? '').trim();
+  if (!included) return null; // غير معلن — لا نخمّن
+
+  const hasNone = included === 'None' || included === 'لا يوجد';
+  const chosen = parts?.['Cooler'];
+
+  /* ثلاث حالاتٍ فقط تستحقّ الكلام. والرابعة — معالجٌ بمبرّد والمستخدم اختار
+     مبرّداً أفضل — قرارٌ واعٍ لا يُنبَّه عليه. */
+  if (hasNone && !chosen) {
+    return (
+      <div className="mb-4 rounded-2xl border border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-900/10 p-4">
+        <p className="font-black text-rose-700 dark:text-rose-400 text-sm mb-1">❄️ التجميعة بلا مبرّد</p>
+        <p className="text-[12.5px] text-rose-700/90 dark:text-rose-300/90 leading-relaxed">
+          معالج <b>{cpu.name}</b> لا يأتي بمبرّد، ولم تختر واحداً. الجهاز لن يعمل بدونه — أضف مبرّداً قبل الشراء.
+        </p>
+      </div>
+    );
+  }
+
+  if (!hasNone && !chosen) {
+    return (
+      <div className="mb-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-900/10 p-4">
+        <p className="font-black text-emerald-700 dark:text-emerald-400 text-sm mb-1">❄️ لا تحتاج شراء مبرّد</p>
+        <p className="text-[12.5px] text-emerald-700/90 dark:text-emerald-300/90 leading-relaxed">
+          معالج <b>{cpu.name}</b> يأتي بمبرّد <b>{included}</b> في العلبة — يكفي للاستعمال العادي.
+        </p>
+      </div>
+    );
+  }
+
+  return null;
 };
 
 const getBottleneckMessage = (parts: any) => {
@@ -456,13 +505,20 @@ export default function MyBuildsPage() {
                   />
                 )}
 
+                <CoolerNotice parts={selectedBuild.parts} />
+
                 <h4 className="font-extrabold text-slate-800 dark:text-slate-300 mb-3 mt-2 text-sm uppercase tracking-widest flex items-center gap-2">
                   <span className="text-blue-500">⚙️</span> مكونات التجميعة
                 </h4>
                 
                 <div className="grid grid-cols-1 gap-3">
-                  {['CPU', 'GPU', 'Motherboard', 'RAM', 'Storage', 'Case', 'PSU'].map((category) => {
+                  {BUILD_ORDER.map((category) => {
                     const comp = selectedBuild.parts[category];
+                    /* المبرّد وحده يُخفى حين لا يُختار: تجميعةٌ بلا مبرّد
+                       صالحة (قد يأتي مع المعالج)، فعرضُ «لم يتم الاختيار»
+                       بالأحمر يجعل الصحيح يبدو ناقصاً. وبقيّة القطع مطلوبة
+                       فغيابها نقصٌ يُقال. */
+                    if (category === 'Cooler' && !comp) return null;
                     return (
                       <div key={category} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700/50 gap-3 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors group">
                         <div className="flex items-center gap-3">
@@ -476,7 +532,11 @@ export default function MyBuildsPage() {
                             </div>
                           )}
                           <div className="text-sm flex-1 leading-tight">
-                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-widest block mb-0.5">{category}</span>
+                            {/* عربيّةٌ بلا tracking: التباعد يكسر الخطّ المتّصل،
+                                وuppercase لا معنى له في العربية. */}
+                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[11px] block mb-0.5">
+                              {catMeta(category).icon} {catMeta(category).label}
+                            </span>
                             {comp ? (
                               <>
                                 <span className={getBrandColor(comp.brand, comp.name, category) + " ml-1"}>{comp.brand}</span>
@@ -499,6 +559,21 @@ export default function MyBuildsPage() {
                             <span className="font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1 text-sm bg-emerald-50 dark:bg-emerald-900/10 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-800/20 w-full sm:w-auto justify-center mb-1 sm:mb-0">
                               {comp.price} <RiyalIcon size="h-3 w-3" />
                             </span>
+
+                            {/* عمر السعر: التجميعة تُفتح بعد أسابيع، والرقم
+                                بلا تاريخه وعدٌ لا يُوفى عند المتجر. */}
+                            {(comp as any).lastScrapedAt && (
+                              <span
+                                title={exactAr((comp as any).lastScrapedAt)}
+                                className={`text-[10.5px] font-bold ${
+                                  isPriceStale((comp as any).lastScrapedAt)
+                                    ? 'text-amber-600 dark:text-amber-400'
+                                    : 'text-slate-400 dark:text-slate-500'
+                                }`}
+                              >
+                                {timeAgoAr((comp as any).lastScrapedAt)}
+                              </span>
+                            )}
                             
                             <StoreBuyChips offers={(comp as any).offers} solid />
                           </div>

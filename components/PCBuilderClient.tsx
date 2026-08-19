@@ -1,6 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useRef, useEffect } from 'react';
+import { catMeta } from '../lib/category-meta';
 import type { FC } from 'react';
 import WorkInProgress from './WorkInProgress';
 import IntentPicker from './IntentPicker';
@@ -168,18 +169,8 @@ const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: nu
   );
 };
 
-/* ---- أيقونة ورمز مختصر لكل فئة ---- */
-const CATEGORY_META: Record<string, { icon: string; short: string }> = {
-  'CPU':         { icon: '🔲', short: 'CPU' },
-  'Motherboard': { icon: '🔳', short: 'MB' },
-  'GPU':         { icon: '🎮', short: 'GPU' },
-  'RAM':         { icon: '📊', short: 'RAM' },
-  'Storage':     { icon: '💾', short: 'SSD' },
-  'PSU':         { icon: '⚡', short: 'PSU' },
-  'Case':        { icon: '🗄️', short: 'CASE' },
-  'Cooler':      { icon: '❄️', short: 'COOL' },
-};
-const getCatMeta = (name: string) => CATEGORY_META[name] || { icon: '🔧', short: name.slice(0, 4).toUpperCase() };
+/* أيقونة ورمز كل فئة — كانت خريطةً ثالثة، صارت من lib/category-meta */
+const getCatMeta = catMeta;
 
 /* ---- شارة ثانوية: TDP أو المقبس أو السعة — معلومة مفيدة كانت مخفية ---- */
 const getQuickSpec = (comp: Component, categoryName: string): string | null => {
@@ -1734,6 +1725,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         caseId: getComponentId('Case'),
         psuId: getComponentId('PSU'),
         storageId: getComponentId('Storage'),
+        /* المبرّد آخر ما وصل، وكان يُفقد صامتاً: يُختار في الباني ولا يصل
+           الحفظ، فلا يظهر في التجميعة ولا يدخل مجموع سعرها. */
+        coolerId: getComponentId('Cooler'),
       };
 
       const res = await fetch('/api/builds', {

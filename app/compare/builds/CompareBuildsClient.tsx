@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { formatPrice } from '../../../lib/price';
+import { catMeta } from '../../../lib/category-meta';
 import {
   analyzeBuild, buildVerdicts, buildWarnings,
   BUILD_PART_ORDER, type BuildLike, type BuildPartKey,
@@ -25,10 +26,9 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emer
   }} />
 );
 
-const PART_LABEL: Record<BuildPartKey, string> = {
-  CPU: 'المعالج', GPU: 'كرت الشاشة', Motherboard: 'اللوحة الأم',
-  RAM: 'الذاكرة', Storage: 'التخزين', PSU: 'مزوّد الطاقة', Case: 'الكيس',
-};
+/* كانت خريطةً ثالثةً للتسميات نفسها — والثالثة هي التي كشفت العطب: أُطلقت
+   فئة المبرّد فتخلّفت هذه وحدها. صارت من `lib/category-meta`. */
+const PART_LABEL = (k: BuildPartKey) => catMeta(k).label;
 
 export default function CompareBuildsClient() {
   const { status } = useSession();
@@ -318,7 +318,7 @@ export default function CompareBuildsClient() {
                         return (
                           <tr key={key} className={ri % 2 === 0 ? '' : 'bg-cyan-500/[0.03]'}>
                             <th scope="row" className="sticky right-0 z-10 py-3 px-4 text-right text-xs font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm">
-                              {PART_LABEL[key]}
+                              {PART_LABEL(key)}
                             </th>
                             {selected.map((b, i) => {
                               const p = b.parts?.[key];

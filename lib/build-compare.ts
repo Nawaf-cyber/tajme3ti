@@ -9,8 +9,10 @@
  * السؤال الحقيقي: "أي جهاز أشتري؟" — وهو ما يهمّ المشتري فعلاً.
  */
 
+/* المبرّد أُضيف بعد إطلاق فئته: بدونه تُقارَن تجميعتان فيسقط الفرق بينهما
+   حين يكون المبرّد هو ما يفرّق — ويسقط سعره من المجموع أيضاً. */
 export const BUILD_PART_ORDER = [
-  'CPU', 'GPU', 'Motherboard', 'RAM', 'Storage', 'PSU', 'Case',
+  'CPU', 'Cooler', 'GPU', 'Motherboard', 'RAM', 'Storage', 'PSU', 'Case',
 ] as const;
 export type BuildPartKey = (typeof BUILD_PART_ORDER)[number];
 
