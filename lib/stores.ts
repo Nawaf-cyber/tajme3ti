@@ -106,7 +106,80 @@ export const storeVars = (color: string) =>
     '--store-tint': hexAlpha(color, 0.1),
     '--store-soft': hexAlpha(color, 0.25),
     '--store-glow': hexAlpha(color, 0.6),
+    /* نصٌّ مقروء في الوضعين — انظر readableOn أدناه */
+    '--store-ink': readableOn(color, SURFACE_LIGHT),
+    '--store-ink-dark': readableOn(color, SURFACE_DARK),
   }) as React.CSSProperties;
 
 /** لون افتراضي لمتجر لم يُضبط لونه */
 export const DEFAULT_STORE_COLOR = '#0EA5E9';
+
+/* ============ لونٌ مقروء لكل متجر ============
+ *
+ * ⚠️ لون المتجر هويّةٌ لا لونُ نصّ. وقياس التباين يُثبت ذلك:
+ *
+ *              اللون      نصٌّ أبيض عليه
+ *   Microless  #DC2626        4.83  ✓
+ *   CazaSouq   #A855F7        3.96  ✗
+ *   Amazon     #FF9900        2.14  ✗
+ *   Noon       #EEFF00        1.11  ✗✗  ← يكاد يختفي
+ *
+ * والحدّ المطلوب للنصّ ٤٫٥ (WCAG AA). فالشارة المصمتة بلون المتجر ونصٌّ
+ * أبيض عليها تُخفي ثلاثة من أربعة. وعكسُها — لونُ المتجر نصّاً على أبيض —
+ * يُخفي الثلاثة نفسها، لأن المشكلة في اللون لا في موضعه.
+ *
+ * فالحلّ أن يُعتَّم اللون (أو يُفتَّح) حتى يبلغ الحدّ، ويبقى قريباً من
+ * الهويّة: أصفر نون يصير زيتونياً داكناً على الأبيض، ويبقى أصفر على الداكن.
+ * والحدود تحتفظ باللون الأصلي — الحدّ لا يُقرأ فلا يخضع للحدّ.
+ */
+
+const _rgb = (hex: string): [number, number, number] => {
+  const h = hex.replace('#', '').trim();
+  const f = h.length === 3 ? h.split('').map((c) => c + c).join('') : h.slice(0, 6);
+  const n = parseInt(f, 16);
+  return Number.isNaN(n) ? [14, 165, 233] : [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+const _lum = ([r, g, b]: [number, number, number]): number => {
+  const f = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+};
+
+/** نسبة التباين بين لونين (١ إلى ٢١) */
+export const contrastRatio = (a: string, b: string): number => {
+  const la = _lum(_rgb(a)), lb = _lum(_rgb(b));
+  const hi = Math.max(la, lb), lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+const _hex = ([r, g, b]: [number, number, number]) =>
+  '#' + [r, g, b].map((c) => Math.round(Math.max(0, Math.min(255, c))).toString(16).padStart(2, '0')).join('');
+
+/**
+ * أقربُ صورةٍ من لون المتجر تبلغ التباين المطلوب على خلفيةٍ معطاة.
+ * تُمزج نحو الأسود على الخلفيات الفاتحة، ونحو الأبيض على الداكنة، خطوةً
+ * خطوة — فيُؤخذ **أوّل** لونٍ يكفي لا أشدُّه، كي تبقى الهويّة أقرب ما يمكن.
+ */
+export const readableOn = (color: string, bg: string, target = 4.5): string => {
+  if (contrastRatio(color, bg) >= target) return color;
+  const toward: [number, number, number] = _lum(_rgb(bg)) > 0.5 ? [0, 0, 0] : [255, 255, 255];
+  const base = _rgb(color);
+  for (let i = 1; i <= 20; i++) {
+    const t = i / 20;
+    const mixed: [number, number, number] = [
+      base[0] + (toward[0] - base[0]) * t,
+      base[1] + (toward[1] - base[1]) * t,
+      base[2] + (toward[2] - base[2]) * t,
+    ];
+    const hex = _hex(mixed);
+    if (contrastRatio(hex, bg) >= target) return hex;
+  }
+  return _hex(toward);
+};
+
+/** الخلفيتان اللتان تُقرأ عليهما الشارات فعلاً */
+export const SURFACE_LIGHT = '#ffffff';
+export const SURFACE_DARK = '#0f172a';

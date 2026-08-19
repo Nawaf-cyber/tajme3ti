@@ -305,11 +305,26 @@ export default function MyBuildsPage() {
       <div className="max-w-6xl mx-auto">
         
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <span className="w-1.5 h-6 bg-blue-600 rounded-sm"></span>
+          {/* ============ من مفردات الصفحة الرئيسية ============
+              الشريط المتدرّج المتوهّج قبل العنوان هو توقيع الرئيسية —
+              `from-cyan-400 to-blue-500` مع هالة. كان هنا مستطيلاً أزرق
+              مصمتاً بلا صلةٍ ببقيّة النظام.
+              ⚠️ ولمسةُ هذه الصفحة أنها تعدّ ما تملك: عدد التجميعات بجانب
+              العنوان. الرئيسية تُعرّف بالمنتج، وهذه تُدير مقتنياتٍ — فرقٌ
+              يستحقّ أن يظهر بدل نسخ الرأس حرفياً. */}
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+            <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40" />
             مكتبة التجميعات
+            {builds.length > 0 && (
+              <span className="text-[11px] font-black text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/30 rounded-full px-2.5 py-1 tabular-nums">
+                {builds.length}
+              </span>
+            )}
           </h1>
-          <Link href="/builder" className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-bold py-2 px-5 rounded-xl transition-colors text-sm shadow-sm">
+          <Link
+            href="/builder"
+            className="group relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black py-2.5 px-6 rounded-xl text-sm shadow-lg shadow-cyan-500/25 hover:shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-0.5 transition-all"
+          >
             + بناء جديد
           </Link>
         </div>
@@ -390,7 +405,13 @@ export default function MyBuildsPage() {
               return (
                 <div 
                   key={build.id} 
-                  className="bg-white dark:bg-[#111827] rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 transition-all hover:shadow-md cursor-pointer flex flex-col"
+                  /* السطح الزجاجيّ من الرئيسية: `bg-white/60 dark:bg-slate-900/40`
+                     مع `backdrop-blur-sm` و`rounded-2xl`.
+                     ⚠️ ولمسةُ هذه الصفحة: خطٌّ سماويّ يزحف من الأعلى عند
+                     التحويم (`before:` بارتفاع صفر يكبر). الرئيسية بطاقاتُها
+                     ساكنة تُعرض، وهذه بطاقاتٌ تُنقر — فالاستجابة للمس جزءٌ
+                     من معناها لا زخرفة. */
+                  className="group relative overflow-hidden bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800/60 shadow-sm cursor-pointer flex flex-col transition-all hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:-translate-y-0.5 before:absolute before:inset-x-0 before:top-0 before:h-0 before:bg-gradient-to-r before:from-cyan-400 before:to-blue-500 before:transition-all hover:before:h-0.5"
                   onClick={() => setSelectedBuild(build)}
                 >
                   <div className="p-5 flex-1">
@@ -439,7 +460,9 @@ export default function MyBuildsPage() {
                     )}
                   </div>
                   
-                  <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center rounded-b-xl">
+                  {/* rounded-b-2xl لا b-xl: البطاقة صارت 2xl، وزاويةٌ لا تطابق حاويتها
+                      تترك شقّاً رفيعاً من لون الخلفية عند الحافّة. */}
+                  <div className="px-5 py-3 bg-slate-50/80 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800/60 flex justify-between items-center rounded-b-2xl">
                     <span className="font-black text-lg text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                       {Number(build.totalPrice).toFixed(2)} <RiyalIcon size="h-4 w-4" />
                     </span>
@@ -586,7 +609,7 @@ export default function MyBuildsPage() {
                               </span>
                             )}
                             
-                            <StoreBuyChips offers={(comp as any).offers} solid />
+                            <StoreBuyChips offers={(comp as any).offers} />
                           </div>
                         )}
                       </div>
