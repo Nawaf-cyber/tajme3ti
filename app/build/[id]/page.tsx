@@ -7,6 +7,7 @@ import { OFFER_INCLUDE } from '../../../lib/stores-server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { productImage } from '../../../lib/image';
+import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
@@ -72,7 +73,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
 
   const components = await prisma.component.findMany({
     where: { id: { in: componentIds } },
-    select: { id: true, name: true, brand: true, price: true, imageUrl: true, performanceTier: true, specs: true, ...OFFER_INCLUDE }
+    select: { id: true, name: true, brand: true, price: true, imageUrl: true, performanceTier: true, specs: true, lastScrapedAt: true, ...OFFER_INCLUDE }
   });
 
   const compMap = new Map(components.map(c => [c.id, c]));
@@ -286,11 +287,32 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                 
                 {part && (
                   <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 pt-3 sm:pt-0">
-                    <div className="font-black text-base text-slate-900 dark:text-white flex items-center gap-1.5">
-                      {part.price} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-slate-900 dark:bg-white" />
+                    <div className="flex flex-col items-start sm:items-end gap-0.5">
+                      <div className="font-black text-base text-slate-900 dark:text-white flex items-center gap-1.5 tabular-nums">
+                        {part.price} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-slate-900 dark:bg-white" />
+                      </div>
+                      {/* عمر السعر: التجميعة المشتركة تُفتح بعد أيام من إرسالها،
+                          فالرقم بلا تاريخه وعدٌ لا يُوفى عند المتجر. */}
+                      {part.lastScrapedAt && (
+                        <span
+                          title={exactAr(part.lastScrapedAt)}
+                          className={`text-[10.5px] font-bold ${
+                            isPriceStale(part.lastScrapedAt)
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-slate-400 dark:text-slate-500'
+                          }`}
+                        >
+                          {timeAgoAr(part.lastScrapedAt)}
+                        </span>
+                      )}
                     </div>
                     
-                    <div className="flex gap-1.5">
+                    {/* ⚠️ flex-wrap لا مجرّد flex: على ٣٧٥px يحمل صفُّ الكرت أربع
+                        شاراتٍ بأسعارها، فبلا التفاف تخرج ٧٦px عن الحافّة ويقصّها
+                        الأب — وهو ما رآه المستخدم على الجوّال. وقِيس فعلاً:
+                        الحاوية left=-76 والشارة الأخيرة مقطوعة.
+                        و تُبقي الالتفاف محاذياً لجهة القراءة. */}
+                    <div className="flex flex-wrap justify-end gap-1.5 max-w-full">
                       <StoreBuyChips offers={(part as any).offers} />
                     </div>
                   </div>
