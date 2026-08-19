@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import FpsEstimator from '../../../components/FpsEstimator';
 import { brandColor } from '../../../lib/brand';
 import { prisma } from '../../../lib/prisma';
 import StoreBuyChips from '../../../components/StoreBuyChips';
@@ -31,142 +32,8 @@ const parseSpecs = (specsStr: any) => {
 };
 
 // حاسبة الفريمات مجهزة للعمل بشكل كامل على السيرفر باستخدام Tailwind CSS
-const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }) => {
-  const gpuBasePower: Record<number, number> = { 1: 120, 2: 180, 3: 270, 4: 380, 5: 550 };
-  const baseScore = gpuBasePower[gpuTier] || 120;
-  const resMultipliers: Record<string, number> = { '1080p': 1.0, '1440p': 0.70, '4K': 0.45 };
-  
-  const gameMultipliers: Record<string, any> = {
-    esports: { name: 'Valorant', mult: 3.0, icon: '🎯' },
-    competitive: { name: 'Warzone', mult: 0.9, icon: '🪂' },
-    aaa: { name: 'Cyberpunk', mult: 0.45, icon: '🌃' }
-  };
+/* FpsEstimator صار مكوّناً مشتركاً — components/FpsEstimator */
 
-  const generateDynamicData = () => {
-    const result: any = { data: {} };
-    if (gpuTier >= 5) result.recommended = '4K';
-    else if (gpuTier >= 3) result.recommended = '1440p';
-    else result.recommended = '1080p';
-
-    ['1080p', '1440p', '4K'].forEach(res => {
-      result.data[res] = {};
-      let cpuPenalty = 0;
-      const tierDiff = gpuTier - cpuTier;
-      if (tierDiff > 0) {
-        if (res === '1080p') cpuPenalty = tierDiff * 0.15;
-        if (res === '1440p') cpuPenalty = tierDiff * 0.08;
-        if (res === '4K') cpuPenalty = tierDiff * 0.02;
-      }
-
-      Object.entries(gameMultipliers).forEach(([type, game]) => {
-        const rawFps = baseScore * resMultipliers[res] * game.mult;
-        let finalFps = rawFps * (1 - cpuPenalty);
-
-        finalFps = Math.round(finalFps / 5) * 5;
-        if (finalFps > 500) finalFps = 500;
-
-        let quality = '';
-        if (type === 'aaa') {
-          if (res === '1080p') quality = gpuTier > 3 ? ' (Ultra RT)' : ' (High)';
-          else if (res === '1440p') quality = gpuTier > 3 ? ' (Ultra)' : ' (Med)';
-          else quality = gpuTier >= 4 ? ' (High)' : ' (Low)';
-        }
-
-        result.data[res][type] = {
-          name: game.name + quality,
-          fps: `${finalFps}+`,
-          icon: game.icon
-        };
-      });
-    });
-    return result;
-  };
-
-  const tierData = generateDynamicData();
-
-  return (
-    <div className="mb-8 border border-slate-200 dark:border-slate-700/50 rounded-2xl overflow-hidden bg-white dark:bg-[#0F172A] shadow-sm relative">
-      {/* الأزرار المخفية التي تدير الواجهة تفاعلياً */}
-      <input type="radio" name="res-tabs" id="res-1080p" className="peer/1080p hidden" defaultChecked={tierData.recommended === '1080p'} />
-      <input type="radio" name="res-tabs" id="res-1440p" className="peer/1440p hidden" defaultChecked={tierData.recommended === '1440p'} />
-      <input type="radio" name="res-tabs" id="res-4k" className="peer/4k hidden" defaultChecked={tierData.recommended === '4K'} />
-
-      <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-slate-200 dark:border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-          الأداء المتوقع في الألعاب
-        </h4>
-        
-        <div className="flex bg-slate-200 dark:bg-slate-900 p-1 rounded-lg w-full sm:w-auto">
-          {/* Label 1080p */}
-          <label htmlFor="res-1080p" title={tierData.recommended === '1080p' ? "الدقة المثالية لقوة جهازك" : "عرض الأداء على دقة 1080p"}
-            className="flex-1 sm:flex-none text-center px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/1080p:bg-white peer-checked/1080p:dark:bg-slate-700 peer-checked/1080p:text-blue-600 peer-checked/1080p:dark:text-blue-400 peer-checked/1080p:shadow-sm"
-          >
-            1080p {tierData.recommended === '1080p' && <span className="text-blue-500 text-sm leading-none ml-0.5">★</span>}
-          </label>
-          
-          {/* Label 1440p */}
-          <label htmlFor="res-1440p" title={tierData.recommended === '1440p' ? "الدقة المثالية لقوة جهازك" : "عرض الأداء على دقة 1440p"}
-            className="flex-1 sm:flex-none text-center px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/1440p:bg-white peer-checked/1440p:dark:bg-slate-700 peer-checked/1440p:text-blue-600 peer-checked/1440p:dark:text-blue-400 peer-checked/1440p:shadow-sm"
-          >
-            1440p {tierData.recommended === '1440p' && <span className="text-blue-500 text-sm leading-none ml-0.5">★</span>}
-          </label>
-
-          {/* Label 4K */}
-          <label htmlFor="res-4k" title={tierData.recommended === '4K' ? "الدقة المثالية لقوة جهازك" : "عرض الأداء على دقة 4K"}
-            className="flex-1 sm:flex-none text-center px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/4k:bg-white peer-checked/4k:dark:bg-slate-700 peer-checked/4k:text-blue-600 peer-checked/4k:dark:text-blue-400 peer-checked/4k:shadow-sm"
-          >
-            4K {tierData.recommended === '4K' && <span className="text-blue-500 text-sm leading-none ml-0.5">★</span>}
-          </label>
-        </div>
-      </div>
-      
-      {/* 1080p Content */}
-      <div className="hidden peer-checked/1080p:grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-slate-100 dark:divide-slate-700/50 p-2">
-        {Object.entries(tierData.data['1080p']).map(([type, data]: any) => (
-          <div key={type} className="p-3 text-center flex flex-col items-center justify-center group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors rounded-xl">
-            <span className="text-xl mb-1 drop-shadow-sm">{data.icon}</span>
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{data.name}</span>
-            <span className="text-lg font-black text-slate-900 dark:text-white group-hover:scale-110 transition-transform">{data.fps}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* 1440p Content */}
-      <div className="hidden peer-checked/1440p:grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-slate-100 dark:divide-slate-700/50 p-2">
-        {Object.entries(tierData.data['1440p']).map(([type, data]: any) => (
-          <div key={type} className="p-3 text-center flex flex-col items-center justify-center group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors rounded-xl">
-            <span className="text-xl mb-1 drop-shadow-sm">{data.icon}</span>
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{data.name}</span>
-            <span className="text-lg font-black text-slate-900 dark:text-white group-hover:scale-110 transition-transform">{data.fps}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* 4K Content */}
-      <div className="hidden peer-checked/4k:grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-slate-100 dark:divide-slate-700/50 p-2">
-        {Object.entries(tierData.data['4K']).map(([type, data]: any) => (
-          <div key={type} className="p-3 text-center flex flex-col items-center justify-center group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors rounded-xl">
-            <span className="text-xl mb-1 drop-shadow-sm">{data.icon}</span>
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{data.name}</span>
-            <span className="text-lg font-black text-slate-900 dark:text-white group-hover:scale-110 transition-transform">{data.fps}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-slate-50 dark:bg-slate-800/40 p-3 border-t border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
-        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold flex items-center gap-1.5">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          الأرقام تقريبية وتعتمد على إعدادات الجودة وتقنيات (DLSS/FSR).
-        </span>
-        <span className="hidden sm:block text-slate-300 dark:text-slate-700">|</span>
-        <span className="text-[10px] text-blue-500 dark:text-blue-400 font-bold flex items-center gap-1">
-          <span className="text-sm leading-none">★</span> تشير إلى دقة الشاشة المثالية لجهازك.
-        </span>
-      </div>
-    </div>
-  );
-};
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -182,15 +49,26 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function SharedBuildPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
+  /* ⚠️ `select` صريح: الاستعلام كان يجلب الصفَّ كاملاً بما فيه `userId`،
+     وهذه **صفحةٌ عامّة** يفتحها أي أحدٍ بالرابط. فمعرّف صاحب التجميعة كان
+     يصل حمولة العرض بلا داعٍ — لا يُعرض، لكنه يُرسَل.
+     والقاعدة: الصفحة العامّة تطلب ما تعرضه لا ما يوجد. */
   const build = await prisma.savedBuild.findUnique({
-    where: { id }
+    where: { id },
+    select: {
+      id: true, name: true, createdAt: true,
+      cpuId: true, gpuId: true, ramId: true, motherboardId: true,
+      caseId: true, psuId: true, storageId: true, coolerId: true,
+    },
   });
 
   if (!build) return notFound();
 
-  // كانت روابط هذه الصفحة بلا معرّف أفلييت إطلاقاً — كل نقرة تضيع
+  // كانت روابط هذه الصفحة بلا معرّف أفلييت إطلاقاً — كل نقرة تضيع
 
-  const componentIds = [build.cpuId, build.gpuId, build.ramId, build.motherboardId, build.caseId, build.psuId, build.storageId].filter(Boolean) as string[];
+  /* ⚠️ المبرّد كان غائباً عن هذه القائمة، فالتجميعة المشتركة تُعرض
+     ناقصةً قطعةً ومجموعُها أقلّ من الحقيقة. */
+  const componentIds = [build.cpuId, build.gpuId, build.ramId, build.motherboardId, build.caseId, build.psuId, build.storageId, build.coolerId].filter(Boolean) as string[];
 
   const components = await prisma.component.findMany({
     where: { id: { in: componentIds } },
@@ -207,6 +85,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
     Storage: build.storageId ? compMap.get(build.storageId) : null,
     PSU: build.psuId ? compMap.get(build.psuId) : null,
     Case: build.caseId ? compMap.get(build.caseId) : null,
+    Cooler: build.coolerId ? compMap.get(build.coolerId) : null,
   };
 
   const totalPriceRaw = Object.values(parts).reduce((sum, part) => sum + (part?.price || 0), 0);
@@ -283,6 +162,9 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
     if (parts.Storage) p.set('storage', parts.Storage.id);
     if (parts.PSU) p.set('psu', parts.PSU.id);
     if (parts.Case) p.set('case', parts.Case.id);
+    /* المبرّد كان يسقط من رابط الترقية: يفتح الزائرُ الباني فيجد تجميعته
+       بلا مبرّدها. */
+    if (parts.Cooler) p.set('cooler', parts.Cooler.id);
     return `/builder?${p.toString()}`;
   };
 
@@ -292,10 +174,14 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 border-b border-slate-200 dark:border-slate-800/80 pb-6 gap-6">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">{build.name}</h1>
+            {/* شريط الرئيسية المتوهّج — نفس التوقيع في مكتبة التجميعات */}
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2 flex items-center gap-3">
+              <span className="w-1.5 h-9 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40 shrink-0" />
+              {build.name}
+            </h1>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              تم الإنشاء في: <span dir="ltr">{new Date(build.createdAt).toLocaleDateString('ar-SA')}</span>
+              تم الإنشاء في: <span dir="ltr">{new Date(build.createdAt).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn')}</span>
             </p>
           </div>
           <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/10 px-4 py-2 rounded-xl border border-emerald-100 dark:border-emerald-800/30">
@@ -328,7 +214,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                     <Link
                       key={idx}
                       href={getUpgradeUrl(sug.category, sug.item.id)}
-                      className="group flex flex-col text-right p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-700/60 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-400 dark:hover:border-blue-500/50 min-w-[260px] max-w-[260px] shrink-0 snap-center relative overflow-hidden"
+                      className="group flex flex-col text-right p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-700/60 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-500/10 hover:border-cyan-400/60 dark:hover:border-cyan-500/50 min-w-[260px] max-w-[260px] shrink-0 snap-center relative overflow-hidden"
                     >
                       <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       <div className="flex justify-between items-start w-full mb-3">
@@ -372,7 +258,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
             const brandCls = part ? brandColor(part.brand, part.name, category) : 'text-slate-400';
             
             return (
-              <div key={category} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-blue-300 dark:hover:border-slate-700 transition-colors gap-4">
+              <div key={category} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800/60 shadow-sm transition-all hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 gap-4">
                 
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 shrink-0 bg-slate-50 dark:bg-slate-900/50 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800">
