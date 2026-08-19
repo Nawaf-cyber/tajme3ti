@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { brandColor } from '../../../lib/brand';
 import { prisma } from '../../../lib/prisma';
 import StoreBuyChips from '../../../components/StoreBuyChips';
 import { OFFER_INCLUDE } from '../../../lib/stores-server';
@@ -22,16 +23,7 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emer
   />
 );
 
-const getBrandColor = (brand: string, name: string, category: string) => {
-  if (category !== 'CPU' && category !== 'GPU') return 'text-slate-900 dark:text-white';
-  const text = `${brand || ''} ${name || ''}`.toLowerCase();
-  
-  if (text.includes('amd') || text.includes('radeon')) return 'text-red-600 dark:text-red-500';
-  if (text.includes('nvidia') || text.includes('rtx') || text.includes('gtx')) return 'text-[#76b900] dark:text-[#8ce600]';
-  if (text.includes('intel')) return 'text-blue-600 dark:text-blue-400';
-  
-  return 'text-slate-900 dark:text-white';
-};
+/* لون العلامة صار من lib/brand — كانت أربع نسخ بأربع لوحات */
 
 const parseSpecs = (specsStr: any) => {
   if (!specsStr) return {};
@@ -340,7 +332,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                     >
                       <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       <div className="flex justify-between items-start w-full mb-3">
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${getBrandColor(sug.item.brand, sug.item.name, sug.category)} bg-slate-50 dark:bg-slate-800/80 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700/50`}>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${brandColor(sug.item.brand, sug.item.name, sug.category)} bg-slate-50 dark:bg-slate-800/80 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700/50`}>
                           {sug.item.brand}
                         </span>
                         <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md">
@@ -376,7 +368,8 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
 
         <div className="flex flex-col gap-3">
           {Object.entries(parts).map(([category, part]: [string, any]) => {
-            const brandColor = part ? getBrandColor(part.brand, part.name, category) : 'text-slate-400';
+            /* اسمٌ محلّيّ مختلف عن الدالّة المستوردة — كان يتصادم معها */
+            const brandCls = part ? brandColor(part.brand, part.name, category) : 'text-slate-400';
             
             return (
               <div key={category} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-blue-300 dark:hover:border-slate-700 transition-colors gap-4">
@@ -394,7 +387,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                       {category}
                     </span>
                     {part ? (
-                      <h3 className={`text-sm md:text-base font-bold ${brandColor} leading-tight`}>
+                      <h3 className={`text-sm md:text-base font-bold ${brandCls} leading-tight`}>
                         {part.brand} {part.name}
                       </h3>
                     ) : (

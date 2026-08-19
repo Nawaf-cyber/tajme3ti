@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { brandColor } from '../../lib/brand';
 import StoreBuyChips from '../../components/StoreBuyChips';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -28,14 +29,7 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?:
   />
 );
 
-const getBrandColor = (brand: string, name: string, categoryName: string) => {
-  if (categoryName !== 'CPU' && categoryName !== 'GPU') return 'text-blue-600 dark:text-blue-400';
-  const textToSearch = `${brand || ''} ${name || ''}`.toLowerCase();
-  if (textToSearch.includes('amd') || textToSearch.includes('radeon')) return 'text-red-600 dark:text-red-500';
-  if (textToSearch.includes('nvidia') || textToSearch.includes('geforce') || textToSearch.includes('rtx') || textToSearch.includes('gtx')) return 'text-[#76b900] dark:text-[#8ce600]';
-  if (textToSearch.includes('intel')) return 'text-blue-600 dark:text-blue-500';
-  return 'text-blue-600 dark:text-blue-400';
-};
+/* لون العلامة صار من lib/brand — كانت أربع نسخ بأربع لوحات */
 
 /* ============ هل يحتاج المستخدم مبرّداً؟ ============
  *
@@ -411,14 +405,14 @@ export default function MyBuildsPage() {
                       {cpu && (
                         <div className="text-xs bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg truncate">
                           <span className="font-bold text-slate-400 mr-1">المعالج:</span>
-                          <span className={`${getBrandColor(cpu.brand, cpu.name, 'CPU')} font-bold mr-1`}>{cpu.brand}</span>
+                          <span className={`${brandColor(cpu.brand, cpu.name, 'CPU')} font-bold mr-1`}>{cpu.brand}</span>
                           <span className="text-slate-700 dark:text-slate-300 font-semibold">{cpu.name}</span>
                         </div>
                       )}
                       {gpu && (
                         <div className="text-xs bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg truncate">
                           <span className="font-bold text-slate-400 mr-1">الكرت:</span>
-                          <span className={`${getBrandColor(gpu.brand, gpu.name, 'GPU')} font-bold mr-1`}>{gpu.brand}</span>
+                          <span className={`${brandColor(gpu.brand, gpu.name, 'GPU')} font-bold mr-1`}>{gpu.brand}</span>
                           <span className="text-slate-700 dark:text-slate-300 font-semibold">{gpu.name}</span>
                         </div>
                       )}
@@ -539,7 +533,7 @@ export default function MyBuildsPage() {
                             </span>
                             {comp ? (
                               <>
-                                <span className={getBrandColor(comp.brand, comp.name, category) + " ml-1"}>{comp.brand}</span>
+                                <span className={brandColor(comp.brand, comp.name, category) + " ml-1"}>{comp.brand}</span>
                                 <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
                                 {!isAvailable(comp) && (
                                   <span className="mt-1 text-amber-700 dark:text-amber-400 font-black inline-flex items-center gap-1 text-[11px] bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/40 w-fit">

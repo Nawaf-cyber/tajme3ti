@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect } from 'react';
+import { brandColor } from '../../lib/brand';
 import Link from 'next/link';
 import { isAvailable, offerDeal } from '../../lib/stores';
 import { formatPrice } from '../../lib/price';
@@ -25,14 +26,7 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?:
 );
 
 // دالة تلوين أسماء الماركات
-const getBrandColor = (brand: string) => {
-  if (!brand) return 'text-blue-600 dark:text-blue-400';
-  const textToSearch = brand.toLowerCase();
-  if (textToSearch.includes('amd') || textToSearch.includes('radeon')) return 'text-red-600 dark:text-red-500';
-  if (textToSearch.includes('nvidia') || textToSearch.includes('geforce') || textToSearch.includes('rtx') || textToSearch.includes('gtx')) return 'text-emerald-600 dark:text-[#8ce600]';
-  if (textToSearch.includes('intel')) return 'text-blue-600 dark:text-blue-500';
-  return 'text-blue-600 dark:text-blue-400';
-};
+/* لون العلامة صار من lib/brand — كانت أربع نسخ بأربع لوحات */
 
 export default function ComponentsClient({ components, categories }: { components: any[], categories: any[] }) {
   const [search, setSearch] = useState('');
@@ -347,7 +341,7 @@ export default function ComponentsClient({ components, categories }: { component
 
                 {/* قسم التفاصيل */}
                 <div className="p-4 flex flex-col flex-1">
-                  <p className={`text-[10px] font-black uppercase tracking-widest mb-1.5 font-mono ${getBrandColor(comp.brand)}`}>
+                  <p className={`text-[10px] font-black uppercase tracking-widest mb-1.5 font-mono ${brandColor(comp.brand)}`}>
                     {comp.brand}
                   </p>
                   <h3 className="text-base font-black text-slate-900 dark:text-white leading-snug line-clamp-2 h-11 mb-3" title={comp.name}>

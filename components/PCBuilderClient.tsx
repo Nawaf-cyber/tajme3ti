@@ -1,6 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useRef, useEffect } from 'react';
+import { brandColor } from '../lib/brand';
 import { catMeta } from '../lib/category-meta';
 import type { FC } from 'react';
 import WorkInProgress from './WorkInProgress';
@@ -85,23 +86,9 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-700 dark:bg-emer
 );
 
 
-const getBrandColor = (comp: Component, categoryName: string) => {
-  if (categoryName !== 'CPU' && categoryName !== 'GPU') return 'text-cyan-700 dark:text-cyan-400';
-  
-  const textToSearch = `${comp.brand} ${comp.name}`.toLowerCase();
-  
-  if (textToSearch.includes('amd') || textToSearch.includes('radeon')) {
-    return 'text-red-700 dark:text-red-500';
-  }
-  if (textToSearch.includes('nvidia') || textToSearch.includes('geforce') || textToSearch.includes('rtx') || textToSearch.includes('gtx')) {
-    return 'text-emerald-700 dark:text-[#8ce600]'; 
-  }
-  if (textToSearch.includes('intel')) {
-    return 'text-cyan-700 dark:text-cyan-500'; 
-  }
-  
-  return 'text-slate-800 dark:text-slate-200'; 
-};
+/* لون العلامة صار من lib/brand. وكان توقيعه (comp, cat) فيُمرَّر مفكوكاً. */
+const getBrandColor = (comp: Component, categoryName: string) =>
+  brandColor(comp.brand, comp.name, categoryName);
 
 // مكون شريط الطاقة
 const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: number }) => {
