@@ -457,7 +457,12 @@ export default function MyBuildsPage() {
         {selectedBuild && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm p-4" onClick={() => setSelectedBuild(null)}>
             <div 
-              className="bg-white dark:bg-[#0F172A] rounded-3xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200"
+              /* ⚠️ كانت `max-w-2xl` (٦٧٢px) — وهي أضيق ممّا يحمله الصفّ:
+                 صورة + اسم + سعر + عمر + أربع شارات متاجر. فكان كرت الشاشة
+                 يفيض أفقياً وتُقطع شارة «نون» عند الحافة. و`4xl` (٨٩٦px)
+                 تسع الصفّ كاملاً على الشاشات المتوسطة فما فوق، وتبقى
+                 `w-full` على الجوّال. */
+              className="bg-white dark:bg-[#0F172A] rounded-3xl w-full max-w-4xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] shrink-0">
@@ -515,7 +520,11 @@ export default function MyBuildsPage() {
                     if (category === 'Cooler' && !comp) return null;
                     return (
                       <div key={category} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700/50 gap-3 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors group">
-                        <div className="flex items-center gap-3">
+                        {/* ⚠️ `min-w-0` هنا هو ما يمنع الفيض: عنصر flex لا
+                            ينكمش دون عرض محتواه ما لم يُسمح له صراحةً. وبدونه
+                            يدفع الاسمُ الطويل الصفَّ خارج النافذة، فيظهر شريط
+                            تمريرٍ أفقيّ وتُقطع الشارات عند الحافة. */}
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                           {comp?.imageUrl ? (
                             <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 p-1 flex items-center justify-center shrink-0 shadow-sm">
                                <img src={productImage(comp.imageUrl)} alt={comp.name} className="max-w-full max-h-full object-contain" />
@@ -534,7 +543,7 @@ export default function MyBuildsPage() {
                             {comp ? (
                               <>
                                 <span className={brandColor(comp.brand, comp.name, category) + " ml-1"}>{comp.brand}</span>
-                                <span className="text-slate-900 dark:text-white font-bold">{comp.name}</span>
+                                <span className="text-slate-900 dark:text-white font-bold break-words">{comp.name}</span>
                                 {!isAvailable(comp) && (
                                   <span className="mt-1 text-amber-700 dark:text-amber-400 font-black inline-flex items-center gap-1 text-[11px] bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/40 w-fit">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
@@ -548,8 +557,11 @@ export default function MyBuildsPage() {
                           </div>
                         </div>
                         
+                        {/* لا shrink-0 على كتلة السعر: تحوي حتى أربع شارات
+                            متاجر، ومنعُها من الانكماش كان نصف سبب الفيض.
+                            و flex-wrap يلفّها سطراً ثانياً بدل أن تُقطع. */}
                         {comp && (
-                          <div className="flex flex-wrap items-center gap-2 shrink-0 mt-2 sm:mt-0 pl-12 sm:pl-0 sm:border-r border-t sm:border-t-0 border-slate-200 dark:border-slate-700 pt-2 sm:pt-0 sm:pr-3">
+                          <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 pl-12 sm:pl-0 sm:border-r border-t sm:border-t-0 border-slate-200 dark:border-slate-700 pt-2 sm:pt-0 sm:pr-3 sm:justify-end">
                             <span className="font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1 text-sm bg-emerald-50 dark:bg-emerald-900/10 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-800/20 w-full sm:w-auto justify-center mb-1 sm:mb-0">
                               {comp.price} <RiyalIcon size="h-3 w-3" />
                             </span>
