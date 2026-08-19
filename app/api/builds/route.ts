@@ -81,6 +81,11 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json(buildsWithDetails, { status: 200 });
   } catch (error) {
+    /* ⚠️ كان يبتلع الخطأ بلا تسجيل، فيصل المستخدمَ «خطأ في السيرفر» ولا
+       يبقى للسبب أثرٌ في أي مكان. وقد كلّف ذلك تشخيصاً كاملاً حين رفض
+       الحفظُ بعد إضافة عمود: الرسالة الحقيقية كانت «Unknown argument
+       coolerId» ولم يرها أحد. والرسالة للمستخدم تبقى عامّة عمداً. */
+    console.error('[GET /api/builds]', error);
     return NextResponse.json({ message: 'خطأ في السيرفر' }, { status: 500 });
   }
 }
@@ -137,6 +142,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'تم الحفظ بنجاح', buildId: newBuild.id }, { status: 201 });
     }
   } catch (error) {
+    /* ⚠️ كان يبتلع الخطأ بلا تسجيل، فيصل المستخدمَ «خطأ في السيرفر» ولا
+       يبقى للسبب أثرٌ في أي مكان. وقد كلّف ذلك تشخيصاً كاملاً حين رفض
+       الحفظُ بعد إضافة عمود: الرسالة الحقيقية كانت «Unknown argument
+       coolerId» ولم يرها أحد. والرسالة للمستخدم تبقى عامّة عمداً. */
+    console.error('[POST /api/builds]', error);
     return NextResponse.json({ message: 'خطأ في السيرفر' }, { status: 500 });
   }
 }
