@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { HAS_PARTS } from '../../lib/categories';
 import CompareClient from './CompareClient';
 import { OFFER_INCLUDE } from '../../lib/stores-server';
 import type { Metadata } from 'next';
@@ -103,7 +104,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     : [];
 
   // كل الفئات (لاختيار فئة عند بدء مقارنة جديدة)
-  const categories = await prisma.category.findMany({ orderBy: { name: 'asc' } });
+  const categories = await prisma.category.findMany({ where: HAS_PARTS, orderBy: { name: 'asc' } });
 
   // إن لم تُختر قطع بعد: نجلب قطعاً من كل فئة للبدء
   const starterComponents = !activeCategoryId

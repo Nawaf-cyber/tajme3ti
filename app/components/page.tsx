@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { HAS_PARTS } from '../../lib/categories';
 import { OFFER_INCLUDE } from '../../lib/stores-server';
 import type { Metadata } from 'next';
 
@@ -18,7 +19,7 @@ export default async function ComponentsPage() {
     orderBy: { createdAt: 'desc' }
   });
   
-  const categories = await prisma.category.findMany();
+  const categories = await prisma.category.findMany({ where: HAS_PARTS });
 
   return (
     <div className="min-h-screen py-12 px-4">

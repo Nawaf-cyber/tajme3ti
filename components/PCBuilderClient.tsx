@@ -20,7 +20,10 @@ import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { productImage } from '../lib/image';
 import RichDescription from './RichDescription';
 import SpecSheet from './SpecSheet';
-import { boardFitsCase, fitReason, psuFitsCase, psuFitReason } from '../lib/fit';
+import {
+  boardFitsCase, fitReason, psuFitsCase, psuFitReason,
+  coolerFitsCase, coolerFitReason, coolerFitsCpu, coolerCpuReason,
+} from '../lib/fit';
 
 type Component = {
   id: string;
@@ -991,6 +994,29 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       }
     }
 
+    /* ============ المبرّد: يُزال ولا يُزيل ============
+       ⚠️ عمداً في اتجاهٍ واحد. المبرّد قطعةٌ **اختيارية** يُغيّرها المستخدم
+       آخراً، فإسقاط كيسٍ أو معالجٍ اختاره بعناية لأجل مبرّد يقلب الأولوية.
+       أمّا العكس — تغيير الكيس أو المعالج — فيُسقط المبرّد لأنه التابع. */
+    const chosenCooler = selectedComponents['Cooler'];
+    if (chosenCooler && categoryName !== 'Cooler') {
+      const k = parseSpecs(chosenCooler.specs);
+
+      if (categoryName === 'Case' && !coolerFitsCase(k.type, k.sizeMm, specs.maxCoolerHeight, specs.radiatorSupport)) {
+        newSelections['Cooler'] = null;
+        toastMessage = toastMessage
+          ? toastMessage + ' والمبرّد أيضاً'
+          : `تم إزالة المبرّد (${k.sizeMm}مم) لأنه لا يدخل الكيس الجديد`;
+      }
+
+      if (categoryName === 'CPU' && !coolerFitsCpu(k.sockets, specs.socket)) {
+        newSelections['Cooler'] = null;
+        toastMessage = toastMessage
+          ? toastMessage + ' والمبرّد أيضاً'
+          : `تم إزالة المبرّد لأنه لا يدعم مقبس ${specs.socket}`;
+      }
+    }
+
     setSelectedComponents(newSelections);
     
     if (toastMessage) {
@@ -1096,6 +1122,45 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         if (specs.lengthMm && caseSpecs.maxGpuLength && parseFloat(specs.lengthMm) > parseFloat(caseSpecs.maxGpuLength)) {
           isCompatible = false;
           reason = `طول الكرت (${specs.lengthMm}mm) لا يتسع داخل الكيس (${caseSpecs.maxGpuLength}mm)`;
+        }
+      }
+
+      /* ============ المبرّد ============
+         قيدان لا واحد: المقبس (عضويّة في مجموعة) والمقاس (عمودٌ يختاره
+         النوع). ويُفحصان في الاتجاهين — تصفّح المبرّدات بعد اختيار الكيس،
+         وتصفّح الكيسات بعد اختيار المبرّد. */
+      if (categoryName === 'Cooler') {
+        if (cpu) {
+          const cpuSpecs = parseSpecs(cpu.specs);
+          if (!coolerFitsCpu(specs.sockets, cpuSpecs.socket)) {
+            isCompatible = false;
+            reason = coolerCpuReason(specs.sockets, cpuSpecs.socket) || '';
+          }
+        }
+        if (isCompatible && pcCase) {
+          const caseSpecs = parseSpecs(pcCase.specs);
+          if (!coolerFitsCase(specs.type, specs.sizeMm, caseSpecs.maxCoolerHeight, caseSpecs.radiatorSupport)) {
+            isCompatible = false;
+            reason = coolerFitReason(specs.type, specs.sizeMm, caseSpecs.maxCoolerHeight, caseSpecs.radiatorSupport) || '';
+          }
+        }
+      }
+
+      const cooler = selectedComponents['Cooler'];
+
+      if (categoryName === 'Case' && isCompatible && cooler) {
+        const cSpecs = parseSpecs(cooler.specs);
+        if (!coolerFitsCase(cSpecs.type, cSpecs.sizeMm, specs.maxCoolerHeight, specs.radiatorSupport)) {
+          isCompatible = false;
+          reason = `المبرّد المختار (${cSpecs.sizeMm}مم) لا يدخل هذا الكيس`;
+        }
+      }
+
+      if (categoryName === 'CPU' && isCompatible && cooler) {
+        const cSpecs = parseSpecs(cooler.specs);
+        if (!coolerFitsCpu(cSpecs.sockets, specs.socket)) {
+          isCompatible = false;
+          reason = `المبرّد المختار لا يدعم مقبس ${specs.socket}`;
         }
       }
 

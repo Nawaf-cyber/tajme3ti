@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { prisma } from '../../lib/prisma';
+import { HAS_PARTS } from '../../lib/categories';
 import PCBuilderClient from '../../components/PCBuilderClient';
 import { OFFER_INCLUDE, getStoreNotices } from '../../lib/stores-server';
 import StoreNotices from '../../components/StoreNotice';
@@ -56,6 +57,7 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
 
   // جلب الفئات والقطع
   const categories = await prisma.category.findMany({
+    where: HAS_PARTS,
     include: { components: { include: OFFER_INCLUDE } },
   });
 

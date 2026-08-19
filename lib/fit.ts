@@ -128,3 +128,89 @@ export function psuFitReason(psuFormFactor: unknown, casePsuSupport: unknown): s
   if (psuFitsCase(psuFormFactor, casePsuSupport)) return null;
   return `الكيس يقبل مزوّدات ${casePsuSupport} والمزوّد المختار من مقاس ${psuFormFactor}.`;
 }
+
+/* ============ المبرّد: نوعان وقاعدتا قياس ============
+ *
+ * الفرق ليس في حجم الرقم بل في **أيّ عمودٍ يُقاس عليه**:
+ *
+ *   Air  →  sizeMm (ارتفاع البرج)   ≤  maxCoolerHeight
+ *   AIO  →  sizeMm (مقاس الرادييتر) ≤  radiatorSupport
+ *
+ * والدليل من الكتالوج: Lian Li A4-H2O X5 ارتفاعه ٥٥ ورادييتره ٢٤٠. فمبرّدٌ
+ * هوائيّ ١٦٥ لا يدخله، ومائيّ ٢٤٠ يدخله. كيسٌ واحد وحكمان متعاكسان.
+ *
+ * ⚠️ والسكوت عند الجهل هنا **مقصود ومحسوب**: قيمةٌ ناقصة تُمرَّر. لأن
+ * البوّابة تمنع أصلاً حفظ مبرّدٍ بلا `type` أو `sizeMm`، وكل الكيسات
+ * السبعة والعشرين تحمل العمودين. فالنقص لا يقع إلا في بياناتٍ جاءت من
+ * خارج المسارات الثلاثة — وحينها المنعُ الصامت أسوأ من التمرير، لأنه
+ * يُخفي قطعةً صالحة بلا سبب يُقرأ.
+ */
+
+const num = (v: unknown): number | null => {
+  const n = parseFloat(String(v ?? '').replace(/[^\d.]/g, ''));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+/** أكبر رادييتر يقبله الكيس. «2x 360mm» تعني فتحتين بمقاس ٣٦٠ لا رادييتر ٧٢٠ */
+const maxRadiator = (support: unknown): number | null => {
+  const s = String(support ?? '');
+  const all = [...s.matchAll(/(\d{2,3})\s*mm/gi)].map((m) => Number(m[1]));
+  return all.length ? Math.max(...all) : num(s);
+};
+
+export type CoolerType = 'Air' | 'AIO';
+
+export function coolerFitsCase(
+  coolerType: unknown,
+  coolerSizeMm: unknown,
+  caseMaxCoolerHeight: unknown,
+  caseRadiatorSupport: unknown,
+): boolean {
+  const size = num(coolerSizeMm);
+  const type = String(coolerType ?? '').trim().toUpperCase();
+  if (!size || !type) return true;
+
+  if (type === 'AIO') {
+    const rad = maxRadiator(caseRadiatorSupport);
+    return rad === null ? true : size <= rad;
+  }
+  /* أي شيءٍ غير AIO يُعامَل هوائياً: النوع محصورٌ في المخطّط بقيمتين،
+     وقيمةٌ ثالثة غير متوقّعة أسلمُ أن تُقاس بالارتفاع من أن تُهمَل. */
+  const h = num(caseMaxCoolerHeight);
+  return h === null ? true : size <= h;
+}
+
+export function coolerFitReason(
+  coolerType: unknown,
+  coolerSizeMm: unknown,
+  caseMaxCoolerHeight: unknown,
+  caseRadiatorSupport: unknown,
+): string | null {
+  if (coolerFitsCase(coolerType, coolerSizeMm, caseMaxCoolerHeight, caseRadiatorSupport)) return null;
+  const isAio = String(coolerType ?? '').trim().toUpperCase() === 'AIO';
+  return isAio
+    ? `الكيس يقبل رادييتر حتى ${maxRadiator(caseRadiatorSupport)}مم والمبرّد ${num(coolerSizeMm)}مم.`
+    : `الكيس يقبل مبرّداً بارتفاع ${num(caseMaxCoolerHeight)}مم والمبرّد ${num(coolerSizeMm)}مم.`;
+}
+
+/* ============ المبرّد والمعالج: عضويّةٌ في مجموعة ============
+ *
+ * المبرّد يدعم مقابس كثيرة («AM5/AM4/LGA1700») بخلاف بقيّة الفحوص التي
+ * تقارن قيمةً بقيمة. والفاصل قد يكون «/» أو «,» أو مسافة، فالتقسيم على
+ * كلّها ثم المطابقة بلا حساسيةٍ لحالة الأحرف — لأن الكتالوج فيه `LGA1700`
+ * و`lga1700` معاً في مصادر المصنّعين.
+ */
+export function coolerFitsCpu(coolerSockets: unknown, cpuSocket: unknown): boolean {
+  const cpu = String(cpuSocket ?? '').trim().toUpperCase();
+  const raw = String(coolerSockets ?? '').trim();
+  if (!cpu || !raw) return true;
+
+  const supported = raw.split(/[/,،]|\s{2,}/).map((s) => s.trim().toUpperCase()).filter(Boolean);
+  if (supported.length === 0) return true;
+  return supported.includes(cpu);
+}
+
+export function coolerCpuReason(coolerSockets: unknown, cpuSocket: unknown): string | null {
+  if (coolerFitsCpu(coolerSockets, cpuSocket)) return null;
+  return `المبرّد يدعم ${coolerSockets} والمعالج على مقبس ${cpuSocket}.`;
+}
