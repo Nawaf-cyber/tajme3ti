@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { shortDateAr } from '../../lib/time-ago';
 import FpsEstimator from '../../components/FpsEstimator';
 import { brandColor } from '../../lib/brand';
 import { formatPrice } from '../../lib/price';
@@ -396,7 +397,7 @@ export default function MyBuildsPage() {
                           بطاقةٍ واحدة. وقد يخرج هجرياً على متصفّحٍ آخر فيتغيّر
                           التاريخ نفسه. فالتقويم والأرقام يُثبتان صراحةً. */}
                       <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded tabular-nums">
-                        {new Date(build.createdAt).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn')}
+                        {shortDateAr(build.createdAt)}
                       </span>
                     </div>
 

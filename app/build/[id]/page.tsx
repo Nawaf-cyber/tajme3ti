@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { shortDateAr } from '../../../lib/time-ago';
 import FpsEstimator from '../../../components/FpsEstimator';
 import { brandColor } from '../../../lib/brand';
 import { prisma } from '../../../lib/prisma';
@@ -182,7 +183,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
             </h1>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              تم الإنشاء في: <span dir="ltr">{new Date(build.createdAt).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn')}</span>
+              تم الإنشاء في: <span dir="ltr">{shortDateAr(build.createdAt)}</span>
             </p>
           </div>
           <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/10 px-4 py-2 rounded-xl border border-emerald-100 dark:border-emerald-800/30">

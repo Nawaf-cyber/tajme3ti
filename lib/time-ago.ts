@@ -73,3 +73,26 @@ export function exactAr(date?: Date | string | null): string | undefined {
  */
 export const isPriceStale = (date?: Date | string | null): boolean =>
   !date || Date.now() - new Date(date).getTime() > 24 * 3600_000;
+
+/* ============ تاريخٌ قصير بلا علامات اتجاه ============
+ *
+ * ⚠️ `toLocaleDateString('ar-SA-…')` يدسّ علامة U+200F (RLM) بين أجزاء
+ * التاريخ: «31<RLM>/7<RLM>/2026». وهي محرفٌ صفريّ العرض لا يُرى، لكنه
+ * يقلب ترتيب الأجزاء عند العرض داخل سياقٍ عربيّ — فظهر التاريخ
+ * «/312026/7» في صفحة التجميعة المشتركة.
+ *
+ * و`dir="ltr"` على العنصر لا يُصلحه: العلامة داخل النصّ نفسه، وخوارزمية
+ * الاتجاهين تحترمها قبل اتجاه الحاوية.
+ *
+ * فتُنزع العلامتان صراحةً. والتقويم والأرقام مثبّتان لأن `ar-SA` المجرّد
+ * يتركهما لتقدير المتصفّح — فقد يخرج هجرياً على جهازٍ آخر، ويتغيّر التاريخ
+ * المعروض نفسه لا شكلُه.
+ */
+export function shortDateAr(date?: Date | string | null): string {
+  if (!date) return '';
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  return d
+    .toLocaleDateString('ar-SA-u-ca-gregory-nu-latn')
+    .replace(/[\u200e\u200f]/g, '');
+}
