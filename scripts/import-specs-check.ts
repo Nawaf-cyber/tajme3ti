@@ -117,11 +117,33 @@ async function main() {
       if (v.gaps.length) gapped.push(`${c.name}: ${v.gaps.join('، ')}`);
     }
     check(`٠ مرفوضة من ${all.length}`, rejected.length === 0, rejected.slice(0, 5).join('\n      '));
-    /* ليست ٠: Crucial لا تنشر ارتفاع شرائحها، وتركُها فارغةً قرارٌ لا سهو.
-       فالشرط أن تبقى **هي وحدها** — ويسقط الفحص إن ظهرت فجوةٌ جديدة. */
-    const KNOWN_GAPS = ['Pro DDR5 32GB 5600MHz: heightMm'];
-    const unexpected = gapped.filter((g) => !KNOWN_GAPS.includes(g));
-    check(`لا فجوة غير معروفة (المعروفة: ${KNOWN_GAPS.length})`, unexpected.length === 0, unexpected.slice(0, 5).join('\n      '));
+    /* ============ الفجوات المعروفة ============
+     *
+     * ليست ٠، وكلُّ فجوةٍ هنا قرارٌ موثَّق لا سهو:
+     *
+     *   • Crucial لا تنشر ارتفاع شرائحها إطلاقاً — لا في صفحتها ولا في
+     *     نشرةٍ فنية. فتُركت فارغة وتظهر «غير معلن».
+     *
+     *   • `tdpRating` على المبرّدات: صفحات DeepCool وNZXT لا تذكر قدرة
+     *     تبديدٍ بالواط لأيٍّ من طرازاتها. ورقمٌ من مراجعةٍ أو تقدير
+     *     يُسجَّل يقيناً ثم يُقرأ كأنه مقيس.
+     *
+     * ⚠️ والثانية قاعدةٌ لا قائمةُ أسماء: كانت القائمة تحمل اسم القطعة
+     * الواحدة، فسقط الفحص لحظةَ أُضيف مبرّدٌ جديد — والفحص الذي يسقط على
+     * ما نعرفه يُعلَّم تجاهُلُه. فالاستثناء يوصف بشرطه: أي مبرّدٍ ينقصه
+     * `tdpRating` وحده. ويبقى الفحص حيّاً — نقصُ `sizeMm` أو `sockets`
+     * على مبرّد يُسقطه كما يجب.
+     */
+    const coolerNames = new Set(all.filter((c) => c.category.name === 'Cooler').map((c) => c.name));
+    const isKnownGap = (g: string) => {
+      if (g === 'Pro DDR5 32GB 5600MHz: heightMm') return true;
+      const [name, fields] = g.split(': ');
+      /* المفتاح الخام لا التسمية: `judgeSpecs` تُرجع `gaps` مفاتيحَ
+         (`tdpRating`) لا تسمياتٍ عربية — والمقارنة بالتسمية تُخطئ صامتة. */
+      return coolerNames.has(name) && fields === 'tdpRating';
+    };
+    const unexpected = gapped.filter((g) => !isKnownGap(g));
+    check('لا فجوة غير معروفة', unexpected.length === 0, unexpected.slice(0, 5).join('\n      '));
   }
 
   console.log(`\n${'═'.repeat(40)}`);

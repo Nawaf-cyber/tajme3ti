@@ -41,6 +41,9 @@ async function main() {
   });
   if (!cooler) { console.error('⛔ لا مبرّد في الكتالوج'); process.exit(1); }
 
+  /* يُقاس قبل أي كتابة كي يكون المرجعُ حالةَ ما قبل الاختبار */
+  const filledBefore = await prisma.savedBuild.count({ where: { coolerId: { not: null } } });
+
   const target = await prisma.savedBuild.findFirst({ where: { cpuId: { not: null } }, select: { id: true, name: true } });
   if (!target) { console.error('⛔ لا تجميعة بمعالج'); process.exit(1); }
 
@@ -105,8 +108,17 @@ async function main() {
   console.log('\n٣) بعد التراجع');
   const after = await prisma.savedBuild.findUnique({ where: { id: target.id } });
   check('التجميعة عادت كما كانت', after?.coolerId === null, String(after?.coolerId));
-  const filled = await prisma.savedBuild.count({ where: { coolerId: { not: null } } });
-  check('٠ تجميعة تحمل مبرّداً', filled === 0, String(filled));
+  /* ⚠️ كان الشرط «٠ تجميعة تحمل مبرّداً» — وهو صحيحٌ يوم كُتب وخاطئٌ بمجرّد
+     أن تنجح الميزة: أوّل مستخدمٍ يحفظ تجميعةً بمبرّد يُسقط الفحص. والفحص
+     الذي يسقط على النجاح يُعلَّم تجاهُلُه.
+     فالمقصود أصلاً: هل ترك اختباري أثراً؟ والجواب فرقُ العدد قبل وبعد،
+     لا العدد نفسه. */
+  const filledAfter = await prisma.savedBuild.count({ where: { coolerId: { not: null } } });
+  check(
+    `اختباري لم يُغيّر عدد التجميعات ذات المبرّد (${filledBefore})`,
+    filledAfter === filledBefore,
+    `قبل ${filledBefore} → بعد ${filledAfter}`,
+  );
 
   console.log(`\n${'═'.repeat(44)}`);
   console.log(fail === 0 ? `${G}نجحت (${pass})${X}` : `${R}فشل ${fail} من ${pass + fail}${X}`);
