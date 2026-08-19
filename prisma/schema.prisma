@@ -288,6 +288,10 @@ model SavedBuild {
   caseId        String?
   psuId         String?
   storageId     String?
+  /* المبرّد اختياريّ: تجميعةٌ بلا مبرّد صالحة (المعالج قد يأتي بواحد)،
+     ولذلك لم يدخل requiredCategories في الباني. والعمود nullable فالـ٨٩
+     تجميعةً القائمة تبقى كما هي. */
+  coolerId      String?
   
   createdAt     DateTime @default(now())
 }
