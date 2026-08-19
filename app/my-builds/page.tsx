@@ -396,23 +396,28 @@ export default function MyBuildsPage() {
                   <div className="p-5 flex-1">
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="font-bold text-lg text-slate-900 dark:text-white line-clamp-1">{build.name}</h3>
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-                        {new Date(build.createdAt).toLocaleDateString('ar-SA')}
+                      {/* ⚠️ كان `ar-SA` مجرّداً، وهو يترك التقويم ونظام الأرقام
+                          لتقدير المتصفّح: فيخرج التاريخ بأرقامٍ هندية (٢٠٢٦/٧/١٨)
+                          بينما السعر تحته بأرقامٍ لاتينية (9602.00) — نظامان في
+                          بطاقةٍ واحدة. وقد يخرج هجرياً على متصفّحٍ آخر فيتغيّر
+                          التاريخ نفسه. فالتقويم والأرقام يُثبتان صراحةً. */}
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded tabular-nums">
+                        {new Date(build.createdAt).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn')}
                       </span>
                     </div>
 
                     <div className="space-y-2 mb-4">
                       {cpu && (
                         <div className="text-xs bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg truncate">
-                          <span className="font-bold text-slate-400 mr-1">المعالج:</span>
-                          <span className={`${brandColor(cpu.brand, cpu.name, 'CPU')} font-bold mr-1`}>{cpu.brand}</span>
+                          <span className="font-bold text-slate-400 me-1">المعالج:</span>
+                          <span className={`${brandColor(cpu.brand, cpu.name, 'CPU')} font-bold me-1`}>{cpu.brand}</span>
                           <span className="text-slate-700 dark:text-slate-300 font-semibold">{cpu.name}</span>
                         </div>
                       )}
                       {gpu && (
                         <div className="text-xs bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg truncate">
-                          <span className="font-bold text-slate-400 mr-1">الكرت:</span>
-                          <span className={`${brandColor(gpu.brand, gpu.name, 'GPU')} font-bold mr-1`}>{gpu.brand}</span>
+                          <span className="font-bold text-slate-400 me-1">الكرت:</span>
+                          <span className={`${brandColor(gpu.brand, gpu.name, 'GPU')} font-bold me-1`}>{gpu.brand}</span>
                           <span className="text-slate-700 dark:text-slate-300 font-semibold">{gpu.name}</span>
                         </div>
                       )}
