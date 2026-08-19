@@ -1,5 +1,5 @@
 import { specLabel, sortedSpecs, specValueLines, isCompatKey, heroKeys } from '../lib/spec-labels';
-import { isFeatureKey, readFeatures, isNoteKey, readNotes } from '../lib/spec-schema';
+import { isFeatureKey, readFeatures, isNoteKey, readNotes, unannouncedKeys } from '../lib/spec-schema';
 import { StatStrip, type Stat } from './Panel';
 
 /**
@@ -25,6 +25,10 @@ import { StatStrip, type Stat } from './Panel';
  * مصدر واحد لصفحة القطعة ولنافذة المجمّع — لا نسختان تتباعدان.
  */
 
+/* رمزٌ فريد لا يمكن أن يكون قيمةً حقيقية — لو استُعمل نصٌّ عاديّ مثل
+   «غير معلن» لأمكن أن يأتي من البيانات نفسها فيُعامَل صفّاً حقيقياً. */
+const UNANNOUNCED = Symbol('unannounced');
+
 type Props = {
   categoryName?: string | null;
   specs: Record<string, unknown>;
@@ -41,7 +45,18 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
   /* الملاحظات تُستخرج مثل المزايا وتُستبعد من الجدول لنفس السبب — لكنها
      ليست مثلها في المعنى: تلك في صالح القطعة وهذه تحفّظٌ عليها. */
   const notes = readNotes(specs);
-  const all = sortedSpecs(categoryName, specs).filter(([k]) => !isFeatureKey(k) && !isNoteKey(k));
+
+  /* ============ «غير معلن» بدل الصمت ============
+     دالّة sortedSpecs تمرّ على ما **يوجد**، فالمفتاح الإلزاميّ الناقص لا
+     يُنتج صفّاً — ولا يستطيع الزائر التفريق بين «لا قيمة لها» و«لم
+     نُدرجها». والصمت يُقرأ طمأنينة.
+
+     ⚠️ والمفاتيح المشروطة لا تدخل هنا: فراغها **معنى** («لا شاشة في هذا
+     الكيس») لا نقص. ودالّة unannouncedKeys تقرأ طبقة compare وحدها —
+     ولولا ذلك لظهر على ٢٣ كيساً عاديّاً «غير معلن: شاشة». */
+  const missing = unannouncedKeys(categoryName || '', specs);
+  const withMissing = { ...specs, ...Object.fromEntries(missing.map((k) => [k, UNANNOUNCED])) };
+  const all = sortedSpecs(categoryName, withMissing).filter(([k]) => !isFeatureKey(k) && !isNoteKey(k));
 
   if (all.length === 0 && features.length === 0 && notes.length === 0) {
     return (
@@ -53,7 +68,9 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
 
   /* الشريط يحتاج قائمةً تحته ليكون طبقةً لا بديلاً. تحت خمس مواصفات
      يبتلع الشريطُ الجدولَ ويترك سطراً يتيماً، فتبقى القائمة وحدها. */
-  const hero = all.length >= 5 ? heroKeys(categoryName, all.map(([k]) => k)) : [];
+  /* المجهول لا يتصدّر: الشريط لأبرز ثلاث قيم، وقيمةٌ غير معلنة ليست قيمة */
+  const known = all.filter(([k]) => !missing.includes(k));
+  const hero = known.length >= 5 ? heroKeys(categoryName, known.map(([k]) => k)) : [];
   const heroRows = hero.map((k) => all.find(([key]) => key === k)!);
   const listRows = all.filter(([k]) => !hero.includes(k));
 
@@ -116,7 +133,8 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
 
       <dl className="divide-y divide-slate-200/80 dark:divide-slate-800">
         {listRows.map(([key, value]) => {
-          const { lines, unit } = specValueLines(key, value);
+          const unannounced = value === UNANNOUNCED;
+          const { lines, unit } = unannounced ? { lines: [], unit: undefined } : specValueLines(key, value);
           const compat = isCompatKey(categoryName, key);
           /* المنافذ قائمةٌ خُزّنت سطراً واحداً. عرضُها شارات يجعل كلَّ
              منفذ وحدةً تُعدّ بالنظر بدل نصٍّ يُقرأ بالفواصل. */
@@ -152,7 +170,13 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
                   dense ? 'text-[13px]' : 'text-[14.5px]'
                 }`}
               >
-                {asChips ? (
+                {unannounced ? (
+                  /* بخطٍّ عاديّ لا عريض وبلون باهت: القيمة الغائبة تُذكر
+                     ولا تُزاحم القيم الحقيقية في مسح العين للعمود. */
+                  <span className="block font-semibold text-slate-400 dark:text-slate-500" dir="rtl">
+                    غير معلن
+                  </span>
+                ) : asChips ? (
                   <span className="flex flex-wrap justify-start gap-1">
                     {lines.map((line, i) => (
                       <span
