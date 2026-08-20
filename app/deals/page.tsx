@@ -71,7 +71,11 @@ export default async function DealsPage() {
           <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
             تخفيضات <span className="text-rose-600 dark:text-rose-400">اليوم</span>
           </h1>
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 leading-relaxed max-w-2xl">
+          {/* ⚠️ قِيس التباين فلم يكن هو العلّة: 7.16:1 وهو فوق AA بمريح.
+              العلّة الحجم — ١٤ بكسل بوزن ٦٠٠ على العربية تُقرأ باجتهاد،
+              والحروف العربية تحتاج قياساً أكبر من اللاتينية لنفس الوضوح.
+              فرُفع إلى ١٦ بكسل، ودُرِّج اللون فوق ذلك. */}
+          <p className="text-[15px] md:text-base font-semibold text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
             القطع التي نزل سعرها عند أرخص متجرٍ متوفّر، مرتّبةً بأكبر انخفاض. النسبة محسوبة من
             السعر المشطوب في المتجر نفسه — ولا نُعلن خصماً على متجرٍ أغلى بينما نعرض سعر غيره.
           </p>
@@ -86,23 +90,32 @@ export default async function DealsPage() {
                   key={s.label}
                   className="bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm p-4 rounded-sm border-x border-b border-t-2 border-slate-200 border-t-rose-500/70 dark:border-slate-800/80 dark:border-t-rose-500/70 shadow-sm"
                 >
-                  <div className={`text-2xl font-black tabular-nums ${s.tone}`} dir="ltr">{s.value}</div>
-                  <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1">{s.label}</div>
+                  <div className={`text-2xl md:text-3xl font-black tabular-nums ${s.tone}`} dir="ltr">{s.value}</div>
+                  {/* ١١ بكسل كانت أصغر من أن تُقرأ بلمحة — والتسمية هي التي
+                      تُعطي الرقمَ معناه، فلا يجوز أن تكون أخفتَ منه بمرّتين. */}
+                  <div className="text-[13px] font-bold text-slate-600 dark:text-slate-300 mt-1.5 leading-snug">{s.label}</div>
                 </div>
               ))}
             </div>
 
             {/* أكبر انخفاض — سطرٌ واحد يستحقّ أن يُقرأ قبل النزول */}
             {top && (
-              <div className="mb-8 flex flex-wrap items-center gap-2 px-4 py-3 rounded-sm bg-rose-500/[0.07] border border-rose-500/30">
-                <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 shrink-0">
+              <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5 rounded-sm bg-rose-500/[0.07] border border-rose-500/30">
+                {/* التسمية شارةٌ مصمتة لا نصٌّ باهت: هي التي تقول لِمَ هذا
+                    السطر هنا، وكانت ١١ بكسل بلون الخلفية نفسها تقريباً.
+                    ⚠️ و`rose-500` لا يكفي: أبيضُ عليه يعطي 3.75:1 وهو دون AA،
+                    والاستثناء للخطّ الكبير يبدأ من ١٨.٦٦ بكسل لا من ١٢ مهما
+                    ثقُل الوزن. و`rose-600` يعطي 4.53 — قِيسا كلاهما. */}
+                <span className="shrink-0 text-[12px] font-black text-white bg-rose-600 px-2.5 py-1 rounded-sm">
                   الأكبر اليوم
                 </span>
-                <span className="text-[13px] font-black text-slate-900 dark:text-white truncate">
+                <span className="text-[15px] font-black text-slate-900 dark:text-white truncate">
                   {top.c.brand} {top.c.name}
                 </span>
-                <span className="font-mono text-[12px] font-bold text-slate-500 dark:text-slate-400 tabular-nums" dir="ltr">
-                  {fmt(top.d.listPrice ?? 0)} ← {fmt(top.c.price)} ﷼
+                <span className="font-mono text-[14px] font-black text-slate-700 dark:text-slate-200 tabular-nums" dir="ltr">
+                  <span className="line-through opacity-60">{fmt(top.d.listPrice ?? 0)}</span>
+                  {' ← '}
+                  <span className="text-rose-600 dark:text-rose-400">{fmt(top.c.price)} ﷼</span>
                 </span>
               </div>
             )}
