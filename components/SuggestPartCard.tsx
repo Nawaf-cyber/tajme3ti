@@ -54,6 +54,24 @@ export default function SuggestPartCard({
         setDone({ tracked: !!data.tracked, already: !!data.alreadyRequested });
         setName('');
         setCategoryId('');
+
+        /* ============ إشعار الزائر غير المسجّل ============
+         *
+         * ⚠️ الترتيب هو الرسالة: صوتُ الزائر يُكتب `PartVote.userId = null`
+         * لحظةَ إرساله، ولا يُربط بحسابٍ لاحقاً أبداً — وقائمةُ «تجميعاتي»
+         * تقرأ `where: { userId }` وحدها. فمن يُرسل ثم يسجّل لا يجد طلبه —
+         * والتسجيل **قبل** الاقتراح هو ما يُتيح المتابعة.
+         *
+         * ولذلك يُقال صراحةً «سجّل ثم اقترح» لا «سجّل لتتابع»: الثانية
+         * تُفهَم كأن التسجيل الآن يلحق بهذا الطلب، وهو ما لا يحدث.
+         *
+         * والاقتراح يُقبل من الزائر على كل حال — التسجيل مكافأة لا بوّابة. */
+        if (!data.tracked) {
+          toast(
+            'وصلنا اقتراحك ✅ — ولو سجّلت دخولك ثم اقترحت، تتابع حالة طلبك ونردّ عليك إن احتجنا تفصيلاً.',
+            { icon: '💡', duration: 7000 },
+          );
+        }
       } else if (res.status === 401) {
         toast.error(data.message || 'سجّل دخولك أولاً.');
       } else {
@@ -97,12 +115,15 @@ export default function SuggestPartCard({
               >
                 اقترح قطعة أخرى
               </button>
+              {/* ⚠️ كان نصُّه «تابعه بحسابك» — ويَعِد بما لا يقع: هذا الطلب
+                  سُجّل بلا حساب ولا يُربط لاحقاً، فمن ينقر ثم يسجّل لا يجده.
+                  فصار يَعِد بما يقع فعلاً: المتابعة تبدأ من الاقتراح القادم. */}
               {!done.tracked && (
                 <a
                   href="/login"
                   className="px-4 py-2 rounded-sm text-[12px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95"
                 >
-                  تابعه بحسابك
+                  سجّل لتتابع اقتراحاتك القادمة
                 </a>
               )}
               {done.tracked && (
@@ -179,7 +200,7 @@ export default function SuggestPartCard({
             {/* دعوة لا شرط: التسجيل مكافأة (متابعة + محادثة)، لا بوّابة */}
             {status !== 'authenticated' && (
               <p className="mt-2.5 text-[11px] font-bold text-slate-400 dark:text-slate-500">
-                💡 <a href="/login" className="text-cyan-600 dark:text-cyan-400 underline hover:opacity-80">سجّل دخولك</a> لتتابع حالة اقتراحك ونردّ عليك إن احتجنا تفصيلاً.
+                💡 <a href="/login" className="text-cyan-600 dark:text-cyan-400 underline hover:opacity-80">سجّل دخولك</a> <b>قبل</b> الإرسال لتتابع حالة اقتراحك ونردّ عليك إن احتجنا تفصيلاً.
               </p>
             )}
           </>
