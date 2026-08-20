@@ -28,10 +28,20 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?:
 // دالة تلوين أسماء الماركات
 /* لون العلامة صار من lib/brand — كانت أربع نسخ بأربع لوحات */
 
-/* `startOnDeals` تُشغَّل من صفحة /deals: الواجهة نفسها بفلترٍ مفعّل مسبقاً.
-   بُنيت الصفحة بإعادة الاستخدام لا بالنسخ — نسخةٌ ثانية من بطاقة القطعة
-   تعني عيباً يُصلَح في واحدة ويعيش في الأخرى. */
-export default function ComponentsClient({ components, categories, startOnDeals = false }: { components: any[], categories: any[], startOnDeals?: boolean }) {
+/* ============ الوضع المقفول على التخفيضات ============
+ *
+ * `dealsLocked` تُشغَّل من `/deals`. وأوّل صياغةٍ لها كانت مجرّد «ابدأ
+ * والفلتر مضغوط» — فكانت الصفحة نسخةً بصريّةً من «تصفّح القطع»: نفس
+ * الشريط، ونفس الترتيب الافتراضي، وزرُّ الفلتر قابلٌ للإلغاء فتعود
+ * الصفحتان متطابقتين حرفياً.
+ *
+ * فصار القفل قفلاً: الفلتر لا يُلغى ولا يُعرض زرُّه (لا معنى لزرٍّ لا
+ * يُطفأ)، والترتيب الافتراضي «الأكثر انخفاضاً» لا «الأحدث» — وهو السؤال
+ * الذي يأتي به من يقصد صفحة تخفيضات.
+ *
+ * والبطاقة تبقى واحدة: نسخةٌ ثانية منها تعني عيباً يُصلَح هنا ويعيش هناك.
+ */
+export default function ComponentsClient({ components, categories, dealsLocked = false }: { components: any[], categories: any[], dealsLocked?: boolean }) {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('all');
 
@@ -53,8 +63,10 @@ export default function ComponentsClient({ components, categories, startOnDeals 
   }, [components]);
 
   const [maxPrice, setMaxPrice] = useState(priceCeiling);
-  const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc'>('newest');
-  const [onlyDeals, setOnlyDeals] = useState(startOnDeals);
+  const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc' | 'discount'>(
+    dealsLocked ? 'discount' : 'newest',
+  );
+  const [onlyDeals, setOnlyDeals] = useState(dealsLocked);
 
   /* نحسب الخصم مرّة واحدة لكل قطعة — الدالة مشتركة مع صفحة المنتج */
   const withDeals = useMemo(
@@ -62,14 +74,16 @@ export default function ComponentsClient({ components, categories, startOnDeals 
     [components]
   );
 
-  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== priceCeiling || sortBy !== 'newest' || onlyDeals;
+  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== priceCeiling || sortBy !== (dealsLocked ? 'discount' : 'newest') || (onlyDeals && !dealsLocked);
 
+  /* «مسح الفلاتر» يعود بالصفحة إلى حالتها الابتدائية — وهي في الوضع
+     المقفول ليست «كل القطع» بل «كل التخفيضات مرتّبةً بالانخفاض». */
   const handleClearFilters = () => {
     setSearch('');
     setSelectedCat('all');
     setMaxPrice(priceCeiling);
-    setSortBy('newest');
-    setOnlyDeals(false);
+    setSortBy(dealsLocked ? 'discount' : 'newest');
+    setOnlyDeals(dealsLocked);
   };
 
   // الفلاتر الأساسية (بلا فلتر التخفيضات) — نحتاجها لحساب عدّاد الصفقات
@@ -86,11 +100,18 @@ export default function ComponentsClient({ components, categories, startOnDeals 
   const dealsCount = useMemo(() => baseFiltered.filter(c => c._deal.pct > 0).length, [baseFiltered]);
 
   const filtered = useMemo(() => {
-    const list = onlyDeals ? baseFiltered.filter(c => c._deal.pct > 0) : [...baseFiltered];
+    const list = (onlyDeals || dealsLocked) ? baseFiltered.filter(c => c._deal.pct > 0) : [...baseFiltered];
     if (sortBy === 'price-asc') list.sort((a, b) => a.price - b.price);
     else if (sortBy === 'price-desc') list.sort((a, b) => b.price - a.price);
+    /* الأكثر انخفاضاً أولاً، وعند تساوي النسبة فالأكبر توفيراً بالريال */
+    else if (sortBy === 'discount') {
+      list.sort((a, b) =>
+        (b._deal.pct - a._deal.pct) ||
+        ((b._deal.listPrice ?? b.price) - b.price) - ((a._deal.listPrice ?? a.price) - a.price),
+      );
+    }
     return list;
-  }, [baseFiltered, onlyDeals, sortBy]);
+  }, [baseFiltered, onlyDeals, sortBy, dealsLocked]);
 
   /* ============ عرض تدريجي ============
      كانت الصفحة ترسم كل القطع دفعةً واحدة: مئات البطاقات ومئات طلبات
@@ -218,7 +239,9 @@ export default function ComponentsClient({ components, categories, startOnDeals 
         {/* ===== شريط الأدوات: الفرز + الصفقات + العدد ===== */}
         <div className="relative mb-6 flex flex-wrap items-center gap-3 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm p-3 rounded-sm border-t-2 border-t-cyan-500/70 border-x border-b border-slate-200 dark:border-slate-800/80 shadow-sm">
 
-          {/* زر الصفقات — يظهر معطّلاً إن لم توجد تخفيضات، لا يُخفى */}
+          {/* زر الصفقات — يظهر معطّلاً إن لم توجد تخفيضات، لا يُخفى.
+              ويُخفى وحده في `/deals`: زرٌّ لا يُطفأ ليس زرّاً. */}
+          {!dealsLocked && (
           <button
             onClick={() => dealsCount > 0 && setOnlyDeals(!onlyDeals)}
             disabled={dealsCount === 0}
@@ -245,13 +268,19 @@ export default function ComponentsClient({ components, categories, startOnDeals 
               {dealsCount}
             </span>
           </button>
+          )}
 
-          <div className="w-px h-8 bg-slate-200 dark:bg-slate-700/60"></div>
+          {!dealsLocked && <div className="w-px h-8 bg-slate-200 dark:bg-slate-700/60"></div>}
 
           {/* الفرز */}
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-bold text-slate-400 dark:text-slate-500 ml-1">الترتيب</span>
             {([
+              /* «الأكثر انخفاضاً» يُعرض حين يكون له معنى: في `/deals`
+                 دائماً، وفي «تصفّح القطع» حين يُفعَّل فلتر التخفيضات. */
+              ...(dealsLocked || onlyDeals
+                ? [{ key: 'discount', label: 'الأكثر انخفاضاً', icon: 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6' }] as const
+                : []),
               { key: 'newest', label: 'الأحدث', icon: null },
               { key: 'price-asc', label: 'الأرخص', icon: 'M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12' },
               { key: 'price-desc', label: 'الأغلى', icon: 'M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4' },
