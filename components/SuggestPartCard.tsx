@@ -25,6 +25,20 @@ export default function SuggestPartCard({
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<null | { tracked: boolean; already: boolean }>(null);
 
+  /* ============ خطوة التأكيد للزائر ============
+   *
+   * ⚠️ الترتيب هو الرسالة: صوتُ الزائر يُكتب `PartVote.userId = null` لحظةَ
+   * إرساله، ولا يُربط بحسابٍ لاحقاً أبداً — وقائمةُ «تجميعاتي» تقرأ
+   * `where: { userId }` وحدها. فمن يُرسل ثم يسجّل لا يجد طلبه، والتسجيل
+   * **قبل** الاقتراح هو ما يُتيح المتابعة.
+   *
+   * ولذلك يُسأل قبل الإرسال لا بعده: بعد الإرسال يكون الأوان قد فات —
+   * الصوت كُتب بلا حساب، وأي دعوةٍ للتسجيل حينها تَعِد بما لا يقع.
+   *
+   * و«لا» تُرسل ولا تُلغي: الاقتراح يُقبل من الزائر على كل حال، والتسجيل
+   * مكافأةٌ لا بوّابة. */
+  const [asking, setAsking] = useState(false);
+
   useEffect(() => {
     fetch('/api/categories')
       .then((r) => r.json())
@@ -32,16 +46,26 @@ export default function SuggestPartCard({
       .catch(() => {});
   }, []);
 
-  const submit = async () => {
-    const trimmed = name.trim();
+  /* الضغط على «إرسال»: يتحقّق من المدخلات، ثم يسأل الزائر قبل أن يرسل.
+     التحقّق أوّلاً كي لا يُسأل عن اقتراحٍ ناقصٍ لن يُرسل أصلاً. */
+  const submit = () => {
     if (!categoryId) {
       toast.error('اختر نوع القطعة أولاً.');
       return;
     }
-    if (trimmed.length < 2) {
+    if (name.trim().length < 2) {
       toast.error('اكتب اسم القطعة أولاً.');
       return;
     }
+    if (status !== 'authenticated') {
+      setAsking(true);
+      return;
+    }
+    send();
+  };
+
+  const send = async () => {
+    const trimmed = name.trim();
     setSending(true);
     try {
       const res = await fetch('/api/part-requests', {
@@ -54,24 +78,7 @@ export default function SuggestPartCard({
         setDone({ tracked: !!data.tracked, already: !!data.alreadyRequested });
         setName('');
         setCategoryId('');
-
-        /* ============ إشعار الزائر غير المسجّل ============
-         *
-         * ⚠️ الترتيب هو الرسالة: صوتُ الزائر يُكتب `PartVote.userId = null`
-         * لحظةَ إرساله، ولا يُربط بحسابٍ لاحقاً أبداً — وقائمةُ «تجميعاتي»
-         * تقرأ `where: { userId }` وحدها. فمن يُرسل ثم يسجّل لا يجد طلبه —
-         * والتسجيل **قبل** الاقتراح هو ما يُتيح المتابعة.
-         *
-         * ولذلك يُقال صراحةً «سجّل ثم اقترح» لا «سجّل لتتابع»: الثانية
-         * تُفهَم كأن التسجيل الآن يلحق بهذا الطلب، وهو ما لا يحدث.
-         *
-         * والاقتراح يُقبل من الزائر على كل حال — التسجيل مكافأة لا بوّابة. */
-        if (!data.tracked) {
-          toast(
-            'وصلنا اقتراحك ✅ — ولو سجّلت دخولك ثم اقترحت، تتابع حالة طلبك ونردّ عليك إن احتجنا تفصيلاً.',
-            { icon: '💡', duration: 7000 },
-          );
-        }
+        setAsking(false);
       } else if (res.status === 401) {
         toast.error(data.message || 'سجّل دخولك أولاً.');
       } else {
@@ -115,17 +122,10 @@ export default function SuggestPartCard({
               >
                 اقترح قطعة أخرى
               </button>
-              {/* ⚠️ كان نصُّه «تابعه بحسابك» — ويَعِد بما لا يقع: هذا الطلب
-                  سُجّل بلا حساب ولا يُربط لاحقاً، فمن ينقر ثم يسجّل لا يجده.
-                  فصار يَعِد بما يقع فعلاً: المتابعة تبدأ من الاقتراح القادم. */}
-              {!done.tracked && (
-                <a
-                  href="/login"
-                  className="px-4 py-2 rounded-sm text-[12px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95"
-                >
-                  سجّل لتتابع اقتراحاتك القادمة
-                </a>
-              )}
+              {/* ⚠️ كان هنا زرُّ «تابعه بحسابك» — ويَعِد بما لا يقع: الطلب سُجّل
+                  بلا حساب ولا يُربط لاحقاً. وقد صار السؤالُ يسبق الإرسال، فمن
+                  وصل إلى هنا قد اختار «لا» قبل قليل — وتكرارُ الدعوة عليه بعد
+                  اختياره إلحاحٌ لا إفادة. فالردّ هنا شكرٌ خالص. */}
               {done.tracked && (
                 <a
                   href="/my-builds#part-requests"
@@ -135,6 +135,69 @@ export default function SuggestPartCard({
                 </a>
               )}
             </div>
+          </div>
+        ) : asking ? (
+          /* ===== سؤال الزائر — مربّعٌ داخل البطاقة ===== */
+          <div className="animate-fade-up">
+            <div className="rounded-sm border border-cyan-500/30 bg-cyan-50/60 dark:bg-cyan-950/20 overflow-hidden">
+              <div className="flex items-center gap-2.5 px-4 py-3 border-b border-cyan-500/20 bg-white/60 dark:bg-[#0B1120]/50">
+                <span className="w-1.5 h-4 bg-cyan-500 rounded-full shrink-0"></span>
+                <h4 className="text-[13px] font-black text-slate-900 dark:text-white">
+                  تبي تتابع طلبك؟
+                </h4>
+              </div>
+
+              <div className="px-4 py-3.5">
+                {/* ما سيُرسَل، معروضاً كي لا يُؤكَّد على المجهول */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 shrink-0">
+                    اقتراحك
+                  </span>
+                  <span
+                    dir="ltr"
+                    className="min-w-0 truncate px-2 py-1 rounded-sm bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-700/60 text-[12px] font-bold text-slate-800 dark:text-slate-200"
+                  >
+                    {name.trim()}
+                  </span>
+                </div>
+
+                <p className="text-[12px] font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
+                  إذا سجّلت دخولك <b className="text-slate-900 dark:text-white">ثم</b> اقترحت، تتابع
+                  حالة طلبك ونردّ عليك إن احتجنا تفصيلاً. والتسجيل بعد الإرسال لا يربط هذا الطلب
+                  بحسابك.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                  <a
+                    href="/login"
+                    className="flex-1 text-center px-4 py-2.5 rounded-sm text-[12px] font-black bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90 transition-all active:scale-95 shadow-sm shadow-cyan-500/20"
+                  >
+                    نعم، سجّل دخولي
+                  </a>
+                  <button
+                    onClick={send}
+                    disabled={sending}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-sm text-[12px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-60"
+                  >
+                    {sending && (
+                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
+                    لا، أرسله بدون حساب
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* مخرجٌ للتعديل: الاسم معروضٌ أعلاه، فمن يرى فيه غلطةً يحتاج رجوعاً
+                لا إرسالاً — و«اقترح قطعة أخرى» تأتي بعد الإرسال لا قبله. */}
+            <button
+              onClick={() => setAsking(false)}
+              className="mt-2.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+            >
+              ← رجوع للتعديل
+            </button>
           </div>
         ) : (
           /* ===== نموذج الإرسال ===== */
