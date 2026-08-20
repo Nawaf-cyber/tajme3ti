@@ -14,6 +14,7 @@ import SuggestPartCard from '../../components/SuggestPartCard';
 import { productImage } from '../../lib/image';
 import { specLabelLoose } from '../../lib/spec-labels';
 import { isFeatureKey } from '../../lib/spec-schema';
+import { capacityGb } from '../../lib/capacity';
 
 type Comp = any;
 
@@ -118,13 +119,13 @@ const parseNum = (v: any): number | null => {
     return m ? parseFloat(m[1]) * factor : null;
   };
 
-  // السعة → جيجابايت
-  const tb = unit(/([\d.]+)\s*TB/i, 1024);
-  if (tb != null) return tb;
-  const gb = unit(/([\d.]+)\s*GB/i, 1);
-  if (gb != null) return gb;
-  const mb = unit(/([\d.]+)\s*MB(?!\/)/i, 1 / 1024);   // «MB/s» سرعةٌ لا سعة
-  if (mb != null) return mb;
+  /* السعة → جيجابايت. المنطق في `lib/capacity.ts` وحده: كانت هنا نسخةٌ
+     ثالثة، وثلاثُ نسخٍ تعني ثلاثةَ أماكن يجب أن تُصلَح معاً — وقد سقطت
+     رابعةٌ منها فعلاً في `analyzeBuild` فقرأت «8TB» ثمانيةً. */
+  if (/\d\s*(TB|GB|MB)(?!\/)/i.test(s)) {
+    const gb = capacityGb(s);
+    if (gb > 0) return gb;
+  }
 
   // التردد → ميجاهرتز
   const ghz = unit(/([\d.]+)\s*GHz/i, 1000);

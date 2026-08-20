@@ -4,6 +4,7 @@ import CountdownTimer from './CountdownTimer';
 import { isAvailable } from '../lib/stores';
 import { OFFER_INCLUDE } from '../lib/stores-server';
 import { boardFitsCase, psuFitsCase } from '../lib/fit';
+import { capacityGb } from '../lib/capacity';
 
 /* ⚠️ كان هنا `export const revalidate = 86400` — وهو **بلا أثر**: Next يقرأ
    إعدادات المقطع من page/layout/route فقط، ويتجاهلها في ملفات المكوّنات
@@ -53,25 +54,12 @@ export default async function AutoBuildsSection() {
     return arr[hashStr(todaySeed + ':' + key) % arr.length];
   };
 
-  /* ============ قراءة السعة بشكل صحيح ============
-     parseFloat("2x16GB") كان يعطي 2 — خطأ صامت.
-     هنا نفهم الصيغ: "32GB" · "64GB (2x32GB)" · "2x16GB" · "1TB" · "500GB" */
+  /* السعة تُقرأ من `lib/capacity.ts` — كانت هنا نسخةٌ ثانية تعد في
+     تعليقها بأن «2x16GB» تساوي ٣٢ ثم تُعطي ١٦، لأن مطابقة «GB» تسبق
+     مطابقة الضرب. نسختان تعني عيباً يُصلَح في واحدة ويعيش في الأخرى. */
   const capacityToGB = (raw: any): number | null => {
-    if (!raw) return null;
-    const s = String(raw).toUpperCase();
-
-    const tb = s.match(/(\d+(?:\.\d+)?)\s*TB/);
-    if (tb) return parseFloat(tb[1]) * 1024;
-
-    // الرقم الصريح بالجيجا أولاً: "64GB (2x32GB)" ⟵ 64
-    const direct = s.match(/(\d+(?:\.\d+)?)\s*GB/);
-    if (direct) return parseFloat(direct[1]);
-
-    // صيغة الضرب فقط: "2x16GB" ⟵ 32
-    const mult = s.match(/(\d+)\s*X\s*(\d+)/);
-    if (mult) return parseInt(mult[1], 10) * parseInt(mult[2], 10);
-
-    return null;
+    const gb = capacityGb(raw);
+    return gb > 0 ? gb : null;
   };
 
   // مستويات الأداء (performanceTier من 1 إلى 5) المسموح بها لكل فئة.

@@ -9,6 +9,8 @@
  * السؤال الحقيقي: "أي جهاز أشتري؟" — وهو ما يهمّ المشتري فعلاً.
  */
 
+import { capacityGb } from './capacity';
+
 /* المبرّد أُضيف بعد إطلاق فئته: بدونه تُقارَن تجميعتان فيسقط الفرق بينهما
    حين يكون المبرّد هو ما يفرّق — ويسقط سعره من المجموع أيضاً. */
 export const BUILD_PART_ORDER = [
@@ -99,11 +101,11 @@ export function analyzeBuild(b: BuildLike): BuildAnalysis {
 
   const ram = get('RAM');
   const ramSp = parseSpecs(ram?.specs);
-  const ramGb = specNum(ramSp.capacity ?? ramSp.Capacity);
+  const ramGb = capacityGb(ramSp.capacity ?? ramSp.Capacity);
 
   const st = get('Storage');
   const stSp = parseSpecs(st?.specs);
-  const storageGb = specNum(stSp.capacity ?? stSp.Capacity);
+  const storageGb = capacityGb(stSp.capacity ?? stSp.Capacity);
 
   return {
     totalPrice: Math.round((b.totalPrice ?? totalPrice) * 100) / 100,

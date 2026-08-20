@@ -14,6 +14,7 @@ import {
   analyzeBuild, buildVerdicts, buildWarnings,
   BUILD_PART_ORDER, type BuildLike, type BuildPartKey,
 } from '../../../lib/build-compare';
+import { formatCapacity } from '../../../lib/capacity';
 import { SERIES_COLORS } from '../ComparePriceHistory';
 
 const MAX = 3;
@@ -293,9 +294,13 @@ export default function CompareBuildsClient() {
                       })()}
 
                       {/* الرام والتخزين */}
+                      {/* ⚠️ الوحدة تُشتقّ من القيمة لا تُلصق بها: كان السطر
+                          يكتب `{value}GB` فيظهر قرص ٢ تيرابايت «2GB».
+                          والقيمة نفسها صارت بالجيجابايت دائماً، فالمقارنة
+                          تصير بين رقمين من جنسٍ واحد. */}
                       {([
-                        { label: 'الذاكرة', get: (a: any) => a.ramGb, unit: 'GB' },
-                        { label: 'التخزين', get: (a: any) => a.storageGb, unit: 'GB' },
+                        { label: 'الذاكرة', get: (a: any) => a.ramGb },
+                        { label: 'التخزين', get: (a: any) => a.storageGb },
                       ]).map((row, ri) => {
                         const vals = analyses.map((a) => (row.get(a) > 0 ? row.get(a) : null));
                         const bi = bestIdx(vals, 'higher');
@@ -304,7 +309,7 @@ export default function CompareBuildsClient() {
                             <th scope="row" className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm">{row.label}</th>
                             {analyses.map((a, i) => (
                               <td key={i} className="py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 font-mono font-black text-sm text-slate-900 dark:text-white" dir="ltr">
-                                {row.get(a) > 0 ? <>{row.get(a)}{row.unit}{i === bi && <span className="text-amber-400 text-xs mr-1">★</span>}</> : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                                {row.get(a) > 0 ? <>{formatCapacity(row.get(a))}{i === bi && <span className="text-amber-400 text-xs mr-1">★</span>}</> : <span className="text-slate-300 dark:text-slate-700">—</span>}
                               </td>
                             ))}
                           </tr>

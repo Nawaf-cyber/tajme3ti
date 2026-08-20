@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { prisma } from '../../lib/prisma';
 import CountdownTimer from '../../components/CountdownTimer';
+import { capacityGb } from '../../lib/capacity';
 
 export const revalidate = 86400;
 
@@ -81,8 +82,10 @@ export default async function AutoBuildsPage() {
     let storage = storages.find(st => {
       const specs = parseSpecs(st.specs);
       const isGen4 = String(specs.type || '').toLowerCase().includes('gen4');
-      const capStr = String(specs.capacity || '').toUpperCase();
-      const isLarge = capStr.includes('2TB') || capStr.includes('4TB');
+      /* ⚠️ كان `includes('2TB') || includes('4TB')` — فقرص ٨ تيرابايت
+         ليس «كبيراً»، وقائمةُ أسماءٍ كهذه تسقط مع كل سعةٍ تُضاف.
+         القاعدة بالقياس لا بالاسم: ٢ تيرابايت فأكثر. */
+      const isLarge = capacityGb(specs.capacity) >= 2048;
       if (tier === 'economy') return !isGen4 && !isLarge;
       if (tier === 'mid') return isGen4 && !isLarge;
       if (tier === 'high') return isGen4 && isLarge;
