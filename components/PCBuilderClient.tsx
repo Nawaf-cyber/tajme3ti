@@ -1330,6 +1330,26 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       let gSrc = [...(adequate.length ? adequate : gPool)].sort((a, b) => a.price - b.price);
       const notWeaker = gSrc.filter(c => gStrength(c) >= lastGpuStrength);
       if (notWeaker.length) gSrc = notWeaker;
+      /* ============ Arc والشوتر التنافسي ============
+       *
+       * كروت Intel Arc أرخص ما في المستويات الدنيا، والاختيار هناك أرخصُ
+       * كافٍ — فكانت تتصدّر توصياتنا لكل استخدام. وهي في الشوتر التنافسي
+       * تحديداً أضعفُ من سعرها: أداؤها في محرّكات DX9/DX11 القديمة التي
+       * تبني عليها ألعاب الإسبورت يعتمد على طبقة ترجمة، والفريمات الدنيا
+       * فيها غير مستقرّة — وهو بالضبط ما يشتريه لاعب الشوتر.
+       *
+       * ⚠️ وموضعُها قبل سقف السعر لا بعده: السقف نسبةٌ من **أرخص كافٍ**،
+       * فلو صُفّيت بعده لكان المرجعُ كرتَ Arc نفسه ولم يبقَ في المدى غيرُه.
+       * (قِيس: مستوى ٢ بقي على Arc A750E حين كانت القاعدة بعد السقف.)
+       *
+       * وتُؤخَّر ولا تُحذف: إن لم يبقَ غيرها في المستوى تُختار، وإن اختار
+       * المستخدم Intel صراحةً فاختيارُه أولى من تقديرنا.
+       */
+      if (intent.use === 'competitive-shooter' && intent.gpuBrand !== 'Intel') {
+        const nonArc = gSrc.filter(c => !/^intel$/i.test(String(c.brand || '')));
+        if (nonArc.length) gSrc = nonArc;
+      }
+
       const capMult = L.key === 'value' ? 1.0 : L.key === 'balanced' ? 1.45 : 2.0;
       const inBudget = gSrc.filter(c => c.price <= gSrc[0].price * capMult);
       const gList = inBudget.length ? inBudget : gSrc;

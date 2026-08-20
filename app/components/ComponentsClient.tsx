@@ -28,7 +28,10 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?:
 // دالة تلوين أسماء الماركات
 /* لون العلامة صار من lib/brand — كانت أربع نسخ بأربع لوحات */
 
-export default function ComponentsClient({ components, categories }: { components: any[], categories: any[] }) {
+/* `startOnDeals` تُشغَّل من صفحة /deals: الواجهة نفسها بفلترٍ مفعّل مسبقاً.
+   بُنيت الصفحة بإعادة الاستخدام لا بالنسخ — نسخةٌ ثانية من بطاقة القطعة
+   تعني عيباً يُصلَح في واحدة ويعيش في الأخرى. */
+export default function ComponentsClient({ components, categories, startOnDeals = false }: { components: any[], categories: any[], startOnDeals?: boolean }) {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('all');
 
@@ -51,7 +54,7 @@ export default function ComponentsClient({ components, categories }: { component
 
   const [maxPrice, setMaxPrice] = useState(priceCeiling);
   const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc'>('newest');
-  const [onlyDeals, setOnlyDeals] = useState(false);
+  const [onlyDeals, setOnlyDeals] = useState(startOnDeals);
 
   /* نحسب الخصم مرّة واحدة لكل قطعة — الدالة مشتركة مع صفحة المنتج */
   const withDeals = useMemo(
@@ -375,10 +378,18 @@ export default function ComponentsClient({ components, categories }: { component
                             </span>
                           )}
                         </>
-                      ) : (
+                      ) : comp.price > 0 ? (
                         <span className="font-black text-xl text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                           {formatPrice(comp.price)} <RiyalIcon size="h-5 w-5" colorClass="bg-amber-600 dark:bg-amber-400" />
                           <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 mr-1">(غير متوفر حالياً)</span>
+                        </span>
+                      ) : (
+                        /* ⚠️ سعرُ صفرٍ ليس سعراً. كان يُعرض «0 ﷼» حرفياً — وهو
+                           رقمٌ يقرأه المشتري ثمناً. القطعة تصل هذه الحال حين
+                           يُحذف عرضٌ كان يشير إلى منتجٍ آخر، فيبقى السعر بلا
+                           مصدر: فيُقال إنه غير معروف بدل أن يُختلق. */
+                        <span className="font-black text-sm text-slate-400 dark:text-slate-500">
+                          غير متوفر — لا سعر مسجّل
                         </span>
                       )}
                     </div>

@@ -9,14 +9,15 @@ const BASE_URL = 'https://www.tajme3ti.com';
    ⚠️ لا نضع new Date() هنا: خريطة تقول "تغيّر كل شيء" في كل طلب تفقد
    مصداقيتها عند جوجل فيتجاهل الإشارة. نضع تاريخاً حقيقياً ونحدّثه يدوياً
    عند أي تغيير جوهري. آخر تحديث: إعادة بناء العناوين وروابط canonical
-   لكل الصفحات (2026-08-04). */
-const STATIC_LAST_MODIFIED = new Date('2026-08-04');
+   لكل الصفحات (2026-08-04)، ثم إضافة صفحة /deals (2026-08-20). */
+const STATIC_LAST_MODIFIED = new Date('2026-08-20');
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // الصفحات الثابتة الرئيسية
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${BASE_URL}/`,           lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'daily',   priority: 1.0 },
     { url: `${BASE_URL}/components`, lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'daily',   priority: 0.9 },
+    { url: `${BASE_URL}/deals`,      lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'daily',   priority: 0.8 },
     { url: `${BASE_URL}/builder`,    lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'weekly',  priority: 0.9 },
     { url: `${BASE_URL}/prebuilds`,  lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${BASE_URL}/news`,       lastModified: STATIC_LAST_MODIFIED, changeFrequency: 'daily',   priority: 0.7 },
