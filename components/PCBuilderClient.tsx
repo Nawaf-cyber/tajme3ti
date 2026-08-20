@@ -25,6 +25,7 @@ import SpecSheet from './SpecSheet';
 import {
   boardFitsCase, fitReason, psuFitsCase, psuFitReason,
   coolerFitsCase, coolerFitReason, coolerFitsCpu, coolerCpuReason,
+  socketMatch, ramTypeMatch,
 } from '../lib/fit';
 
 type Component = {
@@ -1547,28 +1548,18 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     const caseSpecs = parseSpecs(pcCase!.specs);
     const psuSpecs = parseSpecs(psu!.specs);
 
-    // فحص المقبس — نفرّق بين "متعارض" و"بيانات ناقصة".
-    // القاعدة: عند الجهل نحذّر، لا نؤكّد التوافق. تأكيد التوافق زوراً يهدم ثقة المنصة.
-    const cpuSocket = cpuSpecs?.socket ? String(cpuSpecs.socket).trim() : '';
-    const moboSocket = moboSpecs?.socket ? String(moboSpecs.socket).trim() : '';
-    if (!cpuSocket || !moboSocket) {
-      setResult({ status: 'error', message: `تعذّر التأكّد من توافق المقبس: بيانات المقبس ناقصة على ${!cpuSocket ? 'المعالج' : 'اللوحة الأم'}. لا نستطيع تأكيد التوافق — تحقّق يدوياً قبل الشراء.`, totalTdp, totalPrice });
-      return;
-    }
-    if (cpuSocket !== moboSocket) {
-      setResult({ status: 'error', message: `عدم توافق: المعالج بمقبس ${cpuSocket} واللوحة الأم بمقبس ${moboSocket}.`, totalTdp, totalPrice });
+    /* المقبس ونوع الذاكرة — الحكم من `lib/fit.ts` وحده.
+       كانت القاعدة مكتوبةً هنا وفي BuildTuner بصيغتين متباعدتين، فوُحّدت:
+       التعارض يُعلَن، والنقص يُحذَّر منه ولا يُؤكَّد التوافق عنده. */
+    const socketV = socketMatch(cpuSpecs?.socket, moboSpecs?.socket);
+    if (!socketV.ok) {
+      setResult({ status: 'error', message: socketV.unknown ? socketV.reason! : `عدم توافق: ${socketV.reason}.`, totalTdp, totalPrice });
       return;
     }
 
-    // فحص نوع الذاكرة — نفس المبدأ
-    const ramType = ramSpecs?.type ? String(ramSpecs.type).trim() : '';
-    const moboRamType = moboSpecs?.ramType ? String(moboSpecs.ramType).trim() : '';
-    if (!ramType || !moboRamType) {
-      setResult({ status: 'error', message: `تعذّر التأكّد من توافق الذاكرة: بيانات النوع ناقصة على ${!ramType ? 'الرام' : 'اللوحة الأم'}. تحقّق يدوياً قبل الشراء.`, totalTdp, totalPrice });
-      return;
-    }
-    if (ramType !== moboRamType) {
-      setResult({ status: 'error', message: `عدم توافق: اللوحة الأم تدعم ${moboRamType} والرام من نوع ${ramType}.`, totalTdp, totalPrice });
+    const ramV = ramTypeMatch(ramSpecs?.type, moboSpecs?.ramType);
+    if (!ramV.ok) {
+      setResult({ status: 'error', message: ramV.unknown ? ramV.reason! : `عدم توافق: ${ramV.reason}.`, totalTdp, totalPrice });
       return;
     }
     const gpuLen = parseFloat(gpuSpecs?.lengthMm);

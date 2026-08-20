@@ -133,7 +133,7 @@ export default async function AdminDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center border-b-2 border-gray-200 dark:border-slate-800 pb-4 mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">لوحة تحكم النظام</h1>
@@ -173,6 +173,6 @@ export default async function AdminDashboard() {
         {/* 3. تمرير القيمة المستخرجة كمستند أساسي إلى المكون الإداري */}
         <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} newRequests={newRequests} />
       </div>
-    </main>
+    </div>
   );
 }

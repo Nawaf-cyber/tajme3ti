@@ -214,3 +214,65 @@ export function coolerCpuReason(coolerSockets: unknown, cpuSocket: unknown): str
   if (coolerFitsCpu(coolerSockets, cpuSocket)) return null;
   return `المبرّد يدعم ${coolerSockets} والمعالج على مقبس ${cpuSocket}.`;
 }
+
+/* ============ المقبس ونوع الذاكرة — قاعدةٌ واحدة ============
+ *
+ * كان الفحص منسوخاً في موضعين بقاعدتين مختلفتين:
+ *
+ *   • `PCBuilderClient.runCheck` يعامل النقص خطأً — «عند الجهل نحذّر،
+ *     لا نؤكّد التوافق»، لأن تأكيد التوافق زوراً يهدم ثقة المنصّة.
+ *   • `BuildTuner` يكتب `if (a && b && a !== b)` — فالنقص يمرّ صامتاً،
+ *     ويرى المستخدم تجميعةً «سليمة» لم تُفحص أصلاً.
+ *
+ * والاختلاف ليس رأيين في التصميم بل نسختين تباعدتا، وهو بالضبط ما حدث
+ * في ساحبات الأسعار: خطأٌ عاش في نسخةٍ وشُفي في الأخرى.
+ *
+ * فالحكم واحدٌ هنا، ويُفرّق بين حالتين لا يجوز خلطهما:
+ *
+ *   `!ok && !unknown` → تعارضٌ مؤكَّد: يُمنع الاختيار ويُعلَن.
+ *   `unknown`         → بياناتٌ ناقصة: يُحذَّر ولا يُمنع — المنع هنا
+ *                       يخفي قطعةً صحيحة عقوبةً على نقصٍ عندنا نحن.
+ */
+
+export type MatchVerdict = {
+  /** هل ثبت التوافق؟ يكون false عند التعارض **وعند الجهل** معاً */
+  ok: boolean;
+  /** هل سبب عدم الثبوت نقصُ البيانات لا التعارض؟ */
+  unknown: boolean;
+  /** نصٌّ عربيّ جاهز للعرض، أو null إن ثبت التوافق */
+  reason: string | null;
+};
+
+const val = (v: unknown): string => String(v ?? '').trim();
+
+const verdict = (
+  a: unknown,
+  b: unknown,
+  labelA: string,
+  labelB: string,
+  conflict: (a: string, b: string) => string,
+): MatchVerdict => {
+  const x = val(a);
+  const y = val(b);
+  if (!x || !y) {
+    return {
+      ok: false,
+      unknown: true,
+      reason: `تعذّر التأكّد: البيانات ناقصة على ${!x ? labelA : labelB}. تحقّق يدوياً قبل الشراء.`,
+    };
+  }
+  if (x !== y) return { ok: false, unknown: false, reason: conflict(x, y) };
+  return { ok: true, unknown: false, reason: null };
+};
+
+/** المعالج مقابل اللوحة الأم */
+export const socketMatch = (cpuSocket: unknown, boardSocket: unknown): MatchVerdict =>
+  verdict(cpuSocket, boardSocket, 'المعالج', 'اللوحة الأم', (a, b) =>
+    `المعالج بمقبس ${a} واللوحة الأم بمقبس ${b}`,
+  );
+
+/** الذاكرة مقابل اللوحة الأم */
+export const ramTypeMatch = (ramType: unknown, boardRamType: unknown): MatchVerdict =>
+  verdict(ramType, boardRamType, 'الرام', 'اللوحة الأم', (a, b) =>
+    `اللوحة الأم تدعم ${b} والرام من نوع ${a}`,
+  );

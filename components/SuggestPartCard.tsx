@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
+import { goToLogin } from '../lib/login-href';
 
 export default function SuggestPartCard({
   source,
@@ -170,6 +171,7 @@ export default function SuggestPartCard({
                 <div className="flex flex-col sm:flex-row gap-2 mt-4">
                   <a
                     href="/login"
+                    onClick={goToLogin}
                     className="flex-1 text-center px-4 py-2.5 rounded-sm text-[12px] font-black bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90 transition-all active:scale-95 shadow-sm shadow-cyan-500/20"
                   >
                     نعم، سجّل دخولي
@@ -263,7 +265,7 @@ export default function SuggestPartCard({
             {/* دعوة لا شرط: التسجيل مكافأة (متابعة + محادثة)، لا بوّابة */}
             {status !== 'authenticated' && (
               <p className="mt-2.5 text-[11px] font-bold text-slate-400 dark:text-slate-500">
-                💡 <a href="/login" className="text-cyan-600 dark:text-cyan-400 underline hover:opacity-80">سجّل دخولك</a> <b>قبل</b> الإرسال لتتابع حالة اقتراحك ونردّ عليك إن احتجنا تفصيلاً.
+                💡 <a href="/login" onClick={goToLogin} className="text-cyan-600 dark:text-cyan-400 underline hover:opacity-80">سجّل دخولك</a> <b>قبل</b> الإرسال لتتابع حالة اقتراحك ونردّ عليك إن احتجنا تفصيلاً.
               </p>
             )}
           </>

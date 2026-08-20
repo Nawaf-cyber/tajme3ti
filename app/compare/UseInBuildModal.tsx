@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { productImage } from '../../lib/image';
+import { goToLogin } from '../../lib/login-href';
 
 /* ============ أنواع ============ */
 
@@ -386,6 +387,7 @@ export default function UseInBuildModal({
               <p className="font-mono text-[10px] text-slate-400 mb-7">تجميعاتك محفوظة في حسابك.</p>
               <Link
                 href="/login"
+                onClick={goToLogin}
                 className="inline-block px-7 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-black rounded-sm hover:opacity-90 transition-opacity"
               >
                 تسجيل الدخول

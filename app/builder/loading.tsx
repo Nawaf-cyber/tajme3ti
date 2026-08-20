@@ -25,7 +25,7 @@ export default function Loading() {
   }, []);
 
   return (
-    <main className="bg-slate-50 dark:bg-[#0B1120] min-h-screen py-10 px-4">
+    <div className="bg-slate-50 dark:bg-[#0B1120] min-h-screen py-10 px-4">
       <div className="max-w-5xl mx-auto bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-3xl border border-slate-200 dark:border-slate-800/80 p-6 md:p-10">
 
         {/* رأس التحميل */}
@@ -50,6 +50,6 @@ export default function Loading() {
         <Sk className="h-14 w-full rounded-2xl" />
 
       </div>
-    </main>
+    </div>
   );
 }

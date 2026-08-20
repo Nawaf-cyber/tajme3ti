@@ -14,7 +14,7 @@ export default async function NewsPage() {
   const newsList = await getNews();
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300 selection:bg-blue-500/20 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300 selection:bg-blue-500/20 overflow-x-hidden">
       <div className="max-w-7xl mx-auto">
         
         {/* الترويسة (Header) مطابقة للتصميم المعتمد */}
@@ -106,6 +106,6 @@ export default async function NewsPage() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }

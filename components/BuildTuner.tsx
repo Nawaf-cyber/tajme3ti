@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { CATEGORY_META } from '../lib/category-meta';
 import { productImage } from '../lib/image';
 import { isAvailable } from '../lib/stores';
+import { socketMatch, ramTypeMatch } from '../lib/fit';
 
 /* ============ الأنواع ============ */
 type Comp = any;
@@ -101,7 +102,7 @@ export default function BuildTuner({
   /* ============ كشف التعارضات في الحالة الفعّالة ============
      نفحص ما *سيحدث* لو طُبّقت التغييرات — لا ما حدث. */
   const conflicts = useMemo(() => {
-    const list: { cat: string; reason: string; fixCat: string }[] = [];
+    const list: { cat: string; reason: string; fixCat: string; unknown?: boolean }[] = [];
     const cpu = effective['CPU'];
     const mobo = effective['Motherboard'];
     const ram = effective['RAM'];
@@ -109,27 +110,20 @@ export default function BuildTuner({
     const psu = effective['PSU'];
     const cse = effective['Case'];
 
+    /* ⚠️ كان هنا `if (a && b && a !== b)` — فالبيانات الناقصة تمرّ صامتة
+       ويرى المستخدم تجميعةً «سليمة» لم تُفحص. والباني يعاملها خطأً منذ
+       البداية. فالحكم صار من `lib/fit.ts` وحده في الموضعين. */
     if (cpu && mobo) {
-      const a = String(parseSpecs(cpu.specs).socket || '').trim();
-      const b = String(parseSpecs(mobo.specs).socket || '').trim();
-      if (a && b && a !== b) {
-        list.push({
-          cat: 'Motherboard',
-          reason: `المعالج بمقبس ${a} واللوحة بمقبس ${b}`,
-          fixCat: 'Motherboard',
-        });
+      const v = socketMatch(parseSpecs(cpu.specs).socket, parseSpecs(mobo.specs).socket);
+      if (!v.ok) {
+        list.push({ cat: 'Motherboard', reason: v.reason!, fixCat: 'Motherboard', unknown: v.unknown });
       }
     }
 
     if (ram && mobo) {
-      const a = String(parseSpecs(ram.specs).type || '').trim();
-      const b = String(parseSpecs(mobo.specs).ramType || '').trim();
-      if (a && b && a !== b) {
-        list.push({
-          cat: 'RAM',
-          reason: `اللوحة تدعم ${b} والرام من نوع ${a}`,
-          fixCat: 'RAM',
-        });
+      const v = ramTypeMatch(parseSpecs(ram.specs).type, parseSpecs(mobo.specs).ramType);
+      if (!v.ok) {
+        list.push({ cat: 'RAM', reason: v.reason!, fixCat: 'RAM', unknown: v.unknown });
       }
     }
 
@@ -388,14 +382,18 @@ export default function BuildTuner({
                         <p className="text-[11px] font-semibold text-amber-700/90 dark:text-amber-400/80 mb-1.5">
                           {c.reason}
                         </p>
-                        <button
-                          onClick={() => setExpanded(c.fixCat)}
-                          className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
-                        >
-                          {fixCount > 0
-                            ? `اختر من ${fixCount} ${CAT_META[c.fixCat]?.label || c.fixCat} متوافقة ←`
-                            : `غيّر ${CAT_META[c.fixCat]?.label || c.fixCat} ←`}
-                        </button>
+                        {/* النقص لا يُحَلّ بتبديل قطعة — العيب في بياناتنا
+                            لا في اختياره، فلا يُعرض عليه زرُّ إصلاح. */}
+                        {!c.unknown && (
+                          <button
+                            onClick={() => setExpanded(c.fixCat)}
+                            className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                          >
+                            {fixCount > 0
+                              ? `اختر من ${fixCount} ${CAT_META[c.fixCat]?.label || c.fixCat} متوافقة ←`
+                              : `غيّر ${CAT_META[c.fixCat]?.label || c.fixCat} ←`}
+                          </button>
+                        )}
                       </div>
                     );
                   })}

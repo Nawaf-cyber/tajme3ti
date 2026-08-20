@@ -2,7 +2,7 @@ import { Sk } from '../../components/loading-ui';
 
 export default function Loading() {
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <Sk className="h-10 w-52 mb-4" />
         <Sk className="h-4 w-80 mb-8" />
@@ -29,6 +29,6 @@ export default function Loading() {
           ))}
         </div>
       </div>
-    </main>
+    </div>
   );
 }

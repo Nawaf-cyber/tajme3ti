@@ -42,7 +42,7 @@ export default async function NewsDetails({ params }: { params: Promise<{ id: st
   if (news.isGuide) redirect(`/guides/${id}`);
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#0B1120] pb-20 transition-colors duration-300 overflow-x-hidden selection:bg-blue-500/20">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] pb-20 transition-colors duration-300 overflow-x-hidden selection:bg-blue-500/20">
       
       {/* القسم العلوي (الصورة والعنوان) */}
       <div className="relative w-full h-[50vh] md:h-[65vh] bg-slate-900 border-b border-slate-200 dark:border-slate-800/80 flex items-end">
@@ -106,6 +106,6 @@ export default async function NewsDetails({ params }: { params: Promise<{ id: st
         </article>
       </div>
       
-    </main>
+    </div>
   );
 }

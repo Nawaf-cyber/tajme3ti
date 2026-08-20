@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { safeCallback } from '../../lib/login-href';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const callbackUrl = safeCallback(useSearchParams().get('callbackUrl'));
 
   const handleCredentialsLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signIn('credentials', { email, password, callbackUrl: '/' });
+    await signIn('credentials', { email, password, callbackUrl });
   };
 
   const handleGoogleLogin = () => {
-    signIn('google', { callbackUrl: '/' });
+    signIn('google', { callbackUrl });
   };
 
   const handleEmailLogin = () => {
@@ -21,7 +24,7 @@ export default function LoginPage() {
       alert('يرجى إدخال البريد الإلكتروني أولاً لإرسال رابط الدخول');
       return;
     }
-    signIn('email', { email, callbackUrl: '/' });
+    signIn('email', { email, callbackUrl });
   };
 
   return (
@@ -87,5 +90,19 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+/* `useSearchParams` يوجب حدَّ Suspense وإلا سقط البناء الثابت للصفحة. */
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+          <div className="w-10 h-10 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

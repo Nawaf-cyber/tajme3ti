@@ -78,12 +78,12 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
   }
 
   return (
-    <main className="bg-gray-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
+    <div className="bg-gray-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       {/* إعلان حالة أي متجر — قبل أن يبني الزائر تجميعته لا بعدها */}
       <div className="max-w-7xl mx-auto">
         <StoreNotices stores={notices as any} />
       </div>
       <PCBuilderClient categories={categories} importedSelections={importedSelections} />
-    </main>
+    </div>
   );
 }

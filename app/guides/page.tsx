@@ -15,7 +15,7 @@ export default async function GuidesPage() {
   const guides = await getGuides();
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300 selection:bg-emerald-500/20 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300 selection:bg-emerald-500/20 overflow-x-hidden">
       <div className="max-w-7xl mx-auto">
 
         {/* الترويسة — هوية خضراء تميّزها عن الأخبار (الزرقاء) */}
@@ -111,6 +111,6 @@ export default async function GuidesPage() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }
