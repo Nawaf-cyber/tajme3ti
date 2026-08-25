@@ -79,6 +79,18 @@ function LoginForm() {
    */
   const [showPassword, setShowPassword] = useState(errorCode === 'CredentialsSignin');
 
+  /* ============ ولا يُعرض الزرّ أصلاً إلا لمن يعرفه ============
+   *
+   * `/login?staff=1` — أو تلقائياً حين يعود خطأُ اعتماد، فمن حاول يجب
+   * أن يجد الباب حيث تركه.
+   *
+   * ⚠️ وهذا **إخفاءٌ لا حماية**: المسار `/api/auth/callback/credentials`
+   * يُنادى بأمر `curl` واحد سواء ظهر الزرّ أو لا. الحمايةُ الحقيقية في
+   * `authorize` — حدُّ خمس محاولات لكل بريدٍ وIP في ربع ساعة، ورفضُ كل
+   * من ليس ADMIN. وهذا السطر يمنع الفضول فقط، ولا يُحتسب أماناً.
+   */
+  const staffMode = params.get('staff') === '1' || errorCode === 'CredentialsSignin';
+
   const handleCredentialsLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) { toast.error('اكتب البريد وكلمة المرور.'); return; }
@@ -138,24 +150,26 @@ function LoginForm() {
               أسرع طريقة، وبلا كلمة مرورٍ تُنسى.
             </p>
 
-            <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-expanded={showPassword}
-                className="w-full flex items-center justify-center gap-1.5 text-[12px] font-bold text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-              >
-                دخول الإدارة بكلمة مرور
-                <svg
-                  className={`w-3.5 h-3.5 transition-transform ${showPassword ? 'rotate-180' : ''}`}
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
+            {staffMode && (
+              <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-expanded={showPassword}
+                  className="w-full flex items-center justify-center gap-1.5 text-[12px] font-bold text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-            </div>
+                  دخول الإدارة بكلمة مرور
+                  <svg
+                    className={`w-3.5 h-3.5 transition-transform ${showPassword ? 'rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+            )}
 
-            {showPassword && (
+            {staffMode && showPassword && (
             <form onSubmit={handleCredentialsLogin} className="space-y-4 mt-5 animate-in fade-in slide-in-from-top-1 duration-150">
               <div>
                 <label htmlFor="email" className="block text-[12px] font-black text-slate-600 dark:text-slate-300 mb-1.5">
