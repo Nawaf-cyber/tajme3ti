@@ -232,6 +232,14 @@ export default function AdminManager({ categories, components, news, cronStatus,
         >
           🙋 طلبات القطع
         </Link>
+        {/* ٦٠٪ من الكتالوج بشاهدٍ واحد — والصفحة تُؤتمت البحث وتُبقي
+            الكتابة بإقرار. رابطٌ لا تبويب: لها حالتها الخاصّة. */}
+        <Link
+          href="/admin/find-sources"
+          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
+        >
+          🔍 مصدر ثانٍ
+        </Link>
         <Link
           href="/admin/stores"
           className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
