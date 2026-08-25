@@ -108,7 +108,7 @@ export default async function PrebuildsPage() {
                     <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {build.title}
                     </h3>
-                    <div className="shrink-0 flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 text-xs font-bold px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                    <div className="shrink-0 flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 text-xs font-bold px-4 py-2 rounded-sm border border-slate-200 dark:border-slate-700/50">
                       <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
                       تتضمن {partsCount} قطع
                     </div>
@@ -119,20 +119,20 @@ export default async function PrebuildsPage() {
                     {buildPartsDisplay.map((part: any, idx: number) => (
                       <div 
                         key={idx} 
-                        className={`bg-slate-50 dark:bg-[#151E32]/50 border p-3 rounded-2xl flex items-center gap-3.5 hover:bg-white dark:hover:bg-[#1A233A] hover:shadow-md transition-all duration-300 ${part.isAvailable ? 'border-slate-100 dark:border-slate-800/60' : 'border-amber-300 dark:border-amber-600/50'}`}
+                        className={`bg-slate-50 dark:bg-[#151E32]/50 border p-3 rounded-sm flex items-center gap-3.5 hover:bg-white dark:hover:bg-[#1A233A] hover:shadow-md transition-all duration-300 ${part.isAvailable ? 'border-slate-100 dark:border-slate-800/60' : 'border-amber-300 dark:border-amber-600/50'}`}
                       >
-                        <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500 dark:text-slate-400 border border-slate-300/50 dark:border-slate-700/50">
+                        <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[12px] font-black text-slate-500 dark:text-slate-400 border border-slate-300/50 dark:border-slate-700/50">
                           {part.shortCode}
                         </div>
                         <div className="flex flex-col overflow-hidden flex-1">
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mb-0.5">
+                          <span className="text-[12px] text-slate-500 dark:text-slate-300 font-bold uppercase tracking-widest mb-0.5">
                             {part.categoryName}
                           </span>
                           <span className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate w-full pr-2">
                             {part.componentName}
                           </span>
                           {!part.isAvailable && (
-                            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-black inline-flex items-center gap-1 mt-0.5">
+                            <span className="text-[12px] text-amber-700 dark:text-amber-400 font-black inline-flex items-center gap-1 mt-0.5">
                               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                               غير متوفر حالياً
                             </span>
@@ -142,7 +142,7 @@ export default async function PrebuildsPage() {
                           <Link 
                             href={`/components/${part.componentId}`} 
                             title="التفاصيل"
-                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors shrink-0"
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-sm transition-colors shrink-0"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -168,7 +168,7 @@ export default async function PrebuildsPage() {
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-emerald-500/10 dark:bg-emerald-500/5 blur-[50px] rounded-full pointer-events-none"></div>
                   
                   <div className="text-center lg:text-right relative z-10 w-full">
-                    <span className="inline-block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 px-3 py-1 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700">
+                    <span className="inline-block text-[12px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-[0.2em] mb-2 px-3 py-1 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700">
                       أفضل سعر مجمع
                     </span>
                     <div className="font-black text-4xl text-emerald-600 dark:text-emerald-400 flex items-center justify-center lg:justify-end gap-2 mt-2 selection:bg-emerald-50 selection:text-emerald-700">
@@ -202,7 +202,7 @@ export default async function PrebuildsPage() {
               <span className="text-xs font-bold text-white uppercase tracking-[0.15em]">ARCHITECTURE PREVIEW 2026</span>
             </div>
 
-            <span className="absolute bottom-20 left-0 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.3em] selection:text-slate-900">
+            <span className="absolute bottom-20 left-0 text-[12px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] selection:text-slate-900">
                 VERIFIED CONFIGURATIONS
             </span>
           </div>

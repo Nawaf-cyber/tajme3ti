@@ -24,7 +24,7 @@ import MarqueeRail from './MarqueeRail';
  * يبقى مكوّن سيرفر بلا جافاسكربت للعميل.
  *
  * ---- الاتّساق البصري ----
- * البطاقة هنا مبنيّة بمفردات بقيّة الصفحة حرفياً: rounded-3xl، خلفية
+ * البطاقة هنا مبنيّة بمفردات بقيّة الصفحة حرفياً: rounded-sm، خلفية
  * زجاجية، لوح صورة أبيض بـmix-blend-multiply، شارة فئة، سعر أخضر بأيقونة
  * الريال، ورابط «عرض الكل» سماوي. اللون الوردي محصور في دلالة الانخفاض
  * (الشريط الجانبي وشارة النسبة وسطر التوفير) — فالقسم يُقرأ كجزء من
@@ -184,10 +184,10 @@ export default async function PriceDropsSection() {
                       /* أضيق على الجوّال ليظهر طرف البطاقة التالية — وهو
                          الدليل البصري الوحيد على أن الشريط يُسحب. بـ23rem
                          تملأ البطاقةُ شاشةَ 375px فيبدو القسم بطاقةً ساكنة. */
-                      className="group flex gap-4 w-[19rem] sm:w-[23rem] p-4 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl hover:border-rose-400/50 dark:hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/10 hover:-translate-y-1 transition-all duration-300"
+                      className="group flex gap-4 w-[19rem] sm:w-[23rem] p-4 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm hover:border-rose-400/50 dark:hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/10 hover:-translate-y-1 transition-all duration-300"
                     >
                       {/* لوح الصورة الأبيض — نفس معالجة بطاقات «أحدث القطع» */}
-                      <div className="relative w-[5.25rem] h-[5.25rem] shrink-0 bg-slate-50 dark:bg-white rounded-2xl border border-slate-100 dark:border-slate-200 flex items-center justify-center p-2.5">
+                      <div className="relative w-[5.25rem] h-[5.25rem] shrink-0 bg-slate-50 dark:bg-white rounded-sm border border-slate-100 dark:border-slate-200 flex items-center justify-center p-2.5">
                         <img
                           src={productImage(c.imageUrl, `/images/${c.categoryId}/boxed.png`)}
                           alt={c.name}
@@ -195,7 +195,7 @@ export default async function PriceDropsSection() {
                           draggable={false}
                           className="max-w-full max-h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                         />
-                        <span className="absolute -top-2 -left-2 font-mono text-[11px] font-black text-white bg-rose-500 px-1.5 py-0.5 rounded-lg shadow-[0_0_12px_rgba(244,63,94,0.5)] tabular-nums">
+                        <span className="absolute -top-2 -left-2 font-mono text-[12px] font-black text-white bg-rose-700 px-1.5 py-0.5 rounded-sm shadow-[0_0_12px_rgba(244,63,94,0.5)] tabular-nums">
                           ‎-{pct}%
                         </span>
                       </div>
@@ -204,11 +204,11 @@ export default async function PriceDropsSection() {
                         {/* ارتفاع ثابت للصفّ: الشارة تظهر على بطاقة واحدة،
                             وبلا تثبيت يصير ارتفاعها مختلفاً عن جاراتها */}
                         <div className="flex items-center gap-1.5 h-[1.15rem]">
-                          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                          <span className="text-[12px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest">
                             {c.category?.name}
                           </span>
                           {c.id === topPctId && (
-                            <span className="text-[9.5px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/15 border border-amber-400/50 dark:border-amber-500/30 px-1.5 rounded-full whitespace-nowrap leading-[1.1rem]">
+                            <span className="text-[12px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/15 border border-amber-400/50 dark:border-amber-500/30 px-1.5 rounded-full whitespace-nowrap leading-[1.1rem]">
                               ★ الأعلى خصماً
                             </span>
                           )}
@@ -233,7 +233,7 @@ export default async function PriceDropsSection() {
                             {badges.map((b, i) => (
                               <span
                                 key={i}
-                                className="font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60 px-1.5 py-0.5 rounded-sm border border-slate-200 dark:border-slate-700/50 whitespace-nowrap shrink-0"
+                                className="font-mono text-[12px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60 px-1.5 py-0.5 rounded-sm border border-slate-200 dark:border-slate-700/50 whitespace-nowrap shrink-0"
                               >
                                 {b}
                               </span>
@@ -247,14 +247,14 @@ export default async function PriceDropsSection() {
                             <RiyalIcon size="h-3.5 w-3.5" />
                           </span>
                           <span
-                            className="text-xs font-bold text-slate-400 dark:text-slate-500 line-through tabular-nums"
+                            className="text-xs font-bold text-slate-500 dark:text-slate-300 line-through tabular-nums"
                             dir="ltr"
                           >
                             {formatPrice(c.previousPrice)}
                           </span>
                         </div>
 
-                        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1 truncate">
+                        <p className="text-[12px] font-bold text-slate-500 dark:text-slate-400 mt-1 truncate">
                           <span className="text-rose-600 dark:text-rose-400 font-black">
                             وفّرت {formatPrice(saved)}
                           </span>

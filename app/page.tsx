@@ -88,18 +88,18 @@ export default async function HomePage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 mb-16 w-full sm:w-auto">
-            <Link href="/builder" className="group relative bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-10 rounded-2xl transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-0.5 text-base flex items-center justify-center gap-2 w-full sm:w-auto overflow-hidden">
+            <Link href="/builder" className="group relative bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-10 rounded-sm transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-0.5 text-base flex items-center justify-center gap-2 w-full sm:w-auto overflow-hidden">
               <span className="relative z-10">ابدأ التجميع الذكي</span>
               <svg className="w-5 h-5 transform rotate-180 relative z-10 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
               <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700"></span>
             </Link>
-            <Link href="/components" className="bg-white dark:bg-[#0F172A]/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 dark:hover:text-cyan-300 font-bold py-4 px-10 rounded-2xl transition-all duration-300 text-base shadow-sm hover:-translate-y-0.5 w-full sm:w-auto">
+            <Link href="/components" className="bg-white dark:bg-[#0F172A]/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 dark:hover:text-cyan-300 font-bold py-4 px-10 rounded-sm transition-all duration-300 text-base shadow-sm hover:-translate-y-0.5 w-full sm:w-auto">
               استعراض المكونات
             </Link>
           </div>
 
           {/* شريط الإحصائيات المدمج */}
-          <div className="flex max-w-2xl w-full bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 rounded-2xl backdrop-blur-sm overflow-hidden shadow-sm">
+          <div className="flex max-w-2xl w-full bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 rounded-sm backdrop-blur-sm overflow-hidden shadow-sm">
             <div className="flex-1 py-5 px-3 border-l border-slate-200 dark:border-slate-800/60">
               <div className="font-black text-cyan-600 dark:text-cyan-400 text-2xl md:text-3xl tracking-tight" dir="ltr">100%</div>
               <div className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">فحص توافق دقيق</div>
@@ -135,13 +135,13 @@ export default async function HomePage() {
         </div>
         
         {latestComponents.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-3xl text-slate-500 font-medium">
+          <div className="text-center py-12 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-sm text-slate-500 font-medium">
             لا توجد قطع مضافة حالياً في النظام.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {latestComponents.map((comp) => (
-              <Link href={`/components/${comp.id}`} key={comp.id} className="group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300">
+              <Link href={`/components/${comp.id}`} key={comp.id} className="group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300">
                 <div className="h-40 bg-slate-50 dark:bg-white p-6 flex items-center justify-center border-b border-slate-100 dark:border-slate-200 relative">
                   <img 
                     src={productImage(comp.imageUrl, `/images/${comp.categoryId}/boxed.png`)} 
@@ -149,13 +149,13 @@ export default async function HomePage() {
                     className="max-w-full max-h-full object-contain filter drop-shadow-sm mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-4 left-4">
-                    <span className="px-2.5 py-1 bg-white dark:bg-slate-100 border border-slate-200 text-[10px] font-black text-slate-600 uppercase tracking-widest rounded-lg shadow-sm">
+                    <span className="px-2.5 py-1 bg-white dark:bg-slate-100 border border-slate-200 text-[12px] font-black text-slate-600 uppercase tracking-widest rounded-sm shadow-sm">
                       {comp.category?.name}
                     </span>
                   </div>
                 </div>
                 <div className="p-5">
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-1 font-bold">{comp.brand}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-300 mb-1 font-bold">{comp.brand}</p>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight line-clamp-1 mb-4">{comp.name}</h3>
                   <div className="font-black text-lg text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
                     <div className="flex items-center justify-center gap-1 leading-none">
@@ -185,13 +185,13 @@ export default async function HomePage() {
         </div>
 
         {latestPrebuilds.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-3xl text-slate-500 font-medium">
+          <div className="text-center py-12 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-sm text-slate-500 font-medium">
             لا توجد تجميعات مقترحة مضافة حالياً.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {latestPrebuilds.map((build) => (
-              <div key={build.id} className="bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl p-8 flex flex-col justify-between hover:shadow-xl hover:shadow-cyan-500/10 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:-translate-y-1 transition-all duration-300">
+              <div key={build.id} className="bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm p-8 flex flex-col justify-between hover:shadow-xl hover:shadow-cyan-500/10 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:-translate-y-1 transition-all duration-300">
                 <div>
                   <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3">{build.title}</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 line-clamp-3 leading-loose font-medium">{build.description}</p>
@@ -200,7 +200,7 @@ export default async function HomePage() {
                   <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 leading-none">
                     {parseFloat(Number(build.price).toFixed(2))} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                   </div>
-                  <Link href="/prebuilds" className="text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-white px-5 py-2.5 rounded-xl transition-colors">
+                  <Link href="/prebuilds" className="text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-white px-5 py-2.5 rounded-sm transition-colors">
                     استعراض
                   </Link>
                 </div>
@@ -223,7 +223,7 @@ export default async function HomePage() {
         </div>
 
         {latestNews.length === 0 ? (
-          <div className="text-center py-12 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl text-slate-500 font-medium">
+          <div className="text-center py-12 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm text-slate-500 font-medium">
             لا توجد أخبار مضافة حالياً.
           </div>
         ) : (
@@ -232,12 +232,12 @@ export default async function HomePage() {
               <Link 
                 href={`/news/${newsItem.id}`} 
                 key={newsItem.id} 
-                className={`group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex flex-col justify-between hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300 ${
+                className={`group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm p-6 flex flex-col justify-between hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300 ${
                   index === 0 ? 'lg:col-span-2 lg:row-span-2' : ''
                 }`}
               >
                 <div>
-                  <div className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 mb-3 uppercase tracking-widest bg-cyan-50 dark:bg-cyan-500/10 w-fit px-2.5 py-1 rounded-lg border border-transparent dark:border-cyan-500/20">
+                  <div className="text-[12px] font-bold text-cyan-600 dark:text-cyan-400 mb-3 uppercase tracking-widest bg-cyan-50 dark:bg-cyan-500/10 w-fit px-2.5 py-1 rounded-sm border border-transparent dark:border-cyan-500/20">
                     {new Date(newsItem.createdAt).toLocaleDateString('ar-SA')}
                   </div>
                   <h3 className={`${index === 0 ? 'text-2xl md:text-3xl' : 'text-base'} font-black text-slate-900 dark:text-white mb-3 line-clamp-2 leading-[1.4] group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors`}>

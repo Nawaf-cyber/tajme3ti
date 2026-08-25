@@ -218,7 +218,7 @@ export default function MyPartRequests() {
                             : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                         }`}
                       >
-                        <span className="block font-mono text-[8px] font-black opacity-60 mb-0.5 uppercase tracking-wider">
+                        <span className="block font-mono text-[12px] font-black opacity-60 mb-0.5 uppercase tracking-wider">
                           {m.fromAdmin ? 'الإدارة' : 'أنت'}
                         </span>
                         {m.body}

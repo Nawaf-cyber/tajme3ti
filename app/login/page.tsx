@@ -121,7 +121,7 @@ function LoginForm() {
 
             <div className="relative flex items-center py-2 my-5">
               <div className="flex-grow border-t border-slate-200 dark:border-slate-700/70" />
-              <span className="shrink-0 mx-4 text-[11px] font-black text-slate-400">أو بالبريد</span>
+              <span className="shrink-0 mx-4 text-[12px] font-black text-slate-500 dark:text-slate-400">أو بالبريد</span>
               <div className="flex-grow border-t border-slate-200 dark:border-slate-700/70" />
             </div>
 

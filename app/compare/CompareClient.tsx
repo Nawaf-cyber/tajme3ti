@@ -1232,7 +1232,7 @@ export default function CompareClient({
                           className="max-w-full max-h-full object-contain mix-blend-multiply"
                         />
                         {deal.pct > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] font-black px-1 rounded-sm font-mono tabular-nums shadow-sm">
+                          <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[12px] font-black px-1 rounded-sm font-mono tabular-nums shadow-sm">
                             ‎-{deal.pct}%
                           </span>
                         )}

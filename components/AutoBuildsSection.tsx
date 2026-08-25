@@ -301,7 +301,7 @@ export default async function AutoBuildsSection() {
         {displayBuilds.map((build) => (
           <div
             key={build.id}
-            className={`border rounded-3xl p-8 flex flex-col justify-between transition-all hover:shadow-lg hover:-translate-y-1 ${build.bgTheme}`}
+            className={`border rounded-sm p-8 flex flex-col justify-between transition-all hover:shadow-lg hover:-translate-y-1 ${build.bgTheme}`}
           >
             <div>
               <h3 className={`text-xl font-black mb-3 ${build.textColor}`}>{build.title}</h3>
@@ -320,7 +320,7 @@ export default async function AutoBuildsSection() {
                 </div>
                 <Link
                   href={`/builder?${build.params}`}
-                  className="text-xs font-black bg-white dark:bg-[#0B1120] text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-800 hover:shadow-md px-5 py-2.5 rounded-xl transition-all active:scale-95"
+                  className="text-xs font-black bg-white dark:bg-[#0B1120] text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-800 hover:shadow-md px-5 py-2.5 rounded-sm transition-all active:scale-95"
                 >
                   استعراض التجميعة
                 </Link>

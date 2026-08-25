@@ -1884,7 +1884,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className={`text-[12px] font-black tracking-widest ${i === recIdx ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'}`}>{plan.label}</span>
-                    {i === recIdx && <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-cyan-500 text-white">مُوصى به</span>}
+                    {i === recIdx && <span className="text-[12px] font-black px-1.5 py-0.5 rounded bg-cyan-500 text-white">مُوصى به</span>}
                   </div>
                   <div className="flex items-baseline gap-1.5 mb-2">
                     <span className="text-2xl font-black text-slate-900 dark:text-white">{Math.round(plan.total).toLocaleString('en-US')}</span>
@@ -2219,7 +2219,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                             <RiyalIcon size="h-2.5 w-2.5" colorClass={i === 0 ? 'bg-white' : 'bg-slate-500 dark:bg-slate-400'} />
                                           </span>
                                           {i === 0 && getStoreOffers(comp).length > 1 && (
-                                            <span className="bg-white/20 rounded px-1 py-0.5 text-[8px] font-black">الأرخص</span>
+                                            <span className="bg-white/20 rounded px-1 py-0.5 text-[12px] font-black">الأرخص</span>
                                           )}
                                           <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                                         </a>

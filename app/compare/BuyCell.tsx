@@ -43,7 +43,7 @@ export default function BuyCell({ component }: { component: { offers?: Offer[] |
             <span className="font-mono text-[9px] font-black uppercase tracking-wider shrink-0 flex items-center gap-1">
               {o.store.name}
               {pct > 0 && (
-                <span className="text-[8px] font-black text-white bg-rose-500 px-1 py-0.5 rounded-sm tabular-nums">
+                <span className="text-[12px] font-black text-white bg-rose-500 px-1 py-0.5 rounded-sm tabular-nums">
                   ‎-{pct}%
                 </span>
               )}
@@ -56,7 +56,7 @@ export default function BuyCell({ component }: { component: { offers?: Offer[] |
                 </span>
               )}
               {formatPrice(o.price)}
-              {i === 0 && offers.length > 1 && <span className="text-[8px] opacity-70">أرخص</span>}
+              {i === 0 && offers.length > 1 && <span className="text-[12px] opacity-70">أرخص</span>}
               <svg
                 className="w-2.5 h-2.5 opacity-0 group-hover/buy:opacity-100 transition-opacity"
                 fill="none"

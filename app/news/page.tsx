@@ -26,7 +26,7 @@ export default async function NewsPage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
               </span>
-              <span className="text-[11px] font-bold text-white uppercase tracking-widest">Hardware Updates</span>
+              <span className="text-[12px] font-bold text-white uppercase tracking-widest">Hardware Updates</span>
             </div>
           </div>
 
@@ -41,14 +41,14 @@ export default async function NewsPage() {
         </div>
 
         {newsList.length === 0 ? (
-          <div className="text-center py-20 bg-white dark:bg-[#0F172A] rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+          <div className="text-center py-20 bg-white dark:bg-[#0F172A] rounded-sm border border-slate-200 dark:border-slate-800/80 shadow-sm">
             <span className="text-4xl block mb-4 opacity-50">📰</span>
             <p className="text-xl text-slate-500 dark:text-slate-400 font-bold">لا توجد أخبار حالياً. سيتم إضافة الأخبار قريباً.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {newsList.map((news) => (
-              <article key={news.id} className="group bg-white dark:bg-[#0F172A] rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-500/5 border border-slate-200 dark:border-slate-800/80 transition-all duration-300 flex flex-col hover:-translate-y-1">
+              <article key={news.id} className="group bg-white dark:bg-[#0F172A] rounded-sm overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-500/5 border border-slate-200 dark:border-slate-800/80 transition-all duration-300 flex flex-col hover:-translate-y-1">
                 
                 {/* قسم الصورة */}
                 {news.imageUrl ? (
@@ -64,7 +64,7 @@ export default async function NewsPage() {
                     
                     {/* شارة التصنيف العائمة فوق الصورة */}
                     <div className="absolute top-4 right-4 z-20">
-                       <span className="px-3 py-1.5 bg-white/90 dark:bg-[#0B1120]/90 backdrop-blur-sm text-blue-700 dark:text-blue-400 text-[11px] font-black uppercase tracking-widest rounded-lg border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                       <span className="px-3 py-1.5 bg-white/90 dark:bg-[#0B1120]/90 backdrop-blur-sm text-blue-700 dark:text-blue-400 text-[12px] font-black uppercase tracking-widest rounded-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
                         {news.category}
                       </span>
                     </div>
@@ -72,7 +72,7 @@ export default async function NewsPage() {
                 ) : (
                    <div className="h-56 w-full bg-slate-100 dark:bg-[#0B1120] border-b border-slate-200 dark:border-slate-800/60 flex items-center justify-center relative">
                      <div className="absolute top-4 right-4 z-20">
-                       <span className="px-3 py-1.5 bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-sm text-blue-700 dark:text-blue-400 text-[11px] font-black uppercase tracking-widest rounded-lg border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                       <span className="px-3 py-1.5 bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-sm text-blue-700 dark:text-blue-400 text-[12px] font-black uppercase tracking-widest rounded-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
                         {news.category}
                       </span>
                     </div>
@@ -82,7 +82,7 @@ export default async function NewsPage() {
                 
                 <div className="p-6 md:p-8 flex flex-col flex-1">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800/60 px-2.5 py-1 rounded-md">
+                    <span className="text-[12px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800/60 px-2.5 py-1 rounded-sm">
                       {new Date(news.createdAt).toLocaleDateString('ar-SA')}
                     </span>
                   </div>
@@ -96,7 +96,7 @@ export default async function NewsPage() {
                   </p>
                   
                   {/* زر القراءة */}
-                  <Link href={`/news/${news.id}`} className="mt-auto inline-flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-blue-50 dark:bg-[#0B1120] dark:hover:bg-blue-900/20 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 font-bold py-3.5 rounded-xl transition-all border border-slate-200 dark:border-slate-800/60 group/btn">
+                  <Link href={`/news/${news.id}`} className="mt-auto inline-flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-blue-50 dark:bg-[#0B1120] dark:hover:bg-blue-900/20 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 font-bold py-3.5 rounded-sm transition-all border border-slate-200 dark:border-slate-800/60 group/btn">
                     <span>اقرأ التفاصيل</span>
                     <svg className="w-4 h-4 transform group-hover/btn:-translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                   </Link>

@@ -177,7 +177,7 @@ export default async function CompareTeaser() {
 
   return (
     <section className="max-w-7xl mx-auto px-4 py-20">
-      <div className="relative bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+      <div className="relative bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden shadow-sm">
 
         {/* توهّج خلفي خفيف */}
         <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[32rem] h-48 bg-cyan-500/10 dark:bg-cyan-400/10 blur-3xl rounded-full"></div>
@@ -188,12 +188,12 @@ export default async function CompareTeaser() {
           <div className="text-center lg:text-right">
             <div className="flex items-center justify-center lg:justify-start gap-2.5 mb-6">
               {isNew && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-cyan-500/30">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500 text-white text-[12px] font-black uppercase tracking-widest shadow-lg shadow-cyan-500/30">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
                   جديد
                 </span>
               )}
-              <span className="font-mono text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+              <span className="font-mono text-[12px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 أدوات المقارنة
               </span>
             </div>
@@ -235,7 +235,7 @@ export default async function CompareTeaser() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Link
                 href={compareHref}
-                className="group relative bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-3.5 px-8 rounded-2xl transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-0.5 text-sm flex items-center justify-center gap-2 overflow-hidden"
+                className="group relative bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-3.5 px-8 rounded-sm transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-0.5 text-sm flex items-center justify-center gap-2 overflow-hidden"
               >
                 <span className="relative z-10">شاهد هذه المقارنة</span>
                 <svg
@@ -251,7 +251,7 @@ export default async function CompareTeaser() {
 
               <Link
                 href="/compare"
-                className="bg-white dark:bg-[#0F172A]/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 dark:hover:text-cyan-300 font-bold py-3.5 px-8 rounded-2xl transition-all duration-300 text-sm shadow-sm hover:-translate-y-0.5 flex items-center justify-center"
+                className="bg-white dark:bg-[#0F172A]/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 dark:hover:text-cyan-300 font-bold py-3.5 px-8 rounded-sm transition-all duration-300 text-sm shadow-sm hover:-translate-y-0.5 flex items-center justify-center"
               >
                 قارن قطعاً تختارها
               </Link>
@@ -261,16 +261,16 @@ export default async function CompareTeaser() {
                 مستقلّ عن أزرار القطع كي لا يزاحمها، وواضح كفاية ليُكتشف. */}
             <Link
               href="/compare/builds"
-              className="group mt-4 flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-md hover:shadow-cyan-500/10 transition-all max-w-lg mx-auto lg:mx-0"
+              className="group mt-4 flex items-center gap-3 p-3.5 rounded-sm border border-slate-200 dark:border-slate-700/80 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-md hover:shadow-cyan-500/10 transition-all max-w-lg mx-auto lg:mx-0"
             >
-              <span className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-lg shadow-md shadow-cyan-500/25 group-hover:scale-105 transition-transform">
+              <span className="w-10 h-10 shrink-0 rounded-sm bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-lg shadow-md shadow-cyan-500/25 group-hover:scale-105 transition-transform">
                 ⚖️
               </span>
               <span className="flex-1 min-w-0 text-right">
                 <span className="block text-[13px] font-black text-slate-900 dark:text-white leading-snug">
                   عندك أكثر من تجميعة؟ قارنها كاملة
                 </span>
-                <span className="block text-[11.5px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                <span className="block text-[12px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
                   السعر الكلي · الأداء · الاستهلاك · قطعة بقطعة
                 </span>
               </span>
@@ -287,14 +287,14 @@ export default async function CompareTeaser() {
 
           {/* ===== معاينة حيّة (بيانات حقيقية) ===== */}
           <Link href={compareHref} className="group/preview block">
-            <div className="relative bg-slate-50/80 dark:bg-[#0B1120]/80 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden group-hover/preview:border-cyan-500/50 transition-colors">
+            <div className="relative bg-slate-50/80 dark:bg-[#0B1120]/80 border border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden group-hover/preview:border-cyan-500/50 transition-colors">
 
               {/* رأس المعاينة */}
               <div className="flex items-center gap-1.5 px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-400/70"></span>
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400/70"></span>
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/70"></span>
-                <span className="mr-auto font-mono text-[9px] text-slate-400 truncate" dir="ltr">
+                <span className="mr-auto font-mono text-[12px] text-slate-400 truncate" dir="ltr">
                   tajme3ti.com/compare
                 </span>
               </div>
@@ -313,7 +313,7 @@ export default async function CompareTeaser() {
                       {isBest && (
                         <>
                           <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"></div>
-                          <div className="mb-2.5 text-center font-mono text-[8px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 rounded-sm py-1 uppercase tracking-widest">
+                          <div className="mb-2.5 text-center font-mono text-[12px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 rounded-sm py-1 uppercase tracking-widest">
                             أفضل قيمة
                           </div>
                         </>
@@ -328,15 +328,15 @@ export default async function CompareTeaser() {
                         />
                       </div>
 
-                      <div className="font-mono text-[8px] font-black uppercase tracking-wider text-slate-400 mb-0.5">
+                      <div className="font-mono text-[12px] font-black uppercase tracking-wider text-slate-400 mb-0.5">
                         {c.brand}
                       </div>
-                      <div className="text-[11px] font-black text-slate-900 dark:text-white leading-snug line-clamp-2 min-h-[2rem]">
+                      <div className="text-[12px] font-black text-slate-900 dark:text-white leading-snug line-clamp-2 min-h-[2rem]">
                         {c.name}
                       </div>
 
                       {/* مستوى الأداء */}
-                      <div className="mt-3 text-center text-[10px] tracking-widest" dir="ltr">
+                      <div className="mt-3 text-center text-[12px] tracking-widest" dir="ltr">
                         <span className="text-cyan-500 dark:text-cyan-400">
                           {'●'.repeat(c.performanceTier ?? 0)}
                         </span>
@@ -352,7 +352,7 @@ export default async function CompareTeaser() {
                           <RiyalIcon size="h-3 w-3" />
                         </div>
                         {c.id === cheaper.id && (
-                          <div className="mt-0.5 text-[9px] font-bold text-emerald-600/70 dark:text-emerald-400/70">
+                          <div className="mt-0.5 text-[12px] font-bold text-emerald-600/70 dark:text-emerald-400/70">
                             الأوفر
                           </div>
                         )}
@@ -364,7 +364,7 @@ export default async function CompareTeaser() {
 
               {/* شريط الخلاصة */}
               <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40">
-                <p className="font-mono text-[9px] text-slate-500 dark:text-slate-400 text-center leading-relaxed">
+                <p className="font-mono text-[12px] text-slate-500 dark:text-slate-400 text-center leading-relaxed">
                   فارق السعر{' '}
                   <span className="text-red-500 dark:text-red-400 font-black">
                     {priceGap.toLocaleString('en-US')}

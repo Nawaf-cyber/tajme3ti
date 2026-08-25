@@ -440,10 +440,10 @@ export default function BuildTuner({
                       <div className="flex items-center gap-1.5">
                         <span className="text-[9px] font-black tracking-wider text-slate-400">{meta.label}</span>
                         {isStaged && (
-                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-cyan-500 text-white">مُعدَّلة</span>
+                          <span className="text-[12px] font-black px-1.5 py-0.5 rounded bg-cyan-500 text-white">مُعدَّلة</span>
                         )}
                         {conflict && (
-                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-red-500 text-white">تعارض</span>
+                          <span className="text-[12px] font-black px-1.5 py-0.5 rounded bg-red-500 text-white">تعارض</span>
                         )}
                       </div>
                       <div className="text-[12.5px] font-bold text-slate-900 dark:text-white truncate mt-0.5">
@@ -522,10 +522,10 @@ export default function BuildTuner({
                                     </span>
                                   )}
                                   {alt.isCurrent && (
-                                    <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-cyan-500 text-white">الحالية</span>
+                                    <span className="text-[12px] font-black px-1.5 py-0.5 rounded bg-cyan-500 text-white">الحالية</span>
                                   )}
                                   {!avail && (
-                                    <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
+                                    <span className="text-[12px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
                                       نافدة
                                     </span>
                                   )}
@@ -561,7 +561,7 @@ export default function BuildTuner({
                                       }
                                     />
                                   </div>
-                                  <div className="text-[8.5px] font-bold text-slate-400 mt-0.5">
+                                  <div className="text-[12px] font-bold text-slate-400 mt-0.5">
                                     الإجمالي يصير {fmt(nextTotal - (cur?.price || 0) + alt.comp.price)}
                                   </div>
                                 </div>

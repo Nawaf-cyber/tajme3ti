@@ -26,7 +26,7 @@ export default async function GuidesPage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-[11px] font-bold text-white uppercase tracking-widest">PC Building Guides</span>
+              <span className="text-[12px] font-bold text-white uppercase tracking-widest">PC Building Guides</span>
             </div>
           </div>
 
@@ -45,7 +45,7 @@ export default async function GuidesPage() {
         </div>
 
         {guides.length === 0 ? (
-          <div className="text-center py-20 bg-white dark:bg-[#0F172A] rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm">
+          <div className="text-center py-20 bg-white dark:bg-[#0F172A] rounded-sm border border-slate-200 dark:border-slate-800/80 shadow-sm">
             <span className="text-4xl block mb-4 opacity-50">📘</span>
             <p className="text-xl text-slate-500 dark:text-slate-400 font-bold">لا توجد أدلّة حالياً.</p>
           </div>
@@ -54,7 +54,7 @@ export default async function GuidesPage() {
             {guides.map((guide) => (
               <article
                 key={guide.id}
-                className="group bg-white dark:bg-[#0F172A] rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-emerald-500/5 border border-slate-200 dark:border-slate-800/80 transition-all duration-300 flex flex-col hover:-translate-y-1"
+                className="group bg-white dark:bg-[#0F172A] rounded-sm overflow-hidden shadow-sm hover:shadow-xl hover:shadow-emerald-500/5 border border-slate-200 dark:border-slate-800/80 transition-all duration-300 flex flex-col hover:-translate-y-1"
               >
                 {guide.imageUrl ? (
                   <div className="h-56 w-full overflow-hidden border-b border-slate-100 dark:border-slate-800/60 relative">
@@ -65,7 +65,7 @@ export default async function GuidesPage() {
                       className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-4 right-4 z-20">
-                      <span className="px-3 py-1.5 bg-white/90 dark:bg-[#0B1120]/90 backdrop-blur-sm text-emerald-700 dark:text-emerald-400 text-[11px] font-black uppercase tracking-widest rounded-lg border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                      <span className="px-3 py-1.5 bg-white/90 dark:bg-[#0B1120]/90 backdrop-blur-sm text-emerald-700 dark:text-emerald-400 text-[12px] font-black uppercase tracking-widest rounded-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
                         دليل
                       </span>
                     </div>
@@ -73,7 +73,7 @@ export default async function GuidesPage() {
                 ) : (
                   <div className="h-56 w-full bg-slate-100 dark:bg-[#0B1120] border-b border-slate-200 dark:border-slate-800/60 flex items-center justify-center relative">
                     <div className="absolute top-4 right-4 z-20">
-                      <span className="px-3 py-1.5 bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-sm text-emerald-700 dark:text-emerald-400 text-[11px] font-black uppercase tracking-widest rounded-lg border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                      <span className="px-3 py-1.5 bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-sm text-emerald-700 dark:text-emerald-400 text-[12px] font-black uppercase tracking-widest rounded-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
                         دليل
                       </span>
                     </div>
@@ -83,7 +83,7 @@ export default async function GuidesPage() {
 
                 <div className="p-6 md:p-8 flex flex-col flex-1">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800/60 px-2.5 py-1 rounded-md">
+                    <span className="text-[12px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800/60 px-2.5 py-1 rounded-sm">
                       {new Date(guide.createdAt).toLocaleDateString('ar-SA')}
                     </span>
                   </div>
@@ -98,7 +98,7 @@ export default async function GuidesPage() {
 
                   <Link
                     href={`/guides/${guide.id}`}
-                    className="mt-auto inline-flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-emerald-50 dark:bg-[#0B1120] dark:hover:bg-emerald-900/20 text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400 font-bold py-3.5 rounded-xl transition-all border border-slate-200 dark:border-slate-800/60 group/btn"
+                    className="mt-auto inline-flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-emerald-50 dark:bg-[#0B1120] dark:hover:bg-emerald-900/20 text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400 font-bold py-3.5 rounded-sm transition-all border border-slate-200 dark:border-slate-800/60 group/btn"
                   >
                     <span>اقرأ الدليل</span>
                     <svg className="w-4 h-4 transform group-hover/btn:-translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">

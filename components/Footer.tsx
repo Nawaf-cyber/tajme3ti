@@ -18,7 +18,7 @@ export default function Footer() {
             {/* العلامة + الوصف */}
             <div className="text-center md:text-right max-w-sm">
               <Link href="/" className="inline-flex items-center gap-2.5 font-black text-2xl text-slate-900 dark:text-white group mb-4">
-                <div className="w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-white shadow-md shadow-cyan-500/30 group-hover:rotate-12 transition-transform">
+                <div className="w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-sm flex items-center justify-center text-white shadow-md shadow-cyan-500/30 group-hover:rotate-12 transition-transform">
                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                     <path d="M13 2L4.5 13.5H11L10 22L18.5 10.5H12L13 2Z" />
                   </svg>

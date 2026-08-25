@@ -128,7 +128,7 @@ export default async function AutoBuildsPage() {
       title: 'تجميعة اقتصادية (1080p)',
       desc: 'مثالية لألعاب الرياضات الإلكترونية بتكلفة منخفضة جداً مع الحفاظ على التوافق التام.',
       theme: 'from-emerald-500/20 to-emerald-900/10 border-emerald-500/30 hover:border-emerald-400 hover:shadow-emerald-500/20 text-emerald-400',
-      btn: 'bg-emerald-600 hover:bg-emerald-500',
+      btn: 'bg-emerald-700 hover:bg-emerald-600',
       price: ecoBuild?.price || '0.00',
       params: ecoBuild?.params || '',
     },
@@ -137,7 +137,7 @@ export default async function AutoBuildsPage() {
       title: 'تجميعة متوسطة (1440p)',
       desc: 'أداء مستقر وممتاز لجميع ألعاب القصة والشوتر بإعدادات رسومية عالية.',
       theme: 'from-blue-500/20 to-blue-900/10 border-blue-500/30 hover:border-blue-400 hover:shadow-blue-500/20 text-blue-400',
-      btn: 'bg-blue-600 hover:bg-blue-500',
+      btn: 'bg-blue-700 hover:bg-blue-600',
       price: midBuild?.price || '0.00',
       params: midBuild?.params || '',
     },
@@ -146,7 +146,7 @@ export default async function AutoBuildsPage() {
       title: 'تجميعة عليا (4K)',
       desc: 'لأقصى أداء ممكن بدون تنازلات، مصممة لأصحاب الفريمات العالية وصناع المحتوى.',
       theme: 'from-purple-500/20 to-purple-900/10 border-purple-500/30 hover:border-purple-400 hover:shadow-purple-500/20 text-purple-400',
-      btn: 'bg-purple-600 hover:bg-purple-500',
+      btn: 'bg-purple-700 hover:bg-purple-600',
       price: highBuild?.price || '0.00',
       params: highBuild?.params || '',
     }
@@ -177,13 +177,13 @@ export default async function AutoBuildsPage() {
           {displayBuilds.map((build) => (
             <div 
               key={build.id} 
-              className={`relative p-8 rounded-3xl border bg-gradient-to-br backdrop-blur-sm transition-all duration-300 shadow-lg flex flex-col ${build.theme} hover:-translate-y-2`}
+              className={`relative p-8 rounded-sm border bg-gradient-to-br backdrop-blur-sm transition-all duration-300 shadow-lg flex flex-col ${build.theme} hover:-translate-y-2`}
             >
               {/* إضاءة خلفية للبطاقة */}
-              <div className="absolute inset-0 bg-white/5 rounded-3xl opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+              <div className="absolute inset-0 bg-white/5 rounded-sm opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
 
               <div className="mb-6">
-                <span className={`inline-block px-3 py-1 bg-white/10 rounded-lg text-xs font-black uppercase tracking-widest mb-4 border border-white/5`}>
+                <span className={`inline-block px-3 py-1 bg-white/10 rounded-sm text-xs font-black uppercase tracking-widest mb-4 border border-white/5`}>
                   {build.id} TIER
                 </span>
                 <h2 className="text-2xl font-black text-white mb-3">{build.title}</h2>
@@ -201,7 +201,7 @@ export default async function AutoBuildsPage() {
                 
                 <Link 
                   href={`/builder?${build.params}`} 
-                  className={`block w-full text-center py-4 text-white font-black rounded-xl shadow-lg transition-transform active:scale-95 ${build.btn}`}
+                  className={`block w-full text-center py-4 text-white font-black rounded-sm shadow-lg transition-transform active:scale-95 ${build.btn}`}
                 >
                   استعراض التجميعة
                 </Link>
