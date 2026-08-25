@@ -224,6 +224,12 @@ export type StoreOutcome = {
   errors: string[];
   /** سعر قُرئ بنجاح لكنه ارتفاع مشبوه — يُعلَّق للمراجعة ولا يُطبَّق */
   heldPrice?: number;
+  /**
+   * لم تُجرَّب القراءة أصلاً: لا رابط، أو متجرٌ سحبه موقوف (سعر يدوي).
+   * ⚠️ ويُفرَّق عن الفشل: الفاشل يُسجَّل وقتُ محاولته، وهذا لا محاولة له —
+   * فكتابة `lastCheckedAt` عليه تجعل سعراً يدوياً يبدو مسحوباً للتوّ.
+   */
+  skipped?: boolean;
 };
 
 const emptyOutcome = (inStock: boolean): StoreOutcome => ({

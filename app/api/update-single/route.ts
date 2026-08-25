@@ -47,7 +47,12 @@ export async function POST(req: Request) {
       where: { id },
       include: {
         offers: {
-          where: { store: { active: true, scrapeMode: { not: 'off' } } },
+          /* ⚠️ لا يُستثنى المتجر الموقوف سحبه من **القائمة**، بل من
+             **الجلب** وحده (يتكفّل به scrapeComponentOffers).
+             استثناؤه هنا كان يُسقطه من حساب أرخص سعر، فيرتفع السعر
+             المعروض إلى المتجر التالي بينما شارة المتجر الأرخص ما زالت
+             تعرض سعره — رقمان متناقضان على البطاقة نفسها. */
+          where: { store: { active: true } },
           include: { store: { select: SCRAPE_STORE_SELECT } },
         },
       },

@@ -54,9 +54,12 @@ export async function scrapeComponentOffers(
       const target: OfferTarget = { name: comp.name, url: o.url, price: o.price, inStock: o.inStock };
       const base = { offerId: o.id, storeSlug: o.store.slug, storeName: o.store.name, url: o.url };
 
-      // لا رابط أو السحب موقوف لهذا المتجر → نُبقي القيم كما هي
+      /* لا رابط أو السحب موقوف لهذا المتجر → نُبقي القيم كما هي.
+         و`skipped` تُميّزه عن الفشل: لا وقتَ محاولةٍ يُكتب عليه، لكنه يبقى
+         منافساً على «أرخص سعر» بسعره المحفوظ — متجرٌ سعرُه يدويّ ليس متجراً
+         بلا سعر، وإسقاطه من المنافسة يرفع السعر المعروض بلا سبب. */
       if (!o.url || o.store.scrapeMode === 'off') {
-        return { ...base, outcome: { price: null, listPrice: undefined, inStock: o.inStock, errors: [] } };
+        return { ...base, outcome: { price: null, listPrice: undefined, inStock: o.inStock, errors: [], skipped: true } };
       }
 
       const native = NATIVE[o.store.slug];
@@ -133,9 +136,11 @@ export function resolveOfferPrices(
        المحظور يبدو "لم يُحدَّث منذ أسبوع" وهو يُفحص كل يوم. */
     const data: Record<string, any> = {
       inStock: o.inStock,
-      lastCheckedAt: new Date(),
       lastError: o.errors.length ? o.errors[0].slice(0, 300) : null,
     };
+    /* المتخطّى لا يُكتب له وقتُ فحص — لم يُفحص. ويُمسح خطؤه القديم لأنه
+       لم يعد يُحاوَل، وخطأٌ معلّق على شيءٍ لا يُحاوَل علامةٌ حمراء أبدية. */
+    if (!o.skipped) data.lastCheckedAt = new Date();
     if (o.price != null) data.price = o.price;
     if (o.listPrice !== undefined) data.listPrice = o.listPrice;
     offerUpdates.push({ offerId: r.offerId, data });
