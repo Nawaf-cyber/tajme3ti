@@ -7,6 +7,17 @@ import { compare } from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
+  /* ============ صفحاتنا لا صفحات NextAuth ============
+   *
+   * ⚠️ بلا هذا يقع المستخدم على `/api/auth/signin` — صفحةُ NextAuth
+   * الافتراضية: إنجليزية، بلا هويّة الموقع، ولا يعرف كيف وصلها. وكان
+   * ذلك يحدث في حالتين شائعتين: كلمةُ مرورٍ خاطئة، وزيارةُ صفحةٍ محمية
+   * قبل الدخول.
+   *
+   * والخطأ يُوجَّه إلى `/login` أيضاً كي يُقرأ من `?error=` ويُقال
+   * بالعربية في مكانه، بدل صفحة خطأٍ منفصلة تقول «Sign in».
+   */
+  pages: { signIn: '/login', error: '/login' },
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
