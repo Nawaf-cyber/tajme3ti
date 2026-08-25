@@ -196,7 +196,7 @@ export default function SuggestPartCard({
                 لا إرسالاً — و«اقترح قطعة أخرى» تأتي بعد الإرسال لا قبله. */}
             <button
               onClick={() => setAsking(false)}
-              className="mt-2.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+              className="mt-2.5 text-[12px] font-bold text-slate-500 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
             >
               ← رجوع للتعديل
             </button>
@@ -264,7 +264,7 @@ export default function SuggestPartCard({
 
             {/* دعوة لا شرط: التسجيل مكافأة (متابعة + محادثة)، لا بوّابة */}
             {status !== 'authenticated' && (
-              <p className="mt-2.5 text-[11px] font-bold text-slate-400 dark:text-slate-500">
+              <p className="mt-2.5 text-[12px] font-bold text-slate-500 dark:text-slate-300">
                 💡 <a href="/login" onClick={goToLogin} className="text-cyan-600 dark:text-cyan-400 underline hover:opacity-80">سجّل دخولك</a> <b>قبل</b> الإرسال لتتابع حالة اقتراحك ونردّ عليك إن احتجنا تفصيلاً.
               </p>
             )}

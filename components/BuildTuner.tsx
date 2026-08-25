@@ -341,7 +341,7 @@ export default function BuildTuner({
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-black text-sm hover:border-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-sm border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-black text-sm hover:border-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center justify-center gap-2"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -351,7 +351,7 @@ export default function BuildTuner({
       )}
 
       {open && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] overflow-hidden">
+        <div className="rounded-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] overflow-hidden">
           {/* الرأس */}
           <div className="flex items-center justify-between gap-3 p-4 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2 min-w-0">
@@ -368,9 +368,9 @@ export default function BuildTuner({
 
           {/* تعارض: نوجّه للحل، لا نمنع الاختيار */}
           {conflicts.length > 0 && (
-            <div className="mx-4 mt-4 p-3.5 rounded-xl bg-amber-500/[0.07] border border-amber-500/40">
+            <div className="mx-4 mt-4 p-3.5 rounded-sm bg-amber-500/[0.07] border border-amber-500/40">
               <div className="flex items-start gap-2.5">
-                <span className="w-6 h-6 shrink-0 rounded-lg bg-amber-900/50 text-amber-400 flex items-center justify-center text-xs font-black">!</span>
+                <span className="w-6 h-6 shrink-0 rounded-sm bg-amber-900/50 text-amber-400 flex items-center justify-center text-xs font-black">!</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[12.5px] font-black text-amber-600 dark:text-amber-400">
                     اختيارك يتطلب تغيير قطعة أخرى:
@@ -387,7 +387,7 @@ export default function BuildTuner({
                         {!c.unknown && (
                           <button
                             onClick={() => setExpanded(c.fixCat)}
-                            className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                            className="text-[10px] font-black px-2.5 py-1 rounded-sm bg-amber-500 text-white hover:bg-amber-600 transition-colors"
                           >
                             {fixCount > 0
                               ? `اختر من ${fixCount} ${CAT_META[c.fixCat]?.label || c.fixCat} متوافقة ←`
@@ -415,7 +415,7 @@ export default function BuildTuner({
               return (
                 <div
                   key={cat.id}
-                  className={`rounded-xl border transition-colors ${
+                  className={`rounded-sm border transition-colors ${
                     conflict
                       ? 'border-red-500/50 bg-red-500/[0.03]'
                       : isStaged
@@ -429,10 +429,10 @@ export default function BuildTuner({
                     className={`w-full flex items-center gap-3 p-3 text-right transition-colors ${
                       isOpen
                         ? 'bg-slate-100 dark:bg-slate-800/80 rounded-t-xl border-b-2 border-cyan-500'
-                        : 'rounded-xl'
+                        : 'rounded-sm'
                     }`}
                   >
-                    <span className="w-8 h-8 shrink-0 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm">
+                    <span className="w-8 h-8 shrink-0 rounded-sm bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm">
                       {meta.icon}
                     </span>
 
@@ -489,7 +489,7 @@ export default function BuildTuner({
                             <button
                               key={alt.comp.id}
                               onClick={() => stage(cat.name, alt.comp)}
-                              className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg border text-right transition-all ${
+                              className={`w-full flex items-center gap-2.5 p-2.5 rounded-sm border text-right transition-all ${
                                 alt.blocked
                                   ? 'border-amber-500/50 bg-amber-500/[0.05] hover:border-amber-500 hover:bg-amber-500/[0.1]'
                                   : alt.isCurrent
@@ -497,7 +497,7 @@ export default function BuildTuner({
                                   : 'border-slate-200 dark:border-slate-700 hover:border-cyan-500/60 hover:bg-cyan-500/[0.04]'
                               }`}
                             >
-                              <div className="w-9 h-9 shrink-0 rounded-lg bg-white border border-slate-200 dark:border-slate-800 p-0.5 flex items-center justify-center">
+                              <div className="w-9 h-9 shrink-0 rounded-sm bg-white border border-slate-200 dark:border-slate-800 p-0.5 flex items-center justify-center">
                                 {alt.comp.imageUrl ? (
                                   <img src={productImage(alt.comp.imageUrl)} alt="" className="max-w-full max-h-full object-contain" />
                                 ) : (
@@ -610,7 +610,7 @@ export default function BuildTuner({
               <button
                 onClick={apply}
                 disabled={!hasChanges}
-                className={`flex-1 py-3 text-white text-sm font-black rounded-xl transition-colors disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 ${
+                className={`flex-1 py-3 text-white text-sm font-black rounded-sm transition-colors disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 ${
                   conflicts.length > 0
                     ? 'bg-amber-600 hover:bg-amber-700'
                     : 'bg-emerald-600 hover:bg-emerald-700'
@@ -625,7 +625,7 @@ export default function BuildTuner({
               {hasChanges && (
                 <button
                   onClick={reset}
-                  className="px-5 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="px-5 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold rounded-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   تراجع
                 </button>
