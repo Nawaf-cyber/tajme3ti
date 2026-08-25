@@ -166,7 +166,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
           <div>
             {/* عربيّ بلا tracking: التباعد يفصل حروفاً يجب أن تتّصل، و
                 uppercase لا معنى له عليها. القاعدة في MicroLabel */}
-            <label className="block text-[12px] font-bold text-slate-400 dark:text-slate-500 mb-3">البحث</label>
+            <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-300 mb-3">البحث</label>
             <div className="relative group">
               <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                 <svg className="w-4 h-4 text-slate-400 group-focus-within:text-cyan-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -182,7 +182,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
           </div>
 
           <div>
-            <label className="block text-[12px] font-bold text-slate-400 dark:text-slate-500 mb-3">الفئة</label>
+            <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-300 mb-3">الفئة</label>
             <div className="relative group">
               <select 
                 value={selectedCat}
@@ -224,7 +224,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
               onChange={(e) => setMaxPrice(Number(e.target.value))}
               className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-600 dark:accent-cyan-500 hover:accent-cyan-500 transition-all"
             />
-            <div className="mt-3 flex justify-between text-[11px] font-bold text-slate-400 tabular-nums">
+            <div className="mt-3 flex justify-between text-[12px] font-bold text-slate-400 tabular-nums">
               <span>0</span>
               <span>{formatPrice(priceCeiling)}</span>
             </div>
@@ -250,7 +250,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
               dealsCount === 0
                 ? 'bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-700/50 cursor-not-allowed'
                 : onlyDeals
-                ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-500/30'
+                ? 'bg-rose-700 text-white border-rose-700 shadow-md shadow-rose-500/30'
                 : 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-900/40'
             }`}
           >
@@ -258,7 +258,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
             </svg>
             عليها تخفيض
-            <span className={`min-w-[22px] px-1.5 py-0.5 rounded-sm text-[11px] font-black font-mono tabular-nums ${
+            <span className={`min-w-[22px] px-1.5 py-0.5 rounded-sm text-[12px] font-black font-mono tabular-nums ${
               dealsCount === 0
                 ? 'bg-slate-200 dark:bg-slate-700 text-slate-500'
                 : onlyDeals
@@ -274,7 +274,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
 
           {/* الفرز */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px] font-bold text-slate-400 dark:text-slate-500 ml-1">الترتيب</span>
+            <span className="text-[12px] font-bold text-slate-500 dark:text-slate-300 ml-1">الترتيب</span>
             {([
               /* «الأكثر انخفاضاً» يُعرض حين يكون له معنى: في `/deals`
                  دائماً، وفي «تصفّح القطع» حين يُفعَّل فلتر التخفيضات. */
@@ -290,7 +290,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                 onClick={() => setSortBy(o.key)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-sm text-[12px] font-bold transition-all active:scale-95 border ${
                   sortBy === o.key
-                    ? 'bg-cyan-500 text-white border-cyan-500 shadow-sm shadow-cyan-500/30'
+                    ? 'bg-cyan-500 text-[#052e37] border-cyan-500 shadow-sm shadow-cyan-500/30'
                     : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:border-cyan-400 dark:hover:border-cyan-600'
                 }`}
               >
@@ -307,7 +307,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
           {/* عدد النتائج — المعروض من الإجمالي كي يعرف أن هناك المزيد */}
           {/* tabular-nums بلا font-mono: الأرقام تصطفّ (وهو المطلوب) والعربية
               تبقى على خطّ الصفحة بدل السقوط إلى بديلٍ لا يحمل محارفها */}
-          <span className="mr-auto text-[11.5px] font-bold text-slate-400 dark:text-slate-500 tabular-nums px-2">
+          <span className="mr-auto text-[12px] font-bold text-slate-500 dark:text-slate-300 tabular-nums px-2">
             {remaining > 0 ? `${visible.length} من ${filtered.length} قطعة` : `${filtered.length} قطعة`}
           </span>
         </div>
@@ -339,8 +339,8 @@ export default function ComponentsClient({ components, categories, dealsLocked =
 
                 {/* رأس تقني: كود القطعة + الفئة */}
                 <div className="flex justify-between items-center px-4 pt-3 pb-2">
-                  <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 tracking-wider">#{partCode}</span>
-                  <span className="font-mono text-[10px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 px-2 py-0.5 rounded-sm uppercase tracking-widest">
+                  <span className="font-mono text-[12px] text-slate-500 dark:text-slate-300 tracking-wider">#{partCode}</span>
+                  <span className="font-mono text-[12px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 px-2 py-0.5 rounded-sm uppercase tracking-widest">
                     {comp.category?.name}
                   </span>
                 </div>
@@ -357,7 +357,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                   />
                   {/* شارة الخصم — أعلى يمين الصورة */}
                   {comp._deal.pct > 0 && (
-                    <span className="absolute top-2 right-2 bg-rose-500 text-white text-[11px] font-black px-2 py-1 rounded-sm shadow-md shadow-rose-500/40 font-mono tabular-nums z-10">
+                    <span className="absolute top-2 right-2 bg-rose-700 text-white text-[12px] font-black px-2 py-1 rounded-sm shadow-md shadow-rose-500/40 font-mono tabular-nums z-10">
                       ‎-{comp._deal.pct}%
                     </span>
                   )}
@@ -373,7 +373,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
 
                 {/* قسم التفاصيل */}
                 <div className="p-4 flex flex-col flex-1">
-                  <p className={`text-[10px] font-black uppercase tracking-widest mb-1.5 font-mono ${brandColor(comp.brand)}`}>
+                  <p className={`text-[12px] font-black uppercase tracking-widest mb-1.5 font-mono ${brandColor(comp.brand)}`}>
                     {comp.brand}
                   </p>
                   <h3 className="text-base font-black text-slate-900 dark:text-white leading-snug line-clamp-2 h-11 mb-3" title={comp.name}>
@@ -402,7 +402,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                           </span>
                           {/* السعر قبل الخصم — مشطوباً */}
                           {comp._deal.pct > 0 && comp._deal.listPrice && (
-                            <span className="block text-[12px] font-bold text-slate-400 dark:text-slate-500 line-through mt-0.5 font-mono" dir="ltr">
+                            <span className="block text-[12px] font-bold text-slate-500 dark:text-slate-300 line-through mt-0.5 font-mono" dir="ltr">
                               {formatPrice(comp._deal.listPrice)}
                             </span>
                           )}
@@ -410,14 +410,14 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                       ) : comp.price > 0 ? (
                         <span className="font-black text-xl text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                           {formatPrice(comp.price)} <RiyalIcon size="h-5 w-5" colorClass="bg-amber-600 dark:bg-amber-400" />
-                          <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 mr-1">(غير متوفر حالياً)</span>
+                          <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 mr-1">(غير متوفر حالياً)</span>
                         </span>
                       ) : (
                         /* ⚠️ سعرُ صفرٍ ليس سعراً. كان يُعرض «0 ﷼» حرفياً — وهو
                            رقمٌ يقرأه المشتري ثمناً. القطعة تصل هذه الحال حين
                            يُحذف عرضٌ كان يشير إلى منتجٍ آخر، فيبقى السعر بلا
                            مصدر: فيُقال إنه غير معروف بدل أن يُختلق. */
-                        <span className="font-black text-sm text-slate-400 dark:text-slate-500">
+                        <span className="font-black text-sm text-slate-500 dark:text-slate-300">
                           غير متوفر — لا سعر مسجّل
                         </span>
                       )}
@@ -460,7 +460,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
               </svg>
               تحميل المزيد
-              <span className="font-mono text-[11px] font-black text-slate-400 dark:text-slate-500 tabular-nums">
+              <span className="font-mono text-[12px] font-black text-slate-500 dark:text-slate-300 tabular-nums">
                 (+{Math.min(PAGE_SIZE, remaining)})
               </span>
             </button>
@@ -472,7 +472,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                 style={{ width: `${(visible.length / filtered.length) * 100}%` }}
               ></div>
             </div>
-            <span className="text-[11.5px] font-bold text-slate-400 dark:text-slate-500 tabular-nums">
+            <span className="text-[12px] font-bold text-slate-500 dark:text-slate-300 tabular-nums">
               بقيت {remaining} قطعة
             </span>
           </div>
