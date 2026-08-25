@@ -62,7 +62,22 @@ function LoginForm() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState<null | 'google' | 'credentials' | 'link'>(null);
+  const [busy, setBusy] = useState<null | 'google' | 'credentials'>(null);
+  /* ============ كلمة المرور: بابٌ جانبيّ لا واجهة ============
+   *
+   * قِيست الحسابات: ١٠٠ مستخدماً، **٩٧ منهم بـGoogle**، وثلاثةٌ لهم كلمة
+   * مرور — اثنان منهم أدمن. فنموذجُ كلمة المرور بارزاً يُشوّش ٩٧٪ ممّن
+   * يفتح الصفحة، ولا يخدم إلا حساباتٍ ثلاثة.
+   *
+   * ولا يُحذف: هو مدخلُ الإدارة الوحيد. فيُطوى خلف نقرة.
+   *
+   * وفائدةٌ عرضية: نموذج كلمة مرورٍ بارزٌ على صفحةٍ عامّة هدفٌ لحشو بيانات
+   * الاعتماد. طيُّه لا يمنع الهجوم، لكنه يُخرجه من طريق الآليات الغبيّة.
+   *
+   * ⚠️ ويُفتح تلقائياً إن جاء خطأُ اعتمادٍ من NextAuth: من أخطأ كلمته
+   * يجب أن يجد النموذج مفتوحاً لا مطويّاً يبحث عنه.
+   */
+  const [showPassword, setShowPassword] = useState(errorCode === 'CredentialsSignin');
 
   const handleCredentialsLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,12 +89,11 @@ function LoginForm() {
 
   const handleGoogleLogin = () => { setBusy('google'); signIn('google', { callbackUrl }); };
 
-  const handleEmailLink = () => {
-    /* ⚠️ كان `alert()` — نافذةٌ نظاميّة بلغة المتصفّح تقطع الصفحة */
-    if (!email) { toast.error('اكتب بريدك أوّلاً ليصلك رابط الدخول.'); return; }
-    setBusy('link');
-    signIn('email', { email, callbackUrl });
-  };
+  /* ⚠️ حُذف من هنا زرُّ «أرسل لي رابط دخول» — كان يستدعي `signIn('email')`
+     و**لا مزوّد بريدٍ في الإعداد إطلاقاً** (Google وCredentials فقط)،
+     فكان يفشل دائماً. والدالّة كانت موجودةً قبل إعادة الصياغة، لكن
+     تسميتَها الصريحة حوّلت عطباً مخفيّاً إلى وعدٍ ظاهر — وزرٌّ يَعِد بما
+     لا يقع أسوأ من زرٍّ غامض. */
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
@@ -119,13 +133,30 @@ function LoginForm() {
               {busy === 'google' ? 'جارٍ التحويل…' : 'الدخول بواسطة Google'}
             </button>
 
-            <div className="relative flex items-center py-2 my-5">
-              <div className="flex-grow border-t border-slate-200 dark:border-slate-700/70" />
-              <span className="shrink-0 mx-4 text-[12px] font-black text-slate-500 dark:text-slate-400">أو بالبريد</span>
-              <div className="flex-grow border-t border-slate-200 dark:border-slate-700/70" />
+            {/* ٩٧ من ١٠٠ يدخلون بـGoogle — فهو المدخل، وما تحته بابٌ جانبيّ */}
+            <p className="mt-3 text-[12px] font-semibold text-slate-500 dark:text-slate-400 text-center">
+              أسرع طريقة، وبلا كلمة مرورٍ تُنسى.
+            </p>
+
+            <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-expanded={showPassword}
+                className="w-full flex items-center justify-center gap-1.5 text-[12px] font-bold text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+              >
+                دخول الإدارة بكلمة مرور
+                <svg
+                  className={`w-3.5 h-3.5 transition-transform ${showPassword ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             </div>
 
-            <form onSubmit={handleCredentialsLogin} className="space-y-4">
+            {showPassword && (
+            <form onSubmit={handleCredentialsLogin} className="space-y-4 mt-5 animate-in fade-in slide-in-from-top-1 duration-150">
               <div>
                 <label htmlFor="email" className="block text-[12px] font-black text-slate-600 dark:text-slate-300 mb-1.5">
                   البريد الإلكتروني
@@ -156,15 +187,7 @@ function LoginForm() {
                 {busy === 'credentials' ? 'جارٍ الدخول…' : 'الدخول بكلمة المرور'}
               </button>
             </form>
-
-            {/* مخرجٌ لمن لا يذكر كلمته: رابطٌ يصل بريده بدل طريقٍ مسدود */}
-            <button
-              onClick={handleEmailLink}
-              disabled={!!busy}
-              className="mt-4 w-full text-[12px] font-bold text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors disabled:opacity-60"
-            >
-              {busy === 'link' ? 'جارٍ الإرسال…' : 'لا تذكر كلمة المرور؟ أرسل لي رابط دخولٍ على بريدي'}
-            </button>
+            )}
           </div>
         </div>
 
