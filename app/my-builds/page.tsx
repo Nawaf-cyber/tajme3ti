@@ -124,6 +124,9 @@ export default function MyBuildsPage() {
   /* الفرز في الحالة لا في الرابط: المكتبة تُتصفَّح ولا تُشارَك برابطها،
      فإقحام الترتيب في العنوان يُعقّد بلا فائدة. */
   const [sort, setSort] = useState<'newest' | 'cheapest' | 'priciest'>('newest');
+  /* أيّ تجميعةٍ يحيطها الإطار السماويّ — تُعلَّم قبل أن تُفتح، كي يعرف
+     المستخدم أيّها قصد، ويبقى الإطار بعد الإغلاق فيجد نفسه عندها. */
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   /* النقر على قطعةٍ نزل سعرها: يهبط إلى تجميعتها ثم يفتحها.
    *
    * والهبوط قبل الفتح لا بعده: النافذة تغطّي الشاشة، فلو فُتحت أوّلاً لَما
@@ -140,16 +143,27 @@ export default function MyBuildsPage() {
       const r = el.getBoundingClientRect();
       return r.top >= 0 && r.bottom <= window.innerHeight;
     };
+    setHighlightedId(buildId);
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    /* ⚠️ والصحّة لا تتعلّق بنجاح الحركة: «smooth» قد لا تتقدّم خطوةً واحدة
+       (تبويبٌ خفيّ، أو متصفّحٌ لا يركّب إطاراً) فتبقى الصفحة مكانها بلا
+       خطأ — قيس ٥٥٣ بكسل فوريّاً مقابل صفرٍ ناعماً. فيُتحقَّق من الوصول
+       ويُثبَّت الموضع قسراً قبل أن تغطّي النافذة الشاشة. */
+    setTimeout(() => { if (!inView()) el?.scrollIntoView({ block: "center" }); }, 400);
+    /* ٩٠٠ لا ٤٥٠: نصفُ ثانيةٍ بعد الوصول يرى فيها الإطار على بطاقته قبل أن
+       تغطّي النافذة الشاشة. فتحٌ فوريٌّ يجعل الإبراز عملاً لا يراه أحد. */
     setTimeout(() => {
-      /* ⚠️ والصحّة لا تتعلّق بنجاح الحركة: «smooth» قد لا تتقدّم خطوةً
-         واحدة (تبويبٌ خفيّ، أو متصفّحٌ لا يركّب إطاراً) فتبقى الصفحة
-         مكانها بلا خطأ — قيس ٥٥٣ بكسل فوريّاً مقابل صفرٍ ناعماً. فيُتحقَّق
-         من الوصول ويُثبَّت الموضع قسراً قبل أن تغطّي النافذة الشاشة. */
-      if (!inView()) el?.scrollIntoView({ block: "center" });
       setSelectedBuild(build);
-    }, 450);
+    }, 900);
   };
+
+  /* يُرفع الإطار بعد ثانيتين من إغلاق النافذة لا عند فتحها: من أغلقها يبحث
+     بعينه عن مكانه، فالإطار حينها هو فائدته الحقيقية. */
+  useEffect(() => {
+    if (selectedBuild || !highlightedId) return;
+    const t = setTimeout(() => setHighlightedId(null), 2000);
+    return () => clearTimeout(t);
+  }, [selectedBuild, highlightedId]);
 
   useEffect(() => {
     fetchBuilds();
@@ -417,7 +431,15 @@ export default function MyBuildsPage() {
                      التحويم (`before:` بارتفاع صفر يكبر). الرئيسية بطاقاتُها
                      ساكنة تُعرض، وهذه بطاقاتٌ تُنقر — فالاستجابة للمس جزءٌ
                      من معناها لا زخرفة. */
-                  className="group relative overflow-hidden bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800/60 shadow-sm cursor-pointer flex flex-col transition-all hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:-translate-y-0.5 before:absolute before:inset-x-0 before:top-0 before:h-0 before:bg-gradient-to-r before:from-cyan-400 before:to-blue-500 before:transition-all hover:before:h-0.5"
+                  className={"group relative overflow-hidden bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800/60 shadow-sm cursor-pointer flex flex-col transition-all hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:-translate-y-0.5 before:absolute before:inset-x-0 before:top-0 before:h-0 before:bg-gradient-to-r before:from-cyan-400 before:to-blue-500 before:transition-all hover:before:h-0.5"
+                    + (highlightedId === build.id
+                      /* ⚠️ لون الفاصل من خلفية الصفحة نفسها لا من تخمين: الجسم
+                         `bg-[#EDF1F6] dark:bg-[#0B1120]`، و`ring-offset-slate-50`
+                         (#F8FAFC) كان يترك حلقةً أفتحَ من الصفحة تبدو خللاً.
+                         و`shadow-lg` حُذف: يخسر أمام `shadow-sm` في ترتيب الأصناف
+                         فلا أثر له — والتلوين وحده (`shadow-cyan-500/20`) يعمل. */
+                      ? " ring-2 ring-cyan-500 ring-offset-2 ring-offset-[#EDF1F6] dark:ring-offset-[#0B1120] shadow-cyan-500/20"
+                      : "")}
                   onClick={() => setSelectedBuild(build)}
                 >
                   <div className="p-5 flex-1">
