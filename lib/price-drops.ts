@@ -48,6 +48,10 @@ const LOW_WINDOW_DAYS = 30;
  * قطعةٌ أُضيفت أمس «أدنى سعرٍ لها» بالضرورة، وهذا ليس خبراً. */
 const LOW_MIN_RECORDS = 5;
 const LOW_MIN_SPAN_DAYS = 7;
+/* ⚠️ وتفاوتٌ حقيقيّ: سعرٌ لم يتحرّك طوال الشهر «أدنى سعرٍ له» بالتعريف، وهذا
+   ليس خبراً. قيس على بياناتٍ حقيقية: ٤ من ١٦ قطعةً ادّعت الأدنى وسعرُها ثابت.
+   فيُشترط أن تكون قد بلغت في الشهر ما يزيد على الحاليّ بعتبة الانخفاض. */
+const LOW_MIN_SPREAD = 1.03;
 /** فرقُ تقريبٍ في الفاصلة العشرية لا يُعدّ ارتفاعاً */
 const EPS = 0.5;
 
@@ -172,6 +176,7 @@ export async function userDropsView(
     by: ['componentId'],
     where: { componentId: { in: ids }, recordedAt: { gte: lowFrom } },
     _min: { price: true, recordedAt: true },
+    _max: { price: true },
     _count: { _all: true },
   });
   const lowOf = new Map(hist.map((h) => [h.componentId, h]));
@@ -183,6 +188,7 @@ export async function userDropsView(
        أمس أدنى سعرٍ لها بالضرورة، والادّعاء حينها كذبٌ لا اختصار. */
     if (h._count._all < LOW_MIN_RECORDS) return false;
     if (now - h._min.recordedAt.getTime() < LOW_MIN_SPAN_DAYS * 86400000) return false;
+    if ((h._max.price ?? 0) < price * LOW_MIN_SPREAD) return false;
     return price <= h._min.price + EPS;
   };
 
@@ -213,18 +219,24 @@ export async function userDropsView(
 
   const all = comps.map(base);
 
-  const fresh = all
-    .filter((d) => d.droppedAt && d.droppedAt >= since && d.pct > 0 && d.price > 0)
-    .sort((a, b) => b.pct - a.pct);
-
+  /* ⚠️ والمحفوظ يُستبعد من الاثنين: من حفظ قطعةً نقلها إلى قائمته، فبقاؤها
+     في «جديد» أيضاً يعني صفّاً مرّتين — والمستخدم يقرأ ذلك «لم يتغيّر شيء». */
   const pinned = all
     .filter((d) => d.pinnedPrice != null)
     .sort((a, b) => (a.vsPinned ?? 0) - (b.vsPinned ?? 0));
 
-  /* ما هو أدنى سعرٍ له ولم يُذكر في الجديد — لئلّا يُعرض الصفّ مرّتين */
-  const freshIds = new Set(fresh.map((d) => d.componentId));
+  const fresh = all
+    .filter((d) => d.pinnedPrice == null && d.droppedAt && d.droppedAt >= since && d.pct > 0 && d.price > 0)
+    .sort((a, b) => b.pct - a.pct);
+
+  /* ⚠️ و«أدنى سعر» ليست إعادةَ بثٍّ للأخبار: قطعةٌ نزلت هذا الشهر هي أدنى
+     سعرٍ لها بالضرورة، فلو عُرضت هنا لعادت القائمة نفسها تحت عنوانٍ آخر —
+     وهو ما وقع فعلاً: ٧ من ١٦ صفّاً كانت «جديداً» قبل ساعات. فتُستثنى كل
+     قطعةٍ لها حدثُ انخفاضٍ داخل النافذة: تلك أخذت دورها خبراً. والباقي هو
+     المقصود: ما استقرّ عند سعرٍ منخفضٍ بلا حدثٍ يخبر عنه. */
   const lowest = all
-    .filter((d) => d.atLowest && !freshIds.has(d.componentId) && d.price > 0)
+    .filter((d) => d.atLowest && d.price > 0 && d.pinnedPrice == null
+      && !(d.droppedAt && d.droppedAt >= cap))
     .sort((a, b) => b.pct - a.pct);
 
   return {

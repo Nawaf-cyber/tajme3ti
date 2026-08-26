@@ -72,8 +72,12 @@ function RowShell({ drop, onOpenBuild, children }: {
 /* السعران — مكتوبان مرّةً ويُركَّبان في موضعين حسب العرض.
    وفي «محفوظة» يكون المرجع هو سعرُه المحفوظ لا `previousPrice` عندنا. */
 function Prices({ drop, mode }: { drop: Drop; mode: 'drop' | 'pin' }) {
-  const ref = mode === 'pin' ? drop.pinnedPrice! : drop.previousPrice;
   const up = mode === 'pin' && (drop.vsPinned ?? 0) > 0;
+  /* ⚠️ ساعةَ الحفظ الفرقُ صفر: سعرٌ مشطوبٌ يساوي نفسه وشارةُ «‎-0» تقولان
+     شيئاً لم يقع. فلا مرجعَ ولا شارةَ حتى يتحرّك السعر — نفس عائلة خطأ
+     «‎-0%» الذي أمسكه الفحص أوّل مرّة. */
+  const still = mode === 'pin' && (drop.vsPinned ?? 0) === 0;
+  const ref = still ? null : mode === 'pin' ? drop.pinnedPrice! : drop.previousPrice;
   return (
     <div className="shrink-0 flex items-center gap-2.5" dir="ltr">
       <div className="text-left font-mono text-[12px] tabular-nums leading-tight">
@@ -89,7 +93,7 @@ function Prices({ drop, mode }: { drop: Drop; mode: 'drop' | 'pin' }) {
           ‎-{drop.pct}%
         </span>
       )}
-      {mode === 'pin' && (
+      {mode === 'pin' && !still && (
         /* الفرق عن سعره المحفوظ صراحةً: «ارتفع ٤٠» أو «نزل ٣٠ أكثر» */
         <span className={`w-11 text-center text-[12px] font-black px-1 py-0.5 rounded-sm tabular-nums text-white ${up ? 'bg-rose-700' : 'bg-emerald-700'}`}>
           {up ? '+' : '‎-'}{formatPrice(Math.abs(drop.vsPinned ?? 0))}
@@ -131,6 +135,8 @@ function Row({ drop, mode, inLowGroup, onOpenBuild, onPin, busy }: {
             <p className="text-[12px] font-bold text-slate-600 dark:text-slate-400 truncate">
               {up ? (
                 <span className="text-rose-700 dark:text-rose-400">انتهى الخصم</span>
+              ) : mode === 'pin' && (drop.vsPinned ?? 0) === 0 ? (
+                <span className="text-cyan-800 dark:text-cyan-300">السعر كما حفظتَه</span>
               ) : drop.atLowest && !inLowGroup ? (
                 <span className="text-emerald-700 dark:text-emerald-400">أرخص ما كانت منذ شهر</span>
               ) : (
@@ -167,14 +173,33 @@ function Row({ drop, mode, inLowGroup, onOpenBuild, onPin, busy }: {
 }
 
 /** مجموعةٌ بعنوانها وطيّها — الثلاث تتصرّف بالطريقة نفسها */
-function Group({ title, hint, drops, mode, inLowGroup, onOpenBuild, onPin, busy }: {
+function Group({ title, hint, drops, mode, inLowGroup, startCollapsed, onOpenBuild, onPin, busy }: {
   title: string; hint?: string; drops: Drop[]; mode: 'drop' | 'pin'; inLowGroup?: boolean;
+  /* تبدأ سطراً واحداً مطويّاً: مجموعةٌ لا خبرَ فيها لا تُعطى وزنَ الأخبار */
+  startCollapsed?: boolean;
   onOpenBuild?: (buildId: string) => void;
   onPin?: (componentId: string, next: boolean) => void;
   busy?: boolean;
 }) {
   const [all, setAll] = useState(false);
+  const [open, setOpen] = useState(!startCollapsed);
   if (!drops.length) return null;
+
+  /* السطر المطويّ: خبرٌ واحدٌ بدل قائمةٍ تُشبه ما اختفى للتوّ */
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)}
+        className="mt-4 first:mt-0 w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-sm border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 transition-colors text-right">
+        <span className="text-[13px] font-bold text-slate-700 dark:text-slate-300 truncate">
+          {hint}
+        </span>
+        <span className="shrink-0 text-[12px] font-black text-emerald-700 dark:text-emerald-400">
+          اعرضها ({drops.length}) ↓
+        </span>
+      </button>
+    );
+  }
+
   const shown = all ? drops : drops.slice(0, HEAD);
   const rest = drops.length - shown.length;
 
@@ -245,19 +270,23 @@ export default function DropsPanel({ view, onOpenBuild, onPin, busy }: {
           )}
         </div>
 
-        <Group title="جديد منذ زيارتك" drops={fresh} mode="drop"
-          onOpenBuild={onOpenBuild} onPin={onPin} busy={busy} />
+        {/* القاعدة مكتوبةٌ حيث تقع: من لا يعرف أنها تختفي يظنّ بقاءها عطلاً،
+            ومن يعرف يحفظ ما يريد. */}
+        <Group title="جديد منذ زيارتك" hint="تختفي بعد أن تراها — احفظ ما تريد إبقاءه"
+          drops={fresh} mode="drop" onOpenBuild={onOpenBuild} onPin={onPin} busy={busy} />
 
         <Group title="محفوظة" hint="تبقى حتى ترفعها" drops={pinned} mode="pin"
           onOpenBuild={onOpenBuild} onPin={onPin} busy={busy} />
 
-        <Group title="أرخص ما كانت منذ شهر" hint="لا جديد اليوم — لكن هذه في أدنى سعرٍ لها"
+        {/* ⚠️ مطويّةً دائماً: عرضُها صفوفاً يجعل اللوحة تبدو كما كانت قبل أن
+            تختفي الأخبار — وهو ما شكا منه المستخدم حرفيّاً. */}
+        <Group title="أرخص ما كانت منذ شهر" startCollapsed
+          hint={`لا جديد اليوم — و${showLowest.length} من قطعك في أدنى سعرٍ لها هذا الشهر`}
           drops={showLowest} mode="drop" inLowGroup onOpenBuild={onOpenBuild} onPin={onPin} busy={busy} />
 
         {/* ⚠️ ولا يُكتب «يصلك إشعار»: لا بريد ولا دفعَ ويب. المكتوب هو الواقع. */}
         <p className="mt-4 text-[12px] font-semibold text-slate-600 dark:text-slate-400">
           نرصد الأسعار يومياً وتظهر هنا حين تفتح الصفحة — لا نُرسل بريداً بعد.
-          {fresh.length > 0 && ' واحفظ ما تريد الرجوع إليه بعلامة الحفظ.'}
         </p>
       </div>
     </section>

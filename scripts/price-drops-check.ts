@@ -80,8 +80,27 @@ async function main() {
   }
   check('لكلٍّ منها ٥ قراءاتٍ فأكثر تمتدّ ٧ أيامٍ فأكثر', evidenceOk);
   check('وسعرها الحالي فعلاً هو الأدنى في السجلّ', priceOk);
-  check('ولا تُكرَّر قطعةٌ بين «جديد» و«أدنى»',
-    !v0.lowest.some((l) => v0.fresh.some((f) => f.componentId === l.componentId)));
+
+  /* ⚠️ الفحص الذي كان ناقصاً: «لا تكرار» كان يقارن القائمتين في اللحظة نفسها،
+     والتكرار يقع **عبر الزمن** — ما كان «جديداً» أمس يعود «أدنى» اليوم. وهو
+     ما شكا منه المستخدم: ٧ من ١٦ صفّاً عادت تحت عنوانٍ آخر. */
+  const wide = await userDropsView(prisma, uid, { seenAt: null });
+  const everFresh = new Set(wide.fresh.map((d) => d.componentId));
+  const quiet = await userDropsView(prisma, uid, { seenAt: new Date() });
+  check('ولا يعود «جديدُ» أمسٍ «أدنى» اليوم',
+    !quiet.lowest.some((l) => everFresh.has(l.componentId)),
+    `${quiet.lowest.filter((l) => everFresh.has(l.componentId)).length} عادت`);
+
+  /* سعرٌ ثابتٌ طوال الشهر «أدنى سعرٍ له» بالتعريف — وليس خبراً */
+  let spreadOk = true;
+  for (const d of quiet.lowest) {
+    const rows = await prisma.priceHistory.findMany({
+      where: { componentId: d.componentId, recordedAt: { gte: new Date(Date.now() - 30 * 86400000) } },
+      select: { price: true },
+    });
+    if (Math.max(...rows.map((r) => r.price)) < d.price * 1.03) spreadOk = false;
+  }
+  check('ولا تُدّعى لقطعةٍ لم يتحرّك سعرها', spreadOk);
 
   console.log('\n٥) الحفظ (داخل معاملةٍ تتراجع)');
   const target = v0.fresh[0] ?? v0.lowest[0];
@@ -101,6 +120,13 @@ async function main() {
         const vp = await userDropsView(tx as any, uid, { seenAt: new Date() });
         check(`«${target.name}» صارت محفوظة`, vp.pinned.some((d) => d.componentId === target.componentId));
         check('وتبقى بعد أن يخرج الجديدُ من النافذة', vp.fresh.length === 0 && vp.pinned.length > 0);
+
+        /* ⚠️ ولا تبقى في «جديد» أيضاً: صفٌّ في مكانين يُقرأ «لم يتغيّر شيء» */
+        const vw = await userDropsView(tx as any, uid, { seenAt: null });
+        check('ولا تُعرض في «جديد» بعد حفظها',
+          !vw.fresh.some((d) => d.componentId === target.componentId));
+        check('ولا في «أدنى» أيضاً',
+          !vw.lowest.some((d) => d.componentId === target.componentId));
         check('والسعر المحفوظ هو سعر القطعة لا رقمٌ من الطلب',
           vp.pinned.find((d) => d.componentId === target.componentId)?.pinnedPrice === comp!.price);
         check('والفرق عن المحفوظ صفرٌ ساعةَ الحفظ',
