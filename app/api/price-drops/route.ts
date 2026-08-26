@@ -1,20 +1,27 @@
 /* ============ انخفاضات أسعار قطع المستخدم ============
  *
- *   GET               → قائمة الانخفاضات + كم منها لم يره
- *   POST {seen:true}  → يُعلّمها مقروءة (تُطفأ النقطة الحمراء)
+ *   GET               → { fresh, pinned, lowest, totalSaved, unseen }
+ *   POST {seen:true}  → يُعلّمها مقروءة (تُطفأ النقطة، وتضيق النافذة)
  *
- * ⚠️ ولا إشعار يُرسَل: لا مزوّد بريدٍ في الإعداد، ولا دفعَ ويب بعد. فما
- * يقع اليوم أن المستخدم **يراها حين يفتح الموقع** — ولا يُكتب في الواجهة
- * وعدٌ بأكثر من ذلك.
+ * ⚠️ و`seen` هنا يفعل شيئين لا شيئاً واحداً: يُطفئ النقطة الحمراء، **ويُقدّم
+ * حدّ النافذة** — فما رآه لا يُعرض في الزيارة التالية. ذلك هو المقصود: خبرٌ
+ * يُعرض كلَّ يومٍ تسعةً وعشرين يوماً يصير أثاثاً يُتجاهل. ومن أراد الإمساك
+ * بواحدٍ منها فله «احفظ» في `/api/price-watch`.
+ *
+ * ⚠️ ولا إشعار يُرسَل: لا مزوّد بريدٍ في الإعداد، ولا دفعَ ويب بعد. فما يقع
+ * اليوم أن المستخدم **يراها حين يفتح الموقع** — ولا يُكتب في الواجهة وعدٌ
+ * بأكثر من ذلك.
  */
 
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '../../../lib/prisma';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { userPriceDrops } from '../../../lib/price-drops';
+import { userDropsView } from '../../../lib/price-drops';
 
 export const dynamic = 'force-dynamic';
+
+const EMPTY = { fresh: [], pinned: [], lowest: [], totalSaved: 0, unseen: 0 };
 
 async function currentUser() {
   const session = await getServerSession(authOptions);
@@ -26,18 +33,15 @@ async function currentUser() {
 export async function GET() {
   const user = await currentUser();
   /* غير المسجّل لا يُعدّ خطأً: القسم ببساطة لا يُعرض له */
-  if (!user) return NextResponse.json({ drops: [], unseen: 0 });
+  if (!user) return NextResponse.json(EMPTY);
 
   try {
-    const drops = await userPriceDrops(prisma, user.id, { seenAt: user.dropsSeenAt });
-    return NextResponse.json({
-      drops,
-      unseen: drops.filter((d) => d.unseen).length,
-      totalSaved: Math.round(drops.reduce((s, d) => s + d.saved, 0)),
-    });
+    const view = await userDropsView(prisma, user.id, { seenAt: user.dropsSeenAt });
+    /* كلّ ما في «الجديد» جديدٌ بحكم النافذة — فالعدد هو طوله لا حسابٌ ثانٍ */
+    return NextResponse.json({ ...view, unseen: view.fresh.length });
   } catch (error) {
     console.error('[GET /api/price-drops]', error);
-    return NextResponse.json({ drops: [], unseen: 0 }, { status: 500 });
+    return NextResponse.json(EMPTY, { status: 500 });
   }
 }
 

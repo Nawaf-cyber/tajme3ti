@@ -1,12 +1,19 @@
-/* ============ متابعة سعر قطعة صراحةً ============
+/* ============ متابعة سعر قطعة، وحفظ السعر الذي رآه ============
  *
- *   GET  ?id=…   → هل يتابعها؟
- *   POST {componentId}   → يتابعها
- *   DELETE {componentId} → يتوقّف
+ *   GET  ?id=…                        → هل يتابعها؟ وهل حفظ سعرها؟
+ *   POST {componentId}                → يتابعها
+ *   POST {componentId, pin:true}      → يحفظ سعرها الحالي (ويتابعها ضمناً)
+ *   POST {componentId, pin:false}     → يرفع الحفظ ويبقي المتابعة
+ *   DELETE {componentId}              → يتوقّف عن المتابعة (والحفظ معها)
  *
- * ⚠️ ولا يُسجَّل صفٌّ لقطعةٍ في تجميعةٍ له: هي متابَعةٌ تلقائياً، وتسجيلُها
- * هنا يعني حالتين تتباعدان — يحذف التجميعة فيبقى الصفّ يتيماً. فيُقال له
- * إنها متابَعةٌ أصلاً بدل أن يُكتب صفٌّ لا معنى له.
+ * ⚠️ والحفظ **ليس مفهوماً ثالثاً**: عمودان على صفّ المتابعة لا جدولٌ جديد.
+ * المستخدم يرى «متابعة» و«حفظ» شيئاً واحداً — قطعةٌ تهمّه — والفرق أنّ الحفظ
+ * يخزّن السعر الذي رآه **هو**، وهو مرجعٌ أصدق من `previousPrice` عندنا: ذاك
+ * آخر سعرٍ سجّلناه نحن، وقد لا يكون ما ظهر له على الشاشة.
+ *
+ * ⚠️ ولا يُسجَّل صفٌّ لقطعةٍ في تجميعةٍ له **للمتابعة**: هي متابَعةٌ تلقائياً،
+ * وتسجيلُها يعني حالتين تتباعدان. أمّا **الحفظ** فيُسجَّل لها: حفظُ سعرٍ رآه
+ * معلومةٌ لا تستنبطها التجميعة، فالصفّ هنا يحمل السعر لا المتابعة.
  */
 
 import { NextResponse } from 'next/server';
@@ -25,21 +32,28 @@ async function userId() {
 export async function GET(req: Request) {
   const uid = await userId();
   const id = new URL(req.url).searchParams.get('id');
-  if (!uid || !id) return NextResponse.json({ watching: false, viaBuild: false });
+  if (!uid || !id) return NextResponse.json({ watching: false, viaBuild: false, pinned: false });
 
   try {
-    const { fromBuild } = await watchedComponentIds(prisma, uid);
-    if (fromBuild.has(id)) {
-      return NextResponse.json({ watching: true, viaBuild: true, buildName: fromBuild.get(id)?.name });
+    const { fromBuild, pins } = await watchedComponentIds(prisma, uid);
+    const pin = pins.get(id);
+    const build = fromBuild.get(id);
+    if (build) {
+      return NextResponse.json({
+        watching: true, viaBuild: true, buildName: build.name,
+        pinned: !!pin, pinnedPrice: pin?.price ?? null,
+      });
     }
     const row = await prisma.priceWatch.findUnique({
       where: { userId_componentId: { userId: uid, componentId: id } },
       select: { id: true },
     });
-    return NextResponse.json({ watching: !!row, viaBuild: false });
+    return NextResponse.json({
+      watching: !!row, viaBuild: false, pinned: !!pin, pinnedPrice: pin?.price ?? null,
+    });
   } catch (error) {
     console.error('[GET /api/price-watch]', error);
-    return NextResponse.json({ watching: false, viaBuild: false }, { status: 500 });
+    return NextResponse.json({ watching: false, viaBuild: false, pinned: false }, { status: 500 });
   }
 }
 
@@ -47,21 +61,50 @@ export async function POST(req: Request) {
   const uid = await userId();
   if (!uid) return NextResponse.json({ error: 'سجّل دخولك لتتابع الأسعار.' }, { status: 401 });
 
-  const { componentId } = await req.json().catch(() => ({}));
+  const { componentId, pin } = await req.json().catch(() => ({}) as any);
   if (!componentId) return NextResponse.json({ error: 'القطعة مطلوبة' }, { status: 400 });
 
   try {
-    const exists = await prisma.component.findUnique({ where: { id: componentId }, select: { id: true } });
-    if (!exists) return NextResponse.json({ error: 'القطعة غير موجودة' }, { status: 404 });
+    const comp = await prisma.component.findUnique({
+      where: { id: componentId }, select: { id: true, price: true },
+    });
+    if (!comp) return NextResponse.json({ error: 'القطعة غير موجودة' }, { status: 404 });
 
     const { fromBuild } = await watchedComponentIds(prisma, uid);
-    if (fromBuild.has(componentId)) {
+    const viaBuild = fromBuild.has(componentId);
+
+    /* ===== حفظ السعر / رفعه ===== */
+    if (pin !== undefined) {
+      if (pin) {
+        /* ⚠️ السعر يُقرأ من قاعدة البيانات لا من جسم الطلب: لو أُرسل من
+           المتصفّح لَحفظ من شاء ما شاء، فيُشطب لاحقاً مقابل رقمٍ مخترع. */
+        await prisma.priceWatch.upsert({
+          where: { userId_componentId: { userId: uid, componentId } },
+          create: { userId: uid, componentId, pinnedPrice: comp.price, pinnedAt: new Date() },
+          update: { pinnedPrice: comp.price, pinnedAt: new Date() },
+        });
+        return NextResponse.json({ watching: true, viaBuild, pinned: true, pinnedPrice: comp.price });
+      }
+      /* رفعُ الحفظ لا يُلغي المتابعة — إلا إن كانت المتابعة من الحفظ وحده
+         (قطعةٌ في تجميعته: صفُّها وُجد ليحمل السعر، فلا معنى لبقائه فارغاً) */
+      if (viaBuild) {
+        await prisma.priceWatch.deleteMany({ where: { userId: uid, componentId } });
+      } else {
+        await prisma.priceWatch.updateMany({
+          where: { userId: uid, componentId },
+          data: { pinnedPrice: null, pinnedAt: null },
+        });
+      }
+      return NextResponse.json({ watching: true, viaBuild, pinned: false });
+    }
+
+    /* ===== متابعة ===== */
+    if (viaBuild) {
       return NextResponse.json({
         watching: true, viaBuild: true, buildName: fromBuild.get(componentId)?.name,
         message: 'متابَعةٌ أصلاً لأنها في تجميعتك.',
       });
     }
-
     await prisma.priceWatch.upsert({
       where: { userId_componentId: { userId: uid, componentId } },
       create: { userId: uid, componentId },
@@ -86,7 +129,8 @@ export async function DELETE(req: Request) {
     /* ⚠️ ويبقى ما جاء من تجميعة: حذفُ المتابعة الصريحة لا يُلغي كونها في
        تجميعته. فيُعاد الوضع الحقيقيّ لا `false` دائماً. */
     const { fromBuild } = await watchedComponentIds(prisma, uid);
-    return NextResponse.json({ watching: fromBuild.has(componentId), viaBuild: fromBuild.has(componentId) });
+    const viaBuild = fromBuild.has(componentId);
+    return NextResponse.json({ watching: viaBuild, viaBuild, pinned: false });
   } catch (error) {
     console.error('[DELETE /api/price-watch]', error);
     return NextResponse.json({ error: 'تعذّر الحذف' }, { status: 500 });

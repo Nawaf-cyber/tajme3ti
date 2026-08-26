@@ -12,6 +12,22 @@
  * ⚠️ ولا يُنسخ شيء: لو كُتب صفُّ متابعةٍ لكل قطعةٍ في كل تجميعة لصارت
  * حالتان تتباعدان — يحذف تجميعةً فيبقى الصفّ يتيماً، أو يبدّل قطعةً فلا
  * يُبدَّل الصفّ. فالتجميعة هي المصدر، وتُقرأ لحظةَ السؤال.
+ *
+ * ============ خبرٌ وحال ============
+ *
+ * أوّل صياغةٍ خلطت الاثنين: نافذةٌ ثابتة ٣٠ يوماً، فمن فتح اللوحة اليوم
+ * ورجع غداً رأى **نفس الصفوف حرفيّاً** تسعةً وعشرين يوماً. والنقطة الحمراء
+ * تنطفئ والمحتوى لا يتغيّر — وهذا يعلّم المستخدم تجاهل القسم.
+ *
+ *   **خبر**: «نزل سعر الكرت ٥٪» — يفيد مرّةً واحدة.
+ *   **حال**: «الكرت أرخص ما كان منذ شهر» — يفيد كلّ يومٍ حتى يكذب.
+ *
+ * فصار الفصل صريحاً في ثلاث مجموعات:
+ *
+ *   `fresh`  — ما نزل **منذ آخر زيارته** (من `dropsSeenAt`)، فيفرغ نفسه.
+ *   `pinned` — ما حفظه بيده، فيبقى حتى يرفعه.
+ *   `lowest` — ما هو أدنى سعرٍ له منذ شهر: حالٌ يستحقّ التكرار لأنه صحيحٌ
+ *              اليوم لا لأنه وقع أمس، ويموت وحده حين يرتفع السعر.
  */
 
 import type { PrismaClient } from '@prisma/client';
@@ -22,6 +38,19 @@ export const BUILD_PART_COLUMNS = [
   'cpuId', 'gpuId', 'ramId', 'motherboardId', 'caseId', 'psuId', 'storageId', 'coolerId',
 ] as const;
 
+/** أقصى ما يُنظَر إليه إلى الوراء، مهما طال غيابه */
+const MAX_WINDOW_DAYS = 30;
+
+/** نافذة «أدنى سعر» */
+const LOW_WINDOW_DAYS = 30;
+
+/* شروط ادّعاء «أدنى سعر منذ شهر» — بلا هذه يكون الادّعاء كاذباً:
+ * قطعةٌ أُضيفت أمس «أدنى سعرٍ لها» بالضرورة، وهذا ليس خبراً. */
+const LOW_MIN_RECORDS = 5;
+const LOW_MIN_SPAN_DAYS = 7;
+/** فرقُ تقريبٍ في الفاصلة العشرية لا يُعدّ ارتفاعاً */
+const EPS = 0.5;
+
 export type Drop = {
   componentId: string;
   name: string;
@@ -29,27 +58,48 @@ export type Drop = {
   categoryName: string;
   imageUrl: string | null;
   price: number;
-  previousPrice: number;
-  droppedAt: Date;
-  /** نسبة الانخفاض مقرَّبة */
+  previousPrice: number | null;
+  droppedAt: Date | null;
+  /** نسبة الانخفاض مقرَّبة (٠ إن لم يكن ثمّة انخفاضٌ مسجَّل) */
   pct: number;
   /** كم وفّر بالريال */
   saved: number;
   /** من أين جاءت المتابعة — يُعرض للمستخدم كي يعرف لماذا يراها */
   source: 'build' | 'watch';
-  /** اسم التجميعة إن كان المصدر تجميعة */
+  /** اسم التجميعة ومعرّفها إن كان المصدر تجميعة */
   buildName?: string;
-  /** ومعرّفها — النقر يفتحها في «تجميعاتي» لا يذهب إلى صفحة القطعة */
   buildId?: string;
-  /** لم يره بعد */
-  unseen: boolean;
+  /** أدنى سعرٍ لها منذ شهر — حالٌ لا خبر */
+  atLowest: boolean;
+  /** السعر الذي حفظه المستخدم بيده، وتاريخه */
+  pinnedPrice?: number;
+  pinnedAt?: Date;
+  /** الفرق عن المحفوظ: سالبٌ = نزل أكثر، موجبٌ = ارتفع فانتهى الخصم */
+  vsPinned?: number;
 };
+
+export type DropsView = {
+  /** ما جدّ منذ آخر زيارته */
+  fresh: Drop[];
+  /** ما حفظه بيده */
+  pinned: Drop[];
+  /** أدنى سعرٍ منذ شهر — يُعرض حين لا جديد */
+  lowest: Drop[];
+  /** مجموع ما وفّره الجديد */
+  totalSaved: number;
+};
+
+type Pin = { price: number; at: Date };
 
 /** القطع التي يتابعها المستخدم: قطع تجميعاته + متابعاته الصريحة */
 export async function watchedComponentIds(
   prisma: PrismaClient,
   userId: string,
-): Promise<{ ids: string[]; fromBuild: Map<string, { id: string; name: string }> }> {
+): Promise<{
+  ids: string[];
+  fromBuild: Map<string, { id: string; name: string }>;
+  pins: Map<string, Pin>;
+}> {
   const builds = await prisma.savedBuild.findMany({
     where: { userId },
     select: {
@@ -73,74 +123,114 @@ export async function watchedComponentIds(
 
   const watches = await prisma.priceWatch.findMany({
     where: { userId },
-    select: { componentId: true },
+    select: { componentId: true, pinnedPrice: true, pinnedAt: true },
   });
 
+  const pins = new Map<string, Pin>();
+  for (const w of watches) {
+    if (w.pinnedPrice != null && w.pinnedAt) pins.set(w.componentId, { price: w.pinnedPrice, at: w.pinnedAt });
+  }
+
   const ids = new Set<string>([...fromBuild.keys(), ...watches.map((w) => w.componentId)]);
-  return { ids: [...ids], fromBuild };
+  return { ids: [...ids], fromBuild, pins };
 }
 
 /**
- * انخفاضات قطع المستخدم خلال `days` يوماً.
+ * اللوحة كاملةً: الجديد، والمحفوظ، والأدنى منذ شهر.
  *
- * ⚠️ ويُشترط أن يكون السعر الحالي **أقلّ** من السابق فعلاً: الحقلان
- * يُكتبان عند رصد الانخفاض، لكن السعر قد يعود بعده — وعرضُ انخفاضٍ ارتفع
- * ثانيةً يُرسل المشتري إلى سعرٍ لم يعد موجوداً.
+ * ⚠️ ويُشترط في الجديد أن يكون السعر الحالي **أقلّ** من السابق فعلاً:
+ * الحقلان يُكتبان عند رصد الانخفاض، لكن السعر قد يعود بعده — وعرضُ انخفاضٍ
+ * ارتفع ثانيةً يُرسل المشتري إلى سعرٍ لم يعد موجوداً.
  */
-export async function userPriceDrops(
+export async function userDropsView(
   prisma: PrismaClient,
   userId: string,
-  opts: { days?: number; seenAt?: Date | null } = {},
-): Promise<Drop[]> {
-  const days = opts.days ?? 30;
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  opts: { seenAt?: Date | null } = {},
+): Promise<DropsView> {
+  const { ids, fromBuild, pins } = await watchedComponentIds(prisma, userId);
+  if (!ids.length) return { fresh: [], pinned: [], lowest: [], totalSaved: 0 };
 
-  const { ids, fromBuild } = await watchedComponentIds(prisma, userId);
-  if (!ids.length) return [];
+  const now = Date.now();
+  const cap = new Date(now - MAX_WINDOW_DAYS * 86400000);
+  /* النافذة من آخر زيارته لا من ٣٠ يوماً ثابتة — لكن بسقفٍ ٣٠: من غاب
+     شهرين لا يُغرَق بشهرين، ومن رجع غداً يرى ما جدّ أمس فقط. */
+  const seen = opts.seenAt ?? null;
+  const since = seen && seen > cap ? seen : cap;
 
   const comps = await prisma.component.findMany({
-    where: {
-      id: { in: ids },
-      priceDroppedAt: { gte: since },
-      previousPrice: { not: null },
-    },
+    where: { id: { in: ids } },
     select: {
       id: true, name: true, brand: true, imageUrl: true,
       price: true, previousPrice: true, priceDroppedAt: true,
       category: { select: { name: true } },
     },
-    orderBy: { priceDroppedAt: 'desc' },
   });
 
-  const seen = opts.seenAt ?? null;
+  /* أدنى سعرٍ مسجَّل لكلٍّ منها خلال الشهر، مع ما يكفي للحكم */
+  const lowFrom = new Date(now - LOW_WINDOW_DAYS * 86400000);
+  const hist = await prisma.priceHistory.groupBy({
+    by: ['componentId'],
+    where: { componentId: { in: ids }, recordedAt: { gte: lowFrom } },
+    _min: { price: true, recordedAt: true },
+    _count: { _all: true },
+  });
+  const lowOf = new Map(hist.map((h) => [h.componentId, h]));
 
-  /* ⚠️ العتبة من `dropPercent` المشتركة لا من حسابٍ هنا.
-   *
-   * أوّل صياغةٍ حسبت النسبة بنفسها، فأعطت «‎-0%» لقطعةٍ نزلت ريالاً واحداً
-   * (459 ← 458) — وتنبيهٌ بانخفاضِ صفرٍ أسوأ من الصمت. والعتبة موجودةٌ في
-   * الموقع أصلاً (٣٪، وسقفُ ٥٠٪ لما فوقه خطأُ قراءة) ويستعملها قسم
-   * الرئيسية. فحسابان يعنيان رقمين مختلفين على الشاشة نفسها.
-   */
-  return comps
-    .map((c) => ({ c, pct: dropPercent(c.previousPrice, c.price) }))
-    .filter(({ c, pct }) => pct > 0 && c.price > 0)
-    .map(({ c, pct }) => {
-      const prev = c.previousPrice!;
-      return {
-        componentId: c.id,
-        name: c.name,
-        brand: c.brand,
-        categoryName: c.category.name,
-        imageUrl: c.imageUrl,
-        price: c.price,
-        previousPrice: prev,
-        droppedAt: c.priceDroppedAt!,
-        pct,
-        saved: Math.round((prev - c.price) * 100) / 100,
-        source: fromBuild.has(c.id) ? 'build' : 'watch',
-        buildName: fromBuild.get(c.id)?.name,
-        buildId: fromBuild.get(c.id)?.id,
-        unseen: !seen || c.priceDroppedAt! > seen,
-      } satisfies Drop;
-    });
+  const isAtLowest = (id: string, price: number): boolean => {
+    const h = lowOf.get(id);
+    if (!h || h._min.price == null || !h._min.recordedAt) return false;
+    /* بلا قراءاتٍ كافيةٍ ولا مدّةٍ كافية لا يُقال «أدنى سعر»: قطعةٌ أُضيفت
+       أمس أدنى سعرٍ لها بالضرورة، والادّعاء حينها كذبٌ لا اختصار. */
+    if (h._count._all < LOW_MIN_RECORDS) return false;
+    if (now - h._min.recordedAt.getTime() < LOW_MIN_SPAN_DAYS * 86400000) return false;
+    return price <= h._min.price + EPS;
+  };
+
+  const base = (c: (typeof comps)[number]): Drop => {
+    const b = fromBuild.get(c.id);
+    const pin = pins.get(c.id);
+    const pct = c.previousPrice != null ? dropPercent(c.previousPrice, c.price) : 0;
+    return {
+      componentId: c.id,
+      name: c.name,
+      brand: c.brand,
+      categoryName: c.category.name,
+      imageUrl: c.imageUrl,
+      price: c.price,
+      previousPrice: c.previousPrice,
+      droppedAt: c.priceDroppedAt,
+      pct,
+      saved: c.previousPrice != null ? Math.round((c.previousPrice - c.price) * 100) / 100 : 0,
+      source: b ? 'build' : 'watch',
+      buildName: b?.name,
+      buildId: b?.id,
+      atLowest: isAtLowest(c.id, c.price),
+      pinnedPrice: pin?.price,
+      pinnedAt: pin?.at,
+      vsPinned: pin ? Math.round((c.price - pin.price) * 100) / 100 : undefined,
+    };
+  };
+
+  const all = comps.map(base);
+
+  const fresh = all
+    .filter((d) => d.droppedAt && d.droppedAt >= since && d.pct > 0 && d.price > 0)
+    .sort((a, b) => b.pct - a.pct);
+
+  const pinned = all
+    .filter((d) => d.pinnedPrice != null)
+    .sort((a, b) => (a.vsPinned ?? 0) - (b.vsPinned ?? 0));
+
+  /* ما هو أدنى سعرٍ له ولم يُذكر في الجديد — لئلّا يُعرض الصفّ مرّتين */
+  const freshIds = new Set(fresh.map((d) => d.componentId));
+  const lowest = all
+    .filter((d) => d.atLowest && !freshIds.has(d.componentId) && d.price > 0)
+    .sort((a, b) => b.pct - a.pct);
+
+  return {
+    fresh,
+    pinned,
+    lowest,
+    totalSaved: Math.round(fresh.reduce((s, d) => s + d.saved, 0)),
+  };
 }

@@ -509,6 +509,18 @@ model PriceWatch {
   component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
 
+  /* «احفظ هذا السعر» — عمودان لا جدولٌ ثالث.
+   *
+   * المستخدم يرى «متابعة» و«حفظ» شيئاً واحداً: قطعةٌ تهمّه. والفرق أنّ
+   * المتابعة تحفظ القطعة، والحفظ يحفظ **السعر الذي رآه هو** معها — وهو
+   * مرجعٌ أصدق من previousPrice عندنا (ذاك آخر سعرٍ سجّلناه نحن، لا ما رآه).
+   *
+   * ⚠️ وجدولٌ ثالثٌ كان سيعني حالةً ثالثة تتباعد عن الاثنتين — نفس السبب
+   * الذي منع نسخ قطع التجميعات إلى هنا.
+   */
+  pinnedPrice Float?
+  pinnedAt    DateTime?
+
   // متابعةٌ واحدة لكل مستخدمٍ لكل قطعة
   @@unique([userId, componentId])
   @@index([userId])
