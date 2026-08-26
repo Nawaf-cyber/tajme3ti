@@ -62,19 +62,34 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  /* تحديثات طلبات القطع التي لم يرها — نقطة على "تجميعاتي" */
-  const [unseen, setUnseen] = useState(0);
+  /* ما لم يره على "تجميعاتي": تحديثات طلبات القطع + انخفاضات أسعار قطعه.
+     الوجهة واحدة، فالنقطة واحدة — نقطتان متجاورتان على زرٍّ واحد ضجيج. */
+  const [reqUnseen, setReqUnseen] = useState(0);
+  const [dropUnseen, setDropUnseen] = useState(0);
+  const unseen = reqUnseen + dropUnseen;
   const accountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (!session) { setUnseen(0); return; }
+    if (!session) { setReqUnseen(0); setDropUnseen(0); return; }
     fetch('/api/part-requests/unseen')
       .then((r) => r.json())
-      .then((d) => setUnseen(Number(d?.unseen) || 0))
+      .then((d) => setReqUnseen(Number(d?.unseen) || 0))
+      .catch(() => {});
+    fetch('/api/price-drops')
+      .then((r) => r.json())
+      .then((d) => setDropUnseen(Number(d?.unseen) || 0))
       .catch(() => {});
   }, [session]);
+
+  /* النافبار في الـlayout فلا يُعاد تركيبه بين الصفحات: لولا هذا لبقيت
+     النقطة حمراء بعد أن قرأ الانخفاضات فعلاً، حتى يُحدّث الصفحة. */
+  useEffect(() => {
+    const clear = () => setDropUnseen(0);
+    window.addEventListener('drops-seen', clear);
+    return () => window.removeEventListener('drops-seen', clear);
+  }, []);
 
   /* الانتقال يُغلق كل ما هو مفتوح — وإلا بقيت القائمة معلّقة فوق الصفحة الجديدة */
   useEffect(() => { setIsMobileMenuOpen(false); setAccountOpen(false); }, [pathname]);
@@ -207,7 +222,7 @@ export default function Navbar() {
                   <Icon d={ICONS.builds} />
                   تجميعاتي
                   {unseen > 0 && (
-                    <span className="relative flex h-2 w-2" title={`${unseen} تحديث على طلباتك`}>
+                    <span className="relative flex h-2 w-2" title={dropUnseen > 0 && reqUnseen === 0 ? `${dropUnseen} قطعة نزل سعرها` : `${unseen} تحديث في تجميعاتي`}>
                       <span className="absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-70 animate-ping" />
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
                     </span>
@@ -330,7 +345,7 @@ export default function Navbar() {
                   <Icon className="w-5 h-5" d={ICONS.builds} />
                   تجميعاتي المحفوظة
                   {unseen > 0 && (
-                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center tabular-nums">
+                    <span className="min-w-[20px] h-[20px] px-1 rounded-full bg-rose-500 text-white text-[12px] font-black flex items-center justify-center tabular-nums">
                       {unseen}
                     </span>
                   )}

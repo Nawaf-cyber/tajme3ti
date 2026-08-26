@@ -11,6 +11,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { isAvailable } from '../../lib/stores';
 import MyPartRequests from './MyPartRequests';
+import PriceDropsForUser from '../../components/PriceDropsForUser';
 import { productImage } from '../../lib/image';
 import { catMeta, BUILD_ORDER } from '../../lib/category-meta';
 import { timeAgoAr, exactAr, isPriceStale } from '../../lib/time-ago';
@@ -323,6 +324,10 @@ export default function MyBuildsPage() {
             </p>
           </div>
         )}
+
+        /* ===== نزلت أسعارها — قبل طلبات القطع: خبرٌ يخصّ ما بناه
+           بالفعل، وأقربُ إلى سبب زيارته من طلبٍ ينتظر ردّاً ===== */
+        <PriceDropsForUser />
 
         {/* ===== طلبات القطع (يظهر فقط إن طلب المستخدم شيئاً) ===== */}
         <MyPartRequests />

@@ -76,6 +76,7 @@ model Component {
   offers      ComponentOffer[]   // عروض المتاجر — المصدر الجديد بدل الأعمدة الثابتة أعلاه
   priceReviews PriceReview[]
   priceReports PriceReport[]
+  priceWatches PriceWatch[]  // من يتابع سعرها صراحةً
 
   @@index([categoryId])
 }
@@ -265,10 +266,16 @@ model User {
   role          Role         @default(USER)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @default(now()) @updatedAt // متطلب لـ NextAuth
+  /* آخر مرّة اطّلع فيها على انخفاضات أسعار قطعه.
+     تُقارَن بـ`Component.priceDroppedAt`: أحدث منها = انخفاضٌ لم يره،
+     وعليها تقوم النقطة الحمراء على «تجميعاتي». null = لم يفتحها قط. */
+  dropsSeenAt   DateTime?
+
   builds        SavedBuild[] // ربط المستخدم بتجميعاته المحفوظة
   suggestions   Suggestion[] // إضافة هذا السطر
   partVotes     PartVote[]   // طلبات القطع الناقصة التي أرسلها
   partMessages  PartRequestMessage[] // ردوده على استيضاحات الإدارة
+  priceWatches  PriceWatch[] // قطعٌ يتابع سعرها صراحةً (خارج تجميعاته)
   accounts      Account[]    // متطلب لـ NextAuth
   sessions      Session[]    // متطلب لـ NextAuth
 }
@@ -481,4 +488,28 @@ model PriceHistory {
   @@index([componentId, recordedAt])
   // فهرس ثانٍ لصفحة الصفقات: أحدث الأسعار عبر كل القطع.
   @@index([recordedAt])
+}
+/* ============ متابعة سعر قطعة ============
+ *
+ * ⚠️ هذا الجدول **للمتابعة الصريحة وحدها** — القطع التي يختارها المستخدم
+ * وليست في أيّ تجميعةٍ له.
+ *
+ * أمّا قطع تجميعاته المحفوظة فمتابَعةٌ **تلقائياً بلا صفٍّ هنا**: قِيست
+ * فوُجدت ٤٠٧ أزواج (مستخدم × قطعة) موجودةً أصلاً بلا أي عملٍ منه. ونسخُها
+ * إلى جدولٍ ثانٍ يعني حالتين تتباعدان — يحذف تجميعةً فيبقى صفُّ المتابعة
+ * يتيماً، أو يبدّل قطعةً فلا يُبدَّل الصفّ.
+ *
+ * فالمصدر واحد: التجميعة نفسها. وهذا الجدول يضيف إليها ولا ينسخها.
+ */
+model PriceWatch {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  componentId String
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  // متابعةٌ واحدة لكل مستخدمٍ لكل قطعة
+  @@unique([userId, componentId])
+  @@index([userId])
 }
