@@ -14,9 +14,32 @@ import { formatPrice } from '../lib/price';
 export type Drop = {
   componentId: string; name: string; brand: string; categoryName: string;
   imageUrl: string | null; price: number; previousPrice: number;
-  pct: number; saved: number; source: 'build' | 'watch'; buildName?: string; unseen: boolean;
+  pct: number; saved: number; source: 'build' | 'watch'; unseen: boolean;
+  /* اسم التجميعة ومعرّفها — النقر يفتحها بدل الذهاب إلى صفحة القطعة */
+  buildName?: string; buildId?: string;
 };
 
+
+/* غلافُ البطاقة: زرٌّ يفتح التجميعة، أو رابطٌ إلى صفحة القطعة.
+   ⚠️ ومحتواها مكتوبٌ مرّةً واحدة — نسخُه في فرعين يعني تعديلاً يُنسى في أحدهما. */
+function CardShell({ drop, onOpenBuild, children }: {
+  drop: Drop; onOpenBuild?: (buildId: string) => void; children: React.ReactNode;
+}) {
+  const cls = "group flex items-center gap-3 p-3 rounded-sm border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 bg-white/60 dark:bg-[#0B1120]/40 transition-colors";
+  if (drop.source === 'build' && drop.buildId && onOpenBuild) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenBuild(drop.buildId!)}
+        className={cls + ' w-full text-right'}
+        title={`افتح «${drop.buildName}»`}
+      >
+        {children}
+      </button>
+    );
+  }
+  return <Link href={`/components/${drop.componentId}`} className={cls}>{children}</Link>;
+}
 
 const RiyalIcon = ({ size = 'h-3.5 w-3.5', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }) => (
   <div className={`${size} ${colorClass} inline-block shrink-0 align-middle`} style={{
@@ -26,8 +49,12 @@ const RiyalIcon = ({ size = 'h-3.5 w-3.5', colorClass = 'bg-emerald-600 dark:bg-
   }} />
 );
 
-export default function DropsPanel({ drops, unseen, totalSaved }: {
+export default function DropsPanel({ drops, unseen, totalSaved, onOpenBuild }: {
   drops: Drop[]; unseen: number; totalSaved: number;
+  /* يُمرَّر من «تجميعاتي» وحدها: هناك التجميعة على الصفحة نفسها فتُفتح.
+     وحيث لا يُمرَّر تبقى البطاقة رابطاً إلى صفحة القطعة — زرٌّ لا يفعل
+     شيئاً أسوأ من رابطٍ يذهب إلى مكانٍ آخر. */
+  onOpenBuild?: (buildId: string) => void;
 }) {
   /* لا شيء يُعرض قبل الجواب ولا حين لا انخفاض: قسمٌ فارغٌ يقول «لا جديد»
      في كل زيارة يشغل مكاناً ولا يفيد. */
@@ -66,10 +93,7 @@ export default function DropsPanel({ drops, unseen, totalSaved }: {
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {drops.map((d) => (
             <li key={d.componentId}>
-              <Link
-                href={`/components/${d.componentId}`}
-                className="group flex items-center gap-3 p-3 rounded-sm border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 bg-white/60 dark:bg-[#0B1120]/40 transition-colors"
-              >
+              <CardShell drop={d} onOpenBuild={onOpenBuild}>
                 <div className="relative shrink-0 w-14 h-14 rounded-sm bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden">
                   <img
                     src={productImage(d.imageUrl)} alt={d.name}
@@ -99,7 +123,7 @@ export default function DropsPanel({ drops, unseen, totalSaved }: {
                     {d.source === 'build' ? `في «${d.buildName}»` : 'تتابعها'}
                   </p>
                 </div>
-              </Link>
+              </CardShell>
             </li>
           ))}
         </ul>

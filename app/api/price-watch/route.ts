@@ -30,7 +30,7 @@ export async function GET(req: Request) {
   try {
     const { fromBuild } = await watchedComponentIds(prisma, uid);
     if (fromBuild.has(id)) {
-      return NextResponse.json({ watching: true, viaBuild: true, buildName: fromBuild.get(id) });
+      return NextResponse.json({ watching: true, viaBuild: true, buildName: fromBuild.get(id)?.name });
     }
     const row = await prisma.priceWatch.findUnique({
       where: { userId_componentId: { userId: uid, componentId: id } },
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     const { fromBuild } = await watchedComponentIds(prisma, uid);
     if (fromBuild.has(componentId)) {
       return NextResponse.json({
-        watching: true, viaBuild: true, buildName: fromBuild.get(componentId),
+        watching: true, viaBuild: true, buildName: fromBuild.get(componentId)?.name,
         message: 'متابَعةٌ أصلاً لأنها في تجميعتك.',
       });
     }

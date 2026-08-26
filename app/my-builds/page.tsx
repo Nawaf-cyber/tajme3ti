@@ -124,6 +124,32 @@ export default function MyBuildsPage() {
   /* الفرز في الحالة لا في الرابط: المكتبة تُتصفَّح ولا تُشارَك برابطها،
      فإقحام الترتيب في العنوان يُعقّد بلا فائدة. */
   const [sort, setSort] = useState<'newest' | 'cheapest' | 'priciest'>('newest');
+  /* النقر على قطعةٍ نزل سعرها: يهبط إلى تجميعتها ثم يفتحها.
+   *
+   * والهبوط قبل الفتح لا بعده: النافذة تغطّي الشاشة، فلو فُتحت أوّلاً لَما
+   * رأى الحركة — ولَعاد بعد إغلاقها إلى موضعه القديم في الأعلى بدل بطاقته.
+   *
+   * ⚠️ ويُؤجَّل الفتح: «scrollIntoView» بسلوكٍ ناعم يبدأ الحركة ثم يعود
+   * فوراً، وتثبيتُ التمرير الذي تفرضه النافذة في اللحظة نفسها يقطعها. */
+  const openBuildById = (buildId: string) => {
+    const build = builds.find((b) => b.id === buildId);
+    if (!build) return;
+    const el = document.getElementById("build-" + buildId);
+    const inView = () => {
+      if (!el) return true;
+      const r = el.getBoundingClientRect();
+      return r.top >= 0 && r.bottom <= window.innerHeight;
+    };
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => {
+      /* ⚠️ والصحّة لا تتعلّق بنجاح الحركة: «smooth» قد لا تتقدّم خطوةً
+         واحدة (تبويبٌ خفيّ، أو متصفّحٌ لا يركّب إطاراً) فتبقى الصفحة
+         مكانها بلا خطأ — قيس ٥٥٣ بكسل فوريّاً مقابل صفرٍ ناعماً. فيُتحقَّق
+         من الوصول ويُثبَّت الموضع قسراً قبل أن تغطّي النافذة الشاشة. */
+      if (!inView()) el?.scrollIntoView({ block: "center" });
+      setSelectedBuild(build);
+    }, 450);
+  };
 
   useEffect(() => {
     fetchBuilds();
@@ -327,7 +353,7 @@ export default function MyBuildsPage() {
 
         /* ===== نزلت أسعارها — قبل طلبات القطع: خبرٌ يخصّ ما بناه
            بالفعل، وأقربُ إلى سبب زيارته من طلبٍ ينتظر ردّاً ===== */
-        <PriceDropsForUser />
+        <PriceDropsForUser onOpenBuild={openBuildById} />
 
         {/* ===== طلبات القطع (يظهر فقط إن طلب المستخدم شيئاً) ===== */}
         <MyPartRequests />
@@ -383,7 +409,8 @@ export default function MyBuildsPage() {
               
               return (
                 <div 
-                  key={build.id} 
+                  key={build.id}
+                  id={"build-" + build.id} 
                   /* السطح الزجاجيّ من الرئيسية: `bg-white/60 dark:bg-slate-900/40`
                      مع `backdrop-blur-sm` و`rounded-2xl`.
                      ⚠️ ولمسةُ هذه الصفحة: خطٌّ سماويّ يزحف من الأعلى عند

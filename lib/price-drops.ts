@@ -39,6 +39,8 @@ export type Drop = {
   source: 'build' | 'watch';
   /** اسم التجميعة إن كان المصدر تجميعة */
   buildName?: string;
+  /** ومعرّفها — النقر يفتحها في «تجميعاتي» لا يذهب إلى صفحة القطعة */
+  buildId?: string;
   /** لم يره بعد */
   unseen: boolean;
 };
@@ -47,10 +49,11 @@ export type Drop = {
 export async function watchedComponentIds(
   prisma: PrismaClient,
   userId: string,
-): Promise<{ ids: string[]; fromBuild: Map<string, string> }> {
+): Promise<{ ids: string[]; fromBuild: Map<string, { id: string; name: string }> }> {
   const builds = await prisma.savedBuild.findMany({
     where: { userId },
     select: {
+      id: true,
       name: true,
       cpuId: true, gpuId: true, ramId: true, motherboardId: true,
       caseId: true, psuId: true, storageId: true, coolerId: true,
@@ -60,11 +63,11 @@ export async function watchedComponentIds(
 
   /* أوّل تجميعةٍ تحتوي القطعة هي التي تُنسب إليها — والأحدث أولاً، فالاسم
      المعروض هو آخر ما بناه لا أوّل ما بناه. */
-  const fromBuild = new Map<string, string>();
+  const fromBuild = new Map<string, { id: string; name: string }>();
   for (const b of builds) {
     for (const col of BUILD_PART_COLUMNS) {
       const id = (b as any)[col] as string | null;
-      if (id && !fromBuild.has(id)) fromBuild.set(id, b.name);
+      if (id && !fromBuild.has(id)) fromBuild.set(id, { id: b.id, name: b.name });
     }
   }
 
@@ -135,7 +138,8 @@ export async function userPriceDrops(
         pct,
         saved: Math.round((prev - c.price) * 100) / 100,
         source: fromBuild.has(c.id) ? 'build' : 'watch',
-        buildName: fromBuild.get(c.id),
+        buildName: fromBuild.get(c.id)?.name,
+        buildId: fromBuild.get(c.id)?.id,
         unseen: !seen || c.priceDroppedAt! > seen,
       } satisfies Drop;
     });

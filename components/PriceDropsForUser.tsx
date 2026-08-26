@@ -16,7 +16,9 @@
 import { useEffect, useState } from 'react';
 import DropsPanel, { type Drop } from './DropsPanel';
 
-export default function PriceDropsForUser() {
+export default function PriceDropsForUser({ onOpenBuild }: {
+  onOpenBuild?: (buildId: string) => void;
+} = {}) {
   const [drops, setDrops] = useState<Drop[]>([]);
   const [unseen, setUnseen] = useState(0);
   const [totalSaved, setTotalSaved] = useState(0);
@@ -45,5 +47,5 @@ export default function PriceDropsForUser() {
     return () => { alive = false; };
   }, []);
 
-  return <DropsPanel drops={drops} unseen={unseen} totalSaved={totalSaved} />;
+  return <DropsPanel drops={drops} unseen={unseen} totalSaved={totalSaved} onOpenBuild={onOpenBuild} />;
 }
