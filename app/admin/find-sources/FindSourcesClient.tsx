@@ -10,7 +10,7 @@
  * رمز الطراز)، ورابطه لمن أراد أن يفتح ويتأكّد.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 type Row = {
@@ -27,15 +27,35 @@ type Row = {
 
 const CATEGORIES = ['GPU', 'RAM', 'Motherboard', 'CPU', 'Storage', 'PSU', 'Case', 'Cooler'];
 
+type SourceMeta = { slug: string; label: string; needsProxy: boolean; note: string };
+
 export default function FindSourcesClient() {
-  const [source, setSource] = useState<'microless' | 'cazasouq'>('microless');
+  /* ⚠️ القائمة تُجلب من السجلّ ولا تُكتب هنا: نسختان تتباعدان، فيظهر للأدمن
+     متجرٌ لا محرّك بحثٍ له — أو يبقى متجرٌ أُضيف مخفيّاً بلا سبب ظاهر. */
+  const [sources, setSources] = useState<SourceMeta[]>([]);
+  const [hasToken, setHasToken] = useState(true);
+  const [source, setSource] = useState<string>('');
   const [category, setCategory] = useState<string>('GPU');
   const [limit, setLimit] = useState(15);
 
   const [busy, setBusy] = useState(false);
   const [rows, setRows] = useState<Row[] | null>(null);
+  const active = sources.find((s) => s.slug === source) || null;
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [used, setUsed] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/admin/find-sources')
+      .then((r) => r.json())
+      .then((d) => {
+        const list: SourceMeta[] = Array.isArray(d.sources) ? d.sources : [];
+        setSources(list);
+        setHasToken(!!d.hasToken);
+        /* أوّل متجرٍ مجّاني هو المبدئيّ — لا نبدأ بما يستهلك رصيداً */
+        setSource((cur) => cur || (list.find((s) => !s.needsProxy) ?? list[0])?.slug || '');
+      })
+      .catch(() => {});
+  }, []);
 
   const search = async () => {
     setBusy(true);
@@ -96,25 +116,34 @@ export default function FindSourcesClient() {
           <div>
             <label className="block text-[12px] font-black text-slate-500 dark:text-slate-400 mb-1.5">المتجر</label>
             <div className="flex gap-2">
-              {([
-                { k: 'microless', label: 'مايكرولس', note: 'مجّاني' },
-                { k: 'cazasouq', label: 'كازاسوق', note: 'يستهلك رصيداً' },
-              ] as const).map((o) => (
-                <button
-                  key={o.k}
-                  onClick={() => setSource(o.k)}
-                  className={`px-4 py-2.5 rounded-sm text-[13px] font-black border transition-all active:scale-95 ${
-                    source === o.k
-                      ? 'bg-cyan-500 text-white border-cyan-500 shadow-sm shadow-cyan-500/30'
-                      : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700/60'
-                  }`}
-                >
-                  {o.label}
-                  <span className={`block text-[10px] font-bold ${source === o.k ? 'text-white/80' : 'text-slate-400'}`}>
-                    {o.note}
-                  </span>
-                </button>
-              ))}
+              {sources.length === 0 && (
+                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 py-2.5">يُحمَّل…</span>
+              )}
+              {sources.map((o) => {
+                /* متجرٌ يحتاج وسيطاً والرمز غائب: يُعرض معطَّلاً مع السبب،
+                   لا يُخفى — إخفاؤه يجعل غيابه لغزاً. */
+                const blocked = o.needsProxy && !hasToken;
+                return (
+                  <button
+                    key={o.slug}
+                    onClick={() => !blocked && setSource(o.slug)}
+                    disabled={blocked}
+                    title={blocked ? 'يحتاج SCRAPER_API_KEY غير المضبوط' : o.note}
+                    className={`px-4 py-2.5 rounded-sm text-[13px] font-black border transition-all active:scale-95 disabled:opacity-45 disabled:cursor-not-allowed ${
+                      source === o.slug
+                        /* ⚠️ cyan-500 بنصٍّ أبيض = ٢٫٣٧ فقط، والسطر تحته ١٫٩٧ — دون
+                           AA بكثير. cyan-700 يرفعه فوق ٤٫٥ ويبقي اللون هويّةً. */
+                        ? 'bg-cyan-700 text-white border-cyan-700 shadow-sm shadow-cyan-700/30'
+                        : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700/60'
+                    }`}
+                  >
+                    {o.label}
+                    <span className={`block text-[12px] font-bold ${source === o.slug ? 'text-cyan-50' : 'text-slate-500 dark:text-slate-400'}`}>
+                      {blocked ? 'بلا رمز' : o.note}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

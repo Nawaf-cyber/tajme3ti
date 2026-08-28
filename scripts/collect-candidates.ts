@@ -10,7 +10,7 @@ import 'dotenv/config';
 import { writeFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { searchMicroless } from '../lib/store-search';
+import { searchStore } from '../lib/store-search';
 import { readProduct } from './find-candidates';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
@@ -23,7 +23,7 @@ async function main() {
 
   const rows: any[] = [];
   for (const q of queries) {
-    for (const c of (await searchMicroless(q)).filter((x) => !IS_SYSTEM.test(x.title))) {
+    for (const c of (await searchStore('microless', q, '')).filter((x) => !IS_SYSTEM.test(x.title))) {
       if (have.has(c.url.replace(/\/$/, ''))) continue;
       if (rows.some((r) => r.url === c.url)) continue;
       const d = await readProduct(c.url);

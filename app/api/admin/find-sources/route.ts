@@ -17,7 +17,7 @@ import { prisma } from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { liveOffers } from '../../../../lib/stores';
 import { fingerprint, pick, type Candidate } from '../../../../lib/source-match';
-import { searchStore, type SearchSource } from '../../../../lib/store-search';
+import { searchStore, adapterFor, sourceMeta, type SearchSource } from '../../../../lib/store-search';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -37,6 +37,14 @@ const parseSpecs = (s: any) => {
   if (typeof s === 'string') { try { return JSON.parse(s); } catch { return {}; } }
   return s;
 };
+
+/* قائمة المتاجر للواجهة — مصدرها السجلّ، فلا تُكتب مرّتين */
+export async function GET() {
+  /* ⚠️ requireAdmin يُعيد البريد أو null — لا استجابةَ خطأ. وحارسٌ يقرأ
+     قيمته على أنها الخطأ يمنع الأدمن ويسمح لغيره، بلا خطأ بناء. */
+  if (!(await requireAdmin())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
+  return NextResponse.json({ sources: sourceMeta(), hasToken: !!process.env.SCRAPER_API_KEY });
+}
 
 export async function POST(req: Request) {
   if (!(await requireAdmin())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
@@ -79,13 +87,23 @@ export async function POST(req: Request) {
   }
 
   /* ---------- بحث ---------- */
-  const source: SearchSource = body?.source === 'cazasouq' ? 'cazasouq' : 'microless';
+  /* ⚠️ والمتجر يُطلب صراحةً ولا يُفترض: كانت الشرطية تُعيد «مايكرولس» لأي
+     قيمةٍ غير «كازاسوق» — فخطأٌ مطبعيّ في الاسم يبحث في متجرٍ لم يُطلب،
+     ويُعيد نتائج تبدو سليمةً وهي لمتجرٍ آخر. */
+  const source: SearchSource = String(body?.source || '');
+  const adapter = adapterFor(source);
+  if (!adapter) {
+    return NextResponse.json(
+      { error: `متجرٌ غير معروف: «${source}»`, known: sourceMeta().map((m) => m.slug) },
+      { status: 400 },
+    );
+  }
   const category: string | null = body?.category || null;
   const limit = Math.min(Math.max(Number(body?.limit) || 15, 1), 40);
 
   const token = process.env.SCRAPER_API_KEY || '';
-  if (source === 'cazasouq' && !token) {
-    return NextResponse.json({ error: 'كازاسوق يحتاج SCRAPER_API_KEY' }, { status: 400 });
+  if (adapter.needsProxy && !token) {
+    return NextResponse.json({ error: `${adapter.label} يحتاج SCRAPER_API_KEY` }, { status: 400 });
   }
 
   const all = await prisma.component.findMany({
@@ -120,15 +138,15 @@ export async function POST(req: Request) {
     });
 
     /* فاصلٌ بين الطلبات: لا نُغرق متجراً يستضيفنا، ولا نستدعي 429 */
-    await sleep(source === 'microless' ? 600 : 1200);
+    await sleep(adapter.delayMs);
   }
 
   return NextResponse.json({
     source,
     scanned: results.length,
     matched: results.filter((r) => r.match).length,
-    /* كازاسوق يمرّ عبر Scrape.do — يُقال للأدمن ما استُهلك */
-    creditsUsed: source === 'cazasouq' ? results.length : 0,
+    /* ما يمرّ عبر Scrape.do يكلّف طلباً لكل بحث — يُقال للأدمن ما استُهلك */
+    creditsUsed: adapter.needsProxy ? results.length : 0,
     results,
   });
 }

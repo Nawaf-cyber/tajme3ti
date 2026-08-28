@@ -17,7 +17,7 @@ import 'dotenv/config';
 import * as cheerio from 'cheerio';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { searchMicroless } from '../lib/store-search';
+import { searchStore } from '../lib/store-search';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';
@@ -63,7 +63,7 @@ async function main() {
     .map((c) => c.name.toLowerCase().replace(/[^a-z0-9]/g, '')));
 
   for (const q of queries) {
-    const cands = (await searchMicroless(q)).filter((c) => !IS_SYSTEM.test(c.title));
+    const cands = (await searchStore('microless', q, '')).filter((c) => !IS_SYSTEM.test(c.title));
     console.log(`\n${Y}=== ${q}${X} ${D}(${cands.length} بعد استبعاد الأجهزة الجاهزة)${X}`);
     for (const c of cands.slice(0, 10)) {
       if (haveUrls.has(c.url.replace(/\/$/, ''))) { console.log(`  ${D}— عندنا: ${c.title.slice(0, 62)}${X}`); continue; }

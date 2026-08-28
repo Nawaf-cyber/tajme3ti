@@ -11,6 +11,17 @@
  * ⚠️ ولا يُستعمل متصفّح الزائر: صفحةُ الإدارة تعمل في متصفّحه، وطلبُها إلى
  * `cazasouq.com` يُحجب بـ CORS — المتجر لا يأذن لنطاقنا بقراءة ردّه. فما
  * ينجح في متصفّحٍ نتحكّم به مباشرةً لا ينجح من صفحةٍ في نطاقنا.
+ *
+ * ============ لماذا سجلّ لا شروط ============
+ *
+ * كان اختيارُ المتجر مكتوباً باليد في **سبعة مواضع**: نوعٌ اتّحاديّ هنا،
+ * وثلاثيّةٌ في `searchStore`، وحالةٌ في صفحة الإدارة، وقائمةُ أزرارٍ فيها،
+ * وشرطُ الرمز في المسار، وفاصلُ الطلبات، وحساب الرصيد. فإضافة متجرٍ ثامنٍ
+ * تعني سبعة تعديلات، ونسيانُ أحدها لا يُنتج خطأ بناءٍ بل سلوكاً صامتاً
+ * خاطئاً — كأن يُحسب متجرٌ مدفوعٌ مجّانيّاً فيُستهلك الرصيد بلا علم.
+ *
+ * فصار المتجر **صفّاً في `ADAPTERS`**: معرّفه واسمه وكلفته وفاصله وكيف
+ * يُبنى رابط بحثه وكيف تُقرأ نتيجته. وما عداه يقرأ منه.
  */
 
 import type { Candidate } from './source-match';
@@ -18,7 +29,24 @@ import type { Candidate } from './source-match';
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';
 
-export type SearchSource = 'microless' | 'cazasouq';
+/** معرّف المتجر — يجب أن يطابق `Store.slug` في القاعدة */
+export type SearchSource = string;
+
+export type StoreAdapter = {
+  slug: SearchSource;
+  /** الاسم العربي المعروض للأدمن */
+  label: string;
+  /** يمرّ عبر Scrape.do — أي يكلّف طلباً لكل بحث */
+  needsProxy: boolean;
+  /** فاصلٌ بين طلبين بالملّي: لا نُغرق متجراً يستضيفنا ولا نستدعي 429 */
+  delayMs: number;
+  /** ملاحظةٌ تُعرض في صفحة الإدارة */
+  note: string;
+  /** رابط صفحة البحث في المتجر */
+  searchUrl: (query: string) => string;
+  /** يستخرج المرشّحين من صفحة النتائج */
+  parse: (html: string) => Candidate[];
+};
 
 const fetchText = async (url: string, timeoutMs = 25000): Promise<string> => {
   const ctrl = new AbortController();
@@ -39,9 +67,8 @@ const fetchText = async (url: string, timeoutMs = 25000): Promise<string> => {
  *     «موصى به»، فقراءته تُعطي لابتوباً مرشّحاً لطقم رام.
  *   • العنوان من `alt` الصورة لا من نصّ الرابط — هو وحده يحمل رمز الطراز.
  */
-export async function searchMicroless(query: string): Promise<Candidate[]> {
-  try {
-    const html = await fetchText('https://saudi.microless.com/search/?query=' + encodeURIComponent(query));
+function parseMicroless(html: string): Candidate[] {
+  {
     const start = html.indexOf('id="search-results-products"');
     if (start < 0) return [];
     const body = html.slice(start);
@@ -58,8 +85,6 @@ export async function searchMicroless(query: string): Promise<Candidate[]> {
       if (out.length >= 12) break;
     }
     return out;
-  } catch {
-    return [];
   }
 }
 
@@ -70,15 +95,8 @@ export async function searchMicroless(query: string): Promise<Candidate[]> {
  * صفحة النتائج، فيصير الرابط حاملاً اسم قطعتنا حرفياً — ويُخفي أن المسار
  * نفسه لمنتجٍ آخر. (وقع ذلك فعلاً على «Ryzen 5 9600x» فأخفى رابطاً ميتاً.)
  */
-export async function searchCazasouq(query: string, token: string): Promise<Candidate[]> {
-  if (!token) return [];
-  const target = 'https://www.cazasouq.com/index.php?route=product/search&search=' + encodeURIComponent(query);
-  try {
-    const html = await fetchText(
-      `https://api.scrape.do/?token=${token}&url=${encodeURIComponent(target)}`,
-      45000,
-    );
-
+function parseCazasouq(html: string): Candidate[] {
+  {
     const out: Candidate[] = [];
     const seen = new Set<string>();
     /* بطاقة المنتج: عنوانٌ داخل h4 ورابطٌ في a، والسعر في .price */
@@ -103,10 +121,62 @@ export async function searchCazasouq(query: string, token: string): Promise<Cand
       if (out.length >= 12) break;
     }
     return out;
+  }
+}
+
+/* ============ السجلّ ============
+ * إضافة متجرٍ = صفٌّ هنا. ولا شيء آخر يُعدَّل.
+ * و`slug` يجب أن يطابق `Store.slug` وإلا لم يُربَط العرض بمتجره. */
+export const ADAPTERS: StoreAdapter[] = [
+  {
+    slug: 'microless',
+    label: 'مايكرولس',
+    needsProxy: false,
+    delayMs: 600,
+    note: 'مجّاني — يستجيب لطلبٍ من خادم',
+    searchUrl: (q) => 'https://saudi.microless.com/search/?query=' + encodeURIComponent(q),
+    parse: parseMicroless,
+  },
+  {
+    slug: 'cazasouq',
+    label: 'كازاسوق',
+    needsProxy: true,
+    delayMs: 1200,
+    note: 'يستهلك رصيداً — يردّ 403 لكل طلبٍ من خادم',
+    searchUrl: (q) => 'https://www.cazasouq.com/index.php?route=product/search&search=' + encodeURIComponent(q),
+    parse: parseCazasouq,
+  },
+];
+
+export const adapterFor = (slug: string): StoreAdapter | null =>
+  ADAPTERS.find((a) => a.slug === slug) ?? null;
+
+/** ما تحتاجه صفحة الإدارة — بلا المحلّلات، فلا تُشحن إلى المتصفّح */
+export const sourceMeta = () =>
+  ADAPTERS.map(({ slug, label, needsProxy, note }) => ({ slug, label, needsProxy, note }));
+
+/**
+ * بحثٌ في متجرٍ واحد.
+ *
+ * ⚠️ ومتجرٌ غير معروفٍ يُعيد خطأً لا مصفوفةً فارغة: الفارغة تُقرأ «بحثتُ فلم
+ * أجد»، وهي كذبةٌ حين لا يكون البحث قد وقع أصلاً.
+ */
+export async function searchStore(
+  source: SearchSource,
+  query: string,
+  token: string,
+): Promise<Candidate[]> {
+  const ad = adapterFor(source);
+  if (!ad) throw new Error(`لا محرّك بحثٍ للمتجر «${source}»`);
+  if (ad.needsProxy && !token) throw new Error(`${ad.label} يحتاج SCRAPER_API_KEY`);
+
+  const target = ad.searchUrl(query);
+  const url = ad.needsProxy
+    ? `https://api.scrape.do/?token=${token}&url=${encodeURIComponent(target)}`
+    : target;
+  try {
+    return ad.parse(await fetchText(url, ad.needsProxy ? 45000 : 25000));
   } catch {
     return [];
   }
 }
-
-export const searchStore = (source: SearchSource, query: string, token: string) =>
-  source === 'microless' ? searchMicroless(query) : searchCazasouq(query, token);
