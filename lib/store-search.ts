@@ -124,6 +124,41 @@ function parseCazasouq(html: string): Candidate[] {
   }
 }
 
+/**
+ * إنفيني آرك — متجرٌ سعوديّ بالريال، ويستجيب لطلبٍ من خادم في نصف ثانية.
+ *
+ * ⚠️ والنتائج تُقرأ من `ItemList` في JSON-LD لا من وسوم البطاقات: شبكة
+ * المنتجات في Odoo تتغيّر أصنافها مع كل تحديث قالب، والقائمة المنظَّمة تحمل
+ * الاسم والرابط والصورة بعقدٍ ثابت. (وجُرّب مطابقة الروابط بالتعبير النمطيّ
+ * أوّلاً فأعادت صفراً بينما الصفحة تحمل ثمانية منتجات.)
+ *
+ * ⚠️ ولا سعر في القائمة — وهذا مقصود: `Candidate.price` اختياريّ، والسعر
+ * يُقرأ من صفحة المنتج حيث JSON-LD يحمله بعملته صراحةً.
+ */
+function parseInfiniarc(html: string): Candidate[] {
+  const out: Candidate[] = [];
+  const seen = new Set<string>();
+  for (const block of [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1])) {
+    if (!block.includes('ItemList')) continue;
+    let items: any[] = [];
+    try {
+      const j = JSON.parse(block);
+      const list = j['@type'] === 'ItemList' ? j : (j['@graph'] || []).find((x: any) => x['@type'] === 'ItemList');
+      items = list?.itemListElement ?? [];
+    } catch { continue; }
+    for (const it of items) {
+      const url = String(it?.url || '').split('?')[0];
+      const title = String(it?.name || '').replace(/\s+/g, ' ').trim();
+      if (!url.startsWith('https://www.infiniarc.com/') || !title) continue;
+      if (seen.has(url)) continue;
+      seen.add(url);
+      out.push({ url, title });
+      if (out.length >= 12) break;
+    }
+  }
+  return out;
+}
+
 /* ============ السجلّ ============
  * إضافة متجرٍ = صفٌّ هنا. ولا شيء آخر يُعدَّل.
  * و`slug` يجب أن يطابق `Store.slug` وإلا لم يُربَط العرض بمتجره. */
@@ -145,6 +180,15 @@ export const ADAPTERS: StoreAdapter[] = [
     note: 'يستهلك رصيداً — يردّ 403 لكل طلبٍ من خادم',
     searchUrl: (q) => 'https://www.cazasouq.com/index.php?route=product/search&search=' + encodeURIComponent(q),
     parse: parseCazasouq,
+  },
+  {
+    slug: 'infiniarc',
+    label: 'إنفيني آرك',
+    needsProxy: false,
+    delayMs: 700,
+    note: 'مجّاني · سعوديّ بالريال',
+    searchUrl: (q) => 'https://www.infiniarc.com/ar/shop?search=' + encodeURIComponent(q),
+    parse: parseInfiniarc,
   },
 ];
 

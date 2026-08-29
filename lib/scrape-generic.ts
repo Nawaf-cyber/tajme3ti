@@ -43,7 +43,9 @@ const scrapeUrl = (token: string, target: string, premium: boolean) =>
   `https://api.scrape.do/?token=${token}&url=${encodeURIComponent(target)}${premium ? '&super=true' : ''}`;
 
 /** يمرّ على كل كتل JSON-LD ويعيد أول كائن Product فيه سعر */
-function readJsonLd($: cheerio.CheerioAPI): {
+/* مُصدَّرة كي تُفحص على صفحةٍ حقيقية بلا استهلاك رصيد Scrape.do:
+   المحتوى يُجلب مباشرةً في الفحص، ويُمرَّر إلى القارئ نفسه الذي يعمل في الإنتاج. */
+export function readJsonLd($: cheerio.CheerioAPI): {
   price: number; listPrice: number; inStock: boolean | null; currency: string | null;
 } | null {
   const blocks = $('script[type="application/ld+json"]').toArray();
