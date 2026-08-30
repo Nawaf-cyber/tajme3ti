@@ -9,7 +9,7 @@ import StoreBuyChips from '../../components/StoreBuyChips';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { isAvailable } from '../../lib/stores';
+import { isAvailable, priceAsOf } from '../../lib/stores';
 import MyPartRequests from './MyPartRequests';
 import PriceDropsForUser from '../../components/PriceDropsForUser';
 import { productImage } from '../../lib/image';
@@ -663,16 +663,16 @@ export default function MyBuildsPage() {
 
                             {/* عمر السعر: التجميعة تُفتح بعد أسابيع، والرقم
                                 بلا تاريخه وعدٌ لا يُوفى عند المتجر. */}
-                            {(comp as any).lastScrapedAt && (
+                            {priceAsOf(comp as any) && (
                               <span
-                                title={exactAr((comp as any).lastScrapedAt)}
+                                title={exactAr(priceAsOf(comp as any))}
                                 className={`text-[10.5px] font-bold ${
-                                  isPriceStale((comp as any).lastScrapedAt)
+                                  isPriceStale(priceAsOf(comp as any))
                                     ? 'text-amber-600 dark:text-amber-400'
                                     : 'text-slate-400 dark:text-slate-500'
                                 }`}
                               >
-                                {timeAgoAr((comp as any).lastScrapedAt)}
+                                {timeAgoAr(priceAsOf(comp as any))}
                               </span>
                             )}
                             

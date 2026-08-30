@@ -9,7 +9,7 @@ import PriceMismatchReport from '../../../components/PriceMismatchReport';
 import WatchPriceButton from '../../../components/WatchPriceButton';
 import StoreNotices from '../../../components/StoreNotice';
 import { OFFER_INCLUDE, getStoreNotices } from '../../../lib/stores-server';
-import { cheapestStoreNames, offerDeal, liveOffers } from '../../../lib/stores';
+import { cheapestStoreNames, offerDeal, liveOffers, priceAsOf } from '../../../lib/stores';
 import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
 import { productImage } from '../../../lib/image';
@@ -120,9 +120,12 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
      المصدر `lastScrapedAt` على القطعة: يُكتب في المعاملة نفسها التي تكتب
      أسعار العروض (راجع مسار الكرون)، فهو طابع السعر المعروض نفسه لا طابعاً
      مجاوراً له. */
-  const priceAge = timeAgoAr(comp.lastScrapedAt);
-  const priceAgeExact = exactAr(comp.lastScrapedAt);
-  const priceStale = isPriceStale(comp.lastScrapedAt);
+  /* ⚠️ من العرض الفائز لا من القطعة: `lastScrapedAt` تُكتب كلَّ دورةٍ حتى
+     لو تُخطّيت عروضها كلّها، فتقول «منذ ٨ ساعات» على سعرٍ عمره ستّة أيام. */
+  const asOf = priceAsOf(comp as any);
+  const priceAge = timeAgoAr(asOf);
+  const priceAgeExact = exactAr(asOf);
+  const priceStale = isPriceStale(asOf);
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">

@@ -9,6 +9,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { productImage } from '../../../lib/image';
 import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
+import { priceAsOf } from '../../../lib/stores';
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
@@ -294,16 +295,16 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                       </div>
                       {/* عمر السعر: التجميعة المشتركة تُفتح بعد أيام من إرسالها،
                           فالرقم بلا تاريخه وعدٌ لا يُوفى عند المتجر. */}
-                      {part.lastScrapedAt && (
+                      {priceAsOf(part as any) && (
                         <span
-                          title={exactAr(part.lastScrapedAt)}
+                          title={exactAr(priceAsOf(part as any))}
                           className={`text-[10.5px] font-bold ${
-                            isPriceStale(part.lastScrapedAt)
+                            isPriceStale(priceAsOf(part as any))
                               ? 'text-amber-600 dark:text-amber-400'
                               : 'text-slate-400 dark:text-slate-500'
                           }`}
                         >
-                          {timeAgoAr(part.lastScrapedAt)}
+                          {timeAgoAr(priceAsOf(part as any))}
                         </span>
                       )}
                     </div>

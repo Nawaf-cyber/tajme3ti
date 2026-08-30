@@ -40,6 +40,8 @@ export type Offer = {
   price: number | null;
   listPrice: number | null;
   inStock: boolean;
+  /** متى قُرئ سعر هذا العرض فعلاً — لا متى حاولنا قراءة القطعة كلّها */
+  lastCheckedAt?: Date | string | null;
   store: StoreInfo;
 };
 
@@ -61,6 +63,22 @@ export const cheapestOffer = (offers?: Offer[] | null): Offer | null =>
 
 /** القطعة متوفّرة إذا كان متجر واحد على الأقل عنده سعر صالح ومخزون */
 export const isAvailable = (comp: WithOffers): boolean => liveOffers(comp.offers).length > 0;
+
+/**
+ * متى قُرئ **السعر المعروض** — لا متى مرّ الساحب على القطعة.
+ *
+ * ⚠️ الفرق ليس تجميلاً: `Component.lastScrapedAt` تُكتب في كل دورة سحب حتى
+ * لو **تُخطّي** كلُّ عروض القطعة (متجرٌ `scrapeMode: 'off'` مثلاً). فكانت
+ * صفحة القطعة تقول «آخر تحديث للسعر منذ ٨ ساعات» على سعرٍ من نون عمره
+ * **ستّة أيام** — قيس على أربع قطعٍ حقيقية: LE240 V2 وLE360 V2 وCrucial
+ * P310 2TB وRTX 5070 Ti.
+ *
+ * فالتاريخ يُؤخذ من العرض الفائز نفسه، ويسقط إلى `lastScrapedAt` فقط حين
+ * لا عرضَ أصلاً — وهناك لا سعر يُدّعى له عمر.
+ */
+export const priceAsOf = (
+  comp: WithOffers & { lastScrapedAt?: Date | string | null },
+): Date | string | null => cheapestOffer(comp.offers)?.lastCheckedAt ?? comp.lastScrapedAt ?? null;
 
 /** أقل سعر معروض، أو 0 */
 export const lowestPrice = (offers?: Offer[] | null): number => cheapestOffer(offers)?.price ?? 0;
