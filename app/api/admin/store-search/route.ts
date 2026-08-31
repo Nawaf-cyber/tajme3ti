@@ -21,7 +21,8 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { adapterFor, searchStore, sourceMeta, readProductPage } from '../../../../lib/store-search';
-import { buildDraft, missingOf, REQUIRED_SPECS } from '../../../../lib/component-draft';
+import { buildDraft, missingOf, REQUIRED_SPECS, guessCategory } from '../../../../lib/component-draft';
+import { fetchAttributes, mapAttributes } from '../../../../lib/spec-extract';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,8 +57,23 @@ export async function POST(req: Request) {
 
   /* ---------- مسودّة قطعة ---------- */
   if (body?.action === 'draft') {
+    /* ⚠️ تُقرأ صفحة المنتج مرّةً أخرى — لجدول السمات لا للسعر. وهي الفتحة
+       الوحيدة التي تستحقّ: بها تُملأ المواصفات التي يقرؤها فاحص التوافق،
+       وبدونها يكتبها الأدمن بيده حقلاً حقلاً. */
+    const ad = adapterFor(String(body.source || ''));
+    const tok = process.env.SCRAPER_API_KEY || '';
+    const title = String(body.title || '');
+    /* الفئة تُحسم **قبل** المطابقة: بها تُختار قواعد التسمية. ولو أُجّلت إلى
+       ما بعد `buildDraft` لقُرئت السمات بلا قواعد وعادت فارغة. */
+    const category = body.category ?? guessCategory(title);
+    const attrs = category ? await fetchAttributes(String(body.url || ''), ad?.needsProxy ? tok : '') : {};
+    const mapped = mapAttributes(category ?? '', attrs);
+
     const d = buildDraft({
-      title: String(body.title || ''),
+      readSpecs: mapped.specs,
+      derivedSpecs: mapped.derived,
+      readTdp: mapped.tdpWattage,
+      title,
       url: String(body.url || ''),
       price: body.price == null ? null : Number(body.price),
       currency: body.currency ?? null,

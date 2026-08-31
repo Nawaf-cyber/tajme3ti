@@ -1,21 +1,21 @@
 /* ============ مسودّة قطعةٍ من نتيجة بحث ============
  *
- * الطلب كان: «تنضاف الخصائص كاملة». والصادق أنّ **هذا غير ممكنٍ آليّاً**،
- * وقيس ذلك ولم يُفترَض:
+ * الطلب كان: «تنضاف الخصائص كاملة».
  *
- *   • مايكرولس يبني جدول مواصفاته **في المتصفّح** — خادمُه يُعيد قائمة مدنٍ
- *     وتنقّلاً فقط (١٤٫٣ ألف حرفٍ بلا رقمٍ واحد من المواصفات).
- *   • إنفيني آرك يحمل JSON-LD غنيّاً، لكنه اسمٌ وسعرٌ وصورةٌ وتوفّر — لا
- *     مقبسٌ ولا ارتفاعُ مبرّدٍ ولا طولُ كرت.
- *   • أمازون عناوينه عربيّةٌ ومواصفاته في جدولٍ حرٍّ لا معياريّ.
+ * ⚠️ وكان هنا نصٌّ يقول إنّ ذلك مستحيل: «مايكرولس يبني جدول مواصفاته في
+ * المتصفّح — خادمه يعيد ١٤٫٣ ألف حرفٍ بلا رقمٍ واحد». وكان **خطأً**: ذلك
+ * القياس جرى على صفحة ٤٠٤ (الرابط حمل محرف تلوينٍ من الطرفية فقُطع).
+ * والصفحة الصحيحة تحمل ٤٥ سمةً للمعالج و٢٨ للصندوق في HTML الخادم.
+ * انظر `lib/spec-extract.ts` — وهو اليوم مصدر أكثر الحقول.
  *
  * والمواصفات ليست زينة: `fit.ts` يبني عليها حكم التوافق. فقطعةٌ بمقبسٍ
- * مخترَع تكذب في الباني، وقطعةٌ بمقبسٍ فارغ تُقبل مع كل معالج.
+ * مخترَع تكذب في الباني، وقطعةٌ بمقبسٍ فارغ تُقبل مع كل معالج بصمت.
  *
- * فالمسودّة تفعل ما يمكن فعله بصدق:
- *   ١) تستخرج من **العنوان** ما يحمله فعلاً (السعة، السرعة، المقاس…).
- *   ٢) تُعلّم كل حقلٍ: `read` قُرئ · `guess` استُنتج · `empty` عليك أنت.
- *   ٣) وتمنع الحفظ حتى تُملأ الحقول التي يقرؤها فاحص التوافق.
+ * فالمسودّة تُركّب ثلاثة مصادر بترتيبٍ صارم:
+ *   ١) جدول المتجر  → `read`   قُرئ حرفيّاً
+ *   ٢) بنية الجدول  → `guess`  استُنتج (رادييتر ⇐ مبرّد مائيّ)
+ *   ٣) العنوان      → `guess`  ما يحمله فعلاً (السعة، السرعة…)
+ *   ٤) وما بقي      → `empty`  عليك أنت، والحفظ ممنوعٌ حتى يُملأ.
  *
  * فالأدمن لا يكتب من الصفر، ولا يُنشر شيءٌ مخترَع.
  */
@@ -248,6 +248,11 @@ function cleanName(title: string, brand: string): string {
 export function buildDraft(input: {
   title: string; url: string; price: number | null; currency: string | null;
   image: string | null; storeSlug: string; category?: string | null;
+  /* مواصفاتٌ **مقروءةٌ** من جدول المتجر — تسبق ما يُستنتج من العنوان */
+  readSpecs?: Record<string, string>;
+  /** ما استُنتج من بنية الجدول لا من نصّه — يُعلَّم تخميناً */
+  derivedSpecs?: Record<string, string>;
+  readTdp?: number;
 }): Draft {
   const category = input.category ?? guessCategory(input.title);
   const brand = guessBrand(input.title);
@@ -264,9 +269,23 @@ export function buildDraft(input: {
 
   if (category) {
     const fromTitle = specsFromTitle(category, input.title);
+    const fromStore = input.readSpecs ?? {};
+    /* ⚠️ الترتيب مقصود: المقروء من جدول المتجر يسبق المستنتَج من العنوان.
+       العنوان يقول «120mm» فيُقرأ مقاسَ مروحةٍ أو رادييتر، والجدول يقول
+       أيّهما صراحةً. وما لم يُوجد في الاثنين يبقى فارغاً ويُطلب من الأدمن. */
+    const fromRules = input.derivedSpecs ?? {};
     for (const k of REQUIRED_SPECS[category] ?? []) {
-      specs[k] = fromTitle[k] ?? '';
-      origins['specs.' + k] = fromTitle[k] ? 'guess' : 'empty';
+      const v = (fromStore[k] || '').trim() || fromRules[k] || fromTitle[k] || '';
+      specs[k] = v;
+      origins['specs.' + k] = fromStore[k] ? 'read' : v ? 'guess' : 'empty';
+    }
+    /* ⚠️ وما زاد عن المطلوب يبقى إن قُرئ: إنفيني آرك يعطي تردّد الكرت وعدد
+       أنويته، وهي ليست في قائمة الإلزام لكنّها تُعرض في صفحة القطعة. ورميُها
+       لأنّها «غير مطلوبة» إتلافٌ لبياناتٍ دفعنا ثمن قراءتها. */
+    for (const [k, v] of Object.entries(fromStore)) {
+      if (specs[k] || !v.trim()) continue;
+      specs[k] = v;
+      origins['specs.' + k] = 'read';
     }
   }
 
@@ -283,7 +302,7 @@ export function buildDraft(input: {
     category, brand, name,
     price: input.price, currency: input.currency,
     url: input.url, imageUrl: input.image, storeSlug: input.storeSlug,
-    tdpWattage: 0,
+    tdpWattage: Number(input.readTdp) > 0 ? Math.round(Number(input.readTdp)) : 0,
     performanceTier: 3,
     specs,
     description: '',

@@ -253,7 +253,8 @@ export default function StoreSearchClient() {
         {active?.needsProxy && (
           /* الكلفة تُقال قبل الضغط لا بعده */
           <p className="mt-3 text-[12px] font-bold text-amber-700 dark:text-amber-400">
-            ⚠️ {active.label} يمرّ عبر Scrape.do — البحث الواحد يكلّف طلباً، وكل نتيجةٍ تُقرأ تكلّف طلباً آخر.
+            ⚠️ {active.label} يمرّ عبر Scrape.do — البحث الواحد يكلّف طلباً، وكل نتيجةٍ تُقرأ تكلّف طلباً آخر،
+            و«أضف» يكلّف طلباً ثالثاً لقراءة جدول المواصفات.
           </p>
         )}
       </div>
@@ -266,7 +267,11 @@ export default function StoreSearchClient() {
         const badge = (k: string) => {
           const o = draft.origins['specs.' + k] ?? draft.origins[k];
           const filled = String(draft.specs?.[k] ?? '').trim();
-          if (filled && o === 'guess') return { t: 'من العنوان', c: 'text-amber-700 dark:text-amber-400' };
+          /* ثلاثُ حالاتٍ لا اثنتان: «قُرئ» من جدول المتجر يُوثَق ويُترك،
+             و«استُنتج» يُراجَع، و«مطلوب» يُكتب. وبلا التمييز يظنّ الأدمن أنّ
+             كل ممتلئٍ مقروء، فيمرّ تخمينٌ من العنوان دون أن يراه أحد. */
+          if (filled && o === 'read') return { t: 'من المتجر', c: 'text-emerald-700 dark:text-emerald-400' };
+          if (filled && o === 'guess') return { t: 'مستنتَج', c: 'text-amber-700 dark:text-amber-400' };
           if (filled) return { t: '', c: '' };
           return { t: 'مطلوب', c: 'text-rose-700 dark:text-rose-400' };
         };
@@ -328,6 +333,33 @@ export default function StoreSearchClient() {
                     );
                   })}
                 </div>
+
+                {/* ⚠️ وما زاد عن المطلوب يُعرض أيضاً: المعاينة عهدٌ بأن يُرى
+                     كلُّ ما سيُحفظ. وحقلٌ يُحفظ ولا يظهر هنا نقضٌ للعهد. */}
+                {(() => {
+                  const extra = Object.keys(draft.specs || {})
+                    .filter((k) => !(required[draft.category!] || []).includes(k))
+                    .filter((k) => String(draft.specs[k] ?? '').trim());
+                  if (!extra.length) return null;
+                  return (
+                    <>
+                      <h3 className="text-[13px] font-black text-slate-900 dark:text-white mb-2">
+                        مواصفاتٌ إضافيّة قرأها المتجر
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        {extra.map((k) => (
+                          <Field key={k} label={k} hint="من المتجر" hintClass="text-emerald-700 dark:text-emerald-400">
+                            <input
+                              value={draft.specs[k] ?? ''}
+                              onChange={(e) => setDraft({ ...draft, specs: { ...draft.specs, [k]: e.target.value } })}
+                              className={INPUT}
+                            />
+                          </Field>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
               </>
             )}
 
