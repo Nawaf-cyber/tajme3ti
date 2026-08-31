@@ -10,7 +10,7 @@ import 'dotenv/config';
 import { writeFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { searchStore } from '../lib/store-search';
+import { searchStore, readProductPage } from '../lib/store-search';
 import { readProduct } from './find-candidates';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });

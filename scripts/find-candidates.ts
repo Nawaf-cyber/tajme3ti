@@ -14,43 +14,21 @@
  */
 
 import 'dotenv/config';
-import * as cheerio from 'cheerio';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { searchStore } from '../lib/store-search';
+import { searchStore, readProductPage } from '../lib/store-search';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';
 const G = '\x1b[32m', Y = '\x1b[33m', D = '\x1b[2m', X = '\x1b[0m';
 
 /* حاسوبٌ جاهز لا قطعة — تُذكر مواصفاته فيلتقطه البحث.
    ⚠️ و«خادم» أُضيف بعد أن ظهر EPYC بـ١٬٠١٦٬٥٩٢ ﷼ مرشّحاً لقرص NVMe. */
 const IS_SYSTEM = /gaming pc|desktop pc|\bpc\b.*(ryzen|core ultra|rtx)|prebuilt|barebone|workstation|\bserver\b|rack ?mount|\bepyc\b|laptop|notebook/i;
 
-export type Found = {
-  title: string; url: string; price: number | null; inStock: boolean; image: string | null;
-};
-
-export async function readProduct(url: string): Promise<Found | null> {
-  try {
-    const res = await fetch(url, { headers: { 'User-Agent': UA } });
-    if (!res.ok) return null;
-    const $ = cheerio.load(await res.text());
-    const ld = $('script[type="application/ld+json"]').map((_, e) => $(e).text()).get().join('\n');
-    const meta = $('meta[property="product:price:amount"]').attr('content');
-    let price = meta ? Number(meta) : null;
-    if (!price) { const m = ld.match(/"price"\s*:\s*"?([\d.]+)/); price = m ? Number(m[1]) : null; }
-    const av = $('meta[property="product:availability"]').attr('content') || '';
-    const inStock = av ? !/out ?of ?stock|oos/i.test(av) : (/InStock/i.test(ld) && !/OutOfStock/i.test(ld));
-    return {
-      title: $('meta[property="og:title"]').attr('content') || $('h1').first().text().trim(),
-      url,
-      price: price && price > 0 ? Math.round(price * 100) / 100 : null,
-      inStock,
-      image: $('meta[property="og:image"]').attr('content') || null,
-    };
-  } catch { return null; }
-}
+/* ⚠️ القارئ يعيش في `lib/store-search` لا هنا: صفحة الإدارة تحتاجه أيضاً،
+   ونسختان تتباعدان — تُصلَح إحداهما ويبقى العطل في الأخرى. وهذا الاسم يبقى
+   لأن `collect-candidates` يستورده. */
+export const readProduct = readProductPage;
 
 async function main() {
   const queries = process.argv.slice(2);

@@ -224,3 +224,74 @@ export async function searchStore(
     return [];
   }
 }
+
+/* ============ قراءة صفحة منتجٍ واحد ============
+ *
+ * صفحةُ نتائج البحث **لا تحمل السعر** في مايكرولس ولا في إنفيني آرك (جُرّب:
+ * يعود فارغاً في كل النتائج، وقائمة `ItemList` تحمل الاسم والرابط لا الثمن).
+ * فمن أراد سعراً فتح صفحة المنتج.
+ *
+ * ⚠️ والترتيب مقصود: JSON-LD أوّلاً لأنه محصورٌ بالمنتج وموقَّعٌ بعملته، ثم
+ * وسوم meta. وقد قيس هذا القارئ مقابل ٨ عروضٍ مخزَّنة عندنا فطابق ٦ بالضبط،
+ * والاثنان الباقيان صفحتاهما نافدتان بلا سعرٍ معلن — أي أنّ الصفر صفرٌ صادق.
+ */
+
+export type ProductRead = {
+  title: string;
+  url: string;
+  price: number | null;
+  currency: string | null;
+  inStock: boolean;
+  image: string | null;
+};
+
+export async function readProductPage(url: string): Promise<ProductRead | null> {
+  try {
+    const html = await fetchText(url, 20000);
+    if (!html || html.length < 200) return null;
+
+    const blocks = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    let price: number | null = null;
+    let currency: string | null = null;
+    let inStock: boolean | null = null;
+
+    for (const b of blocks) {
+      let j: any;
+      try { j = JSON.parse(b); } catch { continue; }
+      const nodes = j['@graph'] ?? (Array.isArray(j) ? j : [j]);
+      const prod = nodes.find((x: any) => String(x?.['@type']).includes('Product'));
+      const offer = Array.isArray(prod?.offers) ? prod.offers[0] : prod?.offers;
+      if (!offer) continue;
+      const n = Number(offer.price);
+      if (Number.isFinite(n) && n > 0) price = Math.round(n * 100) / 100;
+      currency = offer.priceCurrency ?? currency;
+      if (offer.availability) inStock = !/OutOfStock|SoldOut|Discontinued/i.test(String(offer.availability));
+      if (price) break;
+    }
+
+    const meta = (prop: string) =>
+      (html.match(new RegExp(`<meta[^>]+(?:property|name)="${prop}"[^>]+content="([^"]*)"`, 'i')) || [])[1] ?? null;
+
+    if (price == null) {
+      const m = meta('product:price:amount');
+      const n = m ? Number(m) : NaN;
+      if (Number.isFinite(n) && n > 0) price = Math.round(n * 100) / 100;
+    }
+    currency ??= meta('product:price:currency');
+    if (inStock == null) {
+      const av = meta('product:availability');
+      inStock = av ? !/out ?of ?stock|oos/i.test(av) : true;
+    }
+
+    return {
+      title: (meta('og:title') || (html.match(/<title[^>]*>([^<]*)/i) || [])[1] || '').replace(/\s+/g, ' ').trim(),
+      url,
+      price,
+      currency,
+      inStock,
+      image: meta('og:image'),
+    };
+  } catch {
+    return null;
+  }
+}
