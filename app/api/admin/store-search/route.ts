@@ -21,6 +21,7 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { adapterFor, searchStore, sourceMeta, readProductPage } from '../../../../lib/store-search';
+import { buildDraft, missingOf, REQUIRED_SPECS } from '../../../../lib/component-draft';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +53,82 @@ export async function POST(req: Request) {
   if (!(await requireAdmin())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
 
   const body = await req.json().catch(() => ({}) as any);
+
+  /* ---------- مسودّة قطعة ---------- */
+  if (body?.action === 'draft') {
+    const d = buildDraft({
+      title: String(body.title || ''),
+      url: String(body.url || ''),
+      price: body.price == null ? null : Number(body.price),
+      currency: body.currency ?? null,
+      image: body.image ?? null,
+      storeSlug: String(body.source || ''),
+      category: body.category ?? null,
+    });
+    const cats = await prisma.category.findMany({ select: { name: true }, orderBy: { name: 'asc' } });
+    return NextResponse.json({ draft: d, categories: cats.map((c) => c.name), requiredSpecs: REQUIRED_SPECS });
+  }
+
+  /* ---------- حفظ ---------- */
+  if (body?.action === 'save') {
+    const d = body.draft || {};
+    /* ⚠️ ويُعاد فحص النقص هنا لا في المتصفّح وحده: زرٌّ معطَّلٌ ليس حارساً —
+       من نادى المسار مباشرةً تجاوزه، والقطعة الناقصة تكذب في فاحص التوافق. */
+    const missing = missingOf({
+      category: d.category ?? null, brand: d.brand ?? '', name: d.name ?? '',
+      price: d.price == null ? null : Number(d.price),
+      specs: d.specs ?? {}, tdpWattage: Number(d.tdpWattage) || 0,
+    });
+    if (missing.length) {
+      return NextResponse.json({ error: 'ناقص: ' + missing.join('، '), missing }, { status: 400 });
+    }
+
+    const cat = await prisma.category.findFirst({ where: { name: d.category }, select: { id: true } });
+    if (!cat) return NextResponse.json({ error: 'فئةٌ غير معروفة' }, { status: 400 });
+
+    const store = await prisma.store.findUnique({ where: { slug: String(d.storeSlug) }, select: { id: true } });
+    if (!store) return NextResponse.json({ error: 'متجرٌ غير معروف' }, { status: 400 });
+
+    const dupName = await prisma.component.findFirst({
+      where: { name: { equals: String(d.name).trim(), mode: 'insensitive' } }, select: { id: true },
+    });
+    if (dupName) return NextResponse.json({ error: 'الاسم موجودٌ عندنا', existingId: dupName.id }, { status: 409 });
+
+    try {
+      const comp = await prisma.$transaction(async (tx) => {
+        const c = await tx.component.create({
+          data: {
+            categoryId: cat.id,
+            brand: String(d.brand).trim(),
+            name: String(d.name).trim(),
+            price: Number(d.price),
+            tdpWattage: Number(d.tdpWattage) || 0,
+            performanceTier: Math.min(5, Math.max(1, Number(d.performanceTier) || 3)),
+            specs: d.specs,
+            imageUrl: d.imageUrl || null,
+            description: String(d.description || '').trim() || null,
+            lastScrapedAt: new Date(),
+          },
+        });
+        await tx.componentOffer.create({
+          data: {
+            componentId: c.id, storeId: store.id, url: String(d.url),
+            price: Number(d.price), inStock: true, lastCheckedAt: new Date(),
+          },
+        });
+        /* نقطةُ سعرٍ أولى: بلا سجلٍّ لا رسمٌ بيانيّ ولا «أدنى سعر منذ شهر» */
+        await tx.priceHistory.create({
+          data: { componentId: c.id, store: String(d.storeSlug), price: Number(d.price) },
+        });
+        return c;
+      });
+      return NextResponse.json({ ok: true, id: comp.id, name: comp.name });
+    } catch (e: any) {
+      console.error('[store-search save]', e);
+      return NextResponse.json({ error: 'تعذّر الحفظ' }, { status: 500 });
+    }
+  }
+
   const query = String(body?.query || '').trim();
   const source = String(body?.source || '');
   const withSystems = !!body?.withSystems;
@@ -77,7 +154,14 @@ export async function POST(req: Request) {
     const hidden = raw.length - filtered.length;
 
     /* ما عندنا: بالرابط، ومجرّداً من الشرطة الأخيرة كي لا يُفلت المكرّر بسببها */
-    const norm = (u: string) => u.replace(/\/$/, '').toLowerCase();
+    /* ⚠️ وأمازون يُطابَق بالـASIN لا بنصّ الرابط: روابطنا القديمة عناوينُها
+       طويلةٌ مُرمَّزة، ومحوّلُنا يبني `/dp/ASIN` النظيف — فمقارنةُ النصّين
+       تُخفي كل مكرّرٍ من أمازون وتُغري الأدمن بإضافته ثانيةً. */
+    const norm = (u: string) => {
+      const clean = u.replace(/\/$/, '').toLowerCase();
+      const asin = clean.match(/\/(?:dp|gp\/product)\/([a-z0-9]{10})/);
+      return asin ? 'amazon:' + asin[1] : clean;
+    };
     const ours = new Map(
       (await prisma.componentOffer.findMany({
         where: { url: { not: null } },
@@ -88,17 +172,23 @@ export async function POST(req: Request) {
     const picked = filtered.slice(0, MAX_READ);
     const results: any[] = [];
     let hiddenAfterRead = 0;
+    let opened = 0;
     for (const c of picked) {
       const mine = ours.get(norm(c.url)) ?? null;
-      /* ما هو عندنا لا يُفتَح: لا فائدة من سعرٍ حيٍّ لقطعةٍ يسحبها الكرون */
-      const read = mine ? null : await readProductPage(c.url);
+      /* ما هو عندنا لا يُفتَح: لا فائدة من سعرٍ حيٍّ لقطعةٍ يسحبها الكرون.
+       * ⚠️ وما جاء بسعره من صفحة النتائج لا يُفتَح أيضاً: بطاقة أمازون تحمل
+       *    السعر، وفتحُها بعد ذلك يدفع رصيداً ثانياً لِما نملكه — اثنا عشر
+       *    طلباً زائداً في البحث الواحد. */
+      const needsRead = !mine && c.price == null;
+      const read = needsRead ? await readProductPage(c.url) : null;
+      if (needsRead) opened++;
       const title = read?.title || c.title;
 
       /* ⚠️ ويُعاد المرشِّح على العنوان النهائيّ: قائمة النتائج تسمّي الجهاز
          بالعربية وصفحتُه تسمّيه بالإنجليزية، فما نجا من الأولى يُمسك بالثانية. */
       if (!withSystems && IS_SYSTEM.test(title)) {
         hiddenAfterRead++;
-        if (!mine) await new Promise((r) => setTimeout(r, adapter.delayMs));
+        if (needsRead) await new Promise((r) => setTimeout(r, adapter.delayMs));
         continue;
       }
 
@@ -111,7 +201,7 @@ export async function POST(req: Request) {
         image: read?.image ?? null,
         existing: mine ? { id: mine.id, name: `${mine.brand} ${mine.name}` } : null,
       });
-      if (!mine) await new Promise((r) => setTimeout(r, adapter.delayMs));
+      if (needsRead) await new Promise((r) => setTimeout(r, adapter.delayMs));
     }
 
     return NextResponse.json({
@@ -120,9 +210,10 @@ export async function POST(req: Request) {
       query,
       found: raw.length,
       hiddenSystems: hidden + hiddenAfterRead,
-      read: results.filter((r) => !r.existing).length,
-      /* ما يمرّ عبر Scrape.do يكلّف طلباً لكل فتحة — يُقال للأدمن ما استُهلك */
-      creditsUsed: adapter.needsProxy ? 1 + results.filter((r) => !r.existing).length : 0,
+      read: opened,
+      /* ما يمرّ عبر Scrape.do يكلّف طلباً لكل فتحة — يُقال للأدمن ما استُهلك.
+         والحساب على ما فُتح فعلاً: بحثٌ واحد + ما لم يأتِ بسعره من النتائج. */
+      creditsUsed: adapter.needsProxy ? 1 + opened : 0,
       results,
     });
   } catch (e: any) {

@@ -25,10 +25,36 @@ type Row = {
   existing: { id: string; name: string } | null;
 };
 
+type Draft = {
+  category: string | null; brand: string; name: string;
+  price: number | null; currency: string | null; url: string;
+  imageUrl: string | null; storeSlug: string;
+  tdpWattage: number; performanceTier: number;
+  specs: Record<string, string>; description: string;
+  origins: Record<string, 'read' | 'guess' | 'empty'>;
+  missing: string[];
+};
+
 type Result = {
   label: string; query: string; found: number; hiddenSystems: number;
   read: number; creditsUsed: number; results: Row[];
 };
+
+const INPUT = 'w-full px-3 py-2 rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/40 text-[13px] font-bold text-slate-900 dark:text-white';
+
+function Field({ label, hint, hintClass, children }: {
+  label: string; hint?: string; hintClass?: string; children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="block mb-1 text-[12px] font-black text-slate-700 dark:text-slate-300">
+        {label}
+        {hint ? <span className={`mr-1.5 font-bold ${hintClass || 'text-slate-600 dark:text-slate-400'}`}>· {hint}</span> : null}
+      </span>
+      {children}
+    </label>
+  );
+}
 
 export default function StoreSearchClient() {
   const [sources, setSources] = useState<SourceMeta[]>([]);
@@ -38,6 +64,11 @@ export default function StoreSearchClient() {
   const [withSystems, setWithSystems] = useState(false);
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<Result | null>(null);
+  /* المسودّة: تُبنى في الخادم ثم تُعدَّل هنا، والنقص يُعاد حسابه مع كل ضغطة */
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [cats, setCats] = useState<string[]>([]);
+  const [required, setRequired] = useState<Record<string, string[]>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch('/api/admin/store-search')
@@ -72,6 +103,75 @@ export default function StoreSearchClient() {
       toast.error(e?.message || 'تعذّر البحث');
     } finally {
       setBusy(false);
+    }
+  };
+
+  /* المسودّة تُبنى في الخادم: التخمين والحقول المطلوبة منطقٌ واحدٌ لا يُنسخ */
+  const openDraft = async (r: Row) => {
+    setSaving(false);
+    try {
+      const res2 = await fetch('/api/admin/store-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'draft', title: r.title, url: r.url, price: r.price,
+          currency: r.currency, image: r.image, source,
+        }),
+      });
+      const d = await res2.json();
+      if (!res2.ok) throw new Error(d?.error || 'تعذّر بناء المسودّة');
+      setDraft(d.draft);
+      setCats(d.categories || []);
+      setRequired(d.requiredSpecs || {});
+    } catch (e: any) {
+      toast.error(e?.message || 'تعذّر بناء المسودّة');
+    }
+  };
+
+  /* النقص يُحسب هنا أيضاً لتعطيل الزرّ فوراً — والخادم يُعيده قبل الكتابة */
+  const missingNow = (d: Draft): string[] => {
+    const out: string[] = [];
+    if (!d.category) out.push('الفئة');
+    if (!d.brand?.trim()) out.push('الماركة');
+    if (!d.name?.trim()) out.push('الاسم');
+    if (!(Number(d.price) > 0)) out.push('السعر');
+    if (d.category) {
+      for (const k of required[d.category] || []) if (!String(d.specs?.[k] ?? '').trim()) out.push(k);
+      if (['CPU', 'GPU', 'Motherboard'].includes(d.category) && !(Number(d.tdpWattage) > 0)) out.push('الاستهلاك (واط)');
+    }
+    return out;
+  };
+
+  const setCat = (cat: string) => {
+    if (!draft) return;
+    /* تبديل الفئة يعيد بناء هيكل المواصفات — مفاتيح فئةٍ في أخرى لا تُقرأ */
+    const specs: Record<string, string> = {};
+    for (const k of required[cat] || []) specs[k] = draft.specs[k] ?? '';
+    setDraft({ ...draft, category: cat, specs });
+  };
+
+  const save = async () => {
+    if (!draft || saving) return;
+    setSaving(true);
+    try {
+      const r = await fetch('/api/admin/store-search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save', draft }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || 'تعذّر الحفظ');
+      toast.success('أُضيفت: ' + d.name);
+      setDraft(null);
+      /* تُعلَّم في النتائج فوراً كي لا تُضاف مرّتين */
+      setRes((cur) => cur && ({
+        ...cur,
+        results: cur.results.map((x) =>
+          x.url === draft.url ? { ...x, existing: { id: d.id, name: draft.brand + ' ' + draft.name } } : x),
+      }));
+    } catch (e: any) {
+      toast.error(e?.message || 'تعذّر الحفظ');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -158,6 +258,101 @@ export default function StoreSearchClient() {
         )}
       </div>
 
+      {/* ===== المعاينة قبل الحفظ =====
+           ⚠️ ولا يُحفظ شيءٌ ناقص: `fit.ts` يبني حكم التوافق على المواصفات،
+           فقطعةٌ بمقبسٍ فارغ تُقبل مع كل معالج وتكذب في الباني. */}
+      {draft && (() => {
+        const miss = missingNow(draft);
+        const badge = (k: string) => {
+          const o = draft.origins['specs.' + k] ?? draft.origins[k];
+          const filled = String(draft.specs?.[k] ?? '').trim();
+          if (filled && o === 'guess') return { t: 'من العنوان', c: 'text-amber-700 dark:text-amber-400' };
+          if (filled) return { t: '', c: '' };
+          return { t: 'مطلوب', c: 'text-rose-700 dark:text-rose-400' };
+        };
+        return (
+          <div className="mt-6 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm p-5 rounded-sm border-x border-b border-t-2 border-slate-200 border-t-emerald-500 dark:border-slate-800/80 dark:border-t-emerald-500 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 className="text-[15px] font-black text-slate-900 dark:text-white">معاينة قبل الحفظ</h2>
+              <button onClick={() => setDraft(null)}
+                className="text-[12px] font-black text-slate-600 dark:text-slate-400 hover:underline">أغلق</button>
+            </div>
+
+            <div className="flex gap-4 mb-4">
+              <div className="shrink-0 w-20 h-20 rounded-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden">
+                {draft.imageUrl
+                  ? <img src={productImage(draft.imageUrl)} alt="" className="w-full h-full object-contain p-1" />
+                  : <div className="w-full h-full grid place-items-center text-[12px] text-slate-400">بلا صورة</div>}
+              </div>
+              <div className="min-w-0 flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="الفئة" hint={draft.category ? 'مستنتَجة من العنوان' : 'مطلوبة'}>
+                  <select value={draft.category ?? ''} onChange={(e) => setCat(e.target.value)} className={INPUT}>
+                    <option value="">— اختر —</option>
+                    {cats.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </Field>
+                <Field label="الماركة" hint={draft.brand ? 'مستنتَجة' : 'مطلوبة'}>
+                  <input value={draft.brand} onChange={(e) => setDraft({ ...draft, brand: e.target.value })} className={INPUT} />
+                </Field>
+                <Field label="الاسم" hint="نُظّف من الماركة والوصف">
+                  <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={INPUT} />
+                </Field>
+                <Field label={`السعر (${draft.currency || 'SAR'})`} hint="قُرئ من المتجر">
+                  <input type="number" value={draft.price ?? ''} onChange={(e) => setDraft({ ...draft, price: e.target.value === '' ? null : Number(e.target.value) })} className={INPUT} />
+                </Field>
+                <Field label="الاستهلاك (واط)" hint={['CPU','GPU','Motherboard'].includes(draft.category || '') ? 'مطلوب — الباني يجمعه' : 'اختياريّ'}>
+                  <input type="number" value={draft.tdpWattage} onChange={(e) => setDraft({ ...draft, tdpWattage: Number(e.target.value) || 0 })} className={INPUT} />
+                </Field>
+                <Field label="الفئة السعرية (١–٥)" hint="٣ افتراضاً">
+                  <input type="number" min={1} max={5} value={draft.performanceTier} onChange={(e) => setDraft({ ...draft, performanceTier: Number(e.target.value) || 3 })} className={INPUT} />
+                </Field>
+              </div>
+            </div>
+
+            {draft.category && (
+              <>
+                <h3 className="text-[13px] font-black text-slate-900 dark:text-white mb-2">
+                  المواصفات — يقرؤها فاحص التوافق
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  {(required[draft.category] || []).map((k) => {
+                    const b = badge(k);
+                    return (
+                      <Field key={k} label={k} hint={b.t} hintClass={b.c}>
+                        <input
+                          value={draft.specs[k] ?? ''}
+                          onChange={(e) => setDraft({ ...draft, specs: { ...draft.specs, [k]: e.target.value } })}
+                          className={INPUT}
+                        />
+                      </Field>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <Field label="الوصف (عربيّ · اختياريّ)" hint="يظهر في صفحة القطعة">
+              <textarea rows={4} value={draft.description}
+                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                placeholder={'### ' + (draft.brand + ' ' + draft.name).trim()}
+                className={INPUT + ' font-normal leading-relaxed'} />
+            </Field>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button onClick={save} disabled={saving || miss.length > 0}
+                className="px-6 py-2.5 rounded-sm bg-emerald-700 hover:bg-emerald-800 text-white text-[13px] font-black disabled:opacity-50 transition-colors">
+                {saving ? 'يحفظ…' : 'احفظ القطعة'}
+              </button>
+              {miss.length > 0 && (
+                <p className="text-[12px] font-bold text-rose-700 dark:text-rose-400">
+                  ينقص {miss.length}: {miss.slice(0, 6).join('، ')}{miss.length > 6 ? '…' : ''}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ===== النتائج ===== */}
       {res && (
         <div className="mt-6">
@@ -212,10 +407,16 @@ export default function StoreSearchClient() {
                     افتحها
                   </a>
                 ) : (
-                  <button onClick={() => copy(r)}
-                    className="shrink-0 px-3 py-1.5 rounded-sm text-[12px] font-black border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-cyan-500 hover:text-cyan-700 dark:hover:text-cyan-400">
-                    انسخ
-                  </button>
+                  <div className="shrink-0 flex gap-1.5">
+                    <button onClick={() => openDraft(r)}
+                      className="px-3 py-1.5 rounded-sm text-[12px] font-black bg-cyan-700 hover:bg-cyan-800 text-white transition-colors">
+                      أضف
+                    </button>
+                    <button onClick={() => copy(r)}
+                      className="px-3 py-1.5 rounded-sm text-[12px] font-black border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-cyan-500 hover:text-cyan-700 dark:hover:text-cyan-400">
+                      انسخ
+                    </button>
+                  </div>
                 )}
               </li>
             ))}
@@ -224,8 +425,8 @@ export default function StoreSearchClient() {
           {/* ⚠️ ولا يُوعد بإضافةٍ بضغطة: القطعة تحتاج فئةً ومواصفاتٍ ووصفاً
               عربيّاً، ولا يُستخرج ذلك من صفحة متجرٍ استخراجاً موثوقاً. */}
           <p className="mt-4 text-[12px] font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
-            «انسخ» يأخذ الاسم والرابط والسعر — ألصقها في نموذج إضافة القطعة.
-            الإضافة تبقى بيدك لأن القطعة تحتاج فئةً ومواصفاتٍ ووصفاً لا تُقرأ من صفحة المتجر.
+            «أضف» يفتح مسودّةً مملوءةً بما يحمله العنوان فعلاً — راجعها وأكملها ثم احفظ.
+            و«انسخ» يأخذ الاسم والرابط والسعر إن أردت نموذجاً آخر.
           </p>
         </div>
       )}

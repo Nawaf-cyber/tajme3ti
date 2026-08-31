@@ -6,7 +6,12 @@
  *   كازاسوق   يردّ 403 على كل طلبٍ من خادم (جُرّب بلا ترويسات، وبمتصفّحٍ
  *             مزيّف، ومع Accept — الثلاثة 403). فيمرّ عبر Scrape.do،
  *             **ويكلّف طلباً لكل بحث** — ولذلك لا يُشغَّل إلا بطلبٍ صريح.
- *   نون       محجوب بـ Akamai حتى أمام متصفّحٍ حقيقيّ. لا يُبحث فيه.
+ *   أمازون    أوّل طلباتٍ تنجح ثم يردّ هيكلاً فارغاً بحالة 200 بلا إعلان.
+ *             فيمرّ عبر Scrape.do مثل كازاسوق.
+ *   نون       يردّ **403 Access Denied** لكل طلبٍ من خادم (قيس على
+ *             `/saudi-en/search` و`/saudi-ar/search` — كلاهما 403 في ٣٠٠
+ *             ملّي ثانية). ولا محوّل له: محوّلٌ يُعيد صفراً دائماً أسوأ من
+ *             غيابه — يُوهم الأدمن أنّ السوق خالٍ.
  *
  * ⚠️ ولا يُستعمل متصفّح الزائر: صفحةُ الإدارة تعمل في متصفّحه، وطلبُها إلى
  * `cazasouq.com` يُحجب بـ CORS — المتجر لا يأذن لنطاقنا بقراءة ردّه. فما
@@ -159,6 +164,61 @@ function parseInfiniarc(html: string): Candidate[] {
   return out;
 }
 
+/**
+ * أمازون السعودية — بلا وسيط، وبالسعر في صفحة النتائج نفسها.
+ *
+ * ⚠️ ويمرّ عبر Scrape.do — وهذا صُحّح بعد قياسين متناقضين:
+ *
+ *   أوّل خمس طلباتٍ من خادمٍ نجحت: 200 في ١٫٤ ثانية بـ٩٢ منتجاً. فظننتُه
+ *   مجّانيّاً وأدخلتُه كذلك. ثم بدأ يردّ **٢٬٢٦٢ بايت** — هيكلَ تنقّلٍ بلا
+ *   منتجٍ واحد، **بحالة 200 وبلا كابتشا ولا رسالة**. أي أنّ الحجب صامت:
+ *   لا يُعلن نفسه، بل يُعيد صفحةً تبدو سليمةً وهي فارغة.
+ *
+ * وهذا أخطر من 403: بحثٌ يُعيد صفراً يُقرأ «لا نتائج» لا «مُنعت». فمُيّز
+ * أمازون بوسيطٍ كما يعامله ساحبُ الأسعار أصلاً — يُعطَّل بلا رمز ولا يَعِد
+ * بما لا يفي.
+ *
+ * ⚠️ والسعر يُقرأ من `a-offscreen` — النصّ المخفيّ لقارئات الشاشة — لأنه
+ * الوحيد الذي يحمل الرقم كاملاً بفاصلته. أمّا `a-price-whole` فيقطع الكسر
+ * إلى وسمٍ آخر، فقراءته وحدها تُعطي «238» لسعرٍ هو 238.88.
+ *
+ * ⚠️ وتُشترط بطاقةٌ فيها عنوانُ h2 ورابطُ /dp/: صفحة النتائج تحمل صفوفاً
+ * ليست منتجات («خيارات أخرى للشراء») تلتقطها أيّ قراءةٍ أوسع.
+ */
+function parseAmazon(html: string): Candidate[] {
+  const out: Candidate[] = [];
+  const seen = new Set<string>();
+  for (const card of html.split(/data-asin="/).slice(1)) {
+    const asin = card.slice(0, 10);
+    if (!/^[A-Z0-9]{10}$/.test(asin) || seen.has(asin)) continue;
+    if (!/\/dp\/|\/gp\/product\//.test(card.slice(0, 6000))) continue;
+
+    /* ⚠️ **أطول** h2 لا أوّله: البطاقة تحمل عنوانين — الماركة في h2 قصير
+       ثم اسم المنتج في h2 أطول. وقراءة الأوّل أعطت «Thermalright» لاثنتي
+       عشرة نتيجةً كلّها، وهي أسماء لا تُميّز منتجاً عن آخر. وترتيبُهما
+       يختلف بين الطلب المباشر والمارّ بالوسيط، فالطولُ أثبتُ من الموضع. */
+    const heads = [...card.matchAll(/<h2[^>]*>([\s\S]{0,800}?)<\/h2>/g)]
+      .map((m) => m[1].replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\s+/g, ' ').trim())
+      .concat((card.match(/<img[^>]+alt="([^"]{10,300})"/) || [])[1] ?? '')
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length);
+    const title = heads[0] ?? '';
+    if (title.length < 12) continue;
+
+    const off = card.match(/class="a-offscreen"[^>]*>([^<]{1,40})</);
+    const num = off ? Number(off[1].replace(/[^\d.]/g, '')) : NaN;
+
+    seen.add(asin);
+    out.push({
+      url: 'https://www.amazon.sa/dp/' + asin,
+      title,
+      price: Number.isFinite(num) && num > 0 ? num : null,
+    });
+    if (out.length >= 12) break;
+  }
+  return out;
+}
+
 /* ============ السجلّ ============
  * إضافة متجرٍ = صفٌّ هنا. ولا شيء آخر يُعدَّل.
  * و`slug` يجب أن يطابق `Store.slug` وإلا لم يُربَط العرض بمتجره. */
@@ -180,6 +240,16 @@ export const ADAPTERS: StoreAdapter[] = [
     note: 'يستهلك رصيداً — يردّ 403 لكل طلبٍ من خادم',
     searchUrl: (q) => 'https://www.cazasouq.com/index.php?route=product/search&search=' + encodeURIComponent(q),
     parse: parseCazasouq,
+  },
+  {
+    slug: 'amazon',
+    label: 'أمازون',
+    /* ⚠️ يحجب الطلب المباشر صامتاً بعد طلباتٍ قليلة — انظر تعليق parseAmazon */
+    needsProxy: true,
+    delayMs: 1500,
+    note: 'يستهلك رصيداً — يحجب الطلب المباشر صامتاً',
+    searchUrl: (q) => 'https://www.amazon.sa/s?k=' + encodeURIComponent(q),
+    parse: parseAmazon,
   },
   {
     slug: 'infiniarc',
