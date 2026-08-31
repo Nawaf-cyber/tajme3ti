@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import MentionTextarea from '../../../components/MentionTextarea';
 import { productImage } from '../../../lib/image';
 
 type SourceMeta = { slug: string; label: string; needsProxy: boolean; note: string };
@@ -363,9 +364,10 @@ export default function StoreSearchClient() {
               </>
             )}
 
-            <Field label="الوصف (عربيّ · اختياريّ)" hint="يظهر في صفحة القطعة">
-              <textarea rows={4} value={draft.description}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+            <Field label="الوصف (عربيّ · اختياريّ)" hint="@ لإدراج قطعةٍ من كتالوجنا">
+              <MentionTextarea rows={4} value={draft.description}
+                onChange={(v) => setDraft({ ...draft, description: v })}
+                category={draft.category}
                 placeholder={'### ' + (draft.brand + ' ' + draft.name).trim()}
                 className={INPUT + ' font-normal leading-relaxed'} />
             </Field>

@@ -1,0 +1,28 @@
+/* ============ قائمة الكتالوج المختصرة — للإشارة داخل الوصف ============
+ *
+ * حين يكتب الأدمن «@» في وصف قطعة، يحتاج أن يرى قطعنا ليختار منها.
+ *
+ * ⚠️ والقائمة تُرسل **كاملةً مرّةً واحدة** لا بحثاً مع كل حرف، وقيس:
+ * ٣٠١ قطعةً = ٢٦ كيلوبايت. فطلبٌ واحدٌ يجعل الترشيح فوريّاً بلا تأخيرٍ
+ * ولا إلغاءِ طلباتٍ متسابقة، والبديل ثلاثون طلباً لجملةٍ واحدة.
+ * وإن بلغ الكتالوج آلافاً فالحدّ هنا يُقلَب إلى بحثٍ في الخادم.
+ */
+
+import { NextResponse } from 'next/server';
+import { prisma } from '../../../../lib/prisma';
+import { adminEmail } from '../../../../lib/admin-guard';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  if (!(await adminEmail())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
+
+  const rows = await prisma.component.findMany({
+    select: { id: true, name: true, brand: true, category: { select: { name: true } } },
+    orderBy: { name: 'asc' },
+  });
+
+  return NextResponse.json({
+    items: rows.map((r) => ({ id: r.id, name: r.name, brand: r.brand, category: r.category?.name ?? '' })),
+  });
+}

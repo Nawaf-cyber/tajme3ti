@@ -17,12 +17,11 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
 import { prisma } from '../../../../lib/prisma';
-import { authOptions } from '../../auth/[...nextauth]/route';
 import { adapterFor, searchStore, sourceMeta, readProductPage } from '../../../../lib/store-search';
 import { buildDraft, missingOf, REQUIRED_SPECS, guessCategory } from '../../../../lib/component-draft';
 import { fetchAttributes, mapAttributes } from '../../../../lib/spec-extract';
+import { adminEmail } from '../../../../lib/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,21 +36,13 @@ const MAX_READ = 12;
 const IS_SYSTEM =
   /gaming pc|desktop pc|desktop configuration|\bpc\b.*(ryzen|core ultra|rtx)|prebuilt|barebone|workstation|\bserver\b|rack ?mount|\bepyc\b|laptop|notebook|بي ?سي ?قيمنق|جهاز جاهز|تجميعة جاهزة|كمبيوتر مكتبي/i;
 
-async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  const email = session?.user?.email;
-  if (!email) return null;
-  const user = await prisma.user.findUnique({ where: { email }, select: { role: true } });
-  return user?.role === 'ADMIN' ? email : null;
-}
-
 export async function GET() {
-  if (!(await requireAdmin())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
+  if (!(await adminEmail())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
   return NextResponse.json({ sources: sourceMeta(), hasToken: !!process.env.SCRAPER_API_KEY });
 }
 
 export async function POST(req: Request) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
+  if (!(await adminEmail())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
 
   const body = await req.json().catch(() => ({}) as any);
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, updateNews } from './actions';
 import toast from 'react-hot-toast';
+import MentionTextarea from '../../components/MentionTextarea';
 import UpdatePricesButton from './UpdatePricesButton';
 import UpdateSingleButton from './components/UpdateSingleButton';
 import CronControlToggle from './components/CronControlToggle';
@@ -381,7 +382,19 @@ export default function AdminManager({ categories, components, news, cronStatus,
 
               <input type="url" name="imageUrl" defaultValue={editingComponent?.imageUrl || ''} placeholder="رابط صورة القطعة (URL) - اختياري" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
               
-              <textarea name="description" defaultValue={editingComponent?.description || ''} placeholder="وصف تفصيلي للقطعة (اختياري، يظهر في نافذة التفاصيل)" className="md:col-span-2 p-3 h-24 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+              {/* ⚠️ الحقل غير مُتحكَّم به عمداً: النموذج يُرسل بـ`action` من
+                  الخادم، فالقيمة تُقرأ من الـDOM عند الإرسال. والمُلحِق يكتب
+                  فيها مباشرةً — ولذلك يقبل `name` و`defaultValue`. */}
+              <div className="md:col-span-2">
+                <MentionTextarea
+                  name="description"
+                  key={editingComponent?.id || 'new-comp-desc'}
+                  defaultValue={editingComponent?.description || ''}
+                  category={selectedCategoryName}
+                  placeholder="وصف تفصيلي للقطعة (اختياري) — اكتب @ لإدراج قطعةٍ من كتالوجنا"
+                  className="w-full p-3 h-24 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
               {/* حقول كل متجر مفعّل — تُولَّد من جدول Store */}
               <StoreFieldsGroup
                 stores={stores}
