@@ -19,7 +19,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { adapterFor, searchStore, sourceMeta, readProductPage } from '../../../../lib/store-search';
-import { buildDraft, missingOf, REQUIRED_SPECS, guessCategory } from '../../../../lib/component-draft';
+import { buildDraft, REQUIRED_SPECS, guessCategory } from '../../../../lib/component-draft';
+import { saveComponent } from '../../../../lib/component-save';
 import { fetchAttributes, mapAttributes } from '../../../../lib/spec-extract';
 import { adminEmail } from '../../../../lib/admin-guard';
 
@@ -79,61 +80,21 @@ export async function POST(req: Request) {
   /* ---------- حفظ ---------- */
   if (body?.action === 'save') {
     const d = body.draft || {};
-    /* ⚠️ ويُعاد فحص النقص هنا لا في المتصفّح وحده: زرٌّ معطَّلٌ ليس حارساً —
-       من نادى المسار مباشرةً تجاوزه، والقطعة الناقصة تكذب في فاحص التوافق. */
-    const missing = missingOf({
-      category: d.category ?? null, brand: d.brand ?? '', name: d.name ?? '',
-      price: d.price == null ? null : Number(d.price),
-      specs: d.specs ?? {}, tdpWattage: Number(d.tdpWattage) || 0,
+    /* ⚠️ والمنطق في `lib/component-save.ts` لا هنا: نفس الكتابة تجري من
+       سكربتات الإضافة بالجملة، ونسختان تفترقان فتُضاف قطعةٌ بلا نقطة سعر. */
+    const r = await saveComponent({
+      category: d.category ?? null,
+      brand: d.brand ?? '',
+      name: d.name ?? '',
+      specs: d.specs ?? {},
+      tdpWattage: Number(d.tdpWattage) || 0,
+      performanceTier: Number(d.performanceTier) || 3,
+      imageUrl: d.imageUrl ?? null,
+      description: d.description ?? null,
+      offers: [{ storeSlug: String(d.storeSlug), url: String(d.url), price: Number(d.price) }],
     });
-    if (missing.length) {
-      return NextResponse.json({ error: 'ناقص: ' + missing.join('، '), missing }, { status: 400 });
-    }
-
-    const cat = await prisma.category.findFirst({ where: { name: d.category }, select: { id: true } });
-    if (!cat) return NextResponse.json({ error: 'فئةٌ غير معروفة' }, { status: 400 });
-
-    const store = await prisma.store.findUnique({ where: { slug: String(d.storeSlug) }, select: { id: true } });
-    if (!store) return NextResponse.json({ error: 'متجرٌ غير معروف' }, { status: 400 });
-
-    const dupName = await prisma.component.findFirst({
-      where: { name: { equals: String(d.name).trim(), mode: 'insensitive' } }, select: { id: true },
-    });
-    if (dupName) return NextResponse.json({ error: 'الاسم موجودٌ عندنا', existingId: dupName.id }, { status: 409 });
-
-    try {
-      const comp = await prisma.$transaction(async (tx) => {
-        const c = await tx.component.create({
-          data: {
-            categoryId: cat.id,
-            brand: String(d.brand).trim(),
-            name: String(d.name).trim(),
-            price: Number(d.price),
-            tdpWattage: Number(d.tdpWattage) || 0,
-            performanceTier: Math.min(5, Math.max(1, Number(d.performanceTier) || 3)),
-            specs: d.specs,
-            imageUrl: d.imageUrl || null,
-            description: String(d.description || '').trim() || null,
-            lastScrapedAt: new Date(),
-          },
-        });
-        await tx.componentOffer.create({
-          data: {
-            componentId: c.id, storeId: store.id, url: String(d.url),
-            price: Number(d.price), inStock: true, lastCheckedAt: new Date(),
-          },
-        });
-        /* نقطةُ سعرٍ أولى: بلا سجلٍّ لا رسمٌ بيانيّ ولا «أدنى سعر منذ شهر» */
-        await tx.priceHistory.create({
-          data: { componentId: c.id, store: String(d.storeSlug), price: Number(d.price) },
-        });
-        return c;
-      });
-      return NextResponse.json({ ok: true, id: comp.id, name: comp.name });
-    } catch (e: any) {
-      console.error('[store-search save]', e);
-      return NextResponse.json({ error: 'تعذّر الحفظ' }, { status: 500 });
-    }
+    if (!r.ok) return NextResponse.json({ error: r.error, existingId: r.existingId }, { status: r.status });
+    return NextResponse.json({ ok: true, id: r.id, name: r.name });
   }
 
   const query = String(body?.query || '').trim();
