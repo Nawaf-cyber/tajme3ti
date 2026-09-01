@@ -12,6 +12,7 @@
  */
 
 import * as cheerio from 'cheerio';
+import { isBhdText, bhdToSar } from './currency';
 import { classifyPriceChange } from './price';
 
 /* ---- تدوير لمنزلتين ----
@@ -425,14 +426,14 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
        سعر أمازون" — هي التي حوّلت سعر منتج مجاور (409.09) إلى 4090.9
        فبدا رقماً معقولاً ومرّ. */
     const currencyText = `${curText} ${oldText}`;
-    const isBHD = /BHD/i.test(currencyText) || currencyText.includes('د.ب');
+    const isBHD = isBhdText(currencyText);
     /* الشاهد يُقرأ بالعملة نفسها، فيخضع للتحويل نفسه — وإلا قارنّا ديناراً بريال */
     let witness = jsonLdPrice($);
     if (isBHD) {
-      // الدينار البحريني ≈ ١٠ ريالات (المتجر يستخدم هذا التحويل نفسه)
-      if (price > 0) price *= 10;
-      if (listPrice > 0) listPrice *= 10;
-      if (witness != null && witness > 0) witness *= 10;
+      /* القاعدة في `lib/currency.ts` — يستعملها محرّك البحث أيضاً */
+      price = bhdToSar(price);
+      listPrice = bhdToSar(listPrice);
+      if (witness != null) witness = bhdToSar(witness);
     }
 
     price = round2(price);

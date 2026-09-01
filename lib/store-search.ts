@@ -30,6 +30,7 @@
  */
 
 import type { Candidate } from './source-match';
+import { isBhdText, bhdToSar } from './currency';
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';
@@ -101,32 +102,48 @@ function parseMicroless(html: string): Candidate[] {
  * نفسه لمنتجٍ آخر. (وقع ذلك فعلاً على «Ryzen 5 9600x» فأخفى رابطاً ميتاً.)
  */
 function parseCazasouq(html: string): Candidate[] {
-  {
-    const out: Candidate[] = [];
-    const seen = new Set<string>();
-    /* بطاقة المنتج: عنوانٌ داخل h4 ورابطٌ في a، والسعر في .price */
-    const re = /<div class="product-thumb[\s\S]{0,2500}?<\/div>\s*<\/div>\s*<\/div>/g;
-    for (const block of html.match(re) || []) {
-      const href = (block.match(/href="(https:\/\/www\.cazasouq\.com\/[^"]+)"/) || [])[1];
-      const title = (block.match(/<h4[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/) || [])[1];
-      if (!href || !title) continue;
-      const url = href.split('?')[0];
-      if (seen.has(url)) continue;
-      seen.add(url);
+  const out: Candidate[] = [];
+  const seen = new Set<string>();
 
-      const priceRaw = (block.match(/class="price[^"]*"[^>]*>([\s\S]{0,120}?)</) || [])[1] || '';
-      const num = priceRaw.replace(/[^\d.]/g, '');
-      /* كازاسوق يعرض بالدينار البحريني — التحويل يتكفّل به الساحب، فلا
-         يُخزَّن رقمٌ هنا إلا للعرض على الأدمن. */
-      out.push({
-        url,
-        title: title.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim(),
-        price: num ? Number(num) : null,
-      });
-      if (out.length >= 12) break;
-    }
-    return out;
+  /* ⚠️ البطاقة تغيّرت عندهم: كان العنوان في `<h4>` فصار في
+     `<div class="name">`. والصفحة تعود سليمةً (٨٥٥ ألف حرف، ٩ بطاقات)،
+     لكنّ المُحلِّل يُعيد **صفراً لكل استعلام** — بلا خطأ ولا رسالة. فبدا
+     كأنّ كازاسوق «لا يبيع القطعة»، وهو يبيعها.
+
+     ولذلك يُقرأ العنوان من ثلاثة مواضع: عنصر الاسم، ثم `title` الصورة،
+     ثم `alt`. تغييرُ أحدها لا يُسكت المُحلِّل كلَّه. */
+  for (const block of html.split(/<div class="product-thumb/).slice(1)) {
+    const href = (block.match(/href="(https:\/\/www\.cazasouq\.com\/[^"]+)"/) || [])[1];
+    const title =
+      (block.match(/<div class="name"[^>]*>\s*<a[^>]*>([\s\S]*?)<\/a>/) || [])[1]
+      ?? (block.match(/<img[^>]+title="([^"]+)"/) || [])[1]
+      ?? (block.match(/<img[^>]+alt="([^"]+)"/) || [])[1];
+    if (!href || !title) continue;
+
+    const url = href.split('?')[0];
+    if (seen.has(url)) continue;
+    seen.add(url);
+
+    /* ⚠️ والسعر يُحوَّل: الصفحة تُعلن **بالدينار البحريني** («BHD 195.00»)
+       لأن المتجر يخدم واجهة البحرين لعناوين خوادمنا. ورقمٌ كهذا بجوار
+       أسعارنا بالريال يبدو انهياراً في السعر لا عملةً أخرى — ١٩٥ مقابل
+       ١٬٩٥٠. والقاعدة من `lib/currency.ts` نفسها التي يستعملها الساحب. */
+    const priceText = (block.match(/class="price-normal"[^>]*>([^<]+)</) || [])[1]
+      ?? (block.match(/class="price[^"]*"[\s\S]{0,160}?>([^<]*\d[^<]*)</) || [])[1]
+      ?? '';
+    const raw = Number((priceText.match(/[\d.]+/) || [])[0]);
+    const price = Number.isFinite(raw) && raw > 0
+      ? Math.round((isBhdText(priceText) ? bhdToSar(raw) : raw) * 100) / 100
+      : null;
+
+    out.push({
+      url,
+      title: title.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim(),
+      price,
+    });
+    if (out.length >= 12) break;
   }
+  return out;
 }
 
 /**

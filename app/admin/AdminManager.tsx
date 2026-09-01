@@ -380,7 +380,12 @@ export default function AdminManager({ categories, components, news, cronStatus,
                 <option value="5">5 - فئة عليا (Enthusiast)</option>
               </select>
 
-              <input type="url" name="imageUrl" defaultValue={editingComponent?.imageUrl || ''} placeholder="رابط صورة القطعة (URL) - اختياري" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
+              {/* ⚠️ `type="text"` لا `type="url"`: المتصفّح يرفض المسار المحليّ
+                  «/images/parts/…» بـ«Please enter a URL» فيمنع حفظ النموذج
+                  كلّه — والقطعة التي صورتها محليّة تصير غير قابلةٍ للتعديل
+                  أصلاً. و١٨ قطعة عندنا كذلك لأن وسيط الصور يفشل مع مايكرولس
+                  من خوادم Vercel. فالتحقّق هنا كان يمنع العُرف الذي اخترناه. */}
+              <input type="text" name="imageUrl" defaultValue={editingComponent?.imageUrl || ''} placeholder="صورة القطعة — رابط كامل أو مسار محليّ مثل /images/parts/اسم.jpg (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
               
               {/* ⚠️ الحقل غير مُتحكَّم به عمداً: النموذج يُرسل بـ`action` من
                   الخادم، فالقيمة تُقرأ من الـDOM عند الإرسال. والمُلحِق يكتب
@@ -757,7 +762,8 @@ export default function AdminManager({ categories, components, news, cronStatus,
               {editingNews && <input type="hidden" name="id" value={editingNews.id} />}
               <input type="text" name="title" defaultValue={editingNews?.title} placeholder="عنوان الخبر" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               <input type="text" name="category" defaultValue={editingNews?.category} placeholder="التصنيف (مثال: CPU, GPU, عام)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-              <input type="url" name="imageUrl" defaultValue={editingNews?.imageUrl || ''} placeholder="رابط صورة الخبر (URL) - اختياري" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
+              {/* نفس السبب: صورة الخبر قد تكون محليّةً أيضاً */}
+              <input type="text" name="imageUrl" defaultValue={editingNews?.imageUrl || ''} placeholder="صورة الخبر — رابط كامل أو مسار محليّ (اختياري)" className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-left dir-ltr" dir="ltr" />
               <textarea name="summary" defaultValue={editingNews?.summary} placeholder="ملخص قصير للخبر" required className="p-3 h-24 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"></textarea>
               <textarea name="content" defaultValue={editingNews?.content} placeholder="محتوى الخبر بالكامل" required className="p-3 h-48 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"></textarea>
               <div className="flex gap-4 mt-2">
