@@ -202,8 +202,21 @@ export function specValueLines(key: string, value: unknown): { lines: string[]; 
   if (translated) return { lines: [translated] };
 
   const segments = raw.split(/,\s*/).filter(Boolean);
-  const lines = segments.length > 1 && raw.length > 16 ? segments : [raw];
-  return { lines, unit: UNITS[key] };
+  if (segments.length > 1 && raw.length > 16) return { lines: segments, unit: UNITS[key] };
+
+  /* ⚠️ «LGA1851/LGA1700/LGA1200/LGA1151/LGA1155/LGA1156/LGA1152/AM5/AM4»
+     سلسلةٌ واحدة بلا مسافة، والمتصفّح لا يكسر كلمةً بلا مواضع كسر — فتجاوزت
+     حدّ اللوحة وخرجت من إطارها في صفحة المبرّد. فتُقسَم على «/» شاراتٍ.
+
+     ⚠️ وبشرطين، وإلّا أفسدت غيرها: طولٌ يتجاوز ١٦ حرفاً، وألّا يكون أحد
+     الطرفين حرفاً أو حرفين — وهو ما يحمي «7300 MB/s» من أن تصير «7300 MB»
+     و«s». قيس على الكتالوج كلّه: خمس قيمٍ تتغيّر، جميعها مقابس. */
+  const slashed = raw.split(/\s*\/\s*/).filter(Boolean);
+  if (slashed.length > 1 && raw.length > 16 && slashed.every((s) => s.length >= 3)) {
+    return { lines: slashed, unit: UNITS[key] };
+  }
+
+  return { lines: [raw], unit: UNITS[key] };
 }
 
 /* ============ المفاتيح التي يقرأها محرّك التوافق ============

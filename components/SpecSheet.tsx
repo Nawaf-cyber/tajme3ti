@@ -166,7 +166,10 @@ export default function SpecSheet({ categoryName, specs, dense = false }: Props)
                   يجعلها عموداً واحداً تُقارَن رأسياً */}
               <dd
                 dir="ltr"
-                className={`min-w-0 text-left font-bold tabular-nums leading-snug text-slate-900 dark:text-slate-100 ${
+                /* ⚠️ `break-words` شبكةُ أمان لا زينة: `min-w-0` يسمح للعمود
+                   بالانكماش، لكنّ كلمةً بلا مسافةٍ لا تنكسر فتخرج من اللوحة
+                   مهما ضاق العمود. حدث ذلك مع قائمة مقابس المبرّد. */
+                className={`min-w-0 break-words text-left font-bold tabular-nums leading-snug text-slate-900 dark:text-slate-100 ${
                   dense ? 'text-[13px]' : 'text-[14.5px]'
                 }`}
               >
