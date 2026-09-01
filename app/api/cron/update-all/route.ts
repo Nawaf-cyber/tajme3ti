@@ -43,6 +43,23 @@ export async function GET(req: Request) {
     return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
   }
 
+  /* ============ تنظيف سجلّ الزيارات ============
+   *
+   * ⚠️ ويجري **قبل** بوّابة التعطيل: من أوقف تحديث الأسعار لم يطلب أن يتضخّم
+   * جدول الزيارات بلا حدّ. وسجلٌّ ينمو بلا تنظيف يصير في سنةٍ أثقل من
+   * الكتالوج كلّه — وهو سجلُّ قياسٍ لا سجلُّ أسعار.
+   *
+   * ١٨٠ يوماً: تكفي لمقارنة موسمٍ بموسم، وما قبلها لا يُسأل عنه أحد.
+   * والفشل هنا لا يُوقف تحديث الأسعار — تلك وظيفة الموقع، وهذه نظافة.
+   */
+  try {
+    const cutoff = new Date(Date.now() - 180 * 86400000).toISOString().slice(0, 10);
+    const gone = await prisma.pageHit.deleteMany({ where: { day: { lt: cutoff } } });
+    if (gone.count) console.log(`[cron] حُذف ${gone.count} صفَّ زيارةٍ أقدم من ${cutoff}`);
+  } catch (e) {
+    console.error('[cron] تعذّر تنظيف سجلّ الزيارات', e);
+  }
+
   try {
     const setting = await prisma.systemSetting.findUnique({ where: { id: "default" } });
     const isCronEnabled = setting ? setting.cronEnabled : false;

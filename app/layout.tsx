@@ -6,6 +6,8 @@ import { Toaster } from 'react-hot-toast';
 import Footer from '../components/Footer';
 import PCBBackground from '../components/PCBBackground';
 import Script from 'next/script';
+import { Suspense } from 'react';
+import VisitPing from '../components/VisitPing';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -69,6 +71,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Footer />
           </div>
           <Toaster position="top-center" reverseOrder={false} />
+          {/* ⚠️ داخل Suspense: قراءة معاملات الرابط بلا حدٍّ تُجبر كل صفحة
+              على التصيير في المتصفّح — أي إسقاط التصيير الساكن للموقع كلّه
+              من أجل نبضة قياس. */}
+          <Suspense fallback={null}>
+            <VisitPing />
+          </Suspense>
+          {/* يبقى مؤقّتاً لمقارنة الرقمين قبل الاستغناء عنه */}
           <Analytics />
         </Providers>
       </body>

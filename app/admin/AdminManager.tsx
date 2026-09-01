@@ -251,6 +251,13 @@ export default function AdminManager({ categories, components, news, cronStatus,
         >
           🔍 مصدر ثانٍ
         </Link>
+        {/* الزيارات: مقيسةٌ من عندنا، ومربوطةٌ بالقطع — وهو ما لا يعطيه فيرسل */}
+        <Link
+          href="/admin/analytics"
+          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
+        >
+          📈 الزيارات
+        </Link>
         {/* أختُ «مصدر ثانٍ»: تلك تُكمل قطعةً عندنا، وهذه تبحث عمّا ليس عندنا */}
         <Link
           href="/admin/store-search"

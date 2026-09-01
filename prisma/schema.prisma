@@ -10,94 +10,105 @@ generator client {
 
 // 1. جدول الفئات (Categories)
 model Category {
-  id         String      @id @default(cuid())
-  name       String      @unique 
+  id         String          @id @default(cuid())
+  name       String          @unique
   components Component[]
   requests   RequestedPart[] // فئة القطع المطلوبة التي حدّدها المقترحون
 }
 
 // 2. جدول القطع (Components)
 model Component {
-  id          String   @id @default(cuid())
-  categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id])
-  brand       String
-  name        String
-  price       Float    @default(0)
-  amazonPrice   Float?  // سعر أمازون
-  amazonInStock   Boolean @default(true)
-  cazasouqPrice Float?  // سعر كازاسوق
-  cazasouqInStock Boolean @default(true)
+  id               String   @id @default(cuid())
+  categoryId       String
+  category         Category @relation(fields: [categoryId], references: [id])
+  brand            String
+  name             String
+  price            Float    @default(0)
+  amazonPrice      Float? // سعر أمازون
+  amazonInStock    Boolean  @default(true)
+  cazasouqPrice    Float? // سعر كازاسوق
+  cazasouqInStock  Boolean  @default(true)
   microlessUrl     String?
   microlessPrice   Float?
-  microlessInStock Boolean?  @default(true)
+  microlessInStock Boolean? @default(true)
 
-  /* أسعار ما قبل الخصم (السعر المشطوب في المتجر).
-     null = لا يوجد خصم معلن. تُقرأ من الصفحة أثناء السحب، وتُقبل فقط إن
-     كانت أعلى من السعر الحالي وبنسبة معقولة — كي لا يُختلق خصم وهمي. */
+  /**
+   * أسعار ما قبل الخصم (السعر المشطوب في المتجر).
+   * null = لا يوجد خصم معلن. تُقرأ من الصفحة أثناء السحب، وتُقبل فقط إن
+   * كانت أعلى من السعر الحالي وبنسبة معقولة — كي لا يُختلق خصم وهمي.
+   */
   amazonListPrice    Float?
   cazasouqListPrice  Float?
   microlessListPrice Float?
 
-  /* رابط تتبّع كازاسوق العميق — يُولَّد يدوياً من لوحة الشريك:
-     روابط التتبّع ← الروابط البديلة للصفحات الداخلة ← إنشاء رابط أوتوماتيكي
-     الشكل: https://cazasouq.idevaffiliate.com/idevaffiliate.php?id=800&url=799
-     حيث 799 معرّف رقمي **يولّده خادمهم** لهذه الوجهة تحديداً — لا يُشتقّ
-     ولا يُخمَّن (رقم مجاور يوجّه لمنتج آخر تماماً).
-     هذا هو المسار الوحيد الذي يجمع: احتساب العمولة + الهبوط على المنتج.
-     null = لم يُولَّد بعد، فيسقط الكود للسلوك الاحتياطي. */
+  /**
+   * رابط تتبّع كازاسوق العميق — يُولَّد يدوياً من لوحة الشريك:
+   * روابط التتبّع ← الروابط البديلة للصفحات الداخلة ← إنشاء رابط أوتوماتيكي
+   * الشكل: https://cazasouq.idevaffiliate.com/idevaffiliate.php?id=800&url=799
+   * حيث 799 معرّف رقمي **يولّده خادمهم** لهذه الوجهة تحديداً — لا يُشتقّ
+   * ولا يُخمَّن (رقم مجاور يوجّه لمنتج آخر تماماً).
+   * هذا هو المسار الوحيد الذي يجمع: احتساب العمولة + الهبوط على المنتج.
+   * null = لم يُولَّد بعد، فيسقط الكود للسلوك الاحتياطي.
+   */
   cazasouqAffiliateUrl String?
-  tdpWattage  Int      @default(0)
-  specs       Json     
-  imageUrl    String?  
-  amazonUrl   String?  // رابط أمازون
-  cazasouqUrl String?  // رابط كازاسوق
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  description String?  
-  performanceTier Int?  // تقييم من 1 إلى 5 (1=اقتصادي، 5=فئة عليا)
-  /* آخر محاولة سحب لهذه القطعة — ناجحة كانت أو فاشلة.
-     ⚠️ لا نستخدم updatedAt لترتيب دور السحب: فهو يتغيّر مع **أي** كتابة،
-     بما فيها تعديل الأدمن للقطعة. فكانت القطعة التي تعدّلها تقفز لآخر
-     الطابور فتتأخّر عن التحديث بلا سبب ظاهر. هذا العمود يتغيّر بالسحب فقط. */
-  lastScrapedAt DateTime?
+  tdpWattage           Int       @default(0)
+  specs                Json
+  imageUrl             String?
+  amazonUrl            String? // رابط أمازون
+  cazasouqUrl          String? // رابط كازاسوق
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  description          String?
+  performanceTier      Int? // تقييم من 1 إلى 5 (1=اقتصادي، 5=فئة عليا)
+  /**
+   * آخر محاولة سحب لهذه القطعة — ناجحة كانت أو فاشلة.
+   * ⚠️ لا نستخدم updatedAt لترتيب دور السحب: فهو يتغيّر مع **أي** كتابة،
+   * بما فيها تعديل الأدمن للقطعة. فكانت القطعة التي تعدّلها تقفز لآخر
+   * الطابور فتتأخّر عن التحديث بلا سبب ظاهر. هذا العمود يتغيّر بالسحب فقط.
+   */
+  lastScrapedAt        DateTime?
 
-  /* ============ رصد انخفاض السعر ============
-     كان `priceDropped` يُحسب في كل دورة سحب ثم يُرمى بعد إشعار ديسكورد.
-     الآن يُحفظ: كم كان، ومتى انخفض — فيبني قسم "انخفضت أسعارها" في
-     الرئيسية بلا استعلام ثقيل على سجلّ الأسعار في كل زيارة. */
-  previousPrice  Float?    // السعر قبل آخر انخفاض
+  /**
+   * ============ رصد انخفاض السعر ============
+   * كان `priceDropped` يُحسب في كل دورة سحب ثم يُرمى بعد إشعار ديسكورد.
+   * الآن يُحفظ: كم كان، ومتى انخفض — فيبني قسم "انخفضت أسعارها" في
+   * الرئيسية بلا استعلام ثقيل على سجلّ الأسعار في كل زيارة.
+   */
+  previousPrice  Float? // السعر قبل آخر انخفاض
   priceDroppedAt DateTime? // متى رُصد
 
-  @@index([priceDroppedAt])
-
-  priceHistory PriceHistory[]
+  priceHistory   PriceHistory[]
   requestedParts RequestedPart[] // القطع المطلوبة التي رُبطت بهذه القطعة عند إضافتها
-  offers      ComponentOffer[]   // عروض المتاجر — المصدر الجديد بدل الأعمدة الثابتة أعلاه
-  priceReviews PriceReview[]
-  priceReports PriceReport[]
-  priceWatches PriceWatch[]  // من يتابع سعرها صراحةً
+  offers         ComponentOffer[] // عروض المتاجر — المصدر الجديد بدل الأعمدة الثابتة أعلاه
+  priceReviews   PriceReview[]
+  priceReports   PriceReport[]
+  priceWatches   PriceWatch[] // من يتابع سعرها صراحةً
 
+  @@index([priceDroppedAt])
   @@index([categoryId])
 }
 
-/* ============ المتاجر — جدول بدل الأسماء المكتوبة في الكود ============
- *
+/**
+ * ============ المتاجر — جدول بدل الأسماء المكتوبة في الكود ============
  * قبل هذا الجدول كان كل متجر ثلاثة أعمدة في Component + دالة سحب + لوناً
  * مكتوباً في سبع صفحات؛ أي متجر رابع يعني تعديل ٤١٩ موضعاً يدوياً.
  * الآن: صفّ واحد هنا = متجر يظهر في كل الموقع بلونه وترتيبه.
- *
  * الأعمدة القديمة (amazonPrice…) تبقى في القاعدة كنسخة رجوع حتى يتأكد
- * الأدمن أن القراءة من ComponentOffer صحيحة، ثم تُحذف في خطوة منفصلة. */
+ * الأدمن أن القراءة من ComponentOffer صحيحة، ثم تُحذف في خطوة منفصلة.
+ */
 model Store {
   id        String  @id @default(cuid())
-  /* المعرّف النصّي الثابت — يُستخدم في سجلّ الأسعار وفي ربط محرّكات السحب
-     المخصّصة (amazon/cazasouq/microless). لا يتغيّر بعد الإنشاء. */
+  /**
+   * المعرّف النصّي الثابت — يُستخدم في سجلّ الأسعار وفي ربط محرّكات السحب
+   * المخصّصة (amazon/cazasouq/microless). لا يتغيّر بعد الإنشاء.
+   */
   slug      String  @unique
-  name      String  // الاسم العربي المعروض للمستخدم
-  latinName String  // الاسم اللاتيني (يظهر في صفحة القطعة وبطاقات الشراء)
-  /* لون المتجر hex — يُمرَّر كمتغيّر CSS لا كصنف Tailwind، لأن Tailwind
-     يُجمّع الأصناف وقت البناء فلا يعرف لوناً يختاره الأدمن وقت التشغيل. */
+  name      String // الاسم العربي المعروض للمستخدم
+  latinName String // الاسم اللاتيني (يظهر في صفحة القطعة وبطاقات الشراء)
+  /**
+   * لون المتجر hex — يُمرَّر كمتغيّر CSS لا كصنف Tailwind، لأن Tailwind
+   * يُجمّع الأصناف وقت البناء فلا يعرف لوناً يختاره الأدمن وقت التشغيل.
+   */
   color     String  @default("#0EA5E9")
   domain    String? // نطاق المتجر: يُستعمل للتحقق من الروابط ولبروكسي الصور
   active    Boolean @default(true)
@@ -106,8 +117,10 @@ model Store {
   // ---- العمولة ----
   affiliateParam String? // اسم المعامل: "tag" لأمازون، "aff_id" لغيره
   affiliateId    String? // قيمته. فارغ = روابط بلا وسم عمولة
-  /* بعض الشبكات (iDevAffiliate) لا تقبل معاملاً على رابط المنتج، بل تتطلّب
-     رابط تتبّع مولَّداً لكل منتج — يُخزَّن في ComponentOffer.affiliateUrl. */
+  /**
+   * بعض الشبكات (iDevAffiliate) لا تقبل معاملاً على رابط المنتج، بل تتطلّب
+   * رابط تتبّع مولَّداً لكل منتج — يُخزَّن في ComponentOffer.affiliateUrl.
+   */
   usesDeepLinks  Boolean @default(false)
 
   // ---- العملة ----
@@ -115,33 +128,41 @@ model Store {
   rateToSar Float  @default(1) // كازاسوق يعرض BHD أحياناً = ١٠ ريالات
 
   // ---- السحب ----
-  /* auto   = JSON-LD ثم وسوم meta (يغطّي أغلب المتاجر بلا إعداد)
-     custom = محدّدات CSS المكتوبة أدناه
-     native = محرّك مخصّص مكتوب بالكود لهذا الـslug (المتاجر الثلاثة الحالية)
-     off    = لا سحب، الأسعار تُدخل يدوياً */
+  /**
+   * /* auto   = JSON-LD ثم وسوم meta (يغطّي أغلب المتاجر بلا إعداد)
+   * custom = محدّدات CSS المكتوبة أدناه
+   * native = محرّك مخصّص مكتوب بالكود لهذا الـslug (المتاجر الثلاثة الحالية)
+   * off    = لا سحب، الأسعار تُدخل يدوياً
+   */
   scrapeMode    String  @default("auto")
   priceSelector String?
   listSelector  String?
   stockSelector String?
-  /* بروكسي متقدّم (super) — أغلى بالرصيد، يلزم للمتاجر ذات الحماية العالية */
+  /**
+   * بروكسي متقدّم (super) — أغلى بالرصيد، يلزم للمتاجر ذات الحماية العالية
+   */
   premiumProxy  Boolean @default(false)
 
-  /* ---- إعلان حالة المتجر ----
-     يظهر للزائر عند عروض هذا المتجر وحده، لا كلافتة عامة: الزائر على وشك
-     الضغط على رابط الشراء، فالتنبيه في مكانه أصدق وأقلّ إزعاجاً.
-     noticeUntil يُنهيه تلقائياً — إعلان عطلٍ أُصلح منذ أسبوع يفقد الثقة. */
+  /**
+   * ---- إعلان حالة المتجر ----
+   * يظهر للزائر عند عروض هذا المتجر وحده، لا كلافتة عامة: الزائر على وشك
+   * الضغط على رابط الشراء، فالتنبيه في مكانه أصدق وأقلّ إزعاجاً.
+   * noticeUntil يُنهيه تلقائياً — إعلان عطلٍ أُصلح منذ أسبوع يفقد الثقة.
+   */
   noticeMessage String?
   noticeUntil   DateTime?
 
   offers    ComponentOffer[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   @@index([active, sortOrder])
 }
 
-/* عرض متجر واحد لقطعة واحدة — يحلّ محلّ الثلاثيّة
-   (<store>Url, <store>Price, <store>InStock, <store>ListPrice). */
+/**
+ * عرض متجر واحد لقطعة واحدة — يحلّ محلّ الثلاثيّة
+ * (<store>Url, <store>Price, <store>InStock, <store>ListPrice).
+ */
 model ComponentOffer {
   id          String    @id @default(cuid())
   componentId String
@@ -150,23 +171,27 @@ model ComponentOffer {
   store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   url          String? // رابط المنتج في هذا المتجر
-  /* رابط التتبّع العميق المولَّد من لوحة الشريك (كازاسوق) — يتقدّم على url */
+  /**
+   * رابط التتبّع العميق المولَّد من لوحة الشريك (كازاسوق) — يتقدّم على url
+   */
   affiliateUrl String?
   price        Float?
   listPrice    Float? // السعر قبل الخصم؛ null = لا خصم معلن
   inStock      Boolean @default(true)
 
-  /* أثر آخر محاولة سحب لهذا العرض تحديداً.
-     السبب: سجلّ الأسعار يسجّل النجاح فقط، فالقطعة التي تُفحص يومياً ولا
-     يُقرأ لها سعر (نافدة أو محدّد مكسور أو حظر) تبدو "لم تُحدَّث منذ أسبوع"
-     بينما هي تُفحص كل يوم. هذان الحقلان يفرّقان الحالتين. */
+  /**
+   * أثر آخر محاولة سحب لهذا العرض تحديداً.
+   * السبب: سجلّ الأسعار يسجّل النجاح فقط، فالقطعة التي تُفحص يومياً ولا
+   * يُقرأ لها سعر (نافدة أو محدّد مكسور أو حظر) تبدو "لم تُحدَّث منذ أسبوع"
+   * بينما هي تُفحص كل يوم. هذان الحقلان يفرّقان الحالتين.
+   */
   lastCheckedAt DateTime?
-  lastError     String?  // null = آخر محاولة نجحت
+  lastError     String? // null = آخر محاولة نجحت
 
-  reviews      PriceReview[]
-  reports      PriceReport[]
+  reviews PriceReview[]
+  reports PriceReport[]
 
-  updatedAt    DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
   // عرض واحد لكل قطعة في كل متجر
   @@unique([componentId, storeId])
@@ -175,38 +200,40 @@ model ComponentOffer {
 
 /**
  * ============ مراجعة الارتفاعات السعرية ============
- *
  * كان الحارس يرفض أي قفزة كبيرة صامتاً ويُبقي السعر القديم. والنتيجة أسوأ
  * من الخطأ الذي يحمي منه: قرصٌ ارتفع عند المتجر من ٦٠٠ إلى ٩٨٠ ظلّ معروضاً
  * على الموقع بـ٦٠٠، فيصل المشتري إلى المتجر ويجد الضعف — وثقته تذهب مرّة
  * واحدة. والرفض الصامت يعني أيضاً أن لا أحد يعلم أن هناك ما يُراجَع.
- *
  * الآن: القفزة المشبوهة **تُعلَّق** لا تُرفض. تُعرض في اللوحة، ويقرّر الأدمن
  * بعد فتح الرابط: اعتماد (يُطبَّق السعر ويُسجَّل في التاريخ) أو رفض (يبقى
  * القديم ويُحفظ الرقم المرفوض كي لا يتكرّر السؤال كل ساعة).
  */
 model PriceReview {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   offerId     String
   offer       ComponentOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
   componentId String
   component   Component      @relation(fields: [componentId], references: [id], onDelete: Cascade)
 
-  oldPrice    Float    // السعر المعتمد وقت الرصد
-  newPrice    Float    // السعر المرصود المعلَّق
-  changePct   Int      // نسبة الارتفاع — للفرز والعرض بلا حساب
+  oldPrice  Float // السعر المعتمد وقت الرصد
+  newPrice  Float // السعر المرصود المعلَّق
+  changePct Int // نسبة الارتفاع — للفرز والعرض بلا حساب
 
-  /** كم مرّة رُصد الرقم نفسه — تكراره يرجّح أنه حقيقي لا خطأ قراءة */
-  seenCount   Int      @default(1)
-  detectedAt  DateTime @default(now())
-  lastSeenAt  DateTime @default(now())
+  /**
+   * كم مرّة رُصد الرقم نفسه — تكراره يرجّح أنه حقيقي لا خطأ قراءة
+   */
+  seenCount  Int      @default(1)
+  detectedAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
 
-  /* PENDING بانتظار القرار · APPROVED اعتُمد · REJECTED رُفض
-     · OBSOLETE عاد السعر لطبيعته فبطل السؤال */
-  status      String   @default("PENDING")
-  reviewedAt  DateTime?
-  reviewedBy  String?   // بريد الأدمن — أثرٌ يبقى بعد القرار
+  /**
+   * PENDING بانتظار القرار · APPROVED اعتُمد · REJECTED رُفض
+   * · OBSOLETE عاد السعر لطبيعته فبطل السؤال
+   */
+  status     String    @default("PENDING")
+  reviewedAt DateTime?
+  reviewedBy String? // بريد الأدمن — أثرٌ يبقى بعد القرار
 
   @@index([status, detectedAt])
   @@index([offerId, status])
@@ -214,37 +241,41 @@ model PriceReview {
 
 /**
  * ============ بلاغ الزائر عن فرق سعر ============
- *
  * السحب يعرف أن السعر تغيّر، ولا يعرف أنه **خاطئ**: رابطٌ يشير لمنتج آخر،
  * أو محدّدٌ يقرأ سعر نسخة مختلفة، أو صفحة تعرض سعراً لمنطقة أخرى — كلّها
  * تُنتج رقماً معقولاً يمرّ من كل الحرّاس. الزائر الذي فتح المتجر هو الوحيد
  * الذي يرى الفرق، وكان لا يملك وسيلة لإخبارنا.
- *
  * البلاغ يخصّ **عرض متجر بعينه** لا القطعة: «مختلف» بلا تحديد المتجر لا
  * يقول للأدمن أي رابط يفتح.
  */
 model PriceReport {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   componentId String
   component   Component      @relation(fields: [componentId], references: [id], onDelete: Cascade)
   offerId     String
   offer       ComponentOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
 
-  /** ما رآه الزائر في المتجر — اختياري، فإلزامه يُسقط البلاغات المستعجلة */
+  /**
+   * ما رآه الزائر في المتجر — اختياري، فإلزامه يُسقط البلاغات المستعجلة
+   */
   reportedPrice Float?
-  /** سعرنا لحظة البلاغ — بدونه لا يعرف الأدمن هل تغيّر بعده أم لا */
+  /**
+   * سعرنا لحظة البلاغ — بدونه لا يعرف الأدمن هل تغيّر بعده أم لا
+   */
   ourPrice      Float
 
-  /** بلاغ واحد لكل عرض؛ تكراره من زوّار آخرين يرفع العدّاد لا يُنشئ صفاً */
-  count       Int      @default(1)
-  userId      String?  // الزائر غير المسجّل مسموح — والإبلاغ لا يستحقّ بوّابة
+  /**
+   * بلاغ واحد لكل عرض؛ تكراره من زوّار آخرين يرفع العدّاد لا يُنشئ صفاً
+   */
+  count  Int     @default(1)
+  userId String? // الزائر غير المسجّل مسموح — والإبلاغ لا يستحقّ بوّابة
 
-  status      String   @default("OPEN") // OPEN | RESOLVED | DISMISSED
-  createdAt   DateTime @default(now())
-  lastReportedAt DateTime @default(now())
-  resolvedAt  DateTime?
-  resolvedBy  String?
+  status         String    @default("OPEN") // OPEN | RESOLVED | DISMISSED
+  createdAt      DateTime  @default(now())
+  lastReportedAt DateTime  @default(now())
+  resolvedAt     DateTime?
+  resolvedBy     String?
 
   @@index([status, lastReportedAt])
   @@index([offerId, status])
@@ -257,36 +288,38 @@ enum Role {
 }
 
 model User {
-  id            String       @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String?
-  email         String?      @unique
-  emailVerified DateTime?    // متطلب لـ NextAuth
-  password      String?      // أصبح اختيارياً لدعم تسجيل الدخول عبر Google
-  image         String?      // متطلب لـ NextAuth
-  role          Role         @default(USER)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @default(now()) @updatedAt // متطلب لـ NextAuth
-  /* آخر مرّة اطّلع فيها على انخفاضات أسعار قطعه.
-     تُقارَن بـ`Component.priceDroppedAt`: أحدث منها = انخفاضٌ لم يره،
-     وعليها تقوم النقطة الحمراء على «تجميعاتي». null = لم يفتحها قط. */
+  email         String?   @unique
+  emailVerified DateTime? // متطلب لـ NextAuth
+  password      String? // أصبح اختيارياً لدعم تسجيل الدخول عبر Google
+  image         String? // متطلب لـ NextAuth
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt // متطلب لـ NextAuth
+  /**
+   * آخر مرّة اطّلع فيها على انخفاضات أسعار قطعه.
+   * تُقارَن بـ`Component.priceDroppedAt`: أحدث منها = انخفاضٌ لم يره،
+   * وعليها تقوم النقطة الحمراء على «تجميعاتي». null = لم يفتحها قط.
+   */
   dropsSeenAt   DateTime?
 
-  builds        SavedBuild[] // ربط المستخدم بتجميعاته المحفوظة
-  suggestions   Suggestion[] // إضافة هذا السطر
-  partVotes     PartVote[]   // طلبات القطع الناقصة التي أرسلها
-  partMessages  PartRequestMessage[] // ردوده على استيضاحات الإدارة
-  priceWatches  PriceWatch[] // قطعٌ يتابع سعرها صراحةً (خارج تجميعاته)
-  accounts      Account[]    // متطلب لـ NextAuth
-  sessions      Session[]    // متطلب لـ NextAuth
+  builds       SavedBuild[] // ربط المستخدم بتجميعاته المحفوظة
+  suggestions  Suggestion[] // إضافة هذا السطر
+  partVotes    PartVote[] // طلبات القطع الناقصة التي أرسلها
+  partMessages PartRequestMessage[] // ردوده على استيضاحات الإدارة
+  priceWatches PriceWatch[] // قطعٌ يتابع سعرها صراحةً (خارج تجميعاته)
+  accounts     Account[] // متطلب لـ NextAuth
+  sessions     Session[] // متطلب لـ NextAuth
 }
 
 // 4. جدول التجميعات المحفوظة (Saved Builds)
 model SavedBuild {
-  id            String   @id @default(cuid())
-  name          String   @default("تجميعة مخصصة")
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  name   String @default("تجميعة مخصصة")
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // تخزين معرفات (IDs) القطع المختارة في التجميعة
   cpuId         String?
   gpuId         String?
@@ -295,12 +328,14 @@ model SavedBuild {
   caseId        String?
   psuId         String?
   storageId     String?
-  /* المبرّد اختياريّ: تجميعةٌ بلا مبرّد صالحة (المعالج قد يأتي بواحد)،
-     ولذلك لم يدخل requiredCategories في الباني. والعمود nullable فالـ٨٩
-     تجميعةً القائمة تبقى كما هي. */
+  /**
+   * المبرّد اختياريّ: تجميعةٌ بلا مبرّد صالحة (المعالج قد يأتي بواحد)،
+   * ولذلك لم يدخل requiredCategories في الباني. والعمود nullable فالـ٨٩
+   * تجميعةً القائمة تبقى كما هي.
+   */
   coolerId      String?
-  
-  createdAt     DateTime @default(now())
+
+  createdAt DateTime @default(now())
 }
 
 // 5. جدول الأخبار (News)
@@ -310,7 +345,7 @@ model News {
   summary   String   @default("بدون ملخص")
   content   String
   category  String   @default("عام")
-  imageUrl  String?  // دعم الصور
+  imageUrl  String? // دعم الصور
   createdAt DateTime @default(now())
 }
 
@@ -319,7 +354,7 @@ model Suggestion {
   id        String   @id @default(cuid())
   title     String
   content   String
-  userId    String   // حقل إلزامي لمعرف المستخدم
+  userId    String // حقل إلزامي لمعرف المستخدم
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
@@ -329,42 +364,50 @@ model Suggestion {
 //    PartVote       = كل طلب فردي (لعدّ الطلب ومتابعة كل مستخدم لحالته).
 enum PartRequestStatus {
   REVIEWING // 🟡 قيد المراجعة
-  ADDING    // 🔵 قيد الإضافة
-  ADDED     // ✅ تمت الإضافة
+  ADDING // 🔵 قيد الإضافة
+  ADDED // ✅ تمت الإضافة
 }
 
 model RequestedPart {
-  id          String            @id @default(cuid())
-  name        String            // آخر صيغة كتبها مستخدم — تُعرض كما هي
-  normalized  String            @unique // مفتاح الدمج والعدّ (حروف صغيرة، بلا ضجيج)
-  status      PartRequestStatus @default(REVIEWING)
+  id         String            @id @default(cuid())
+  name       String // آخر صيغة كتبها مستخدم — تُعرض كما هي
+  normalized String            @unique // مفتاح الدمج والعدّ (حروف صغيرة، بلا ضجيج)
+  status     PartRequestStatus @default(REVIEWING)
 
-  /* فئة القطعة كما حدّدها المقترِح — "32GB DDR5" وحدها لا تكفي لمعرفة
-     أهي رام أم تخزين. تُستخدم أيضاً لتصفية منتقي القطعة عند الربط. */
-  categoryId  String?
-  category    Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  /**
+   * فئة القطعة كما حدّدها المقترِح — "32GB DDR5" وحدها لا تكفي لمعرفة
+   * أهي رام أم تخزين. تُستخدم أيضاً لتصفية منتقي القطعة عند الربط.
+   */
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
-  /* محادثة قصيرة بين الإدارة وصاحب الطلب — في PartRequestMessage.
-     السبب: اقتراح مثل "32GB DDR5 6000MHz" بلا شركة لا يكفي للإضافة، وكان
-     المخرج الوحيد رفضه بصمت. الآن يُسأل صاحبه ويردّ في نفس المربّع. */
-  messages    PartRequestMessage[]
+  /**
+   * محادثة قصيرة بين الإدارة وصاحب الطلب — في PartRequestMessage.
+   * السبب: اقتراح مثل "32GB DDR5 6000MHz" بلا شركة لا يكفي للإضافة، وكان
+   * المخرج الوحيد رفضه بصمت. الآن يُسأل صاحبه ويردّ في نفس المربّع.
+   */
+  messages PartRequestMessage[]
 
-  /* أول مرة فتح فيها الأدمن هذا الطلب — null = جديد لم يُقرأ بعد،
-     وعليه تُبنى النقطة الحمراء على مربّع الطلبات. */
+  /**
+   * أول مرة فتح فيها الأدمن هذا الطلب — null = جديد لم يُقرأ بعد،
+   * وعليه تُبنى النقطة الحمراء على مربّع الطلبات.
+   */
   adminSeenAt DateTime?
   // يُملأ عند الإضافة → يفعّل زر "ابنِ تجميعة بهذه القطعة"
   componentId String?
-  component   Component?        @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  component   Component? @relation(fields: [componentId], references: [id], onDelete: SetNull)
   votes       PartVote[]
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@index([status])
 }
 
-/* رسالة واحدة في محادثة طلب قطعة.
-   userId = null → من الإدارة. غيره → من صاحب الطلب.
-   حفظناها كسجلّات لا كحقلين، لأن الاستيضاح يحتاج أخذاً وردّاً لا ردّاً واحداً. */
+/**
+ * رسالة واحدة في محادثة طلب قطعة.
+ * userId = null → من الإدارة. غيره → من صاحب الطلب.
+ * حفظناها كسجلّات لا كحقلين، لأن الاستيضاح يحتاج أخذاً وردّاً لا ردّاً واحداً.
+ */
 model PartRequestMessage {
   id              String        @id @default(cuid())
   requestedPartId String
@@ -373,7 +416,9 @@ model PartRequestMessage {
   user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   body            String
   createdAt       DateTime      @default(now())
-  /** لرسائل المستخدم: هل قرأها الأدمن؟ عليها تُبنى نقطة "ردود جديدة" */
+  /**
+   * لرسائل المستخدم: هل قرأها الأدمن؟ عليها تُبنى نقطة "ردود جديدة"
+   */
   seenByAdmin     Boolean       @default(false)
 
   @@index([requestedPartId, createdAt])
@@ -389,15 +434,19 @@ model PartVote {
   source          String? // "builder" | "components" | "compare" — من أي صفحة أتى
   createdAt       DateTime      @default(now())
 
-  /* أزال صاحبه الطلب من قائمته (بعد إتمامه).
-     حذف ناعم لا صلب: الأدمن يحتاج أن يرى من أزال وماذا، فحذف الصفّ يمحو
-     الأثر ويجعل العدّاد يتقلّص بلا تفسير. */
-  removedAt       DateTime?
+  /**
+   * أزال صاحبه الطلب من قائمته (بعد إتمامه).
+   * حذف ناعم لا صلب: الأدمن يحتاج أن يرى من أزال وماذا، فحذف الصفّ يمحو
+   * الأثر ويجعل العدّاد يتقلّص بلا تفسير.
+   */
+  removedAt DateTime?
 
-  /* آخر مرة اطّلع فيها صاحب الطلب على حالته.
-     تُقارن بـ RequestedPart.updatedAt: أحدث منها = فيه جديد لم يره،
-     وعليها تُبنى النقطة على مربّع "تجميعاتي". */
-  seenAt          DateTime?
+  /**
+   * آخر مرة اطّلع فيها صاحب الطلب على حالته.
+   * تُقارن بـ RequestedPart.updatedAt: أحدث منها = فيه جديد لم يره،
+   * وعليها تُبنى النقطة على مربّع "تجميعاتي".
+   */
+  seenAt DateTime?
 
   // صوت واحد لكل مستخدم مسجّل لكل قطعة (المجهول لا يُدمج — كل NULL مستقل في Postgres)
   @@unique([requestedPartId, userId])
@@ -409,18 +458,18 @@ model PartVote {
 // -------------------------------------------------
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -459,12 +508,16 @@ model SystemSetting {
   id          String  @id @default("default")
   cronEnabled Boolean @default(false)
 
-  /* كم دورة تحديث في اليوم — يضبطها الأدمن من اللوحة.
-     الجدولة الخارجية (GitHub Actions) تنادي المسار كل ساعة، وهذا الرقم
-     هو الذي يقرّر أيّ نداء يُنفَّذ وأيّها يُهمَل. فتغيير التردّد صار قراراً
-     في اللوحة لا تعديلاً في ملف workflow ثم نشراً. */
+  /**
+   * كم دورة تحديث في اليوم — يضبطها الأدمن من اللوحة.
+   * الجدولة الخارجية (GitHub Actions) تنادي المسار كل ساعة، وهذا الرقم
+   * هو الذي يقرّر أيّ نداء يُنفَّذ وأيّها يُهمَل. فتغيير التردّد صار قراراً
+   * في اللوحة لا تعديلاً في ملف workflow ثم نشراً.
+   */
   updatesPerDay Int       @default(6)
-  /** بداية آخر دورة نُفِّذت — المرجع الذي يُقاس عليه "هل حان الموعد؟" */
+  /**
+   * بداية آخر دورة نُفِّذت — المرجع الذي يُقاس عليه "هل حان الموعد؟"
+   */
   lastCronRunAt DateTime?
 }
 
@@ -476,12 +529,12 @@ model Setting {
 }
 
 model PriceHistory {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   componentId String
   component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
-  store       String   // "amazon" | "cazasouq" | "microless"
+  store       String // "amazon" | "cazasouq" | "microless"
   price       Float
-  recordedAt  DateTime @default(now())
+  recordedAt  DateTime  @default(now())
 
   // فهرس مركّب: يسرّع جلب تاريخ قطعة معيّنة مرتّباً زمنياً،
   // وهو الاستعلام الوحيد الذي سنشغّله فعلياً في صفحة القطعة.
@@ -489,16 +542,15 @@ model PriceHistory {
   // فهرس ثانٍ لصفحة الصفقات: أحدث الأسعار عبر كل القطع.
   @@index([recordedAt])
 }
-/* ============ متابعة سعر قطعة ============
- *
+
+/**
+ * ============ متابعة سعر قطعة ============
  * ⚠️ هذا الجدول **للمتابعة الصريحة وحدها** — القطع التي يختارها المستخدم
  * وليست في أيّ تجميعةٍ له.
- *
  * أمّا قطع تجميعاته المحفوظة فمتابَعةٌ **تلقائياً بلا صفٍّ هنا**: قِيست
  * فوُجدت ٤٠٧ أزواج (مستخدم × قطعة) موجودةً أصلاً بلا أي عملٍ منه. ونسخُها
  * إلى جدولٍ ثانٍ يعني حالتين تتباعدان — يحذف تجميعةً فيبقى صفُّ المتابعة
  * يتيماً، أو يبدّل قطعةً فلا يُبدَّل الصفّ.
- *
  * فالمصدر واحد: التجميعة نفسها. وهذا الجدول يضيف إليها ولا ينسخها.
  */
 model PriceWatch {
@@ -509,12 +561,11 @@ model PriceWatch {
   component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
 
-  /* «احفظ هذا السعر» — عمودان لا جدولٌ ثالث.
-   *
+  /**
+   * «احفظ هذا السعر» — عمودان لا جدولٌ ثالث.
    * المستخدم يرى «متابعة» و«حفظ» شيئاً واحداً: قطعةٌ تهمّه. والفرق أنّ
    * المتابعة تحفظ القطعة، والحفظ يحفظ **السعر الذي رآه هو** معها — وهو
    * مرجعٌ أصدق من previousPrice عندنا (ذاك آخر سعرٍ سجّلناه نحن، لا ما رآه).
-   *
    * ⚠️ وجدولٌ ثالثٌ كان سيعني حالةً ثالثة تتباعد عن الاثنتين — نفس السبب
    * الذي منع نسخ قطع التجميعات إلى هنا.
    */
@@ -524,4 +575,51 @@ model PriceWatch {
   // متابعةٌ واحدة لكل مستخدمٍ لكل قطعة
   @@unique([userId, componentId])
   @@index([userId])
+}
+
+/**
+ * ============ زيارة صفحة ============
+ * بديلُ تحليلات فيرسل، وسببُه أنّ فيرسل لا يعرف كتالوجنا: يقول «٤٠٠ زيارة
+ * لـ/components/x» ولا يقول أيّ **قطعة** هي، ولا أيّها يُفتح ثم يُهجر بلا
+ * نقرِ متجر. وذلك ما يوجّه أين نكتب الوصف القادم وأيّ قطعة تستحقّ مصدراً.
+ * ⚠️ ولا يُخزَّن IP ولا معرّفٌ ثابت. `visitorHash` بصمةٌ **يوميّة**:
+ * HMAC(سرُّ الخادم، اليوم) على IP والمتصفّح. تتغيّر مع منتصف الليل، فلا
+ * تُتتبَّع عبر الأيام ولا تُعكَس من خارج الخادم.
+ * ⚠️ وهي لا تكفي وحدها: مشغّلو الجوال السعوديّون يجمعون آلاف المستخدمين
+ * خلف IP واحد (CGNAT)، فمن تطابق متصفّحه اندمج مع غيره. ولذلك `userId`:
+ * المسجَّل يُعدّ بحسابه لا ببصمته — وهذا هو «الهجين».
+ * ⚠️ وبلا مفاتيح أجنبيّة عمداً: هذا جدولٌ كثيرُ الكتابة، والقيد الأجنبيّ
+ * يفحص جدولاً آخر مع كل صفّ. والقطعة المحذوفة تترك صفوفاً يتيمة — وهو
+ * مقبولٌ في سجلّ زيارات، غير مقبولٍ في سجلّ أسعار.
+ */
+model PageHit {
+  id          String   @id @default(cuid())
+  /**
+   * اليوم بصيغة YYYY-MM-DD بتوقيت الرياض — التجميع يوميّ دائماً
+   */
+  day         String
+  /**
+   * بصمة اليوم — لا تُقارن عبر يومين
+   */
+  visitorHash String
+  /**
+   * المسجَّل يُعرف بحسابه: يقينٌ يكسر التباس CGNAT
+   */
+  userId      String?
+  path        String
+  /**
+   * أيّ قطعة — وهو ما لا يعطيه فيرسل
+   */
+  componentId String?
+  /**
+   * نطاق المُحيل فقط (google.com) لا الرابط كاملاً
+   */
+  refHost     String?
+  device      String?
+  createdAt   DateTime @default(now())
+
+  @@index([day])
+  @@index([day, visitorHash])
+  @@index([componentId])
+  @@index([path])
 }
