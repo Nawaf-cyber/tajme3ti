@@ -17,6 +17,7 @@ import { prisma } from '../../../../lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { liveOffers } from '../../../../lib/stores';
 import { fingerprint, pick, type Candidate } from '../../../../lib/source-match';
+import { selectTargets } from '../../../../lib/find-targets';
 import { searchStore, adapterFor, sourceMeta, type SearchSource } from '../../../../lib/store-search';
 
 export const dynamic = 'force-dynamic';
@@ -106,17 +107,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `${adapter.label} يحتاج SCRAPER_API_KEY` }, { status: 400 });
   }
 
+  /* ============ ماذا يُفحص: مسحٌ بالفئة أم قطعٌ بعينها ============
+   *
+   * ⚠️ والمختارة صراحةً لا يُطبَّق عليها شرط «مصدرٌ حيٌّ واحد»: الشرط
+   * حارسٌ للمسح الأعمى كي لا يُنفق الرصيد على ما لا يحتاج، لكنّ الأدمن حين
+   * يسمّي قطعةً بعينها يكون قد حكم. وقطعةٌ بمصدرين قد يُراد لها ثالث.
+   *
+   * ⚠️ ويبقى شرطٌ واحد: ألّا يكون عندها عرضٌ في المتجر المقصود — ذلك بحثٌ
+   * نتيجته معروفةٌ سلفاً، وثمنه طلبٌ من الوسيط.
+   */
+  const ids: string[] = Array.isArray(body?.componentIds)
+    ? body.componentIds.filter((x: any) => typeof x === 'string').slice(0, 40)
+    : [];
+
   const all = await prisma.component.findMany({
-    where: category ? { category: { name: category } } : {},
+    where: ids.length ? { id: { in: ids } } : category ? { category: { name: category } } : {},
     include: { category: true, offers: { include: { store: true } } },
     orderBy: { price: 'desc' },
   });
 
-  /* المرشّحات للعمل: مصدرٌ حيٌّ واحد، ولا صفَّ في المتجر المقصود */
-  const need = all
-    .filter((c) => liveOffers(c.offers as any).length === 1)
-    .filter((c) => !c.offers.some((o) => o.store.slug === source))
-    .slice(0, limit);
+  const { targets, skipped: skippedPicks } = selectTargets(
+    all.map((c) => ({
+      ...c,
+      storeSlugs: c.offers.map((o) => o.store.slug),
+      liveCount: liveOffers(c.offers as any).length,
+    })),
+    { source, sourceLabel: adapter.label, explicitIds: ids, limit: ids.length ? 40 : limit },
+  );
+  const need = targets;
 
   const results: any[] = [];
   for (const c of need) {
@@ -145,6 +163,8 @@ export async function POST(req: Request) {
     source,
     scanned: results.length,
     matched: results.filter((r) => r.match).length,
+    /* ما استُبعد من المختار وسببه — الصمت هنا يبدو عطلاً */
+    skippedPicks,
     /* ما يمرّ عبر Scrape.do يكلّف طلباً لكل بحث — يُقال للأدمن ما استُهلك */
     creditsUsed: adapter.needsProxy ? results.length : 0,
     results,

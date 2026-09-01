@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import CatalogPicker, { useCatalog } from '../../../components/CatalogPicker';
 
 type Row = {
   componentId: string;
@@ -43,6 +44,10 @@ export default function FindSourcesClient() {
   const active = sources.find((s) => s.slug === source) || null;
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [used, setUsed] = useState(0);
+  /* قطعٌ مختارةٌ بعينها — حين تكون غير فارغة تُهمَل الفئة والعدد */
+  const [picked, setPicked] = useState<string[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const catalog = useCatalog(pickerOpen);
 
   useEffect(() => {
     fetch('/api/admin/find-sources')
@@ -65,7 +70,7 @@ export default function FindSourcesClient() {
       const res = await fetch('/api/admin/find-sources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'search', source, category, limit }),
+        body: JSON.stringify({ action: 'search', source, category, limit, componentIds: picked }),
       });
       const d = await res.json();
       if (!res.ok) { toast.error(d.error || 'تعذّر البحث'); return; }
@@ -74,6 +79,8 @@ export default function FindSourcesClient() {
       /* كل مطابقٍ يُعلَّم مبدئياً — والمراجعة إزالةٌ لا إضافة، فهي أسرع */
       setChosen(new Set(d.results.filter((r: Row) => r.match).map((r: Row) => r.componentId)));
       toast.success(`فُحصت ${d.scanned} قطعة · ${d.matched} مطابقاً`);
+      /* ما استُبعد يُقال صراحةً: أدمنٌ اختار خمساً وفُحصت ثلاثٌ يظنّه عطلاً */
+      for (const s of (d.skippedPicks || []).slice(0, 3)) toast(s, { icon: 'ℹ️', duration: 6000 });
     } catch { toast.error('خطأ في الاتصال'); }
     finally { setBusy(false); }
   };
@@ -148,9 +155,12 @@ export default function FindSourcesClient() {
           </div>
 
           <div>
-            <label className="block text-[12px] font-black text-slate-500 dark:text-slate-400 mb-1.5">الفئة</label>
+            <label className="block text-[12px] font-black text-slate-500 dark:text-slate-400 mb-1.5">
+              الفئة {picked.length > 0 && <span className="text-slate-400 dark:text-slate-500">· مُهمَلة</span>}
+            </label>
             <select
               value={category}
+              disabled={picked.length > 0}
               onChange={(e) => setCategory(e.target.value)}
               className="bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-700/60 rounded-sm px-3 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
             >
@@ -159,9 +169,12 @@ export default function FindSourcesClient() {
           </div>
 
           <div>
-            <label className="block text-[12px] font-black text-slate-500 dark:text-slate-400 mb-1.5">كم قطعة</label>
+            <label className="block text-[12px] font-black text-slate-500 dark:text-slate-400 mb-1.5">
+              كم قطعة {picked.length > 0 && <span className="text-slate-400 dark:text-slate-500">· مُهمَل</span>}
+            </label>
             <input
               type="number" min={1} max={40} value={limit}
+              disabled={picked.length > 0}
               onChange={(e) => setLimit(Number(e.target.value))}
               className="w-24 bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-700/60 rounded-sm px-3 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
             />
@@ -172,8 +185,34 @@ export default function FindSourcesClient() {
             disabled={busy}
             className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-black rounded-sm transition-all active:scale-95 disabled:opacity-60 shadow-sm shadow-cyan-500/20"
           >
-            {busy ? 'جارٍ…' : 'ابحث'}
+            {busy ? 'جارٍ…' : picked.length > 0 ? `ابحث عن ${picked.length}` : 'ابحث'}
           </button>
+        </div>
+
+        {/* ===== اختيار قطعٍ بعينها =====
+             ⚠️ ويُطوى مبدئيّاً: المسح بالفئة هو الاستعمال اليوميّ، والكتالوج
+             لا يُجلب إلّا حين يُفتح هذا — فلا يدفع من لا يستعمله ثمنه. */}
+        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+          <button
+            onClick={() => setPickerOpen((v) => !v)}
+            className="text-[13px] font-black text-cyan-700 dark:text-cyan-400 hover:underline"
+          >
+            {pickerOpen ? '▾' : '◂'} اختر قطعاً بعينها
+            {picked.length > 0 && <span className="mr-1.5 text-slate-500 dark:text-slate-400">({picked.length} مختارة)</span>}
+          </button>
+
+          {pickerOpen && (
+            <div className="mt-3">
+              <CatalogPicker
+                items={catalog.items}
+                loading={catalog.loading}
+                selected={picked}
+                onChange={setPicked}
+                storeSlug={source}
+                category={category}
+              />
+            </div>
+          )}
         </div>
 
         <p className="mt-3.5 text-[12px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">

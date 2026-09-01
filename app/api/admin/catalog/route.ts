@@ -18,11 +18,25 @@ export async function GET() {
   if (!(await adminEmail())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
 
   const rows = await prisma.component.findMany({
-    select: { id: true, name: true, brand: true, category: { select: { name: true } } },
+    select: {
+      id: true, name: true, brand: true, price: true,
+      category: { select: { name: true } },
+      /* ⚠️ ومعها متاجرها: منتقي «مصدر ثانٍ» يحتاج أن يقول للأدمن قبل أن
+         يختار — هذه بمصدرٍ واحد، وتلك عندها المتجر المطلوب أصلاً فاختيارها
+         بحثٌ بلا فائدة. وبلا ذلك يُنفق رصيد الوسيط على قطعةٍ لا تحتاجه. */
+      offers: { select: { store: { select: { slug: true } } } },
+    },
     orderBy: { name: 'asc' },
   });
 
   return NextResponse.json({
-    items: rows.map((r) => ({ id: r.id, name: r.name, brand: r.brand, category: r.category?.name ?? '' })),
+    items: rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      brand: r.brand,
+      price: r.price,
+      category: r.category?.name ?? '',
+      stores: [...new Set(r.offers.map((o) => o.store.slug))],
+    })),
   });
 }
