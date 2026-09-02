@@ -32,6 +32,7 @@ import {
   socketMatch, ramTypeMatch, fitReason, psuFitReason,
   coolerFitsCpu, coolerCpuReason, coolerFitsCase, coolerFitReason,
 } from './fit';
+import { capacityGb, formatCapacity } from './capacity';
 
 export type PartLike = {
   id?: string;
@@ -72,8 +73,22 @@ const numOf = (v: unknown): number | null => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
-/** هامش الأمان فوق مجموع الاستهلاك المسجَّل */
+/** هامش الأمان فوق مجموع الاستهلاك المسجَّل — الحدّ الأدنى */
 export const PSU_HEADROOM = 100;
+
+/**
+ * هامشُ مزوّدٍ يتناسب مع الكرت لا رقمٌ ثابت.
+ *
+ * ⚠️ والهامش الثابت (١٠٠ واط) كان يُمرِّر تجميعاتٍ يرفضها المصنّع نفسه:
+ * كرت 5090 استهلاكه ٥٧٥ واط مع معالجٍ ١٢٠ ⇐ ٧٩٥ واط، فيمرّ مزوّد ٨٥٠ —
+ * وإنفيديا توصي بـ١٠٠٠. والسبب أن الكروت الحديثة تقفز لحظيّاً فوق
+ * استهلاكها المعلَن، والقفزة تكبر بكبر الكرت لا بمقدارٍ ثابت.
+ *
+ * ⚠️ ولا يتغيّر شيءٌ للفئة المتوسطة: كرتٌ ٢٥٠ واط يعطي هامشاً ١٠٠ كما
+ * كان. فالتشديد يقع حيث المشكلة وحدها.
+ */
+export const psuHeadroom = (gpuTdp: number): number =>
+  Math.max(PSU_HEADROOM, Math.round((Number(gpuTdp) || 0) * 0.4));
 
 /** مجموع الاستهلاك المسجَّل — والمسجَّل عندنا معالجٌ ولوحةٌ وكرت */
 export const computeDraw = (parts: BuildParts): number =>
@@ -162,13 +177,42 @@ export function checkBuild(parts: BuildParts): Issue[] {
     }
   }
 
+  /* ============ سعة الذاكرة ============
+   * ⚠️ ولا تُقارن السلاسل: «32GB» و«256GB» نصّان، و«2x16GB» طقمٌ مجموعه ٣٢.
+   * فالحساب من `lib/capacity.ts` — الوحدة نفسها التي يستعملها الكتالوج. */
+  if (parts.RAM && parts.Motherboard) {
+    const kit = capacityGb(ram.kit) || capacityGb(ram.capacity);
+    const max = capacityGb(mobo.maxRam);
+    if (kit > 0 && max > 0 && kit > max) {
+      out.push({
+        level: 'block', fixCategory: 'RAM', code: 'ramCapacity',
+        message: `اللوحة تقبل حتى ${mobo.maxRam} والطقم المختار ${formatCapacity(kit)}.`,
+      });
+    }
+  }
+
+  /* ============ سرعة الذاكرة ============
+   * تحذيرٌ لا منع: الرام تعمل على أعلى ما تدعمه اللوحة، ولا تتعطّل. لكنّ
+   * المشتري دفع فرقاً لن يستفيد منه — وذلك ما يستحقّ أن يُقال. */
+  if (parts.RAM && parts.Motherboard) {
+    const rs = numOf(ram.speed);
+    const ms = numOf(mobo.memorySpeed);
+    if (rs && ms && rs > ms) {
+      out.push({
+        level: 'warn', fixCategory: 'RAM', code: 'ramSpeed',
+        message: `الطقم ${rs} MT/s واللوحة تدعم حتى ${mobo.memorySpeed} — ستعمل الذاكرة بسرعةٍ أقلّ.`,
+      });
+    }
+  }
+
   if (parts.PSU) {
     const draw = computeDraw(parts);
     const w = numOf(psu.wattage);
-    if (w && draw > 0 && w < draw + PSU_HEADROOM) {
+    const headroom = psuHeadroom(Number(parts.GPU?.tdpWattage) || 0);
+    if (w && draw > 0 && w < draw + headroom) {
       out.push({
         level: 'block', fixCategory: 'PSU', code: 'wattage',
-        message: `الاستهلاك التقريبي مع هامش الأمان (${draw + PSU_HEADROOM}W) يتجاوز قدرة المزوّد (${w}W).`,
+        message: `الاستهلاك التقريبي مع هامش الأمان (${draw + headroom}W) يتجاوز قدرة المزوّد (${w}W).`,
       });
     }
   }
