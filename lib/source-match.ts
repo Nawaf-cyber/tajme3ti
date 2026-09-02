@@ -47,6 +47,10 @@ const stripUnits = (name: string) =>
     .replace(/\([^)]*\)/g, ' ')
     .replace(/\b\d+(\.\d+)?\s*(GB|TB|MB)\b/gi, ' ')
     .replace(/\b\d{3,5}\s*MHZ\b/gi, ' ')
+    /* ⚠️ «DDR5-5600» قبل «DDR5»: الترتيب معكوساً يحذف «DDR5» ويترك «-5600»
+       رقماً عارياً — وهو بالضبط ما جعل معالج «Ryzen 5 5600» يطابق عنوان
+       «Ryzen 7 9700X … DDR5-5600 ECC». */
+    .replace(/\bDDR[345][-\s]?\d{4,5}\b/gi, ' ')
     .replace(/\bDDR[345]\b/gi, ' ')
     .replace(/\bCL\d{2}\b/gi, ' ')
     .replace(/\s+/g, ' ')
@@ -120,13 +124,25 @@ export function matches(fp: Fingerprint, cand: string): Verdict {
   if (!norm(cand).includes(fp.brand)) return { ok: false, why: 'شركةٌ أخرى' };
 
   if (fp.capacityGb > 0) {
-    const found = [...cand.matchAll(/(\d+(?:\.\d+)?)\s*(TB|GB)\b/gi)].map((m) => capacityGb(`${m[1]}${m[2]}`));
+    /* ⚠️ وتُحذف سعة العصا الواحدة قبل القراءة: «32GB (2x16GB)» فيها رقمان،
+       والثاني ليس سعة المنتج بل سعة قطعةٍ منه. وبلا هذا طابق طقمُنا
+       **DDR4 16GB** طقمَ **DDR5 32GB (2x16GB)** — لأنّ «16» وردت فيه.
+       والمقصود مقارنة المجموع بالمجموع. */
+    const totals = cand.replace(/\(?\s*\d+\s*[xX]\s*\d+(?:\.\d+)?\s*(?:GB|TB)\s*\)?/gi, ' ');
+    const found = [...totals.matchAll(/(\d+(?:\.\d+)?)\s*(TB|GB)\b/gi)].map((m) => capacityGb(`${m[1]}${m[2]}`));
     if (!found.some((v) => Math.abs(v - fp.capacityGb) < 0.5)) {
       return { ok: false, why: `السعة لا تطابق` };
     }
   }
 
-  for (const m of fp.models) if (!hasWord(cand, m)) return { ok: false, why: `ينقصه الطراز ${m}` };
+  /* ⚠️ ويُجرَّد عنوان المرشّح من الوحدات قبل البحث عن الطراز، تماماً كما
+     جُرّد اسمُنا عند بناء البصمة. وبلا ذلك يطابق رقمُ الطراز رقمَ **وحدةٍ**
+     في وصف المرشّح: قيس على «Ryzen 5 5600» فقَبِل «Ryzen 7 9700X … DDR5-5600
+     ECC» — سعرُ معالجٍ بـ١٬٢١٣ ريالاً على معالجٍ بـ٦٣٩.
+
+     ويبقى فحص السعة على العنوان الخام: ذاك يحتاج «GB/TB» التي يحذفها التجريد. */
+  const bare = stripUnits(cand);
+  for (const m of fp.models) if (!hasWord(bare, m)) return { ok: false, why: `ينقصه الطراز ${m}` };
   for (const w of fp.words) if (!hasWord(cand, w)) return { ok: false, why: `ينقصه «${w}»` };
 
   if (fp.formFactor) {

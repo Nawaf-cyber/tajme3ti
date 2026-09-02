@@ -97,7 +97,11 @@ export async function fetchAttributes(url: string, viaProxy = ''): Promise<Recor
 
 type Rule = { key: string; match: RegExp; clean?: (v: string) => string };
 
-const num = (v: string) => (v.match(/\d+(?:\.\d+)?/) || [''])[0];
+/* ⚠️ وتُنزع الفاصلة الألفيّة أوّلاً: «Up to 14,800 MB/s» كانت تُقرأ **14**،
+   و«4,000 GB» تُقرأ **000GB**. التعبير يتوقّف عند الفاصلة فيأخذ ما قبلها،
+   والنتيجة رقمٌ يبدو سليماً وهو جزءٌ من رقم — أسوأ من قراءةٍ تفشل. */
+const unComma = (v: string) => String(v ?? '').replace(/(\d),(?=\d{3}(\D|$))/g, '$1');
+const num = (v: string) => (unComma(v).match(/\d+(?:\.\d+)?/) || [''])[0];
 /** رقمٌ صحيح: «850.0 W» → «850» */
 const int = (v: string) => {
   const n = Number(num(v));
@@ -120,8 +124,14 @@ const pcie = (v: string) => {
 
 /** «12 GB» → «12GB» */
 const gb = (v: string) => {
-  const m = v.match(/(\d+(?:\.\d+)?)\s*(GB|TB)/i);
-  return m ? m[1] + m[2].toUpperCase() : '';
+  const m = unComma(v).match(/(\d+(?:\.\d+)?)\s*(GB|TB)/i);
+  if (!m) return '';
+  const n = Number(m[1]);
+  const unit = m[2].toUpperCase();
+  /* ⚠️ و«4,000 GB» تُكتب «4TB»: المتجر يُعلن بالجيجابايت والكتالوج بالتيرا،
+     وقرصٌ مكتوبٌ «4000GB» بجوار «2TB» لا يُقارَن بالنظر. */
+  if (unit === 'GB' && n >= 1000 && n % 1000 === 0) return `${n / 1000}TB`;
+  return m[1] + unit;
 };
 
 const RULES: Record<string, Rule[]> = {
@@ -160,8 +170,9 @@ const RULES: Record<string, Rule[]> = {
   RAM: [
     { key: 'type', match: /memory type|memory technology|نوع الذاكرة/ },
     { key: 'capacity', match: /^capacity|computer memory size|^memory size$|السعة/, clean: gb },
-    { key: 'speed', match: /^memory speed|^speed$|السرعة/, clean: (v) =>
-      /mhz|mt\/s/i.test(v) ? v.replace(/\s+/g, '') : int(v) ? int(v) + 'MHz' : '' },
+    /* ⚠️ ويُخزَّن الرقم مجرّداً: `UNITS.speed = 'MT/s'` تُضاف عند العرض، فقيمةٌ
+       مكتوبةٌ «6000MHz» تظهر للزائر «6000MHz MT/s». والعرف في الكتالوج «6000». */
+    { key: 'speed', match: /^memory speed|^speed$|السرعة/, clean: int },
     /* «32GB (2 x 16GB)» → «2x16GB» */
     { key: 'kit', match: /memory size|^kit|الطقم/, clean: (v) => {
       const m = v.match(/(\d)\s*[xX]\s*(\d{1,3})\s*GB/);
@@ -170,7 +181,10 @@ const RULES: Record<string, Rule[]> = {
     /* ⚠️ «Tested Latency» هي الفعليّة؛ «SPD Latency» هي الافتراضيّة (٤٠) */
     { key: 'casLatency', match: /tested latency/, clean: (v) => (int(v) ? 'CL' + int(v) : '') },
     { key: 'casLatency', match: /cas|latency|زمن/, clean: (v) => (int(v) ? 'CL' + int(v) : '') },
-    { key: 'profile', match: /performance profile|xmp|expo/ },
+    /* ⚠️ و«XMP/EXPO Timing = 30-36-36» توقيتاتٌ لا اسمُ بروفايل. كانت تُكتب
+       في `profile` فيقرأ الزائر «30-36-36» مكان «Intel XMP 3.0». */
+    { key: 'profile', match: /performance profile|memory profile|^xmp|^expo|xmp\/expo(?! timing)/, clean: (v) =>
+      /^[\d-]+$/.test(v.trim()) ? '' : v },
     { key: 'heightMm', match: /^height|الارتفاع/, clean: num },
     { key: 'rgb', match: /^led|rgb|إضاءة/, clean: yesNo },
   ],
@@ -314,9 +328,17 @@ export function mapAttributes(category: string, attrs: Record<string, string>): 
    * ووجود ارتفاعٍ بلا رادييتر يحسمه هوائيّاً. ويُعلَّم تخميناً لا قراءة. */
   const derived: Record<string, string> = {};
   if (category === 'Cooler' && !specs.type) {
+    /* ⚠️ ووجودُ كلمة «radiator» **لا** يعني مبرّداً مائيّاً: MSI تسمّي مشتّت
+       المبرّد الهوائيّ نفسه رادييتراً («Radiator Heat-Pipe Specification»،
+       «Radiator Fin»). فصُنّف AA13 — وهو برجٌ هوائيّ بمروحةٍ واحدة — مائيّاً.
+       والفرق ليس تسمية: `fit.ts` يقرأ `type`.
+
+       فالدليل الآن مضخّةٌ أو سائل، لا فناً معدنيّاً اسمُه رادييتر. */
+    const text = Object.entries(attrs).map(([k, v]) => `${normKey(k)} ${v}`).join(' | ').toLowerCase();
     const names = Object.keys(attrs).map(normKey);
-    if (names.some((n) => /radiator/.test(n))) derived.type = 'AIO';
-    else if (names.some((n) => /^height/.test(n)) && names.some((n) => /fan size/.test(n))) derived.type = 'Air';
+    if (/pump|liquid cool|water block|coolant|aio/.test(text)) derived.type = 'AIO';
+    else if (/radiator size/.test(text) && /\b(120|140|240|280|360|420)\s*mm/.test(text)) derived.type = 'AIO';
+    else if (names.some((n) => /^height/.test(n)) && names.some((n) => /heat.?pipe|fan size/.test(n))) derived.type = 'Air';
   }
 
   return { specs, derived, tdpWattage };
