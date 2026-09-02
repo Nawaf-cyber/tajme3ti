@@ -73,6 +73,27 @@ const numOf = (v: unknown): number | null => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
+/* ============ هل مع المعالج مبرّد؟ ============
+ *
+ * ⚠️ لا يُسأل الحقل «هل تقول لا؟» بل «هل تُثبت نعم؟». والفرق ليس لفظيّاً:
+ * كان الشرط `/^(none|no|لا يوجد)$/` — فأيّ صياغةٍ سواها تُسكت التحذير
+ * سكوتاً تامّاً. وفي كتالوجنا فعلاً قيمةٌ اسمها «Included» ولو كُتب مكانها
+ * «Not included» أو تُرك الحقل فارغاً لخرجت التجميعة بـ«توافقٌ تامّ» بلا
+ * مبرّدٍ أصلاً — وهي لا تُقلع.
+ *
+ * فالسكوت الآن يحتاج **اسم مبرّدٍ معروف**، وما عداه — فراغاً كان أو نصّاً
+ * لا نفهمه — يُحذَّر منه بصيغةٍ تقول إنّنا لم نتأكّد، لا إنّه لا مبرّد.
+ */
+const NO_COOLER_EXACT = /^\s*(none|no|n\/?a|-|—|بدون|لا\s*يوجد|غير\s*مرفق)\s*$/i;
+const NO_COOLER_ANY = /not\s*included|without\s*(a\s*)?cooler|no\s*cooler|\btray\b|\boem\b|بدون\s*مبرّ?د/i;
+const COOLER_NAME = /wraith|laminar|\bincluded\b|stock\s*cooler|boxed?\s*cooler|مبرّ?د|مرفق/i;
+
+export const bundledCooler = (v: unknown): 'yes' | 'no' | 'unknown' => {
+  const s = String(v ?? '').trim();
+  if (!s || NO_COOLER_EXACT.test(s) || NO_COOLER_ANY.test(s)) return 'no';
+  return COOLER_NAME.test(s) ? 'yes' : 'unknown';
+};
+
 /** هامش الأمان فوق مجموع الاستهلاك المسجَّل — الحدّ الأدنى */
 export const PSU_HEADROOM = 100;
 
@@ -168,11 +189,13 @@ export function checkBuild(parts: BuildParts): Issue[] {
      وهو تحذيرٌ لا منع: المستخدم قد يملك مبرّداً من جهازه السابق، ومنعُه
      يجعل الأداة تكذب في الاتّجاه الآخر. */
   if (parts.CPU && !parts.Cooler) {
-    const inc = String(cpu.includedCooler ?? '').trim();
-    if (/^(none|no|لا يوجد)$/i.test(inc)) {
+    const verdict = bundledCooler(cpu.includedCooler);
+    if (verdict !== 'yes') {
       out.push({
         level: 'warn', fixCategory: 'Cooler', code: 'noCooler',
-        message: 'هذا المعالج لا يأتي بمبرّد — أضف مبرّداً أو تأكّد أنّ عندك واحداً يناسب مقبسه.',
+        message: verdict === 'no'
+          ? 'هذا المعالج لا يأتي بمبرّد — أضف مبرّداً أو تأكّد أنّ عندك واحداً يناسب مقبسه.'
+          : 'لم نتأكّد من وجود مبرّدٍ مرفقٍ مع هذا المعالج — أضف مبرّداً أو تأكّد أنّ عندك واحداً يناسب مقبسه.',
       });
     }
   }
