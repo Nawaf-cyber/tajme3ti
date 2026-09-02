@@ -23,6 +23,8 @@ const CASES: Array<[unknown, 'yes' | 'no' | 'unknown']> = [
   ['Wraith Stealth', 'yes'], ['Laminar RM1', 'yes'], ['Laminar RH2', 'yes'],
   ['Included', 'yes'], ['مبرّد مرفق', 'yes'],
   ['???', 'unknown'], ['TBD', 'unknown'],
+  /* العلبة فيها مبرّد وبعضُ عروضنا tray — فالجواب «يعتمد على العرض» */
+  ['Laminar RM1 (بعض العروض tray)', 'unknown'],
 ];
 
 (async () => {
@@ -33,17 +35,22 @@ const CASES: Array<[unknown, 'yes' | 'no' | 'unknown']> = [
   }
   console.log(bad === 0 ? '✔ الصياغات: ' + CASES.length + ' حالةً كلّها صحيحة' : '✗ ' + bad + ' صياغةً فشلت');
 
-  /* ٢) الكتالوج: أيّ معالجٍ حقلُه «مجهول» يعني أنّنا كتبنا نصّاً لا نفهمه */
+  /* ٢) الكتالوج: «مجهولٌ» مقصودٌ إن ذكر اسم مبرّدٍ مع تحفّظ tray — أمّا
+        مجهولٌ بلا اسمٍ أصلاً فهو نصٌّ كتبناه ولا نفهمه، وذاك عطل. */
   const cpus = await prisma.component.findMany({ where: { category: { name: 'CPU' } }, orderBy: { name: 'asc' } });
   const tally: Record<string, number> = { yes: 0, no: 0, unknown: 0 };
+  let unnamed = 0;
   for (const c of cpus) {
     const raw = ((c.specs as any) || {}).includedCooler;
     const v = bundledCooler(raw);
     tally[v]++;
-    if (v === 'unknown') console.log('  ⚠ مجهول: ' + c.brand + ' ' + c.name + ' = «' + raw + '»');
+    if (v !== 'unknown') continue;
+    const named = /wraith|laminar/i.test(String(raw ?? ''));
+    if (named) console.log('  ⓘ يعتمد على العرض: ' + c.brand + ' ' + c.name + ' = «' + raw + '»');
+    else { unnamed++; console.log('  ✗ نصٌّ لا نفهمه: ' + c.brand + ' ' + c.name + ' = «' + raw + '»'); }
   }
-  console.log('مبرّدٌ مؤكَّد: ' + tally.yes + ' · بلا مبرّد: ' + tally.no + ' · مجهول: ' + tally.unknown + ' (من ' + cpus.length + ')');
+  console.log('مبرّدٌ مؤكَّد: ' + tally.yes + ' · بلا مبرّد: ' + tally.no + ' · يعتمد على العرض: ' + tally.unknown + ' (من ' + cpus.length + ')');
 
   await prisma.$disconnect();
-  process.exit(bad === 0 && tally.unknown === 0 ? 0 : 1);
+  process.exit(bad === 0 && unnamed === 0 ? 0 : 1);
 })();

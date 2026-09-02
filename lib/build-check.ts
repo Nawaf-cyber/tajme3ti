@@ -86,12 +86,29 @@ const numOf = (v: unknown): number | null => {
  */
 const NO_COOLER_EXACT = /^\s*(none|no|n\/?a|-|—|بدون|لا\s*يوجد|غير\s*مرفق)\s*$/i;
 const NO_COOLER_ANY = /not\s*included|without\s*(a\s*)?cooler|no\s*cooler|\btray\b|\boem\b|بدون\s*مبرّ?د/i;
-const COOLER_NAME = /wraith|laminar|\bincluded\b|stock\s*cooler|boxed?\s*cooler|مبرّ?د|مرفق/i;
+/* اسمٌ صريح لمبرّد — وحده يصلح للتحفّظ «العلبة فيها وبعضُ العروض tray» */
+const COOLER_NAME = /wraith|laminar|stock\s*cooler|boxed?\s*cooler/i;
+/* إثباتٌ مبهم: يكفي للسكوت وحده، ولا يكفي للتحفّظ.
+   ⚠️ ولا يُسأل قبل النفي: «Not included» فيها included، و«بدون مبرّد» فيها مبرّد. */
+const VAGUE_YES = /\bincluded\b|مبرّ?د|مرفق/i;
 
+/**
+ * ثلاثةٌ لا اثنان — لأنّ الواقع ثلاثة.
+ *
+ * ⚠️ فحقلُنا يصف **العلبة**، ومتاجرنا تبيع أحياناً نسخة tray: نفس
+ * المعالج بلا علبةٍ ولا مبرّد. فـi5-12400F عندنا بعرضين: أمازون في
+ * علبةٍ بـ٧٤١ وكازاسوق tray بـ٦٨٨ — والمعروض هو الأرخص. فقولُ «فيه
+ * مبرّد» يَعِد بما لا يصل، وقولُ «لا مبرّد» يكذب على من يشتري العلبة.
+ * فالصدق أن نقول: يعتمد على العرض. وذلك ما تعنيه `unknown`.
+ */
 export const bundledCooler = (v: unknown): 'yes' | 'no' | 'unknown' => {
   const s = String(v ?? '').trim();
-  if (!s || NO_COOLER_EXACT.test(s) || NO_COOLER_ANY.test(s)) return 'no';
-  return COOLER_NAME.test(s) ? 'yes' : 'unknown';
+  if (!s || NO_COOLER_EXACT.test(s)) return 'no';
+  const named = COOLER_NAME.test(s);
+  const denied = NO_COOLER_ANY.test(s);
+  if (named && denied) return 'unknown';   // «Laminar RM1 (بعض العروض tray)»
+  if (denied) return 'no';
+  return named || VAGUE_YES.test(s) ? 'yes' : 'unknown';
 };
 
 /** هامش الأمان فوق مجموع الاستهلاك المسجَّل — الحدّ الأدنى */
