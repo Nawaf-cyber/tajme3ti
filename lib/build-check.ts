@@ -245,6 +245,44 @@ export function checkBuild(parts: BuildParts): Issue[] {
     }
   }
 
+  /* ============ صورةٌ على الشاشة ============
+   * ⚠️ اثنا عشر معالجاً من ستّةٍ وأربعين بلا رسوميّاتٍ مدمجة — كلُّ ما لحقته
+   * F أو KF، ومعها 5500 و5600. والتجميعة بأحدها بلا كرت شاشة تُقلع ولا
+   * تعطي صورة، وكانت تخرج «متوافقةً» بلا كلمة.
+   *
+   * ⚠️ وتحذيرٌ لا منع، كـ«لا مبرّد»: قد يكون عند المستخدم كرتٌ من جهازه
+   * السابق. ولا يُقال شيءٌ حين يكون الحقل غائباً — لا نُدين على جهلنا. */
+  if (parts.CPU && !parts.GPU) {
+    if (/^(none|no|لا يوجد)$/i.test(String(cpu.integratedGraphics ?? '').trim())) {
+      out.push({
+        level: 'warn', fixCategory: 'GPU', code: 'noDisplay',
+        message: 'هذا المعالج بلا رسوميّاتٍ مدمجة — بلا كرت شاشة لن تظهر صورة.',
+      });
+    }
+  }
+
+  /* ============ ملفّ الذاكرة ============
+   * ⚠️ EXPO ملفُّ AMD وXMP ملفُّ إنتل. وثلاثةٌ من أطقمنا الواحد والثلاثين
+   * EXPO **وحده** — وسبعةٌ تحمل الملفّين معاً فلا شأن لها بهذا. والثلاثة
+   * على لوحةٍ إنتل قد لا يُقرأ ملفُّها، فتعمل الذاكرة بسرعتها الأساسيّة لا
+   * بالمعلنة — والمشتري دفع فرق السرعة.
+   *
+   * ⚠️ ولذلك يُشترط غيابُ XMP لا وجودُ EXPO وحده: «XMP 3.0 & EXPO» طقمٌ
+   * يعمل على المنصّتين، وإدانتُه تحذيرٌ كاذبٌ على سبعة أطقم من عشرة.
+   *
+   * ⚠️ واتّجاهٌ واحد لا اتّجاهان: لوحات AM5 تقرأ XMP عمليّاً، فإدانتها به
+   * تحذيرٌ بلا سبب. وهو نفس منطق حارس الإضاءة في `source-match.ts`. */
+  if (parts.RAM && parts.Motherboard) {
+    const profile = String(ram.profile ?? '');
+    const intelBoard = /^LGA/i.test(String(mobo.socket ?? '').trim());
+    if (intelBoard && /expo/i.test(profile) && !/xmp/i.test(profile)) {
+      out.push({
+        level: 'warn', fixCategory: 'RAM', code: 'ramProfile',
+        message: `ملفّ السرعة في هذا الطقم EXPO (من AMD) واللوحة إنتل — قد تعمل الذاكرة أبطأ من ${ram.speed ?? 'المعلن'}.`,
+      });
+    }
+  }
+
   if (parts.PSU) {
     const draw = computeDraw(parts);
     const w = numOf(psu.wattage);
