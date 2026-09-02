@@ -87,6 +87,13 @@ export type Fingerprint = {
   words: string[];    // كلماتٌ مميّزة بلا رقم: GRE · HERO · AORUS
   formFactor: string | null;
   white: boolean;
+  /* ⚠️ ثلاث سماتٍ تفرّق نسخاً متطابقة الاسم: طقم DDR5 بسرعة 6400 ليس طقم
+     6000، ومزوّد Gold ليس Platinum، والنسخة المضيئة ليست غيرها. وكلّها
+     وقعت فعلاً: قُبل «Fury Beast Black RGB» لطقمنا غير المضيء، و«ROG Strix
+     1200W Gold» لمزوّدنا البلاتينيّ. */
+  speedMts: number | null;
+  psuRating: string | null;
+  rgb: boolean | null;
   query: string;
 };
 
@@ -101,9 +108,15 @@ export function fingerprint(brand: string, name: string, specs: any): Fingerprin
   const rawWords: string[] = stripped.toUpperCase().match(/[A-Z]{3,}/g) ?? [];
   const words = [...new Set(rawWords.filter((w) => !GENERIC.has(w)))];
 
+  const rating = String(specs?.rating ?? '').match(/titanium|platinum|gold|silver|bronze/i);
+  const rgbSpec = String(specs?.rgb ?? '').trim();
+
   return {
     brand: norm(brand),
     capacityGb: capacityGb(specs?.capacity),
+    speedMts: Number(String(specs?.speed ?? '').replace(/[^\d]/g, '')) || null,
+    psuRating: rating ? rating[0].toLowerCase() : null,
+    rgb: /^yes$/i.test(rgbSpec) ? true : /^no$/i.test(rgbSpec) ? false : null,
     models,
     words,
     formFactor: String(specs?.formFactor ?? '').trim().toUpperCase() || null,
@@ -142,6 +155,28 @@ export function matches(fp: Fingerprint, cand: string): Verdict {
 
      ويبقى فحص السعة على العنوان الخام: ذاك يحتاج «GB/TB» التي يحذفها التجريد. */
   const bare = stripUnits(cand);
+  /* ⚠️ سرعة الذاكرة: «6000MT/s» و«6400Mhz» طقمان مختلفان باسمٍ واحد */
+  if (fp.speedMts && fp.speedMts >= 2000) {
+    const theirs = [...cand.matchAll(/(\d{4,5})\s*(?:MT\/s|MHz)/gi)].map((m) => Number(m[1]));
+    if (theirs.length && !theirs.includes(fp.speedMts)) {
+      return { ok: false, why: `السرعة ${theirs.join('/')} لا ${fp.speedMts}` };
+    }
+  }
+
+  /* ⚠️ كفاءة المزوّد: «1200W Gold» ليس «1200W Platinum» */
+  if (fp.psuRating) {
+    const theirs = cand.match(/titanium|platinum|gold|silver|bronze/i);
+    if (theirs && theirs[0].toLowerCase() !== fp.psuRating) {
+      return { ok: false, why: `الكفاءة ${theirs[0]} لا ${fp.psuRating}` };
+    }
+  }
+
+  /* ⚠️ الإضاءة: قطعتنا غير مضيئة والمرشّح يُعلن RGB صراحةً ⇒ نسخةٌ أخرى.
+     والعكس لا يُدان: عنوانٌ لا يذكر RGB قد يكون مضيئاً ولم يُكتب. */
+  if (fp.rgb === false && /\bA?RGB\b/i.test(cand)) {
+    return { ok: false, why: 'المرشّح نسخةٌ مضيئة وقطعتنا ليست كذلك' };
+  }
+
   for (const m of fp.models) if (!hasWord(bare, m)) return { ok: false, why: `ينقصه الطراز ${m}` };
   for (const w of fp.words) if (!hasWord(cand, w)) return { ok: false, why: `ينقصه «${w}»` };
 
