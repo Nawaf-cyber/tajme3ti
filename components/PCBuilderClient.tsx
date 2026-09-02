@@ -27,6 +27,7 @@ import {
   coolerFitsCase, coolerFitReason, coolerFitsCpu, coolerCpuReason,
   socketMatch, ramTypeMatch,
 } from '../lib/fit';
+import { checkBuild } from '../lib/build-check';
 
 type Component = {
   id: string;
@@ -877,6 +878,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     status: 'success' | 'error' | 'idle' | 'incomplete', 
     message: string, 
     missingCategories?: string[],
+    /** ملاحظاتٌ لا تمنع التركيب — تُعرض مع النجاح لا تُبتلع */
+    warnings?: string[],
     bottleneck?: { title: string, desc: string, color: string, bg: string, suggestions?: { category: string, item: Component }[] } | null, 
     totalTdp: number, 
     totalPrice: number 
@@ -1568,45 +1571,20 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     const caseSpecs = parseSpecs(pcCase!.specs);
     const psuSpecs = parseSpecs(psu!.specs);
 
-    /* المقبس ونوع الذاكرة — الحكم من `lib/fit.ts` وحده.
-       كانت القاعدة مكتوبةً هنا وفي BuildTuner بصيغتين متباعدتين، فوُحّدت:
-       التعارض يُعلَن، والنقص يُحذَّر منه ولا يُؤكَّد التوافق عنده. */
-    const socketV = socketMatch(cpuSpecs?.socket, moboSpecs?.socket);
-    if (!socketV.ok) {
-      setResult({ status: 'error', message: socketV.unknown ? socketV.reason! : `عدم توافق: ${socketV.reason}.`, totalTdp, totalPrice });
-      return;
-    }
+    /* ============ الحكم كلّه من `lib/build-check.ts` ============
+     * كانت الفحوص مكتوبةً هنا واحداً واحداً، ويستدعي «المُعدِّل»
+     * و«تجميعات مقترحة» بعضَها لا كلَّها — فتخرج منهما تجميعةٌ لا تُركَّب.
+     * والمبرّد لم يكن يُفحص هنا إطلاقاً: يُفحص عند الاختيار ثم يُنسى، فإن
+     * جاءت التجميعة محفوظةً أو معدَّلةً مرّ مبرّدٌ لا يُركَّب على المعالج. */
+    const issues = checkBuild({
+      CPU: cpu, Motherboard: mobo, RAM: ram, GPU: gpu,
+      Case: pcCase, PSU: psu, Storage: selectedComponents['Storage'],
+      Cooler: selectedComponents['Cooler'],
+    });
 
-    const ramV = ramTypeMatch(ramSpecs?.type, moboSpecs?.ramType);
-    if (!ramV.ok) {
-      setResult({ status: 'error', message: ramV.unknown ? ramV.reason! : `عدم توافق: ${ramV.reason}.`, totalTdp, totalPrice });
-      return;
-    }
-    const gpuLen = parseFloat(gpuSpecs?.lengthMm);
-    const caseMaxGpu = parseFloat(caseSpecs?.maxGpuLength);
-    if (!isNaN(gpuLen) && !isNaN(caseMaxGpu) && gpuLen > caseMaxGpu) {
-      setResult({ status: 'error', message: `عدم توافق: طول الكرت (${gpuLen}mm) أكبر من مساحة الكيس (${caseMaxGpu}mm).`, totalTdp, totalPrice });
-      return;
-    }
-
-    /* مقاس اللوحة مقابل الكيس — الفحص الذي لم يكن موجوداً، فكانت لوحة ATX
-       في كيس Mini-ITX تُعلن «متوافقة» وهي لا تُركَّب */
-    const fitMsg = fitReason(moboSpecs?.formFactor, caseSpecs?.formFactor);
-    if (fitMsg) {
-      setResult({ status: 'error', message: `عدم توافق: ${fitMsg}`, totalTdp, totalPrice });
-      return;
-    }
-
-    const psuFitMsg = psuFitReason(psuSpecs?.formFactor, caseSpecs?.psuFormFactor);
-    if (psuFitMsg) {
-      setResult({ status: 'error', message: `عدم توافق: ${psuFitMsg}`, totalTdp, totalPrice });
-      return;
-    }
-
-    const requiredWattage = totalTdp + 100;
-    const psuWattage = Number(psuSpecs?.wattage);
-    if (!isNaN(psuWattage) && psuWattage < requiredWattage) {
-      setResult({ status: 'error', message: `تحذير طاقة: الاستهلاك التقريبي مع هامش الأمان (${requiredWattage}W) يتجاوز قدرة المزود (${psuSpecs?.wattage}W).`, totalTdp, totalPrice });
+    const blocking = issues.find((i) => i.level === 'block');
+    if (blocking) {
+      setResult({ status: 'error', message: `عدم توافق: ${blocking.message}`, totalTdp, totalPrice });
       return;
     }
 
@@ -1667,12 +1645,18 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       }
     }
 
-    setResult({ 
-      status: 'success', 
-      message: 'توافق تام! جميع القطع تعمل معاً بانسجام.', 
-      bottleneck, 
-      totalTdp, 
-      totalPrice 
+    /* ⚠️ والتحذيرات تُعرض مع النجاح: «توافق تامّ» فوق معالجٍ بلا مبرّد
+       كذبةٌ مريحة — ٢٩ من ٤٦ معالجاً عندنا لا يأتي بمبرّد. */
+    const warnings = issues.filter((i) => i.level === 'warn').map((i) => i.message);
+    setResult({
+      status: 'success',
+      message: warnings.length
+        ? 'القطع متوافقة — مع ملاحظات.'
+        : 'توافق تام! جميع القطع تعمل معاً بانسجام.',
+      warnings,
+      bottleneck,
+      totalTdp,
+      totalPrice,
     });
   };
 
@@ -2072,9 +2056,22 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                       </div>
                     </div>
 
-                    <PowerMeter 
-                      totalTdp={result.totalTdp} 
-                      psuWattage={selectedComponents['PSU'] ? parseFloat(parseSpecs(selectedComponents['PSU'].specs).wattage || "0") : 0} 
+                    {/* ⚠️ ملاحظاتٌ لا تمنع التركيب — وتُعرض مع النجاح لا
+                        تُبتلع: «توافق تامّ» فوق معالجٍ بلا مبرّد كذبةٌ مريحة. */}
+                    {result.warnings && result.warnings.length > 0 && (
+                      <ul className="mt-4 space-y-1.5 rounded-sm border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-800/50 dark:bg-amber-900/15">
+                        {result.warnings.map((w) => (
+                          <li key={w} className="flex gap-2 text-[13px] font-bold leading-relaxed text-amber-900 dark:text-amber-300">
+                            <span className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                            <span>{w}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <PowerMeter
+                      totalTdp={result.totalTdp}
+                      psuWattage={selectedComponents['PSU'] ? parseFloat(parseSpecs(selectedComponents['PSU'].specs).wattage || "0") : 0}
                     />
 
                     {result.bottleneck && (

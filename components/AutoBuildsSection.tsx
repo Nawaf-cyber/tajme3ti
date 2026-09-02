@@ -4,6 +4,7 @@ import CountdownTimer from './CountdownTimer';
 import { isAvailable } from '../lib/stores';
 import { OFFER_INCLUDE } from '../lib/stores-server';
 import { boardFitsCase, psuFitsCase } from '../lib/fit';
+import { buildBlocks } from '../lib/build-check';
 import { capacityGb } from '../lib/capacity';
 
 /* ⚠️ كان هنا `export const revalidate = 86400` — وهو **بلا أثر**: Next يقرأ
@@ -218,6 +219,23 @@ export default async function AutoBuildsSection() {
 
     // التجميع والنتيجة
     const selected = { cpu, gpu, motherboard: mobo, ram, psu, storage, case: pcase };
+
+    /* ============ بوّابةٌ أخيرة ============
+     * ⚠️ الترشيح أعلاه يفحص ما يفحص، ولا يفحص **نوع الذاكرة** إطلاقاً، ولا
+     * يستعمل `socketMatch` بل مقارنة نصٍّ يدويّة. والسقوط الاحتياطي حين
+     * تفرغ القائمة (`= cases` و`= storages`) يتخلّى عن الشروط كلّها — فقد
+     * تخرج تجميعةٌ مقترحة لا تُركَّب لأنّ الكتالوج لم يُسعف الترشيح.
+     *
+     * فالحكم يُعاد هنا على التجميعة **كما ستُعرض**، ويُسجَّل ما يمنع.
+     * ولا تُخفى التجميعة: إخفاؤها يترك القسم فارغاً بلا تفسير، والأصدق
+     * أن نعرف نحن أنّ الكتالوج لا يكفي لهذا المستوى. */
+    const blocks = buildBlocks({
+      CPU: cpu, Motherboard: mobo, RAM: ram, GPU: gpu, PSU: psu, Case: pcase, Storage: storage,
+    });
+    if (blocks.length) {
+      console.warn(`[تجميعات مقترحة] «${tier}» فيها ما يمنع:`, blocks.map((b) => b.message));
+    }
+
     let totalPrice = 0;
     const queryParams = new URLSearchParams();
 

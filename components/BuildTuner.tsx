@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { CATEGORY_META } from '../lib/category-meta';
 import { productImage } from '../lib/image';
 import { isAvailable } from '../lib/stores';
-import { socketMatch, ramTypeMatch } from '../lib/fit';
+import { checkBuild } from '../lib/build-check';
 
 /* ============ الأنواع ============ */
 type Comp = any;
@@ -110,45 +110,23 @@ export default function BuildTuner({
     const psu = effective['PSU'];
     const cse = effective['Case'];
 
-    /* ⚠️ كان هنا `if (a && b && a !== b)` — فالبيانات الناقصة تمرّ صامتة
-       ويرى المستخدم تجميعةً «سليمة» لم تُفحص. والباني يعاملها خطأً منذ
-       البداية. فالحكم صار من `lib/fit.ts` وحده في الموضعين. */
-    if (cpu && mobo) {
-      const v = socketMatch(parseSpecs(cpu.specs).socket, parseSpecs(mobo.specs).socket);
-      if (!v.ok) {
-        list.push({ cat: 'Motherboard', reason: v.reason!, fixCat: 'Motherboard', unknown: v.unknown });
-      }
-    }
-
-    if (ram && mobo) {
-      const v = ramTypeMatch(parseSpecs(ram.specs).type, parseSpecs(mobo.specs).ramType);
-      if (!v.ok) {
-        list.push({ cat: 'RAM', reason: v.reason!, fixCat: 'RAM', unknown: v.unknown });
-      }
-    }
-
-    if (gpu && cse) {
-      const len = parseFloat(parseSpecs(gpu.specs).lengthMm);
-      const max = parseFloat(parseSpecs(cse.specs).maxGpuLength);
-      if (!isNaN(len) && !isNaN(max) && len > max) {
-        list.push({
-          cat: 'Case',
-          reason: `طول الكرت ${len}mm أكبر من مساحة الكيس ${max}mm`,
-          fixCat: 'Case',
-        });
-      }
-    }
-
-    if (psu) {
-      const draw = computeDraw(effective);
-      const w = parseFloat(parseSpecs(psu.specs).wattage || '0');
-      if (w > 0 && draw > 0 && w < draw + PSU_HEADROOM) {
-        list.push({
-          cat: 'PSU',
-          reason: `الاستهلاك ${draw}W والمزوّد ${w}W — لا يكفي`,
-          fixCat: 'PSU',
-        });
-      }
+    /* ⚠️ والحكم من `lib/build-check.ts` لا من هنا: كانت هذه النسخة تفحص
+       المقبس ونوع الذاكرة وطول الكرت والطاقة — **ولا تفحص** مقاس اللوحة
+       مقابل الصندوق ولا مقاس المزوّد ولا المبرّد. فكان المستخدم يُخرج من
+       هذه الشاشة تجميعةً بلوحة ATX في صندوق Mini-ITX وهي لا تُركَّب. */
+    for (const issue of checkBuild({
+      CPU: cpu, Motherboard: mobo, RAM: ram, GPU: gpu, PSU: psu, Case: cse,
+      Cooler: effective['Cooler'], Storage: effective['Storage'],
+    })) {
+      /* «لا مبرّد» ليس تعارضاً بين قطعتين، فلا موضع له في شاشةٍ تُصلح
+         بالاستبدال — يُعرض في الباني حيث يمكن أن يُضاف مبرّد. */
+      if (issue.code === 'noCooler') continue;
+      list.push({
+        cat: issue.fixCategory,
+        reason: issue.message,
+        fixCat: issue.fixCategory,
+        unknown: issue.level === 'warn',
+      });
     }
 
     return list;
