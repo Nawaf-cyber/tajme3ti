@@ -36,7 +36,32 @@ const GENERIC = new Set([
   'DESKTOP', 'MEMORY', 'INTERNAL', 'SSD', 'NVME', 'SATA', 'RGB', 'ARGB', 'BLACK',
   'GOLD', 'PLATINUM', 'TOWER', 'CASE', 'COOLER', 'LIQUID', 'AIR', 'FAN', 'AMD', 'INTEL',
   'GEFORCE', 'RADEON', 'NVIDIA', 'MOTHERBOARD', 'CPU', 'GPU', 'CORE', 'THE', 'AND', 'FOR',
+  /* ⚠️ ULTRA اسمُ خطٍّ لا طراز — و«CORE» عامٌّ هنا أصلاً، فاشتراطُ نصفه
+     الثاني وحده تفريق بلا معنى. والطرازُ (225F) هو الفاصل. */
+  'ULTRA',
 ]);
+
+/**
+ * أسماء الشركات كما تُكتب بالعربيّة.
+ *
+ * ⚠️ إنفيني آرك يكتب عناوينه عربيّةً بالكامل: «معالج إنتل كور ألترا 5 225F».
+ * فشرطُ ورود اسم الشركة لاتينيّاً يرفض المطابق **الصحيح** — وقد رفض فعلاً
+ * Core Ultra 5 225F، وهو المعالج الوحيد المشترك بيننا وبين ذلك المتجر ممّا
+ * ينقصنا. فبقي إنفيني آرك بعرضٍ واحدٍ في المعالجات كلّها لا لأنّه لا يبيع،
+ * بل لأنّا لا نقرأ لغته.
+ *
+ * ⚠️ ولا يُلمس شرطُ الشركة نفسه: إسقاطه يقبل كرت MSI مكان كرت ASUS لأنّ
+ * «RTX 5070» فيهما جميعاً. فالاسم يُقبل عربيّاً أو لاتينيّاً، ويبقى شرطاً.
+ */
+const BRAND_AR: Record<string, RegExp> = {
+  intel: /[إا]نتل/,
+  amd: /[أا]يه\s*[إا]م\s*دي/,
+  asus: /[أا]سوس|[إا]يسوس/,
+  gigabyte: /[جق]يجابايت|[جق]يقابايت/,
+  msi: /[إا]م\s*[إا]س\s*[آا]ي/,
+  corsair: /كورسير/,
+  kingston: /كينج?ستون/,
+};
 
 /** أنظمةٌ كاملة تحمل اسم القطعة ولا تُساويها — لابتوب فيه Ryzen 5500H ليس معالجاً */
 const IS_SYSTEM = /\b(laptop|notebook|gaming pc|desktop pc|all-in-one|bundle|prebuilt|workstation)\b|gaming desktop/i;
@@ -134,7 +159,10 @@ export function matches(fp: Fingerprint, cand: string): Verdict {
     return { ok: false, why: fp.white ? 'قطعتنا بيضاء والمرشّح لا' : 'المرشّح أبيض وقطعتنا لا' };
   }
 
-  if (!norm(cand).includes(fp.brand)) return { ok: false, why: 'شركةٌ أخرى' };
+  /* ⚠️ والمفتاح يُخفَّض: `norm` تُعيد الاسم بحروفٍ كبيرة، وجدولُنا صغيرة */
+  if (!norm(cand).includes(fp.brand) && !BRAND_AR[fp.brand.toLowerCase()]?.test(cand)) {
+    return { ok: false, why: 'شركةٌ أخرى' };
+  }
 
   if (fp.capacityGb > 0) {
     /* ⚠️ وتُحذف سعة العصا الواحدة قبل القراءة: «32GB (2x16GB)» فيها رقمان،

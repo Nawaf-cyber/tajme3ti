@@ -18,12 +18,16 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { liveOffers } from '../lib/stores';
 import { fingerprint, pick } from '../lib/source-match';
-import { searchStore, type SearchSource } from '../lib/store-search';
+import { searchStore, adapterFor, type SearchSource } from '../lib/store-search';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const ARGS = process.argv.slice(2);
 const APPLY = ARGS.includes('--apply');
-const SOURCE: SearchSource = ARGS.includes('--cazasouq') ? 'cazasouq' : 'microless';
+/* ⚠️ لا تُعدَّد المتاجر هنا بأسمائها: كان السطر `--cazasouq ? … : microless`
+   فبقي إنفيني آرك — وهو مجّانيّ — غير قابلٍ للطلب أصلاً، ولم يكن عنده في
+   المعالجات كلّها إلّا عرضٌ واحد. فالسجلّ في ADAPTERS هو المرجع. */
+const SOURCE: SearchSource =
+  ARGS.map((a) => a.replace(/^--/, '')).find((a) => a !== 'apply' && adapterFor(a)) || 'microless';
 const ONLY = ARGS.find((a) => !a.startsWith('--')) || null;
 const G = '\x1b[32m', Y = '\x1b[33m', D = '\x1b[2m', X = '\x1b[0m';
 
@@ -40,9 +44,11 @@ async function main() {
     orderBy: { price: 'desc' },
   });
 
-  /* مصدرٌ حيٌّ واحد، ولا صفَّ في المتجر المقصود */
+  /* مصدرٌ حيٌّ واحد أو لا شيء، ولا صفَّ في المتجر المقصود.
+     ⚠️ وكان الشرط `=== 1` فيتخطّى أشدَّ الحالات حاجةً: قطعةٌ نفدت من
+     متجرها الوحيد فلا عرضَ حيّاً لها إطلاقاً — وهي أولى بالبحث لا آخرها. */
   const need = all
-    .filter((c) => liveOffers(c.offers as any).length === 1)
+    .filter((c) => liveOffers(c.offers as any).length <= 1)
     .filter((c) => !c.offers.some((o) => o.store.slug === SOURCE));
 
   console.log(`\n${need.length} قطعة تحتاج شاهداً ثانياً${ONLY ? ` في ${ONLY}` : ''}`);

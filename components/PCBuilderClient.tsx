@@ -2194,8 +2194,13 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                     <span className="text-slate-900 dark:text-white font-bold line-clamp-1">{comp.name}</span>
                                   </div>
 
-                                  <div className="flex items-center gap-3 shrink-0 flex-wrap">
-                                    <span className="font-black text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1.5 rounded-sm border border-emerald-100 dark:border-emerald-800/30">
+                                  {/* ⚠️ لا `shrink-0` هنا: كان يمنع الصفّ من الانكماش، فيبقى على
+                                      عرضه الطبيعيّ ويفيض خارج البطاقة — ولا يلفّ `flex-wrap`
+                                      شيئاً لأنّ الصفّ لم يضق أصلاً. قيس على معالجٍ بأربعة
+                                      عروض: البطاقة ٧٩٤ والمحتوى ٩٢٤، فشارةُ المتجر الرابع
+                                      كاملةً خارج الحدّ. فيُترك الانكماش ويُحفظ السعر وحده. */}
+                                  <div className="flex items-center gap-3 min-w-0 flex-wrap">
+                                    <span className="font-black text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1.5 rounded-sm border border-emerald-100 dark:border-emerald-800/30 shrink-0">
                                       {comp.price} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-700 dark:bg-emerald-400" />
                                     </span>
                                     <div className="flex flex-wrap gap-1.5 export-ignore">
