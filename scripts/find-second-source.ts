@@ -18,6 +18,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { liveOffers } from '../lib/stores';
 import { fingerprint, pick } from '../lib/source-match';
+import { selectTargets } from '../lib/find-targets';
 import { searchStore, adapterFor, type SearchSource } from '../lib/store-search';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
@@ -44,12 +45,19 @@ async function main() {
     orderBy: { price: 'desc' },
   });
 
-  /* مصدرٌ حيٌّ واحد أو لا شيء، ولا صفَّ في المتجر المقصود.
-     ⚠️ وكان الشرط `=== 1` فيتخطّى أشدَّ الحالات حاجةً: قطعةٌ نفدت من
-     متجرها الوحيد فلا عرضَ حيّاً لها إطلاقاً — وهي أولى بالبحث لا آخرها. */
-  const need = all
-    .filter((c) => liveOffers(c.offers as any).length <= 1)
-    .filter((c) => !c.offers.some((o) => o.store.slug === SOURCE));
+  /* ⚠️ القاعدة من `lib/find-targets.ts` لا من هنا: كانت مكتوبةً في الموضعين
+     فتباعدتا في يومٍ واحد — الصفحة تشترط `=== 1` والسكربت `<= 1`، فقطعةٌ
+     نفد مخزونها يبحث لها السكربت وتتجاهلها الصفحة. وهو عين الدرس الذي
+     كلّفنا ساحبات الأسعار: منطقٌ واحدٌ بنسختين يُشفى في واحدة ويبقى في
+     الأخرى. */
+  const { targets: need } = selectTargets(
+    all.map((c) => ({
+      ...c,
+      storeSlugs: c.offers.map((o) => o.store.slug),
+      liveCount: liveOffers(c.offers as any).length,
+    })),
+    { source: SOURCE, sourceLabel: SOURCE, limit: all.length },
+  );
 
   console.log(`\n${need.length} قطعة تحتاج شاهداً ثانياً${ONLY ? ` في ${ONLY}` : ''}`);
   console.log(`${D}المتجر: ${SOURCE}${SOURCE === 'cazasouq' ? ' — عبر Scrape.do، طلبٌ لكل قطعة' : ' — مباشر بلا رصيد'}${X}\n`);

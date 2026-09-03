@@ -45,7 +45,11 @@ export function selectTargets<T extends Target>(
     return true;
   });
 
-  if (!byExplicit) out = out.filter((c) => c.liveCount === 1);
+  /* ⚠️ «واحدٌ أو لا شيء» لا «واحدٌ» بالضبط: قطعةٌ نفدت من متجرها الوحيد
+     فلا عرضَ حيّاً لها إطلاقاً — وهي أولى بالبحث لا آخرها. وكان الشرط
+     `=== 1` هنا و`<= 1` في السكربت، أي **قاعدةٌ واحدة بنسختين تتباعدان**
+     — وهو عين الدرس الذي كلّفنا ساحبات الأسعار. فالسكربت ينادي هذه الآن. */
+  if (!byExplicit) out = out.filter((c) => c.liveCount <= 1);
 
   return { targets: out.slice(0, Math.max(1, opts.limit)), skipped };
 }

@@ -46,6 +46,18 @@ export type StoreAdapter = {
   needsProxy: boolean;
   /** فاصلٌ بين طلبين بالملّي: لا نُغرق متجراً يستضيفنا ولا نستدعي 429 */
   delayMs: number;
+  /**
+   * زمن الطلب الواحد مقيساً — **لا مقدَّراً**.
+   *
+   * ⚠️ ولِمَ يُسجَّل أصلاً: مسار الإدارة سقفُه `maxDuration = 60` ثانية،
+   * وكان يقبل حتى أربعين قطعة لأيّ متجر. وكازاسوق يمرّ عبر الوسيط فيأخذ
+   * ٥٫١ ثانية للطلب + ١٫٢ فاصلاً = ٦٫٣ للقطعة ⇐ تسعُ قطعٍ لا غير. فطلبُ
+   * خمس عشرة — وهو الحدّ المبدئيّ في الواجهة — يموت في منتصفه: **الرصيد
+   * يُستهلك كاملاً ولا يعود للأدمن سطرٌ واحد**.
+   *
+   * قِيس 2026-09-03 بثلاثة طلباتٍ لكلّ متجر.
+   */
+  perItemMs: number;
   /** ملاحظةٌ تُعرض في صفحة الإدارة */
   note: string;
   /** رابط صفحة البحث في المتجر */
@@ -245,6 +257,7 @@ export const ADAPTERS: StoreAdapter[] = [
     label: 'مايكرولس',
     needsProxy: false,
     delayMs: 600,
+    perItemMs: 1334,
     note: 'مجّاني — يستجيب لطلبٍ من خادم',
     searchUrl: (q) => 'https://saudi.microless.com/search/?query=' + encodeURIComponent(q),
     parse: parseMicroless,
@@ -254,6 +267,7 @@ export const ADAPTERS: StoreAdapter[] = [
     label: 'كازاسوق',
     needsProxy: true,
     delayMs: 1200,
+    perItemMs: 6260,
     note: 'يستهلك رصيداً — يردّ 403 لكل طلبٍ من خادم',
     searchUrl: (q) => 'https://www.cazasouq.com/index.php?route=product/search&search=' + encodeURIComponent(q),
     parse: parseCazasouq,
@@ -264,6 +278,7 @@ export const ADAPTERS: StoreAdapter[] = [
     /* ⚠️ يحجب الطلب المباشر صامتاً بعد طلباتٍ قليلة — انظر تعليق parseAmazon */
     needsProxy: true,
     delayMs: 1500,
+    perItemMs: 6600,
     note: 'يستهلك رصيداً — يحجب الطلب المباشر صامتاً',
     searchUrl: (q) => 'https://www.amazon.sa/s?k=' + encodeURIComponent(q),
     parse: parseAmazon,
@@ -273,6 +288,7 @@ export const ADAPTERS: StoreAdapter[] = [
     label: 'إنفيني آرك',
     needsProxy: false,
     delayMs: 700,
+    perItemMs: 1237,
     note: 'مجّاني · سعوديّ بالريال',
     searchUrl: (q) => 'https://www.infiniarc.com/ar/shop?search=' + encodeURIComponent(q),
     parse: parseInfiniarc,
@@ -284,7 +300,21 @@ export const adapterFor = (slug: string): StoreAdapter | null =>
 
 /** ما تحتاجه صفحة الإدارة — بلا المحلّلات، فلا تُشحن إلى المتصفّح */
 export const sourceMeta = () =>
-  ADAPTERS.map(({ slug, label, needsProxy, note }) => ({ slug, label, needsProxy, note }));
+  ADAPTERS.map(({ slug, label, needsProxy, note, perItemMs }) => ({ slug, label, needsProxy, note, perItemMs }));
+
+/**
+ * كم قطعةً تسع في نافذةٍ زمنيّة — بالقياس لا بالأمل.
+ *
+ * ⚠️ ويُترك سُبعُ النافذة: الجلبُ من القاعدة وبناء الجواب وبردُ الدالّة
+ * كلُّها خارج حساب الطلبات، وطلبٌ واحدٌ يتجاوز السقف يُبطل الدفعة كلَّها.
+ * والخسارة ليست وقتاً فحسب — كازاسوق وأمازون يُحسب لهما الطلبُ ولو مات
+ * المسار قبل عرض نتيجته.
+ */
+export const maxItemsIn = (slug: string, windowMs: number): number => {
+  const a = adapterFor(slug);
+  if (!a) return 1;
+  return Math.max(1, Math.floor((windowMs * 6) / 7 / a.perItemMs));
+};
 
 /**
  * بحثٌ في متجرٍ واحد.

@@ -24,11 +24,13 @@ type Row = {
   candidateCount: number;
   match: { title: string; url: string; price: number | null } | null;
   nearest: string | null;
+  /** رسالةُ عطلٍ حين لم يجرِ البحث أصلاً — تُفرَّق عن «بحثتُ فلم أجد» */
+  failure?: string | null;
 };
 
 const CATEGORIES = ['GPU', 'RAM', 'Motherboard', 'CPU', 'Storage', 'PSU', 'Case', 'Cooler'];
 
-type SourceMeta = { slug: string; label: string; needsProxy: boolean; note: string };
+type SourceMeta = { slug: string; label: string; needsProxy: boolean; note: string; maxPerRun: number };
 
 export default function FindSourcesClient() {
   /* ⚠️ القائمة تُجلب من السجلّ ولا تُكتب هنا: نسختان تتباعدان، فيظهر للأدمن
@@ -73,12 +75,19 @@ export default function FindSourcesClient() {
         body: JSON.stringify({ action: 'search', source, category, limit, componentIds: picked }),
       });
       const d = await res.json();
-      if (!res.ok) { toast.error(d.error || 'تعذّر البحث'); return; }
+      /* ⚠️ و`message` كذلك: الحارس في `middleware.ts` يردّ قبل المسار بصيغةٍ
+         أخرى، فانتهاءُ الجلسة كان يُعرض «تعذّر البحث» — عطلاً مبهماً بدل
+         «غير مصرّح» الذي يقول للأدمن أن يُعيد الدخول. */
+      if (!res.ok) { toast.error(d.error || d.message || 'تعذّر البحث'); return; }
       setRows(d.results);
       setUsed(d.creditsUsed || 0);
       /* كل مطابقٍ يُعلَّم مبدئياً — والمراجعة إزالةٌ لا إضافة، فهي أسرع */
       setChosen(new Set(d.results.filter((r: Row) => r.match).map((r: Row) => r.componentId)));
       toast.success(`فُحصت ${d.scanned} قطعة · ${d.matched} مطابقاً`);
+      /* ⚠️ عطلُ الشبكة كان يُعرض «لا مرشّح» فيُقرأ «المتجر لا يبيعها» */
+      if (d.failed > 0) toast(`${d.failed} بحثاً لم يجرِ أصلاً (عطل اتّصال) — أعِدها`, { icon: '⛔', duration: 8000 });
+      /* ⚠️ وما قُصّ لضيق الوقت يُقال: الصمت يجعل الأدمن يظنّ أنّها فُحصت */
+      if (d.overflow > 0) toast(`قُصّت ${d.overflow} — ${active?.label ?? 'هذا المتجر'} يسع ${d.timeCap} في الطلب الواحد. كرّر البحث.`, { icon: '⏱️', duration: 8000 });
       /* ما استُبعد يُقال صراحةً: أدمنٌ اختار خمساً وفُحصت ثلاثٌ يظنّه عطلاً */
       for (const s of (d.skippedPicks || []).slice(0, 3)) toast(s, { icon: 'ℹ️', duration: 6000 });
     } catch { toast.error('خطأ في الاتصال'); }
@@ -99,7 +108,7 @@ export default function FindSourcesClient() {
         body: JSON.stringify({ action: 'apply', picks }),
       });
       const d = await res.json();
-      if (!res.ok) { toast.error(d.error || 'تعذّر الاعتماد'); return; }
+      if (!res.ok) { toast.error(d.error || d.message || 'تعذّر الاعتماد'); return; }
       toast.success(`أُضيف ${d.added} عرضاً — السعر يملؤه تحديث الأسعار`);
       if (d.skipped?.length) toast(`تُخطّي ${d.skipped.length}: ${d.skipped[0]}`, { icon: '⚠️', duration: 6000 });
       setRows((prev) => (prev || []).filter((r) => !picks.some((p) => p.componentId === r.componentId)));
@@ -170,10 +179,12 @@ export default function FindSourcesClient() {
 
           <div>
             <label className="block text-[12px] font-black text-slate-500 dark:text-slate-400 mb-1.5">
-              كم قطعة {picked.length > 0 && <span className="text-slate-400 dark:text-slate-500">· مُهمَل</span>}
+              كم قطعة {picked.length > 0
+                ? <span className="text-slate-400 dark:text-slate-500">· مُهمَل</span>
+                : active && <span className="text-slate-400 dark:text-slate-500">· حتى {active.maxPerRun}</span>}
             </label>
             <input
-              type="number" min={1} max={40} value={limit}
+              type="number" min={1} max={active?.maxPerRun ?? 40} value={limit}
               disabled={picked.length > 0}
               onChange={(e) => setLimit(Number(e.target.value))}
               className="w-24 bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-700/60 rounded-sm px-3 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
@@ -287,9 +298,19 @@ export default function FindSourcesClient() {
                 {missed.map((r) => (
                   <li key={r.componentId} className="text-[12px]">
                     <span className="font-bold text-slate-700 dark:text-slate-300">{r.part}</span>
-                    <span className="text-slate-400 font-mono text-[10px]"> · سُئل «{r.query}» · {r.candidateCount} مرشّحاً</span>
-                    {r.nearest && (
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">أقربها: {r.nearest.slice(0, 100)}</p>
+                    {/* ⚠️ «لم يجرِ البحث» ليس «بحثتُ فلم أجد»: الأوّل يُعاد والثاني حكمٌ نهائيّ */}
+                    {r.failure ? (
+                      <>
+                        <span className="mr-1.5 px-1.5 py-0.5 rounded-sm bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black">لم يجرِ البحث</span>
+                        <p className="text-[11px] text-red-500/80 dark:text-red-400/80 mt-0.5 font-mono break-all" dir="ltr">{r.failure}</p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-slate-400 font-mono text-[10px]"> · سُئل «{r.query}» · {r.candidateCount} مرشّحاً</span>
+                        {r.nearest && (
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">أقربها: {r.nearest.slice(0, 100)}</p>
+                        )}
+                      </>
                     )}
                   </li>
                 ))}

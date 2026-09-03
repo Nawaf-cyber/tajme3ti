@@ -18,7 +18,7 @@ import { authOptions } from '../../auth/[...nextauth]/route';
 import { liveOffers } from '../../../../lib/stores';
 import { fingerprint, pick, type Candidate } from '../../../../lib/source-match';
 import { selectTargets } from '../../../../lib/find-targets';
-import { searchStore, adapterFor, sourceMeta, type SearchSource } from '../../../../lib/store-search';
+import { searchStore, adapterFor, sourceMeta, maxItemsIn, type SearchSource } from '../../../../lib/store-search';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -44,7 +44,12 @@ export async function GET() {
   /* ⚠️ requireAdmin يُعيد البريد أو null — لا استجابةَ خطأ. وحارسٌ يقرأ
      قيمته على أنها الخطأ يمنع الأدمن ويسمح لغيره، بلا خطأ بناء. */
   if (!(await requireAdmin())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
-  return NextResponse.json({ sources: sourceMeta(), hasToken: !!process.env.SCRAPER_API_KEY });
+  /* ⚠️ السقف يُحسب هنا لا في المتصفّح: صيغةٌ واحدة في موضعٍ واحد. وحسابُها
+     مرّتين يعني أن تعرض الواجهة رقماً ويطبّق المسار غيره. */
+  return NextResponse.json({
+    sources: sourceMeta().map((s) => ({ ...s, maxPerRun: maxItemsIn(s.slug, maxDuration * 1000) })),
+    hasToken: !!process.env.SCRAPER_API_KEY,
+  });
 }
 
 export async function POST(req: Request) {
@@ -100,7 +105,18 @@ export async function POST(req: Request) {
     );
   }
   const category: string | null = body?.category || null;
-  const limit = Math.min(Math.max(Number(body?.limit) || 15, 1), 40);
+
+  /* ============ سقفٌ من الزمن لا من الرغبة ============
+   *
+   * ⚠️ كان الحدّ ٤٠ لأيّ متجر، والمختارةُ بعينها تمرّ بأربعين دائماً. وقيس
+   * كازاسوق: ٦٫٣ ثانية للقطعة ⇐ تسعُ قطعٍ في الستّين. فطلبُ خمس عشرة —
+   * وهو مبدئيُّ الواجهة — يموت في منتصفه، **والرصيد يُستهلك كاملاً ولا
+   * يعود سطرٌ واحد**. فالسقف يُشتقّ من `perItemMs` المقيس، ويُقال للأدمن
+   * أنّه قُيّد ولماذا، لا أن يُقلَّم طلبُه بصمت.
+   */
+  const timeCap = maxItemsIn(source, maxDuration * 1000);
+  const asked = Math.min(Math.max(Number(body?.limit) || 15, 1), 40);
+  const limit = Math.min(asked, timeCap);
 
   const token = process.env.SCRAPER_API_KEY || '';
   if (adapter.needsProxy && !token) {
@@ -132,15 +148,27 @@ export async function POST(req: Request) {
       storeSlugs: c.offers.map((o) => o.store.slug),
       liveCount: liveOffers(c.offers as any).length,
     })),
-    { source, sourceLabel: adapter.label, explicitIds: ids, limit: ids.length ? 40 : limit },
+    /* ⚠️ والمختارة بعينها تخضع للسقف الزمنيّ كغيرها: اختيارُ الأدمن يُلغي
+       شرط «مصدرٌ واحد» لا قوانين الفيزياء. */
+    { source, sourceLabel: adapter.label, explicitIds: ids, limit },
   );
   const need = targets;
+  /* ما لم يُفحص لضيق الوقت — يُقال لا يُبتلع */
+  const overflow = ids.length
+    ? Math.max(0, ids.length - skippedPicks.length - need.length)
+    : Math.max(0, asked - limit);
 
   const results: any[] = [];
   for (const c of need) {
     const fp = fingerprint(c.brand, c.name, parseSpecs(c.specs));
+    /* ⚠️ الفشل ليس «لا يبيعه»: كان الاستثناء يُبتلع فتصير مصفوفةً فارغة،
+       فيقرأ الأدمن «٠ مرشّحاً» ويحكم أنّ المتجر لا يحمل القطعة — وقد يكون
+       الوسيط انقطع أو المتجر ردّ 403. قِيس اليوم: طلباتٌ لكازاسوق فشلت
+       ثلاثاً متتالية بانقطاع الاتّصال. فالفرق يُقال. */
     let cands: Candidate[] = [];
-    try { cands = await searchStore(source, fp.query, token); } catch { cands = []; }
+    let failure: string | null = null;
+    try { cands = await searchStore(source, fp.query, token); }
+    catch (e: any) { failure = String(e?.message || e).slice(0, 120); }
     const { hit, nearest } = pick(fp, cands);
 
     results.push({
@@ -153,6 +181,7 @@ export async function POST(req: Request) {
       candidateCount: cands.length,
       match: hit ? { title: hit.title, url: hit.url, price: hit.price ?? null } : null,
       nearest: hit ? null : nearest,
+      failure,
     });
 
     /* فاصلٌ بين الطلبات: لا نُغرق متجراً يستضيفنا، ولا نستدعي 429 */
@@ -163,6 +192,11 @@ export async function POST(req: Request) {
     source,
     scanned: results.length,
     matched: results.filter((r) => r.match).length,
+    /* بحثٌ لم يجرِ أصلاً — لا يُخلط بـ«بحثتُ فلم أجد» */
+    failed: results.filter((r) => r.failure).length,
+    /* ما قُصّ لضيق النافذة، وسقفُ هذا المتجر — كي يعرف الأدمن أن يُكرّر */
+    overflow,
+    timeCap,
     /* ما استُبعد من المختار وسببه — الصمت هنا يبدو عطلاً */
     skippedPicks,
     /* ما يمرّ عبر Scrape.do يكلّف طلباً لكل بحث — يُقال للأدمن ما استُهلك */
