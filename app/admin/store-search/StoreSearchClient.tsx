@@ -70,6 +70,9 @@ export default function StoreSearchClient() {
   const [cats, setCats] = useState<string[]>([]);
   const [required, setRequired] = useState<Record<string, string[]>>({});
   const [saving, setSaving] = useState(false);
+  /* الاكتشاف التلقائيّ: الكتالوج يكتب كلمات البحث بدل الأدمن */
+  const [dcat, setDcat] = useState('GPU');
+  const [withDescription, setWithDescription] = useState(false);
 
   useEffect(() => {
     fetch('/api/admin/store-search')
@@ -107,6 +110,34 @@ export default function StoreSearchClient() {
     }
   };
 
+  /* ⚠️ الاكتشاف لا يكتب شيئاً ولا يفتح صفحات: يسأل المتجر بعائلات ما نحمله
+     ويعرض ما ليس لنا رابطٌ به. والفتحُ والقراءةُ تأتي عند «أضف». */
+  const discover = async () => {
+    if (busy) return;
+    setBusy(true);
+    setRes(null);
+    try {
+      const r = await fetch('/api/admin/store-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'discover', source, category: dcat, withSystems }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || d?.message || 'تعذّر الاكتشاف');
+      setRes({ ...d, query: `اكتشافٌ تلقائيّ · ${d.seedCount} عائلة` });
+      toast.success(
+        d.results.length
+          ? `${d.results.length} قطعة ليست عندنا — من ${d.seedCount} عائلة`
+          : `لا جديد في ${d.label} لفئة ${dcat}`,
+      );
+      if (d.failed > 0) toast(`${d.failed} بحثاً لم يجرِ (عطل اتّصال)`, { icon: '⛔', duration: 7000 });
+    } catch (e: any) {
+      toast.error(e?.message || 'تعذّر الاكتشاف');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   /* المسودّة تُبنى في الخادم: التخمين والحقول المطلوبة منطقٌ واحدٌ لا يُنسخ */
   const openDraft = async (r: Row) => {
     setSaving(false);
@@ -116,12 +147,15 @@ export default function StoreSearchClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'draft', title: r.title, url: r.url, price: r.price,
-          currency: r.currency, image: r.image, source,
+          currency: r.currency, image: r.image, source, withDescription,
         }),
       });
       const d = await res2.json();
       if (!res2.ok) throw new Error(d?.error || 'تعذّر بناء المسودّة');
       setDraft(d.draft);
+      if (d.descSkipped) toast(`الوصف لم يُكتب: ${d.descSkipped}`, { icon: '⚠️', duration: 7000 });
+      else if (d.descCost) toast.success(`كُتب الوصف · $${d.descCost}`);
+      if (d.descProblems?.length) toast(`الوصف لم يجتز الفحص: ${d.descProblems.join(' · ')}`, { icon: '⚠️', duration: 9000 });
       setCats(d.categories || []);
       setRequired(d.requiredSpecs || {});
     } catch (e: any) {
@@ -246,9 +280,42 @@ export default function StoreSearchClient() {
           </button>
         </div>
 
+        {/* ============ الاكتشاف التلقائيّ ============
+            ⚠️ الكلمة يكتبها الكتالوج لا الأدمن: عائلاتُ ما نحمله في الفئة
+            تُسأل واحدةً واحدة، وما يعود ولا رابطَ له عندنا يُعرض. */}
+        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-3">
+          <span className="text-[12px] font-black text-slate-500 dark:text-slate-400">أو دَعْه يبحث عنك:</span>
+          <select
+            value={dcat}
+            onChange={(e) => setDcat(e.target.value)}
+            className="px-3 py-2 rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/40 text-[13px] font-bold text-slate-900 dark:text-white"
+          >
+            {['GPU', 'CPU', 'Motherboard', 'RAM', 'Storage', 'PSU', 'Case', 'Cooler'].map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <button
+            onClick={discover}
+            disabled={busy || !source}
+            className="px-5 py-2.5 rounded-sm bg-violet-700 hover:bg-violet-800 text-white text-[13px] font-black disabled:opacity-50 transition-colors"
+          >
+            {busy ? 'يكتشف…' : '✨ اكتشف الجديد'}
+          </button>
+          <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400">
+            يسأل بعائلات ما نحمله في هذه الفئة، ويعرض ما ليس عندنا
+          </span>
+        </div>
+
         <label className="mt-3 flex items-center gap-2 text-[12px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer">
           <input type="checkbox" checked={withSystems} onChange={(e) => setWithSystems(e.target.checked)} />
           أظهر الأجهزة الجاهزة والخوادم أيضاً
+        </label>
+
+        {/* ⚠️ `buildDraft` يترك الوصف فارغاً دائماً — ولذلك خرجت ٢٣ قطعةً بلا
+            وصف. وهذه الخانة تسدّه عند الإضافة، وبطلبٍ صريح لأنّها تُنفق مالاً. */}
+        <label className="mt-2 flex items-center gap-2 text-[12px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer">
+          <input type="checkbox" checked={withDescription} onChange={(e) => setWithDescription(e.target.checked)} />
+          اكتب الوصف بالذكاء الاصطناعيّ عند «أضف» <span className="text-slate-400">(~٠٫٢٦ ﷼ للقطعة)</span>
         </label>
 
         {active?.needsProxy && (

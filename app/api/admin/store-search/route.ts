@@ -18,24 +18,25 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
-import { adapterFor, searchStore, sourceMeta, readProductPage } from '../../../../lib/store-search';
+import { adapterFor, searchStore, sourceMeta, readProductPage, maxItemsIn } from '../../../../lib/store-search';
+import { seedQueries, unknownOnly, IS_SYSTEM, type Known } from '../../../../lib/discover';
+import { draftDescription, costUsd } from '../../../../lib/describe';
 import { buildDraft, REQUIRED_SPECS, guessCategory } from '../../../../lib/component-draft';
 import { saveComponent } from '../../../../lib/component-save';
 import { fetchAttributes, mapAttributes } from '../../../../lib/spec-extract';
 import { adminEmail } from '../../../../lib/admin-guard';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 /** أقصى ما يُقرأ سعره في طلبٍ واحد — كل واحدٍ منها فتحُ صفحة */
 const MAX_READ = 12;
 
-/* حاسوبٌ جاهز أو خادمٌ لا قطعة — تُذكر مواصفاته فيلتقطه البحث.
-   ⚠️ و«خادم» أُضيف بعد أن ظهر EPYC بـ١٬٠١٦٬٥٩٢ ﷼ مرشّحاً لقرص NVMe. */
-/* ⚠️ والعربيّة أُضيفت بعد قياس: إنفيني آرك يسمّي أجهزته في قائمة النتائج
-   بالعربية («بي سي قيمنق»)، فمرّت أربعةُ أجهزةٍ من مرشِّحٍ لاتينيٍّ خالص.
-   و«Desktop Configuration» لا تحمل أيّ كلمةٍ دالّة أصلاً. */
-const IS_SYSTEM =
-  /gaming pc|desktop pc|desktop configuration|\bpc\b.*(ryzen|core ultra|rtx)|prebuilt|barebone|workstation|\bserver\b|rack ?mount|\bepyc\b|laptop|notebook|بي ?سي ?قيمنق|جهاز جاهز|تجميعة جاهزة|كمبيوتر مكتبي/i;
+const withSystemsFlag = (b: any) => !!b?.withSystems;
+
+/* ⚠️ القاعدة في `lib/discover.ts` لا هنا: كانت مكتوبةً في هذا الملفّ وحده
+   فبقيت غيرَ قابلةٍ للاختبار، وأوّلُ فحصٍ للاكتشاف عدّ اثنتي عشرة تجميعةً
+   جاهزة «قطعاً جديدة» لأنّ الفاحص لم يستطع استيرادها. */
 
 export async function GET() {
   if (!(await adminEmail())) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
@@ -73,8 +74,61 @@ export async function POST(req: Request) {
       storeSlug: String(body.source || ''),
       category: body.category ?? null,
     });
+    /* ============ الوصف ============
+     *
+     * ⚠️ `buildDraft` يضع `description: ''` دائماً — ولذلك خرجت ٢٣ قطعةً
+     * يوم 2026-09-02 بلا وصفٍ إطلاقاً، ولم يُكتشف حتى سُئل عنه بعد يومين.
+     * فالحقل يُملأ هنا لا يُترك للنسيان.
+     *
+     * ⚠️ وبطلبٍ صريح (`withDescription`) لا تلقائيّاً: النداء يُنفق مالاً،
+     * وإنفاقُ مالٍ بلا أن يُطلب مفاجأةٌ في الفاتورة. والكلفة تُعاد مع
+     * الجواب كي تُرى قبل أن تتراكم.
+     */
+    let description = '';
+    let descCost = 0;
+    let descProblems: string[] = [];
+    if (body?.withDescription && d.category && process.env.ANTHROPIC_API_KEY) {
+      const peers = (await prisma.component.findMany({
+        where: { category: { name: d.category } },
+        select: { id: true, brand: true, name: true, price: true, specs: true },
+        orderBy: { price: 'desc' },
+        take: 40,
+      }))
+        .sort((a, b) => Math.abs(a.price - (Number(d.price) || 0)) - Math.abs(b.price - (Number(d.price) || 0)))
+        .slice(0, 12)
+        .map((p) => ({
+          id: p.id, brand: p.brand, name: p.name, price: p.price,
+          specs: typeof p.specs === 'string' ? JSON.parse(p.specs as any) : ((p.specs as any) || {}),
+        }));
+      try {
+        const w = await draftDescription(
+          {
+            /* ⚠️ القطعة لم تُحفظ بعد فلا معرّف لها — ويُمرَّر معرّفٌ مستحيل
+               كي يبقى حارسُ «لا يربط نفسه» عاملاً بلا أن يمنع شيئاً. */
+            id: '__unsaved__',
+            brand: d.brand, name: d.name, category: d.category,
+            price: Number(d.price) || 0, tdpWattage: d.tdpWattage,
+            specs: d.specs || {}, stores: [String(body.source || '')],
+          },
+          peers,
+        );
+        description = w.description;
+        descProblems = w.problems;
+        descCost = Number(costUsd(w.usage).toFixed(4));
+      } catch (e: any) {
+        descProblems = ['فشل النداء: ' + String(e?.message || e).slice(0, 100)];
+      }
+    }
+
     const cats = await prisma.category.findMany({ select: { name: true }, orderBy: { name: 'asc' } });
-    return NextResponse.json({ draft: d, categories: cats.map((c) => c.name), requiredSpecs: REQUIRED_SPECS });
+    return NextResponse.json({
+      draft: { ...d, description: description || d.description },
+      descProblems,
+      descCost,
+      descSkipped: body?.withDescription && !process.env.ANTHROPIC_API_KEY ? 'لا ANTHROPIC_API_KEY' : null,
+      categories: cats.map((c) => c.name),
+      requiredSpecs: REQUIRED_SPECS,
+    });
   }
 
   /* ---------- حفظ ---------- */
@@ -95,6 +149,73 @@ export async function POST(req: Request) {
     });
     if (!r.ok) return NextResponse.json({ error: r.error, existingId: r.existingId }, { status: r.status });
     return NextResponse.json({ ok: true, id: r.id, name: r.name });
+  }
+
+  /* ---------- اكتشافٌ تلقائيّ ----------
+   *
+   * ⚠️ الفرق عن البحث الحرّ سؤالٌ واحد: من يكتب الكلمة؟ هنا يكتبها
+   * الكتالوجُ نفسه — عائلاتُ ما نحمله في الفئة تُسأل واحدةً واحدة، وما يعود
+   * ولا رابطَ له عندنا يُعرض. فيلتقط النسخ التي كان المستخدم يضيفها بيده:
+   * لونٌ آخر، إصدار OC، ماركةٌ ثانية لنفس الشريحة.
+   *
+   * ⚠️ ولا تُفتح صفحاتُ المنتجات هنا: الفتح ثمنُه طلبٌ لكلّ واحد، والغرض
+   * أن يرى الأدمن **ماذا يوجد** أوّلاً. القراءة تأتي عند «أضف».
+   */
+  if (body?.action === 'discover') {
+    const source = String(body?.source || '');
+    const category = String(body?.category || '');
+    const adapter = adapterFor(source);
+    if (!adapter) return NextResponse.json({ error: `متجرٌ غير معروف: «${source}»` }, { status: 400 });
+    const token = process.env.SCRAPER_API_KEY || '';
+    if (adapter.needsProxy && !token) {
+      return NextResponse.json({ error: `${adapter.label} يحتاج SCRAPER_API_KEY` }, { status: 400 });
+    }
+
+    const comps = await prisma.component.findMany({
+      select: {
+        id: true, brand: true, name: true,
+        category: { select: { name: true } },
+        offers: { select: { url: true } },
+      },
+    });
+    const known: Known[] = comps.map((c) => ({
+      id: c.id, brand: c.brand, name: c.name,
+      categoryName: c.category.name,
+      offerUrls: c.offers.map((o) => o.url).filter(Boolean) as string[],
+    }));
+
+    /* السقف من الزمن لا من الرغبة — نفس درس «مصدر ثانٍ» */
+    const cap = maxItemsIn(source, maxDuration * 1000);
+    const seeds = seedQueries(known, category).slice(0, cap);
+    if (!seeds.length) {
+      return NextResponse.json({ error: `لا قطعَ في فئة «${category}» تُشتقّ منها كلماتُ بحث` }, { status: 400 });
+    }
+
+    const hits: Array<{ title: string; url: string; price?: number | null; query: string }> = [];
+    let failed = 0;
+    for (const q of seeds) {
+      try {
+        const raw = await searchStore(source, q, token);
+        for (const c of raw) {
+          if (!withSystemsFlag(body) && IS_SYSTEM.test(c.title)) continue;
+          hits.push({ title: c.title, url: c.url, price: (c as any).price ?? null, query: q });
+        }
+      } catch { failed++; }
+      await new Promise((r) => setTimeout(r, adapter.delayMs));
+    }
+
+    const fresh = unknownOnly(hits, known);
+    return NextResponse.json({
+      source, label: adapter.label, category,
+      seeds, seedCount: seeds.length, cap,
+      scanned: hits.length,
+      failed,
+      creditsUsed: adapter.needsProxy ? seeds.length : 0,
+      results: fresh.map((f) => ({
+        title: f.title, url: f.url, price: f.price ?? null,
+        currency: null, inStock: null, image: null, existing: null, query: f.query,
+      })),
+    });
   }
 
   const query = String(body?.query || '').trim();
