@@ -15,22 +15,25 @@
   "license": "ISC",
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^25.6.2",
     "dotenv": "^17.4.2",
     "prisma": "^7.8.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.3",
-    "@types/bcryptjs": "^2.4.6"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
     "@auth/prisma-adapter": "^2.11.2",
     "@google/generative-ai": "^0.24.1",
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
     "@vercel/analytics": "^2.0.1",
     "autoprefixer": "^10.5.0",
+    "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "html-to-image": "^1.11.13",
     "next": "^16.2.6",
@@ -41,8 +44,6 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hot-toast": "^2.6.0",
-    "tailwindcss": "^4.3.0",
-    "bcryptjs": "^3.0.3",
-    "@prisma/adapter-pg": "^7.8.0"
+    "tailwindcss": "^4.3.0"
   }
 }
