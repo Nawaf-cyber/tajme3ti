@@ -19,7 +19,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { adapterFor, searchStore, sourceMeta, readProductPage, maxItemsIn } from '../../../../lib/store-search';
-import { seedQueries, unknownOnly, IS_SYSTEM, type Known } from '../../../../lib/discover';
+import { seedQueries, unknownOnly, shortTitle, IS_SYSTEM, type Known } from '../../../../lib/discover';
 import { draftDescription, costUsd } from '../../../../lib/describe';
 import { buildDraft, REQUIRED_SPECS, guessCategory } from '../../../../lib/component-draft';
 import { saveComponent } from '../../../../lib/component-save';
@@ -191,29 +191,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `لا قطعَ في فئة «${category}» تُشتقّ منها كلماتُ بحث` }, { status: 400 });
     }
 
-    const hits: Array<{ title: string; url: string; price?: number | null; query: string }> = [];
+    const hits: Array<{ title: string; url: string; price?: number | null; image?: string | null; query: string }> = [];
     let failed = 0;
+    let systems = 0;
     for (const q of seeds) {
       try {
         const raw = await searchStore(source, q, token);
         for (const c of raw) {
-          if (!withSystemsFlag(body) && IS_SYSTEM.test(c.title)) continue;
-          hits.push({ title: c.title, url: c.url, price: (c as any).price ?? null, query: q });
+          if (!withSystemsFlag(body) && IS_SYSTEM.test(c.title)) { systems++; continue; }
+          hits.push({ title: c.title, url: c.url, price: c.price ?? null, image: c.image ?? null, query: q });
         }
       } catch { failed++; }
       await new Promise((r) => setTimeout(r, adapter.delayMs));
     }
 
-    const fresh = unknownOnly(hits, known);
+    /* ⚠️ ويُرتَّب بالعائلة ثمّ بالسعر: قائمةٌ بترتيب السؤال تخلط كرت 7800 XT
+       بكرت 3070 بكرت 9060، فيقرأ الأدمن ثمانيةً وستّين سطراً بلا أن يستطيع
+       المقارنة. والمقارنة هي عملُه كلّه في هذه الصفحة. */
+    const fresh = unknownOnly(hits, known).sort(
+      (a, b) => a.query.localeCompare(b.query) || (a.price ?? 1e9) - (b.price ?? 1e9),
+    );
+
     return NextResponse.json({
       source, label: adapter.label, category,
       seeds, seedCount: seeds.length, cap,
       scanned: hits.length,
+      hiddenSystems: systems,
       failed,
       creditsUsed: adapter.needsProxy ? seeds.length : 0,
       results: fresh.map((f) => ({
-        title: f.title, url: f.url, price: f.price ?? null,
-        currency: null, inStock: null, image: null, existing: null, query: f.query,
+        title: f.title,
+        /* الاسم المقروء — والعنوان الكامل يبقى لمن أراد التأكّد */
+        short: shortTitle(f.title),
+        url: f.url, price: f.price ?? null,
+        currency: null, inStock: null, image: f.image ?? null, existing: null, query: f.query,
       })),
     });
   }

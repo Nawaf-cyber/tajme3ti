@@ -19,7 +19,9 @@
 
 import { capacityGb } from './capacity';
 
-export type Candidate = { title: string; url: string; price?: number | null };
+/** ⚠️ `image` اختياريّة: صفحةُ النتائج تحملها في مايكرولس وإنفيني آرك بلا
+    طلبٍ إضافيّ، وغيرُهما لا يحملها. والمُطابِق لا يقرؤها — هي للعرض وحده. */
+export type Candidate = { title: string; url: string; price?: number | null; image?: string | null };
 export type Verdict = { ok: boolean; why: string };
 
 const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '');

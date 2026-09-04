@@ -38,7 +38,41 @@ export const IS_SYSTEM =
 export const isSystem = (title: string): boolean => IS_SYSTEM.test(String(title || ''));
 
 export type Known = { id: string; brand: string; name: string; categoryName: string; offerUrls: string[] };
-export type Found = { title: string; url: string; price?: number | null };
+export type Found = { title: string; url: string; price?: number | null; image?: string | null };
+
+/**
+ * اسمٌ قصيرٌ يُقرأ من عنوان المتجر الطويل.
+ *
+ * ⚠️ وسببُ وجوده أنّ عناوين المتاجر تُكتب للفهرسة لا للقراءة: «XFX Speedster
+ * SWFT210 Radeon RX 7600 Graphics Card with 8GB GDDR6 HDMI 3xDP, AMD RDNA 3
+ * RX-76PSWFTFY» — مئةٌ وثلاثون حرفاً، الاسمُ فيها أوّلُ ثلاثين والباقي
+ * إعادةٌ لما في المواصفات. وفي صفحةٍ عربيّةٍ يُقصّ العنوان من **أوّله**،
+ * فيرى الأدمن «…dster MERC319 RX 7800 XT Black Gaming Graphics Card».
+ *
+ * فالقصّ ثلاث خطوات: عند أوّل فاصلةٍ أو شرطةٍ أو «with»، ثمّ عند اسم
+ * النوع العامّ («Graphics Card») لأنّ ما بعده وصفٌ لا اسم، ثمّ سقفُ طول.
+ *
+ * ⚠️ ولا تُحذف كلمة «Gaming»: جُرّب فأفسد «RTX 4060 **Gaming X** 8G» فصار
+ * «RTX 4060 X 8G». الكلمة جزءٌ من أسماء طرازاتٍ كثيرة — Gaming X وGaming
+ * OC وGaming Trio. والحشوُ يُقطع بموضعه لا باسمه.
+ */
+export function shortTitle(title: string): string {
+  let t = String(title || '').replace(/\s+/g, ' ').trim();
+  /* ما بعد أوّل فاصلةٍ أو شرطةٍ طويلة وصفٌ لا اسم */
+  t = t.split(/\s*[,،|]|\s+[-–—]\s+/)[0];
+  /* «with 8GB GDDR6 …» تفصيلٌ يعيده جدول المواصفات */
+  t = t.split(/\s+with\s+/i)[0];
+  /* واسمُ النوع العامّ نهايةُ الاسم وبدايةُ الوصف */
+  t = t
+    .split(/\s+(?:graphics card|video card|desktop processor|memory kit|gaming pc)\b/i)[0]
+    /* ⚠️ وأسماءُ أنواع المبرّدات أُضيفت بعد قياس: «ThermalRight Assassin X 120
+       Refined SE ARGB **CPU Air Coo…**» — الحشو أكل آخر الاسم لا الوصف. */
+    .split(/\s+(?:cpu\s+)?(?:air|liquid)\s+cool(?:er|ing)\b/i)[0]
+    .split(/\s+aio\s+liquid\b/i)[0]
+    .split(/\s+cpu\s+cooler\b/i)[0]
+    .trim();
+  return t.length > 56 ? t.slice(0, 55).trimEnd() + '…' : t;
+}
 
 /** يُسوّى الرابط قبل المقارنة: نفس المنتج يأتي بذيولِ بحثٍ مختلفة */
 export const normUrl = (u: string): string =>

@@ -24,6 +24,10 @@ type Row = {
   inStock: boolean | null;
   image: string | null;
   existing: { id: string; name: string } | null;
+  /** الاسم المقروء المقصوص في الخادم — والعنوان الكامل يبقى في `title` */
+  short?: string;
+  /** العائلة التي أعادته (في الاكتشاف التلقائيّ فقط) */
+  query?: string;
 };
 
 type Draft = {
@@ -470,8 +474,26 @@ export default function StoreSearchClient() {
             )}
           </div>
 
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800/70 border-y border-slate-100 dark:border-slate-800/70">
-            {res.results.map((r) => (
+          {/* ⚠️ ويُجمَّع بالعائلة حين يأتي من الاكتشاف: قائمةٌ بترتيب السؤال
+              تخلط 7800 XT بـ3070 بـ9060، فيقرأ الأدمن ثمانيةً وستّين سطراً
+              بلا أن يستطيع المقارنة — والمقارنة عملُه كلُّه هنا. */}
+          {(() => {
+            const groups = new Map<string, Row[]>();
+            for (const r of res.results) {
+              const k = r.query || '';
+              if (!groups.has(k)) groups.set(k, []);
+              groups.get(k)!.push(r);
+            }
+            return [...groups.entries()].map(([fam, rows]) => (
+              <div key={fam || '_'} className="mb-4">
+                {fam && (
+                  <div className="flex items-baseline gap-2 mb-1 px-2">
+                    <span className="text-[13px] font-black text-cyan-700 dark:text-cyan-400" dir="ltr">{fam}</span>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{rows.length}</span>
+                  </div>
+                )}
+                <ul className="divide-y divide-slate-100 dark:divide-slate-800/70 border-y border-slate-100 dark:border-slate-800/70">
+                  {rows.map((r) => (
               <li key={r.url} className={`flex items-center gap-3 px-2 py-3 ${r.existing ? 'opacity-60' : ''}`}>
                 <div className="shrink-0 w-12 h-12 rounded-sm bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden">
                   {r.image
@@ -480,11 +502,21 @@ export default function StoreSearchClient() {
                 </div>
 
                 <div className="min-w-0 flex-1">
+                  {/* ⚠️ `dir="ltr"` و`text-left`: العنوان إنجليزيٌّ في صفحةٍ
+                      عربيّة، فبلا ذلك يُقصّ من **أوّله** — «…dster MERC319 RX
+                      7800 XT» — فيضيع اسمُ الشركة والطراز ويبقى الوصف. */}
                   <a href={r.url} target="_blank" rel="noopener noreferrer"
-                    className="block text-[13px] font-black text-slate-900 dark:text-white hover:text-cyan-700 dark:hover:text-cyan-400 truncate"
+                    dir="ltr"
+                    className="block text-left text-[13px] font-black text-slate-900 dark:text-white hover:text-cyan-700 dark:hover:text-cyan-400 truncate"
                     title={r.title}>
-                    {r.title}
+                    {r.short || r.title}
                   </a>
+                  {/* العنوان الكامل لمن أراد التأكّد — باهتٌ وسطرٌ واحد */}
+                  {r.short && r.short !== r.title && (
+                    <p dir="ltr" className="text-left text-[11px] font-medium text-slate-400 dark:text-slate-500 truncate" title={r.title}>
+                      {r.title}
+                    </p>
+                  )}
                   <p className="mt-0.5 text-[12px] font-bold text-slate-600 dark:text-slate-400 truncate">
                     {r.existing ? (
                       <span className="text-slate-700 dark:text-slate-300">عندنا أصلاً: {r.existing.name}</span>
@@ -498,8 +530,13 @@ export default function StoreSearchClient() {
                   </p>
                 </div>
 
+                {/* ⚠️ و«—» تبدو عطلاً: مايكرولس وإنفيني آرك لا تحملان السعر
+                    في صفحة النتائج، والاكتشاف لا يفتح صفحةً لكلّ منتج (ثمنُها
+                    طلبٌ لكلّ واحد). فيُقال متى يُقرأ بدل أن يُترك شرطةً. */}
                 <div className="shrink-0 text-left font-mono text-[13px] font-black tabular-nums text-slate-900 dark:text-white" dir="ltr">
-                  {r.price != null ? `${r.price.toLocaleString('en-US')} ${r.currency || ''}`.trim() : '—'}
+                  {r.price != null
+                    ? `${r.price.toLocaleString('en-US')} ${r.currency || ''}`.trim()
+                    : <span className="font-sans text-[11px] font-bold text-slate-400" dir="rtl">يُقرأ عند «أضف»</span>}
                 </div>
 
                 {r.existing ? (
@@ -520,8 +557,11 @@ export default function StoreSearchClient() {
                   </div>
                 )}
               </li>
-            ))}
-          </ul>
+                  ))}
+                </ul>
+              </div>
+            ));
+          })()}
 
           {/* ⚠️ ولا يُوعد بإضافةٍ بضغطة: القطعة تحتاج فئةً ومواصفاتٍ ووصفاً
               عربيّاً، ولا يُستخرج ذلك من صفحة متجرٍ استخراجاً موثوقاً. */}

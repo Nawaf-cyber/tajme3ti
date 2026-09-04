@@ -93,13 +93,18 @@ function parseMicroless(html: string): Candidate[] {
 
     const out: Candidate[] = [];
     const seen = new Set<string>();
+    /* ⚠️ والصورة من `data-src` لا من `src`: البطاقة كسولةُ التحميل، و`src`
+       فيها بكسلٌ شفّافٌ واحد (`pixel-paceholder-1x1.png`). فقراءةُ `src`
+       تُعطي صورةً بيضاء لكلّ منتج. وهي مجّانيّة — في نفس الوسم الذي نقرأ
+       منه العنوان أصلاً، فلا طلبَ إضافيّ. */
     const re =
-      /data-listid="search"[\s\S]{0,1200}?href="(https:\/\/saudi\.microless\.com\/product\/[^"]+)"[\s\S]{0,600}?alt="([^"]+)"/g;
+      /data-listid="search"[\s\S]{0,1200}?href="(https:\/\/saudi\.microless\.com\/product\/[^"]+)"([\s\S]{0,600}?)alt="([^"]+)"/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(body))) {
       if (seen.has(m[1])) continue;
       seen.add(m[1]);
-      out.push({ url: m[1], title: m[2].replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim() });
+      const img = /data-src="([^"]+)"/.exec(m[2] || '')?.[1] ?? null;
+      out.push({ url: m[1], title: m[3].replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim(), image: img });
       if (out.length >= 12) break;
     }
     return out;
@@ -186,7 +191,9 @@ function parseInfiniarc(html: string): Candidate[] {
       if (!url.startsWith('https://www.infiniarc.com/') || !title) continue;
       if (seen.has(url)) continue;
       seen.add(url);
-      out.push({ url, title });
+      /* الصورة في ld+json حين توجد — قد تكون نصّاً أو مصفوفة */
+      const img = Array.isArray(it?.image) ? it.image[0] : it?.image;
+      out.push({ url, title, image: typeof img === 'string' ? img : null });
       if (out.length >= 12) break;
     }
   }
