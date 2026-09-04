@@ -66,12 +66,56 @@ export function shortTitle(title: string): string {
   t = t
     .split(/\s+(?:graphics card|video card|desktop processor|memory kit|gaming pc)\b/i)[0]
     /* ⚠️ وأسماءُ أنواع المبرّدات أُضيفت بعد قياس: «ThermalRight Assassin X 120
-       Refined SE ARGB **CPU Air Coo…**» — الحشو أكل آخر الاسم لا الوصف. */
-    .split(/\s+(?:cpu\s+)?(?:air|liquid)\s+cool(?:er|ing)\b/i)[0]
+       Refined SE ARGB **CPU Air Coo…**» — الحشو أكل آخر الاسم لا الوصف.
+       ⚠️ و«AIO Liquid» تُقطع **قبل** «Liquid Cooler» وإلّا اختلف الاسمان
+       لمنتجٍ واحد: «… AIO Liquid CPU Cooler» تُقطع عند AIO فتصير «(2024)»،
+       و«… AIO Liquid Cooler» تُقطع عند Liquid فتصير «(2024) AIO» — فيمرّ
+       المكرّر الذي جاء هذا الحذفُ ليمسكه. */
     .split(/\s+aio\s+liquid\b/i)[0]
+    .split(/\s+(?:cpu\s+)?(?:air|liquid)\s+cool(?:er|ing)\b/i)[0]
     .split(/\s+cpu\s+cooler\b/i)[0]
     .trim();
   return t.length > 56 ? t.slice(0, 55).trimEnd() + '…' : t;
+}
+
+/**
+ * دورانُ العائلات.
+ *
+ * ⚠️ ولولاه لبقيت المتاجر المدفوعة تُسأل عن نفس الشريحة أبداً: السقف
+ * الزمنيّ يعطي كازاسوق ثماني عائلاتٍ في الطلب، و`slice(0, cap)` يأخذ
+ * أوّل ثمانٍ دائماً. قِيس: من خمسٍ وخمسين عائلةً في اللوحات الأمّ تُسأل
+ * ثمانٍ — **١٥٪، وهي هي في كلّ تشغيل**. فما بعدها لا يُكتشف أبداً.
+ *
+ * والدوران يحفظ أين وقف ويبدأ من بعده، فتُغطّى الخمس والخمسون في سبعة
+ * تشغيلات. ويلتفّ عند النهاية فيعود إلى الأوّل — والسوق يتغيّر فتستحقّ
+ * العائلةُ سؤالاً ثانياً.
+ */
+export function rotate<T>(all: T[], offset: number, take: number): { slice: T[]; next: number } {
+  if (!all.length || take <= 0) return { slice: [], next: 0 };
+  const start = ((offset % all.length) + all.length) % all.length;
+  const n = Math.min(take, all.length);
+  const slice = all.slice(start, start + n);
+  if (slice.length < n) slice.push(...all.slice(0, n - slice.length));
+  return { slice, next: (start + n) % all.length };
+}
+
+/**
+ * حذفُ المكرّر بالاسم لا بالرابط.
+ *
+ * ⚠️ والرابط وحده لا يكفي: قِيس على مايكرولس فظهر «NZXT Kraken Elite 360
+ * RGB (2024)» **سطرين** برابطين مختلفين — صفحتان لمنتجٍ واحد. والأدمن
+ * يقرأ السطرين ويقارنهما ثمّ يكتشف أنّهما شيءٌ واحد.
+ */
+export function dedupeByName<T extends { title: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const r of rows) {
+    const key = shortTitle(r.title).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  return out;
 }
 
 /** يُسوّى الرابط قبل المقارنة: نفس المنتج يأتي بذيولِ بحثٍ مختلفة */

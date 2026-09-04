@@ -28,6 +28,10 @@ type Row = {
   short?: string;
   /** العائلة التي أعادته (في الاكتشاف التلقائيّ فقط) */
   query?: string;
+  /** المتجر الذي جاء منه — يظهر حين يُبحث في أكثر من واحد */
+  store?: string;
+  /** في كم متجرٍ ظهر: اثنان أقوى من واحد */
+  storeCount?: number;
 };
 
 type Draft = {
@@ -77,6 +81,9 @@ export default function StoreSearchClient() {
   /* الاكتشاف التلقائيّ: الكتالوج يكتب كلمات البحث بدل الأدمن */
   const [dcat, setDcat] = useState('GPU');
   const [withDescription, setWithDescription] = useState(false);
+  /* أسعارٌ تُقرأ عند الطلب، وروابطُ تُخفى فور تجاهلها */
+  const [prices, setPrices] = useState<Record<string, { price: number | null; currency: string | null }>>({});
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch('/api/admin/store-search')
@@ -128,18 +135,61 @@ export default function StoreSearchClient() {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d?.error || d?.message || 'تعذّر الاكتشاف');
-      setRes({ ...d, query: `اكتشافٌ تلقائيّ · ${d.seedCount} عائلة` });
+      setPrices({});
+      setHidden(new Set());
+      /* التغطية تُقال بالأرقام: العائلاتُ أكثر ممّا يسعه الطلب، والدوران
+         يتقدّم في كلّ مرّة — فالأدمن يعرف أنّ عليه أن يُكرّر. */
+      setRes({ ...d, query: `${d.seedCount} من ${d.families} عائلة` });
       toast.success(
         d.results.length
-          ? `${d.results.length} قطعة ليست عندنا — من ${d.seedCount} عائلة`
+          ? `${d.results.length} قطعة ليست عندنا`
           : `لا جديد في ${d.label} لفئة ${dcat}`,
       );
+      if (d.families > d.seedCount) {
+        toast(`غُطّيت ${d.seedCount} من ${d.families} عائلة — كرّر «اكتشف» ليكمل من حيث وقف`, { icon: '🔄', duration: 8000 });
+      }
       if (d.failed > 0) toast(`${d.failed} بحثاً لم يجرِ (عطل اتّصال)`, { icon: '⛔', duration: 7000 });
     } catch (e: any) {
       toast.error(e?.message || 'تعذّر الاكتشاف');
     } finally {
       setBusy(false);
     }
+  };
+
+  /* ⚠️ التجاهل يُخفي فوراً **ويُحفظ**: الإخفاء وحده يعيده في التشغيل القادم */
+  const dismiss = async (urls: string[]) => {
+    if (!urls.length) return;
+    setHidden((s) => new Set([...s, ...urls]));
+    try {
+      const r = await fetch('/api/admin/store-search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'dismiss', urls }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || d?.message || 'تعذّر التجاهل');
+    } catch (e: any) {
+      /* فشلَ الحفظ: يُعاد إظهارُه كي لا يظنّ الأدمن أنّه لن يعود */
+      setHidden((s) => { const n = new Set(s); urls.forEach((u) => n.delete(u)); return n; });
+      toast.error(e?.message || 'تعذّر حفظ التجاهل');
+    }
+  };
+
+  const readPrices = async (urls: string[]) => {
+    const need = urls.filter((u) => !(u in prices)).slice(0, 12);
+    if (!need.length) return;
+    setBusy(true);
+    try {
+      const r = await fetch('/api/admin/store-search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'prices', urls: need, source }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || d?.message || 'تعذّرت القراءة');
+      setPrices((p) => ({ ...p, ...d.prices }));
+      if (d.creditsUsed > 0) toast(`استُهلك ${d.creditsUsed} رصيداً`, { icon: '💳' });
+    } catch (e: any) {
+      toast.error(e?.message || 'تعذّرت القراءة');
+    } finally { setBusy(false); }
   };
 
   /* المسودّة تُبنى في الخادم: التخمين والحقول المطلوبة منطقٌ واحدٌ لا يُنسخ */
@@ -305,8 +355,18 @@ export default function StoreSearchClient() {
           >
             {busy ? 'يكتشف…' : '✨ اكتشف الجديد'}
           </button>
+          {/* ⚠️ المتجران المجّانيّان معاً: لا يكلّفان شيئاً، ومنتجٌ يظهر فيهما
+              أولى بالإضافة — عندك مقارنةُ سعرٍ من أوّل يوم. */}
+          <label className="flex items-center gap-2 text-[12px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={source === 'free'}
+              onChange={(e) => setSource(e.target.checked ? 'free' : (sources.find((s) => !s.needsProxy)?.slug || ''))}
+            />
+            المتجران المجّانيّان معاً
+          </label>
           <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400">
-            يسأل بعائلات ما نحمله في هذه الفئة، ويعرض ما ليس عندنا
+            يسأل بعائلات ما نحمله، ويتقدّم في كلّ تشغيل
           </span>
         </div>
 
@@ -472,7 +532,46 @@ export default function StoreSearchClient() {
             {res.creditsUsed > 0 && (
               <span className="text-amber-700 dark:text-amber-400">استُهلك ~{res.creditsUsed} رصيداً</span>
             )}
+            {/* ما أُخفي ولماذا — الصمت هنا يبدو نقصاً في النتائج */}
+            {(res as any).hiddenDismissed > 0 && (
+              <span className="text-slate-600 dark:text-slate-400">(أُخفيت {(res as any).hiddenDismissed} متجاهَلة)</span>
+            )}
+            {(res as any).hiddenDuplicates > 0 && (
+              <span className="text-slate-600 dark:text-slate-400">(أُخفيت {(res as any).hiddenDuplicates} مكرّرة)</span>
+            )}
+            {(res as any).families > 0 && (
+              <span className="text-violet-700 dark:text-violet-400">
+                التغطية: {(res as any).seedCount}/{(res as any).families} — كرّر ليكمل
+              </span>
+            )}
           </div>
+
+          {/* أدواتٌ على الدفعة كلّها */}
+          {(res as any).families > 0 && res.results.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <button
+                onClick={() => readPrices(res.results.filter((r) => !hidden.has(r.url) && r.price == null).slice(0, 12).map((r) => r.url))}
+                disabled={busy}
+                className="px-3 py-1.5 rounded-sm text-[12px] font-black border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-cyan-500 disabled:opacity-50"
+              >
+                💰 اقرأ أسعار أوّل ١٢
+              </button>
+              {(res as any).dismissedTotal > 0 && (
+                <button
+                  onClick={async () => {
+                    await fetch('/api/admin/store-search', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'undismiss-all' }),
+                    });
+                    toast.success('أُفرغت قائمة التجاهل');
+                  }}
+                  className="px-3 py-1.5 rounded-sm text-[12px] font-black border border-slate-300 dark:border-slate-700 text-slate-500 hover:border-rose-500 hover:text-rose-600"
+                >
+                  أفرغ التجاهل ({(res as any).dismissedTotal})
+                </button>
+              )}
+            </div>
+          )}
 
           {/* ⚠️ ويُجمَّع بالعائلة حين يأتي من الاكتشاف: قائمةٌ بترتيب السؤال
               تخلط 7800 XT بـ3070 بـ9060، فيقرأ الأدمن ثمانيةً وستّين سطراً
@@ -480,11 +579,12 @@ export default function StoreSearchClient() {
           {(() => {
             const groups = new Map<string, Row[]>();
             for (const r of res.results) {
+              if (hidden.has(r.url)) continue;
               const k = r.query || '';
               if (!groups.has(k)) groups.set(k, []);
               groups.get(k)!.push(r);
             }
-            return [...groups.entries()].map(([fam, rows]) => (
+            return [...groups.entries()].filter(([, rows]) => rows.length).map(([fam, rows]) => (
               <div key={fam || '_'} className="mb-4">
                 {fam && (
                   <div className="flex items-baseline gap-2 mb-1 px-2">
@@ -518,6 +618,15 @@ export default function StoreSearchClient() {
                     </p>
                   )}
                   <p className="mt-0.5 text-[12px] font-bold text-slate-600 dark:text-slate-400 truncate">
+                    {/* المتجر، وإشارةُ الظهور في اثنين */}
+                    {r.store && (
+                      <span className="mr-0 ml-1.5 text-slate-500 dark:text-slate-400">{r.store}</span>
+                    )}
+                    {(r.storeCount ?? 1) > 1 && (
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded-sm bg-violet-500/10 text-violet-700 dark:text-violet-400 text-[10px] font-black">
+                        في {r.storeCount} متاجر
+                      </span>
+                    )}
                     {r.existing ? (
                       <span className="text-slate-700 dark:text-slate-300">عندنا أصلاً: {r.existing.name}</span>
                     ) : r.inStock === false ? (
@@ -536,7 +645,18 @@ export default function StoreSearchClient() {
                 <div className="shrink-0 text-left font-mono text-[13px] font-black tabular-nums text-slate-900 dark:text-white" dir="ltr">
                   {r.price != null
                     ? `${r.price.toLocaleString('en-US')} ${r.currency || ''}`.trim()
-                    : <span className="font-sans text-[11px] font-bold text-slate-400" dir="rtl">يُقرأ عند «أضف»</span>}
+                    : prices[r.url]?.price != null
+                      ? `${prices[r.url]!.price!.toLocaleString('en-US')} ${prices[r.url]!.currency || ''}`.trim()
+                      : (
+                        <button
+                          onClick={() => readPrices([r.url])}
+                          disabled={busy}
+                          className="font-sans text-[11px] font-bold text-slate-400 hover:text-cyan-600 disabled:opacity-50"
+                          dir="rtl"
+                        >
+                          {r.url in prices ? 'بلا سعر' : 'اقرأ السعر'}
+                        </button>
+                      )}
                 </div>
 
                 {r.existing ? (
@@ -553,6 +673,12 @@ export default function StoreSearchClient() {
                     <button onClick={() => copy(r)}
                       className="px-3 py-1.5 rounded-sm text-[12px] font-black border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-cyan-500 hover:text-cyan-700 dark:hover:text-cyan-400">
                       انسخ
+                    </button>
+                    {/* ⚠️ ويُحفظ لا يُخفى فقط: الإخفاء وحده يُعيده في التشغيل القادم */}
+                    <button onClick={() => dismiss([r.url])}
+                      title="لا تعرضه مرّةً أخرى"
+                      className="px-2.5 py-1.5 rounded-sm text-[12px] font-black border border-slate-300 dark:border-slate-700 text-slate-500 hover:border-rose-500 hover:text-rose-600">
+                      تجاهل
                     </button>
                   </div>
                 )}

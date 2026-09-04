@@ -19,7 +19,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { adapterFor, searchStore, sourceMeta, readProductPage, maxItemsIn } from '../../../../lib/store-search';
-import { seedQueries, unknownOnly, shortTitle, IS_SYSTEM, type Known } from '../../../../lib/discover';
+import { seedQueries, unknownOnly, shortTitle, rotate, dedupeByName, normUrl, IS_SYSTEM, type Known } from '../../../../lib/discover';
+import { readOffset, writeOffset, readDismissed, addDismissed, clearDismissed } from '../../../../lib/discover-state';
 import { draftDescription, costUsd } from '../../../../lib/describe';
 import { buildDraft, REQUIRED_SPECS, guessCategory } from '../../../../lib/component-draft';
 import { saveComponent } from '../../../../lib/component-save';
@@ -162,13 +163,22 @@ export async function POST(req: Request) {
    * أن يرى الأدمن **ماذا يوجد** أوّلاً. القراءة تأتي عند «أضف».
    */
   if (body?.action === 'discover') {
-    const source = String(body?.source || '');
     const category = String(body?.category || '');
-    const adapter = adapterFor(source);
-    if (!adapter) return NextResponse.json({ error: `متجرٌ غير معروف: «${source}»` }, { status: 400 });
+    /* ⚠️ متجران معاً حين يُطلب «المجّانيّ»: مايكرولس وإنفيني آرك بلا رصيد،
+       فالبحث فيهما لا يكلّف شيئاً ويضاعف التغطية. ومنتجٌ يظهر في متجرين
+       أولى بالإضافة من منتجٍ في واحد — عندك مقارنةُ سعرٍ من أوّل يوم. */
+    const asked = String(body?.source || '');
+    const slugs = asked === 'free'
+      ? sourceMeta().filter((s) => !s.needsProxy).map((s) => s.slug)
+      : [asked];
+    const adapters = slugs.map((s) => adapterFor(s)).filter(Boolean) as NonNullable<ReturnType<typeof adapterFor>>[];
+    if (!adapters.length) return NextResponse.json({ error: `متجرٌ غير معروف: «${asked}»` }, { status: 400 });
+
     const token = process.env.SCRAPER_API_KEY || '';
-    if (adapter.needsProxy && !token) {
-      return NextResponse.json({ error: `${adapter.label} يحتاج SCRAPER_API_KEY` }, { status: 400 });
+    for (const a of adapters) {
+      if (a.needsProxy && !token) {
+        return NextResponse.json({ error: `${a.label} يحتاج SCRAPER_API_KEY` }, { status: 400 });
+      }
     }
 
     const comps = await prisma.component.findMany({
@@ -184,49 +194,116 @@ export async function POST(req: Request) {
       offerUrls: c.offers.map((o) => o.url).filter(Boolean) as string[],
     }));
 
-    /* السقف من الزمن لا من الرغبة — نفس درس «مصدر ثانٍ» */
-    const cap = maxItemsIn(source, maxDuration * 1000);
-    const seeds = seedQueries(known, category).slice(0, cap);
-    if (!seeds.length) {
+    const families = seedQueries(known, category, 999);
+    if (!families.length) {
       return NextResponse.json({ error: `لا قطعَ في فئة «${category}» تُشتقّ منها كلماتُ بحث` }, { status: 400 });
     }
 
-    const hits: Array<{ title: string; url: string; price?: number | null; image?: string | null; query: string }> = [];
+    const dismissed = await readDismissed(prisma);
+    const hits: Array<{ title: string; url: string; price?: number | null; image?: string | null; query: string; store: string }> = [];
+    const perStore: Record<string, { asked: number; from: number; to: number }> = {};
     let failed = 0;
     let systems = 0;
-    for (const q of seeds) {
-      try {
-        const raw = await searchStore(source, q, token);
-        for (const c of raw) {
-          if (!withSystemsFlag(body) && IS_SYSTEM.test(c.title)) { systems++; continue; }
-          hits.push({ title: c.title, url: c.url, price: c.price ?? null, image: c.image ?? null, query: q });
-        }
-      } catch { failed++; }
-      await new Promise((r) => setTimeout(r, adapter.delayMs));
+
+    for (const a of adapters) {
+      /* السقف يُقسَّم على المتاجر: النافذة واحدةٌ والطلبات تتوالى */
+      const cap = Math.max(1, Math.floor(maxItemsIn(a.slug, maxDuration * 1000) / adapters.length));
+      const offset = await readOffset(prisma, a.slug, category);
+      const { slice, next } = rotate(families, offset, cap);
+      perStore[a.slug] = { asked: slice.length, from: offset % families.length, to: next };
+      await writeOffset(prisma, a.slug, category, next);
+
+      for (const q of slice) {
+        try {
+          const raw = await searchStore(a.slug, q, token);
+          for (const c of raw) {
+            if (!withSystemsFlag(body) && IS_SYSTEM.test(c.title)) { systems++; continue; }
+            hits.push({ title: c.title, url: c.url, price: c.price ?? null, image: c.image ?? null, query: q, store: a.slug });
+          }
+        } catch { failed++; }
+        await new Promise((r) => setTimeout(r, a.delayMs));
+      }
     }
 
-    /* ⚠️ ويُرتَّب بالعائلة ثمّ بالسعر: قائمةٌ بترتيب السؤال تخلط كرت 7800 XT
-       بكرت 3070 بكرت 9060، فيقرأ الأدمن ثمانيةً وستّين سطراً بلا أن يستطيع
-       المقارنة. والمقارنة هي عملُه كلّه في هذه الصفحة. */
-    const fresh = unknownOnly(hits, known).sort(
-      (a, b) => a.query.localeCompare(b.query) || (a.price ?? 1e9) - (b.price ?? 1e9),
+    /* ثلاثةُ مصافٍ: ما هو عندنا · ما تجاهلتَه · ما تكرّر باسمه */
+    const notOurs = unknownOnly(hits, known);
+    const notDismissed = notOurs.filter((f) => !dismissed.has(normUrl(f.url)));
+
+    /* ⚠️ وقبل حذف المكرّر يُحصى في كم متجرٍ ظهر: تلك إشارةٌ تُفقد لو حُذف أوّلاً */
+    const storesOf = new Map<string, Set<string>>();
+    for (const f of notDismissed as any[]) {
+      const k = shortTitle(f.title).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!storesOf.has(k)) storesOf.set(k, new Set());
+      storesOf.get(k)!.add(f.store);
+    }
+    const fresh = dedupeByName(notDismissed as any[]).sort(
+      (a: any, b: any) => a.query.localeCompare(b.query) || (a.price ?? 1e9) - (b.price ?? 1e9),
     );
 
     return NextResponse.json({
-      source, label: adapter.label, category,
-      seeds, seedCount: seeds.length, cap,
+      source: asked,
+      label: adapters.map((a) => a.label).join(' + '),
+      category,
+      families: families.length,
+      perStore,
+      seedCount: Object.values(perStore).reduce((s, p) => s + p.asked, 0),
       scanned: hits.length,
       hiddenSystems: systems,
+      hiddenDismissed: notOurs.length - notDismissed.length,
+      hiddenDuplicates: notDismissed.length - fresh.length,
+      dismissedTotal: dismissed.size,
       failed,
-      creditsUsed: adapter.needsProxy ? seeds.length : 0,
-      results: fresh.map((f) => ({
-        title: f.title,
-        /* الاسم المقروء — والعنوان الكامل يبقى لمن أراد التأكّد */
-        short: shortTitle(f.title),
-        url: f.url, price: f.price ?? null,
-        currency: null, inStock: null, image: f.image ?? null, existing: null, query: f.query,
-      })),
+      creditsUsed: adapters.reduce((s, a) => s + (a.needsProxy ? (perStore[a.slug]?.asked ?? 0) : 0), 0),
+      results: (fresh as any[]).map((f) => {
+        const k = shortTitle(f.title).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        return {
+          title: f.title,
+          short: shortTitle(f.title),
+          url: f.url, price: f.price ?? null,
+          currency: null, inStock: null, image: f.image ?? null, existing: null,
+          query: f.query, store: f.store,
+          /* في كم متجرٍ ظهر — إشارةُ ترجيحٍ للأدمن */
+          storeCount: storesOf.get(k)?.size ?? 1,
+        };
+      }),
     });
+  }
+
+  /* ---------- تجاهُل ----------
+   * ⚠️ ما يرفضه الأدمن كان يعود في كلّ تشغيل: ثمانيةٌ وستّون سطراً في GPU
+   * يُراجَع منها عشرون رفضاً، ثمّ تظهر العشرون نفسها في المرّة القادمة.
+   * فالتجاهل يُحفظ، ويصير كلُّ تشغيلٍ «ما الجديد منذ آخر مرّة». */
+  if (body?.action === 'dismiss') {
+    const urls: string[] = Array.isArray(body.urls) ? body.urls.filter((u: any) => typeof u === 'string') : [];
+    if (!urls.length) return NextResponse.json({ error: 'لا روابط' }, { status: 400 });
+    const total = await addDismissed(prisma, urls);
+    return NextResponse.json({ dismissed: urls.length, total });
+  }
+
+  if (body?.action === 'undismiss-all') {
+    await clearDismissed(prisma);
+    return NextResponse.json({ ok: true });
+  }
+
+  /* ---------- قراءة أسعارٍ عند الطلب ----------
+   * ⚠️ الاكتشاف لا يفتح صفحاتٍ عمداً، فتصل النتائج بلا أسعار. وبلا سعرٍ لا
+   * يُفرز: ثمانيةٌ وستّون سطراً لا يُميّز فيها كرت ٣٠٠ ريال من كرت ٤٬٠٠٠.
+   * فالقراءة بطلبٍ صريح ولعددٍ محدود — والثمن يُقال قبل الضغط. */
+  if (body?.action === 'prices') {
+    const urls: string[] = (Array.isArray(body.urls) ? body.urls : []).filter((u: any) => typeof u === 'string').slice(0, MAX_READ);
+    const src = String(body?.source || '');
+    const ad = adapterFor(src);
+    if (!urls.length) return NextResponse.json({ error: 'لا روابط' }, { status: 400 });
+
+    const out: Record<string, { price: number | null; currency: string | null; inStock: boolean | null }> = {};
+    for (const u of urls) {
+      try {
+        const r = await readProductPage(u);
+        out[u] = { price: r?.price ?? null, currency: r?.currency ?? null, inStock: r?.inStock ?? null };
+      } catch { out[u] = { price: null, currency: null, inStock: null }; }
+      if (ad) await new Promise((r) => setTimeout(r, ad.delayMs));
+    }
+    return NextResponse.json({ prices: out, read: urls.length, creditsUsed: ad?.needsProxy ? urls.length : 0 });
   }
 
   const query = String(body?.query || '').trim();
