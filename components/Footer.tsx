@@ -51,6 +51,12 @@ export default function Footer() {
                 <Link href="/privacy" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
                   سياسة الخصوصية
                 </Link>
+
+                {/* ⚠️ فيها إخلاء مسؤوليّة الأسعار — والزائر يبحث عنه هنا لا في
+                    صفحة القطعة. وغيابُها كان من نواقص مراجعة أدسنس. */}
+                <Link href="/terms" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
+                  شروط الاستخدام
+                </Link>
               </div>
 
               <div className="hidden md:block w-40 h-px bg-gradient-to-l from-cyan-500/30 to-transparent"></div>

@@ -6,6 +6,7 @@ import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, up
 import toast from 'react-hot-toast';
 import MentionTextarea from '../../components/MentionTextarea';
 import GenerateDescriptionButton from '../../components/GenerateDescriptionButton';
+import NewsAgentPanel from '../../components/NewsAgentPanel';
 import UpdatePricesButton from './UpdatePricesButton';
 import UpdateSingleButton from './components/UpdateSingleButton';
 import CronControlToggle from './components/CronControlToggle';
@@ -781,6 +782,10 @@ export default function AdminManager({ categories, components, news, cronStatus,
 
       {activeTab === 'news' && (
         <div className="flex flex-col gap-8 animate-in fade-in duration-300">
+          {/* ⚠️ فوق النموذج اليدويّ لا بدلاً منه: الكاتب يقترح ويكتب، والنموذج
+              يبقى لمن أراد أن يكتب بيده أو يُعدّل خبراً منشوراً. */}
+          <NewsAgentPanel />
+
           <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
               {editingNews ? 'تعديل الخبر' : 'إضافة خبر جديد'}
