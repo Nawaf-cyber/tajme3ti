@@ -99,6 +99,63 @@ export async function POST(req: Request) {
     return NextResponse.json({ added, skipped });
   }
 
+  /* ---------- وصفٌ لقطعةٍ لم تُحفظ بعد ----------
+   *
+   * ⚠️ للنموذج اليدويّ في لوحة الإدارة: كان السبيل الوحيد أن تُحفظ القطعة
+   * أوّلاً ثمّ يُطلب وصفُها ثمّ تُحذف إن لم يعجب — ثلاثُ كتاباتٍ في القاعدة
+   * لأجل نصٍّ لم يُقرأ بعد. فالمدخلات تأتي من النموذج مباشرةً.
+   */
+  if (body?.action === 'input') {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json({ error: 'لا ANTHROPIC_API_KEY في البيئة' }, { status: 400 });
+    }
+    const category = String(body?.category || '').trim();
+    const brand = String(body?.brand || '').trim();
+    const name = String(body?.name || '').trim();
+    if (!category || !brand || !name) {
+      return NextResponse.json({ error: 'أكمل الفئة والشركة والاسم أوّلاً' }, { status: 400 });
+    }
+    const price = Number(body?.price) || 0;
+    const specs = (body?.specs && typeof body.specs === 'object') ? body.specs : {};
+
+    /* ⚠️ والقطعة نفسها تُستبعد من البدائل حين تكون محفوظةً: الزرّ يُستعمل
+       في التعديل كما في الإضافة، وقطعةٌ محفوظةٌ موجودةٌ في فئتها — فبلا
+       استبعادها قد تُقترح بديلاً عن نفسها. والمعرّف يُمرَّر أيضاً إلى الحارس. */
+    const selfId = String(body?.componentId || '').trim() || '__unsaved__';
+    const peers = (await prisma.component.findMany({
+      where: { category: { name: category }, ...(selfId !== '__unsaved__' ? { id: { not: selfId } } : {}) },
+      select: { id: true, brand: true, name: true, price: true, specs: true },
+    }))
+      .sort((a, b) => Math.abs(a.price - price) - Math.abs(b.price - price))
+      .slice(0, 12)
+      .map((p) => ({
+        id: p.id, brand: p.brand, name: p.name, price: p.price, specs: parseSpecs(p.specs),
+      }));
+
+    if (!peers.length) {
+      return NextResponse.json({ error: `لا قطعَ أخرى في فئة «${category}» ليُقترح منها بديل` }, { status: 400 });
+    }
+
+    try {
+      const d = await draftDescription(
+        {
+          id: selfId, brand, name, category, price,
+          tdpWattage: Number(body?.tdpWattage) || null,
+          specs, stores: [],
+        },
+        peers,
+      );
+      return NextResponse.json({
+        description: d.description,
+        problems: d.problems,
+        costUsd: Number(costUsd(d.usage).toFixed(4)),
+        costSar: Number((costUsd(d.usage) * 3.75).toFixed(2)),
+      });
+    } catch (e: any) {
+      return NextResponse.json({ error: String(e?.message || e).slice(0, 160) }, { status: 502 });
+    }
+  }
+
   /* ---------- توليد مسوّدات ---------- */
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'لا ANTHROPIC_API_KEY في البيئة' }, { status: 400 });

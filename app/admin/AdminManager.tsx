@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, updateNews } from './actions';
 import toast from 'react-hot-toast';
 import MentionTextarea from '../../components/MentionTextarea';
+import GenerateDescriptionButton from '../../components/GenerateDescriptionButton';
 import UpdatePricesButton from './UpdatePricesButton';
 import UpdateSingleButton from './components/UpdateSingleButton';
 import CronControlToggle from './components/CronControlToggle';
@@ -406,6 +407,17 @@ export default function AdminManager({ categories, components, news, cronStatus,
                   الخادم، فالقيمة تُقرأ من الـDOM عند الإرسال. والمُلحِق يكتب
                   فيها مباشرةً — ولذلك يقبل `name` و`defaultValue`. */}
               <div className="md:col-span-2">
+                {/* ⚠️ الزرّ فوق الحقل لا تحته: يكتب فيه، فموضعُه قبله يجعل
+                    العلاقة ظاهرةً بلا شرح. ولا يحفظ شيئاً — تقرأ وتعدّل ثمّ
+                    تضغط «حفظ» أنت. */}
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">الوصف</span>
+                  <GenerateDescriptionButton
+                    category={selectedCategoryName}
+                    specs={specs}
+                    componentId={editingComponent?.id ?? null}
+                  />
+                </div>
                 <MentionTextarea
                   name="description"
                   key={editingComponent?.id || 'new-comp-desc'}
