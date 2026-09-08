@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { isAvailable, offerDeal } from '../../lib/stores';
 import { formatPrice } from '../../lib/price';
 import { specBadges as getSpecBadges } from '../../lib/spec-badges';
+import { track } from '../../lib/track';
 import SuggestPartCard from '../../components/SuggestPartCard';
 import { productImage } from '../../lib/image';
 
@@ -43,6 +44,21 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?:
  */
 export default function ComponentsClient({ components, categories, dealsLocked = false }: { components: any[], categories: any[], dealsLocked?: boolean }) {
   const [search, setSearch] = useState('');
+
+  /* ============ ما يبحث عنه الزائر ============
+   *
+   * ⚠️ ويُسجَّل بعد سكوتٍ ثانيةً ونصف لا عند كلّ حرف: كتابة «5070» تُنتج
+   * أربعة أحداث («5»، «50»، «507»، «5070») فيصير أكثر ما يُبحث عنه حرفاً
+   * واحداً. والمقصود الكلمةُ التي استقرّ عليها لا رحلةُ إصبعه.
+   *
+   * ⚠️ ويُشترط ثلاثةُ محارف: حرفان يعودان بنصف الكتالوج ولا يدلّان على قصد.
+   */
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < 3) return;
+    const t = setTimeout(() => track('search', { label: q }), 1500);
+    return () => clearTimeout(t);
+  }, [search]);
   const [selectedCat, setSelectedCat] = useState('all');
 
   /* ============ سقف شريط السعر ============

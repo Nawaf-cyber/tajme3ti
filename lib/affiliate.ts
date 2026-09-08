@@ -259,4 +259,14 @@ export const storeLinkProps = (store: StoreLink) => ({
     store.usesDeepLinks || (store.affiliateParam && store.affiliateId)
       ? 'nofollow sponsored noopener noreferrer'
       : 'nofollow noopener noreferrer',
+  /**
+   * ⚠️ سمةٌ لا مُعالِج نقرة: ثلاثةٌ من أربعة أسطحٍ تعرض روابط الشراء
+   * **مكوّناتُ خادم** (`StoreOfferList` · `StoreBuyChips` · `BuyCell`)،
+   * وتحويلُها إلى عميلٍ لأجل قياسٍ ثمنٌ لا يستحقّه. فالسمةُ تُصيَّر من
+   * الخادم، ومستمعٌ واحدٌ في `OfferClickTracker` يلتقطها للجميع.
+   *
+   * ⚠️ ولا تُكتب مرّتين: أيّ سطحٍ يضيف `onClick` خاصّاً به سيُسجّل النقرة
+   * مرّتين — مرّةً بمُعالِجه ومرّةً بالمستمع.
+   */
+  'data-store': store.slug,
 });

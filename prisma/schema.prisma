@@ -616,10 +616,29 @@ model PageHit {
    */
   refHost     String?
   device      String?
+
+  /**
+   * حدثٌ لا مشاهدةَ صفحة — والصفّ بلا `event` مشاهدةٌ كما كان.
+   *
+   * ⚠️ ولماذا عمودٌ لا مسارٌ مُصطنع: كان يمكن تسجيل «‎/e/build-start» في
+   * `path` بلا تغيير مخطَّط، لكنّه يُفسد تقرير «أكثر الصفحات» — يخلط أحداثاً
+   * بصفحاتٍ حقيقيّة فيصير أهمّ تقريرٍ عندنا كذباً. والعمود الفارغ أرخص.
+   *
+   * القيم: build_start · build_complete · offer_click · search
+   */
+  event       String?
+  /**
+   * تفصيلُ الحدث: كلمةُ البحث، أو اسمُ المتجر في نقرة الشراء.
+   * ⚠️ ويُقصّ في المسار لا هنا — نصٌّ يرسله المتصفّح لا يُخزَّن بطوله.
+   */
+  label       String?
+
   createdAt   DateTime @default(now())
 
   @@index([day])
   @@index([day, visitorHash])
   @@index([componentId])
   @@index([path])
+  /** تقرير القُمع أسبوعيّ: يُصفّى بالمدّة ثمّ يُجمّع بالحدث */
+  @@index([day, event])
 }

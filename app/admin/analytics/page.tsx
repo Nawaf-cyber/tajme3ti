@@ -8,8 +8,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { adminEmail } from '../../../lib/admin-guard';
-import { analyticsSummary } from '../../../lib/analytics';
+import { analyticsSummary, funnelByWeek, topSearches, topBuyClicks, topRequested } from '../../../lib/analytics';
 import AnalyticsClient from './AnalyticsClient';
+import FunnelSection from './FunnelSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,21 @@ export const metadata = { title: 'الزيارات', robots: { index: false, fol
 export default async function AnalyticsPage() {
   if (!(await adminEmail())) redirect('/');
 
-  const initial = await analyticsSummary(30);
+  /* ⚠️ متوازيةً لا متتابعة: خمسة استعلاماتٍ متتابعة تُبطئ فتح اللوحة بلا سبب.
+   *
+   * ⚠️ واستعلامات القُمع محروسةٌ بـ`catch`: عمودا `event` و`label` جديدان،
+   * والكود يُنشر على فيرسل **قبل** أن يُنفَّذ `prisma db push`. فبلا الحارس
+   * تنكسر صفحة الزيارات كلُّها في تلك الفجوة — وتقريرٌ قديمٌ يعمل خيرٌ من
+   * صفحةٍ بيضاء. ويسقط الحارس من نفسه حين يوجد العمود. */
+  const safe = <T,>(p: Promise<T>, fallback: T): Promise<T> => p.catch(() => fallback);
+
+  const [initial, weeks, searches, buys, requested] = await Promise.all([
+    analyticsSummary(30),
+    safe(funnelByWeek(8), []),
+    safe(topSearches(30), []),
+    safe(topBuyClicks(30), { components: [], stores: [] }),
+    safe(topRequested(), []),
+  ]);
 
   return (
     <div className="min-h-screen py-10 px-4">
@@ -37,6 +52,8 @@ export default async function AnalyticsPage() {
         </div>
 
         <AnalyticsClient initial={initial} />
+
+        <FunnelSection weeks={weeks} searches={searches} buys={buys} requested={requested} />
       </div>
     </div>
   );

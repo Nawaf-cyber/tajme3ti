@@ -49,13 +49,29 @@ export async function POST(req: Request) {
 
     const selfHost = new URL(req.url).hostname;
 
+    /* ⚠️ والحدث يُصفّى بقائمةٍ لا يُخزَّن كما جاء: النبضة مسارٌ مفتوح، وأيّ
+       نصٍّ يُرسله أحدٌ سيصير سطراً في تقاريرنا. والقائمة هنا هي نفسها في
+       `lib/track.ts` — ولو تباعدتا لسقط حدثٌ صامتاً. */
+    const EVENTS = ['build_start', 'build_complete', 'offer_click', 'search'];
+    const rawEvent = String(body?.e || '').trim();
+    const event = EVENTS.includes(rawEvent) ? rawEvent : null;
+    /* والتفصيل يُقصّ هنا لا في المتصفّح: ما يرسله العميل لا يُصدَّق طولُه */
+    const label = event ? (String(body?.l || '').trim().slice(0, 80) || null) : null;
+    /* ⚠️ ومعرّف القطعة من النبضة يُقبل للأحداث وحده: المشاهدةُ تستنتجه من
+       المسار، والحدثُ (نقرةُ شراءٍ من الكتالوج) لا مسارَ له يدلّ عليه. */
+    const bodyComponentId = event && typeof body?.c === 'string' && /^[a-z0-9]{20,32}$/i.test(body.c)
+      ? body.c
+      : null;
+
     await prisma.pageHit.create({
       data: {
         day,
         visitorHash,
         userId: userId ? String(userId) : null,
         path: path.slice(0, 180),
-        componentId,
+        componentId: componentId ?? bodyComponentId,
+        event,
+        label,
         refHost: refererHost(String(body?.r || '') || null, selfHost)?.slice(0, 120) ?? null,
         device: deviceOf(ua),
       },

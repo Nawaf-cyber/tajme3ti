@@ -8,6 +8,7 @@ import PCBBackground from '../components/PCBBackground';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import VisitPing from '../components/VisitPing';
+import OfferClickTracker from '../components/OfferClickTracker';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -77,6 +78,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Suspense fallback={null}>
             <VisitPing />
           </Suspense>
+          {/* ⚠️ خارج Suspense: لا يقرأ معاملات الرابط، فلا يُجبر شيئاً على
+              التصيير في المتصفّح — ومستمعُ نقراتٍ لا يحتاجها أصلاً. */}
+          <OfferClickTracker />
           {/* يبقى مؤقّتاً لمقارنة الرقمين قبل الاستغناء عنه */}
           <Analytics />
         </Providers>

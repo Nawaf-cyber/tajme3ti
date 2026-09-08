@@ -19,6 +19,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { isAvailable, liveOffers, type Offer } from '../lib/stores';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
+import { track, trackOnce } from '../lib/track';
 import { productImage } from '../lib/image';
 import RichDescription from './RichDescription';
 import SpecSheet from './SpecSheet';
@@ -907,6 +908,11 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     const component = category?.components.find(c => c.id === componentId) || null;
     if (!component) return;
 
+    /* ⚠️ «بدأ بناءً» مرّةً واحدةً في الجلسة: بلا الحارس يُطلق مع كلّ قطعة،
+       فيظهر زائرٌ اختار سبع قطعٍ سبعةَ زوّار — ونسبةُ الوصول تصير سُبع
+       الحقيقة، وهي أهمّ رقمٍ في التقرير. */
+    trackOnce('build_start', 'build_start', { label: categoryName });
+
     const specs = parseSpecs(component.specs);
     
     let newSelections = { ...selectedComponents, [categoryName]: component };
@@ -1648,6 +1654,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     /* ⚠️ والتحذيرات تُعرض مع النجاح: «توافق تامّ» فوق معالجٍ بلا مبرّد
        كذبةٌ مريحة — ٢٩ من ٤٦ معالجاً عندنا لا يأتي بمبرّد. */
     const warnings = issues.filter((i) => i.level === 'warn').map((i) => i.message);
+    /* وصل إلى تقرير التوافق — الطرف الثاني من القُمع */
+    trackOnce('build_complete', 'build_complete', { label: warnings.length ? 'warnings' : 'clean' });
     setResult({
       status: 'success',
       message: warnings.length
@@ -2204,11 +2212,16 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                       {comp.price} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-700 dark:bg-emerald-400" />
                                     </span>
                                     <div className="flex flex-wrap gap-1.5 export-ignore">
+                                      {/* ⚠️ `data-cid` لا مُعالِج نقرة: المستمع العامّ في
+                                          `OfferClickTracker` يلتقطها، والسمة تعطيه القطعة.
+                                          ولا يُكتب تعليقٌ بين السمات — لا بصيغة JSX ولا بصيغة
+                                          جافاسكربت — فذاك خطأُ تحليلٍ يُسقط البناء كلَّه. */}
                                       {getStoreOffers(comp).map((offer, i) => (
                                         <a
                                           key={offer.storeId}
                                           href={buildStoreUrl(offer.store, offer.url, offer.affiliateUrl)}
                                           {...storeLinkProps(offer.store)}
+                                          data-cid={comp.id}
                                           className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-sm font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
                                             i === 0
                                               ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-300 dark:ring-emerald-500/40'
