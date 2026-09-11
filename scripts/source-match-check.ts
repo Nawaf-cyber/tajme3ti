@@ -15,6 +15,20 @@ const t = (ok: boolean, title: string, detail = '') => {
 
 type Case = { brand: string; name: string; specs?: any; cand: string; want: boolean; note: string };
 const CASES: Case[] = [
+  /* ⚠️ الخمسُ التالية كنسةٌ حقيقيّة يوم 2026-09-12: من سبعة «مطابقاتٍ»
+     وجدها المُطابِق في مايكرولس وإنفيني آرك، **خمسٌ كانت خاطئة**. ولولا
+     أنّها عُرضت قبل الكتابة لدخلت خمسةُ أسعارٍ لمنتجاتٍ أخرى في الكتالوج. */
+  { brand:'NVIDIA', name:'GeForce RTX 3080 Ti', cand:'Palit Nvidia GeForce RTX 3080 10GB GamingPro PCI Express 4.0', want:false, note:'3080 ≠ 3080 Ti — واللاحقة حرفان لا يراهما models ولا words' },
+  { brand:'NVIDIA', name:'GeForce RTX 3060 12GB', cand:'ASUS D500ME-7137001320 Desktop Computers, 13th Gen i7-13700, NVIDIA GeForce RTX 3060', want:false, note:'جهازٌ جاهز — والقاعدة كانت بنسختين فأفلت' },
+  { brand:'Gigabyte', name:'H610M H DDR4', specs:{ramType:'DDR4'}, cand:'GIGABYTE H610M D3W WIFI6 LGA 1700 Micro ATX Motherboard, 2x DDR5 DIMM', want:false, note:'DDR4 ≠ DDR5 — وما يفرّق الاسمين حرفٌ واحد' },
+  { brand:'HYTE', name:'Y60', cand:'Alphacool Apex Distro Plate Y60 for HYTE Case w/ VPP/D5 Pump', want:false, note:'ملحقٌ يُركَّب في الكيس لا الكيس' },
+  { brand:'Corsair', name:'4000D Airflow', cand:'CORSAIR iCUE 4000D RGB AIRFLOW V2 Mid-Tower Case', want:false, note:'V2 مراجعةٌ ثانية بسعرٍ آخر' },
+  { brand:'DeepCool', name:'LE360 V2', cand:'DeepCool LE360 V2 360mm Liquid CPU Cooler', want:true, note:'والمراجعةُ باتّجاهين: V2 عندنا وV2 عنده يمرّ' },
+  /* والجولةُ الثانية من نفس الكنسة: مطابقان نجَوا من الإصلاح الأوّل */
+  { brand:'NVIDIA', name:'GeForce RTX 3060 12GB', cand:'MSI Creator Z16 with 16" QHD display, Intel Core i9-12900H, 32GB RAM, NVIDIA GeForce RTX 3060', want:false, note:'محمولٌ لا يسمّي نفسه لابتوباً — تدلّ عليه الشاشة ولاحقة H' },
+  { brand:'ASUS', name:'ROG Astral RTX 5090 OC 32GB', cand:'كرت شاشة ASUS ROG Astral Dhahab GeForce RTX 5090، ذاكرة 32GB GDDR7، نسخة OC، باللون الذهبي', want:false, note:'نسخةٌ ذهبيّة — رمزٌ آخر وسعرٌ آخر' },
+  { brand:'Gigabyte', name:'GeForce RTX 5070 EAGLE OC ICE 12G', cand:'Gigabyte GeForce RTX 5070 EAGLE OC ICE 12G Graphics Card', want:true, note:'واللونُ باتّجاهين: ICE عندنا وICE عنده يمرّ' },
+
   { brand:'AMD', name:'Ryzen 9 9950X', cand:'AMD Ryzen 9 9950X3D AM5 Desktop Processor, 16 Cores', want:false, note:'9950X ≠ 9950X3D' },
   { brand:'AMD', name:'Ryzen 9 7900', cand:'AMD Ryzen 9 7900X 4.7 GHz AM5 170W Desktop Processor', want:false, note:'7900 ≠ 7900X' },
   { brand:'AMD', name:'Ryzen 5 5500', cand:'Lenovo IdeaPad Gaming 3 Laptop, AMD Ryzen 5 5500H, 8GB RAM', want:false, note:'لابتوب ليس معالجاً' },

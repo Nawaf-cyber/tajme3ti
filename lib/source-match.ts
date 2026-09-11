@@ -66,7 +66,91 @@ const BRAND_AR: Record<string, RegExp> = {
 };
 
 /** أنظمةٌ كاملة تحمل اسم القطعة ولا تُساويها — لابتوب فيه Ryzen 5500H ليس معالجاً */
-const IS_SYSTEM = /\b(laptop|notebook|gaming pc|desktop pc|all-in-one|bundle|prebuilt|workstation)\b|gaming desktop/i;
+/**
+ * جهازٌ كاملٌ لا قطعة.
+ *
+ * ⚠️ وكانت لهذه القاعدة **نسختان**: هذه، وأخرى في `lib/discover.ts` أوسع
+ * منها. فأُضيفت «desktop computer» إلى تلك وحدها، وبقيت هذه عمياء عنها —
+ * فقَبِلت «ASUS D500ME **Desktop Computers**, i7-13700 … RTX 3060» مرشَّحاً
+ * لكرت RTX 3060. وهو **ثالثُ** وقوعٍ لنفس الدرس في هذا المشروع.
+ *
+ * فالقاعدة هنا، و`discover.ts` يُعيد تصديرها — لا ينسخها.
+ */
+export const IS_SYSTEM =
+  /gaming pc|gaming desktop|gaming computer|desktop pc|desktop computer|desktop configuration|\bpc\b.*(ryzen|core ultra|rtx)|prebuilt|barebone|workstation|\bserver\b|rack ?mount|\bepyc\b|laptop|notebook|all-in-one|bundle|بي ?سي ?قيمنق|جهاز جاهز|تجميعة جاهزة|كمبيوتر مكتبي/i;
+
+/**
+ * ملحقٌ **لقطعة** لا القطعة نفسها.
+ *
+ * ⚠️ قِيس: «Alphacool Apex Distro Plate **Y60 for HYTE Case**» قُبل مرشَّحاً
+ * لكيس HYTE Y60 — فيه اسمُ الشركة وفيه الطراز، والمُطابِق لا يرى أنّه لوحُ
+ * تبريدٍ يُركَّب فيه لا هو.
+ */
+const IS_ACCESSORY =
+  /distro plate|\bbracket\b|\briser\b|mounting kit|\bstand\b|dust filter|cable (kit|comb|extension)|adapter kit|replacement (fan|panel)|\bsleeve\b|\bscrews?\b/i;
+
+/**
+ * لابتوبٌ لا يسمّي نفسه لابتوباً.
+ *
+ * ⚠️ قِيس: «MSI Creator Z16 with 16" QHD display, Intel Core **i9-12900H**,
+ * 32GB RAM, 1TB SSD, NVIDIA GeForce RTX 3060» قُبل مرشَّحاً لكرت RTX 3060.
+ * ولا تحمل الكلمةَ «laptop» ولا «notebook» — فالتقاطُها بعلامتين لا تكونان
+ * إلّا في محمول: **مقاسُ شاشةٍ بالبوصة**، و**لاحقةُ معالجٍ محمول** (H/HX/HS/U).
+ */
+const IS_LAPTOP =
+  /\b\d{2}(\.\d)?"\s*(qhd|fhd|uhd|oled|ips|display|screen)|\b(core\s*)?i[3579][- ]?\d{4,5}(hx|hs|h|u)\b|\bryzen\s*\d\s*\d{4}(hx|hs|h|u)\b/i;
+
+/**
+ * ألوانُ الطراز — نسخةٌ بلونٍ آخر رمزٌ آخر وسعرٌ آخر.
+ *
+ * ⚠️ قِيس: «ASUS ROG Astral **Dhahab** GeForce RTX 5090 … باللون الذهبي»
+ * قُبل لقطعتنا العاديّة. وكان الفحص للأبيض وحده، وهذه تُكمله.
+ *
+ * ⚠️ وتُفحص باتّجاهين: أسماؤنا فيها ICE وSNOW فعلاً (5070 EAGLE OC ICE ·
+ * Y70 Snow White)، فاشتراطُ الغياب يرفض الصحيح.
+ */
+const COLORWAY = /\b(WHITE|SNOW|ICE|DHAHAB|GOLD EDITION)\b|أبيض|الذهبي|ذهبيّ?ة?/gi;
+const colorsOf = (s: string): string =>
+  [...new Set((s.match(COLORWAY) ?? []).map((v) => v.toUpperCase().replace('الذهبي', 'DHAHAB').replace(/ذهبيّ?ة?/, 'DHAHAB')))]
+    .sort().join(',');
+
+/**
+ * لواحقُ الطراز القصيرة — وهي أخطرُ ما يُفلت.
+ *
+ * ⚠️ فـ`models` لا تلتقط إلّا ما فيه رقم، و`words` لا تلتقط إلّا ثلاثة أحرفٍ
+ * فأكثر. فـ«Ti» و«XT» **لا تُريان إطلاقاً**: قُبل «RTX 3080 10GB GamingPro»
+ * مرشَّحاً لـ«RTX 3080 **Ti**» — كرتان بينهما فرقُ فئةٍ كاملة وسعرٍ كبير.
+ *
+ * ⚠️ والمقارنة **باتّجاهين**: لا يكفي أن نشترط لاحقتنا في المرشّح، بل يجب
+ * أن تتساوى المجموعتان — وإلّا قَبِلنا «3080 Ti» لقطعتنا «3080»، فعرضنا
+ * سعر كرتٍ أغلى على كرتٍ أرخص.
+ */
+const VARIANT = /\b(TI|XTX|XT|GRE|SUPER|GTS?|SE|LE)\b/gi;
+const variantsOf = (s: string): string =>
+  [...new Set((s.match(VARIANT) ?? []).map((v) => v.toUpperCase()))].sort().join(',');
+
+/**
+ * جيلُ الذاكرة — يفصل لوحتين اسمُهما واحدٌ تقريباً.
+ *
+ * ⚠️ قِيس: «Gigabyte **H610M H DDR4**» قُبل له «GIGABYTE **H610M D3W** WIFI6
+ * … 2x **DDR5** DIMM» — لوحتان مختلفتان لا تقبلان نفس الذاكرة أصلاً. وما
+ * يفرّقهما في اسمنا حرفٌ واحد («H») لا تراه `models` ولا `words`.
+ */
+const DDR = /\bDDR([345])\b/gi;
+const ddrOf = (s: string): string =>
+  [...new Set((s.match(DDR) ?? []).map((v) => v.toUpperCase()))].sort().join(',');
+
+/**
+ * رقمُ المراجعة — «V2» نسخةٌ ثانيةٌ لا نفس المنتج.
+ *
+ * ⚠️ قِيس: «Corsair **4000D Airflow**» قُبل له «CORSAIR iCUE 4000D RGB
+ * AIRFLOW **V2**» — مراجعةٌ ثانية بسعرٍ آخر. والمقارنة باتّجاهين: أسماؤنا
+ * نفسُها فيها V2 أحياناً (LE360 V2 · Aura GL240 V2)، فاشتراطُ الغياب يرفض
+ * الصحيح كما يرفض الخاطئ.
+ */
+const REV = /\b(V[2-9]|MK\s?[2-9]|REV\.?\s?[2-9])\b/gi;
+const revOf = (s: string): string =>
+  [...new Set((s.match(REV) ?? []).map((v) => v.toUpperCase().replace(/[\s.]/g, '')))].sort().join(',');
 
 /** يُجرَّد الاسم من الوحدات كي تبقى كلماتُ الطراز وحدها */
 const stripUnits = (name: string) =>
@@ -109,6 +193,10 @@ export const formFactorOf = (title: string): string | null => {
 
 export type Fingerprint = {
   brand: string;
+  /** الاسم كما هو — تُقرأ منه لواحقُ الطراز القصيرة التي لا تلتقطها `models` */
+  name: string;
+  /** جيل الذاكرة من المواصفات (DDR4/DDR5) — الاسم لا يذكره دائماً */
+  ramType: string | null;
   capacityGb: number;
   models: string[];   // رموزٌ فيها رقم: 9950X · B650 · SSR-650FM · GL240
   words: string[];    // كلماتٌ مميّزة بلا رقم: GRE · HERO · AORUS
@@ -140,6 +228,9 @@ export function fingerprint(brand: string, name: string, specs: any): Fingerprin
 
   return {
     brand: norm(brand),
+    name,
+    /* اللوحة تسمّيه `ramType` والذاكرة تسمّيه `type` — كلاهما يُقرأ */
+    ramType: String(specs?.ramType ?? specs?.type ?? '').trim() || null,
     capacityGb: capacityGb(specs?.capacity),
     speedMts: Number(String(specs?.speed ?? '').replace(/[^\d]/g, '')) || null,
     psuRating: rating ? rating[0].toLowerCase() : null,
@@ -155,10 +246,41 @@ export function fingerprint(brand: string, name: string, specs: any): Fingerprin
 /** هل المرشّح هو القطعة نفسها؟ */
 export function matches(fp: Fingerprint, cand: string): Verdict {
   if (IS_SYSTEM.test(cand)) return { ok: false, why: 'جهازٌ كامل لا قطعة' };
+  if (IS_ACCESSORY.test(cand)) return { ok: false, why: 'ملحقٌ للقطعة لا القطعة' };
+  if (IS_LAPTOP.test(cand)) return { ok: false, why: 'محمولٌ لا قطعة' };
+
+  /* ⚠️ لاحقةُ الطراز قبل كلّ شيء: «3080» و«3080 Ti» فئتان لا نسختان */
+  const ourName = fp.name ?? '';
+  const ourVar = variantsOf(ourName);
+  const candVar = variantsOf(cand);
+  if (ourVar !== candVar) {
+    return { ok: false, why: `اللاحقة «${candVar || 'بلا'}» لا «${ourVar || 'بلا'}»` };
+  }
+
+  /* ⚠️ وجيلُ الذاكرة لا يُفحص إلّا حين يذكره **الطرفان**: عنوانٌ لا يذكره
+     لا يُدان بجهلنا — وأغلب عناوين المتاجر لا تذكره. */
+  const ourDdr = ddrOf(ourName + ' ' + (fp.ramType ?? ''));
+  const candDdr = ddrOf(cand);
+  if (ourDdr && candDdr && ourDdr !== candDdr) {
+    return { ok: false, why: `الجيل ${candDdr} لا ${ourDdr}` };
+  }
+
+  const ourRev = revOf(ourName);
+  const candRev = revOf(cand);
+  if (ourRev !== candRev) {
+    return { ok: false, why: `المراجعة «${candRev || 'بلا'}» لا «${ourRev || 'بلا'}»` };
+  }
 
   const candWhite = /WHITE/i.test(cand);
   if (fp.white !== candWhite) {
     return { ok: false, why: fp.white ? 'قطعتنا بيضاء والمرشّح لا' : 'المرشّح أبيض وقطعتنا لا' };
+  }
+
+  /* ⚠️ وبقيّةُ ألوان الطراز بعد الأبيض: الذهبيّ والثلجيّ رموزٌ أخرى وأسعارٌ أخرى */
+  const ourColors = colorsOf((fp.name ?? '') + ' ' + fp.brand);
+  const candColors = colorsOf(cand);
+  if (ourColors !== candColors) {
+    return { ok: false, why: `اللون «${candColors || 'قياسيّ'}» لا «${ourColors || 'قياسيّ'}»` };
   }
 
   /* ⚠️ والمفتاح يُخفَّض: `norm` تُعيد الاسم بحروفٍ كبيرة، وجدولُنا صغيرة */
