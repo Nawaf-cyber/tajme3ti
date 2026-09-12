@@ -28,6 +28,8 @@ const CASES: Case[] = [
   { brand:'NVIDIA', name:'GeForce RTX 3060 12GB', cand:'MSI Creator Z16 with 16" QHD display, Intel Core i9-12900H, 32GB RAM, NVIDIA GeForce RTX 3060', want:false, note:'محمولٌ لا يسمّي نفسه لابتوباً — تدلّ عليه الشاشة ولاحقة H' },
   { brand:'ASUS', name:'ROG Astral RTX 5090 OC 32GB', cand:'كرت شاشة ASUS ROG Astral Dhahab GeForce RTX 5090، ذاكرة 32GB GDDR7، نسخة OC، باللون الذهبي', want:false, note:'نسخةٌ ذهبيّة — رمزٌ آخر وسعرٌ آخر' },
   { brand:'Gigabyte', name:'GeForce RTX 5070 EAGLE OC ICE 12G', cand:'Gigabyte GeForce RTX 5070 EAGLE OC ICE 12G Graphics Card', want:true, note:'واللونُ باتّجاهين: ICE عندنا وICE عنده يمرّ' },
+  /* من كنسة خريطة موقع إنفيني آرك 2026-09-13 */
+  { brand:'ASUS', name:'ROG Astral LC RTX 5090 OC 32GB', cand:'asus rog astral geforce rtx 5090 32gb gddr7 oc edition gpu', want:false, note:'LC تبريدٌ مائيّ — رمزٌ آخر وسعرٌ آخر' },
 
   { brand:'AMD', name:'Ryzen 9 9950X', cand:'AMD Ryzen 9 9950X3D AM5 Desktop Processor, 16 Cores', want:false, note:'9950X ≠ 9950X3D' },
   { brand:'AMD', name:'Ryzen 9 7900', cand:'AMD Ryzen 9 7900X 4.7 GHz AM5 170W Desktop Processor', want:false, note:'7900 ≠ 7900X' },

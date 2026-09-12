@@ -125,7 +125,9 @@ const colorsOf = (s: string): string =>
  * أن تتساوى المجموعتان — وإلّا قَبِلنا «3080 Ti» لقطعتنا «3080»، فعرضنا
  * سعر كرتٍ أغلى على كرتٍ أرخص.
  */
-const VARIANT = /\b(TI|XTX|XT|GRE|SUPER|GTS?|SE|LE)\b/gi;
+/* ⚠️ و«LC» منها: قِيس على «ROG Astral **LC** RTX 5090» فقُبل له الكرتُ
+   الهوائيّ العاديّ — والتبريد المائيّ رمزٌ آخر وسعرٌ آخر. */
+const VARIANT = /\b(TI|XTX|XT|GRE|SUPER|GTS?|SE|LE|LC)\b/gi;
 const variantsOf = (s: string): string =>
   [...new Set((s.match(VARIANT) ?? []).map((v) => v.toUpperCase()))].sort().join(',');
 
