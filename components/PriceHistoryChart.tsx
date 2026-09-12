@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { Panel, SectionHeading, StatStrip, type Stat } from './Panel';
+import { liveStats } from '../lib/price-stats';
 
 /* ============ رسم تاريخ السعر ============
    مكوّن خادم بحت (بلا 'use client') — يرندر SVG على الخادم،
@@ -243,26 +244,17 @@ export default async function PriceHistoryChart({
    * لا يقين — فقد ينفد أحدها في يومٍ ماضٍ ولا نعلم — لكنه رقمٌ يقابله
    * زرُّ شراء، والخطوط تحته تبقى كاملة كما هي.
    */
-  const liveSet = new Set(liveStores);
-  const liveDaily = new Map<string, number>();
-  for (const s of storeSeries) {
-    if (!liveSet.has(s.slug)) continue;
-    for (const p of s.points) {
-      const day = p.date.toISOString().slice(0, 10);
-      const cur = liveDaily.get(day);
-      if (cur == null || p.price < cur) liveDaily.set(day, p.price);
-    }
-  }
-  const livePoints = toPoints(liveDaily);
+  /* ⚠️ والحساب من `lib/price-stats.ts` لا هنا: نفسُ الرقم يُعرض فوق قائمة
+     العروض أيضاً، وحسابُه مرّتين يعني رقمين مختلفين على صفحةٍ واحدة. */
+  const stats = liveStats(rows, liveStores);
   const money = (n: number) => Math.round(n).toLocaleString('en-US');
 
   let summary: Stat[] = [];
-  if (livePoints.length >= 2) {
-    const prices = livePoints.map((p) => p.price);
-    const netChange = Math.round(prices[prices.length - 1] - prices[0]);
+  if (stats) {
+    const netChange = Math.round(stats.last - stats.first);
     summary = [
-      { label: 'أدنى ما بلغه', value: money(Math.min(...prices)), unit: '﷼', accent: 'emerald' },
-      { label: 'أعلى ما بلغه', value: money(Math.max(...prices)), unit: '﷼', accent: 'none' },
+      { label: 'أدنى ما بلغه', value: money(stats.min), unit: '﷼', accent: 'emerald' },
+      { label: 'أعلى ما بلغه', value: money(stats.max), unit: '﷼', accent: 'none' },
       netChange === 0
         ? { label: 'التغيّر خلال الفترة', value: '—', accent: 'none' }
         : {

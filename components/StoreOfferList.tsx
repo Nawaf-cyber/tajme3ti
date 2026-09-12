@@ -10,6 +10,7 @@
 
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { formatPrice, discountPercent } from '../lib/price';
+import { pctAboveMin, type PriceStats } from '../lib/price-stats';
 import { storeVars, type Offer } from '../lib/stores';
 import { StoreNoticeInline } from './StoreNotice';
 
@@ -25,18 +26,76 @@ const RiyalIcon = ({ size = 'h-5 w-5' }: { size?: string }) => (
   />
 );
 
-export default function StoreOfferList({ offers }: { offers: Offer[] }) {
+/**
+ * موضعُ السعر من تاريخه — بديلُ المقارنة حين لا يوجد إلّا متجر.
+ *
+ * ⚠️ ويُقال بلا مبالغة: «عند أدنى ما رصدناه» تُكتب حين تصدق فقط، وإلّا
+ * فالفرقُ بالريال والنسبة. ووعدٌ بصفقةٍ وهميّة يُفقد الثقة أسرع من صمت.
+ */
+function PriceContextNote({ stats, now }: { stats: PriceStats; now: number }) {
+  const pct = pctAboveMin(now, stats.min);
+  const money = (n: number) => Math.round(n).toLocaleString('en-US');
+  const atLow = pct <= 2;
+
+  return (
+    <div
+      className={`rounded-sm border p-3 text-[12.5px] font-semibold leading-relaxed ${
+        atLow
+          ? 'border-emerald-500/40 bg-emerald-500/[0.07] text-emerald-800 dark:text-emerald-300'
+          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300'
+      }`}
+    >
+      {atLow ? (
+        <>
+          سعرُه اليوم <strong>عند أدنى ما رصدناه</strong> خلال {stats.days} يوماً من المتابعة.
+        </>
+      ) : (
+        <>
+          متجرٌ واحد يبيعها عندنا — لكنّنا نتابع سعرها منذ <strong>{stats.days} يوماً</strong>:
+          أدنى ما بلغته <strong dir="ltr">{money(stats.min)} ﷼</strong>، وأعلاه{' '}
+          <strong dir="ltr">{money(stats.max)} ﷼</strong>. وسعرُ اليوم أعلى من أدناه بـ
+          <strong> {pct}%</strong>.
+        </>
+      )}
+      <span className="block mt-1 text-[11.5px] font-bold text-slate-500 dark:text-slate-400">
+        الرسم البيانيّ أسفل الصفحة يوضّح الحركة يوماً بيوم.
+      </span>
+    </div>
+  );
+}
+
+export default function StoreOfferList({
+  offers,
+  stats,
+}: {
+  offers: Offer[];
+  /** موضع السعر من تاريخه — يُغني عن المقارنة حين لا يوجد إلّا متجرٌ واحد */
+  stats?: PriceStats | null;
+}) {
   // نعرض كل متجر له رابط — حتى النافد، ليعرف الزائر أنه مرصود لا مفقود
   const rows = (offers || []).filter((o) => !!o.url);
   if (rows.length === 0) return null;
+
+  /* ⚠️ ١٩٢ قطعةً من ٣٣١ لا يبيعها إلّا متجرٌ واحد — والعنوان فوقها كان
+     يقول «مقارنة الأسعار في المتاجر». وعدٌ مكسورٌ مكتوبٌ بخطّ عريض.
+     وقِيس السببُ فإذا هو السوق لا أداتُنا: ٣٢٢ محاولةَ بحثٍ في المتجرين
+     المجّانيَّين لم تُعد إلّا بمطابقتين. فالمتجر الثاني غير موجود.
+     فالعنوان يصدُق، والمقارنةُ تتحوّل من «مقابل المتاجر» إلى «مقابل
+     تاريخه» — وهي مقارنةٌ نملك بياناتها وحدنا. */
+  const live = rows.filter((o) => o.inStock && !!o.price);
+  const single = live.length === 1;
 
   return (
     <div className="flex flex-col gap-3 mt-4 w-full relative z-0">
       {/* كان: font-mono uppercase tracking-widest بحجم ١٠ بكسل — وهو مقبول
           على اللاتينية وثلاثةُ أخطاء على العربية. انظر MicroLabel */}
       <h3 className="mb-3 text-[11.5px] font-bold text-slate-400 dark:text-slate-500">
-        مقارنة الأسعار في المتاجر
+        {single ? 'المتجر الذي يبيعها' : 'مقارنة الأسعار في المتاجر'}
       </h3>
+
+      {single && stats && (
+        <PriceContextNote stats={stats} now={live[0].price!} />
+      )}
 
       {rows.map((o) => {
         const live = o.inStock && !!o.price;

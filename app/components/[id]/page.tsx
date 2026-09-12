@@ -17,6 +17,7 @@ import RichDescription from '../../../components/RichDescription';
 import SpecSheet from '../../../components/SpecSheet';
 import { Panel, SectionHeading, MicroLabel } from '../../../components/Panel';
 import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
+import { fetchPriceStats } from '../../../lib/price-stats';
 
 /* عنوان ووصف وcanonical خاصّان بكل قطعة.
    كانت ٢٢٤ صفحة ترث عنوان الرئيسية وcanonical يشير إليها — أي "محتوى مكرّر"
@@ -94,6 +95,14 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
   // إعلانات حالة المتاجر (عطل/صيانة) — تظهر قبل روابط الشراء
   const notices = await getStoreNotices();
+
+  /* ⚠️ موضعُ السعر من تاريخه — يُعرض فوق قائمة العروض حين لا يوجد إلّا
+     متجرٌ واحد (وذاك حالُ ١٩٢ قطعةً من ٣٣١). ونفسُ الدالّة يستعملها الرسم
+     أسفل الصفحة، فلا يظهر رقمان مختلفان لشيءٍ واحد. */
+  const priceStats = await fetchPriceStats(
+    comp.id,
+    liveOffers(comp.offers as any).map((o) => o.store.slug),
+  );
 
   // المتاجر صاحبة أقل سعر — قد تتساوى فنقول "متطابق في"
   const lowestStores = cheapestStoreNames(comp as any);
@@ -221,7 +230,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
             {/* إعلانات المتاجر السارية — تشمل الموقوف، فيعرف الزائر سبب اختفائه */}
             <StoreNotices stores={notices as any} />
-            <StoreOfferList offers={comp.offers as any} />
+            <StoreOfferList offers={comp.offers as any} stats={priceStats} />
             {/* تحت الأسعار مباشرةً — عند النظر إلى الرقم لا في أسفل الصفحة */}
             <PriceMismatchReport offers={comp.offers as any} />
             {/* «تابع السعر» هنا لا في أسفل الصفحة: القرار يُتّخذ عند رؤية
