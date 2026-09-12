@@ -13,7 +13,7 @@
 
 import {
   round2, applyPriceVerdict,
-  scrapeAmazon, scrapeCazasouq, scrapeMicroless,
+  scrapeAmazon, scrapeCazasouq, scrapeMicroless, scrapeJarir,
   type OfferTarget, type StoreOutcome,
 } from './scrape-prices';
 import { scrapeGeneric, type GenericStoreConfig } from './scrape-generic';
@@ -23,6 +23,9 @@ const NATIVE: Record<string, (t: OfferTarget, token: string) => Promise<StoreOut
   amazon: scrapeAmazon,
   cazasouq: scrapeCazasouq,
   microless: scrapeMicroless,
+  /* ⚠️ جرير يُقرأ من مساره الداخليّ لا من HTML — موقعُه يُصيَّر في المتصفّح
+     فصفحتُه تصل بلا اسمٍ ولا سعر. والمحرّك مجّانيّ: لا وسيط ولا رصيد. */
+  jarir: scrapeJarir,
 };
 
 export type StoreRow = GenericStoreConfig & { id: string };

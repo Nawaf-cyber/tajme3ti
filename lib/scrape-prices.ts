@@ -521,6 +521,71 @@ export async function scrapeMicroless(t: OfferTarget, token: string): Promise<St
 }
 
 /**
+ * ============ جرير ============
+ *
+ * ⚠️ ولا يُقرأ من HTML: موقعُ جرير يُصيَّر في المتصفّح (Nuxt)، فصفحةُ المنتج
+ * التي يجلبها الخادم ١٬٦ ميجابايت **بلا اسمٍ ولا سعر**. قِيس: خمسةُ رموزٍ
+ * ظهرت في طلبات المتصفّح لم يوجد أحدُها في HTML.
+ *
+ * ⚠️ فالقراءة من مسارهم الداخليّ الذي يناديه موقعُهم نفسه، ويستجيب لطلبٍ
+ * عاديٍّ من خادمنا **بلا وسيط وبلا رصيد**:
+ *
+ *     /api/catalogv2/product/store/sa-en/sku/<SKU>/visibilityAll/true/size/1
+ *
+ * ويعيد وثيقةً فيها الاسم والسعر والتوفّر والصورة — أدقّ ممّا يُستخرج من
+ * HTML بالمحدّدات، ولا ينكسر بتغيير التنسيق.
+ *
+ * ⚠️ والرمز يُقرأ من الرابط: كلُّ روابط منتجاتهم تنتهي بـ`-<ستّة أرقام>.html`
+ *     …/pny-technologies-geforce-rtx-5070-argb-graphics-card-652116.html
+ * فرابطٌ لا رمزَ فيه لا يُسحب — ويُقال سببُه بدل أن يُحسب نفاداً.
+ */
+const JARIR_SKU = /-(\d{6,8})\.html(?:[?#]|$)/;
+
+export async function scrapeJarir(t: OfferTarget, _token: string): Promise<StoreOutcome> {
+  const out = emptyOutcome(t.inStock ?? true);
+  if (!t.url) return out;
+
+  const sku = JARIR_SKU.exec(t.url)?.[1];
+  if (!sku) {
+    out.errors.push(`جرير (${t.name}): الرابط بلا رمز منتج — يجب أن ينتهي بـ«-123456.html».`);
+    return out;
+  }
+
+  try {
+    const api = `https://www.jarir.com/api/catalogv2/product/store/sa-en/sku/${sku}/visibilityAll/true/size/1`;
+    const res = await scrapeFetch(api);
+    if (!res.ok) {
+      out.errors.push(`جرير (${t.name}): ${httpReason(res.status)}`);
+      return out;
+    }
+    const json: any = await res.json().catch(() => null);
+    const src = json?.data?.hits?.hits?.[0]?._source;
+    /* ⚠️ ورمزٌ لا يُعيد وثيقةً ليس نفاداً: قد يكون المنتج حُذف أو الرابط
+       خاطئاً. فتُبقى الحالة السابقة ويُقال الخبر. */
+    if (!src) {
+      out.errors.push(`جرير (${t.name}): لا منتج بالرمز ${sku} — أُبقيت الحالة السابقة.`);
+      return out;
+    }
+
+    out.inStock = src?.stock?.is_in_stock === true;
+
+    const price = round2(Number(src.final_price) || 0);
+    /* سعرُ ما قبل الخصم: يُمرَّر فقط حين يكون أعلى فعلاً — وإلّا فلا خصم */
+    const regular = round2(Number(src.regular_price) || 0);
+    const listPrice = regular > price ? regular : 0;
+
+    if (price > 0) {
+      applyPriceVerdict(out, 'جرير', t.name, price, listPrice, t.price, null);
+    } else if (out.inStock) {
+      out.errors.push(`جرير (${t.name}): لم يتم العثور على سعر صالح.`);
+    }
+  } catch {
+    out.errors.push(`جرير (${t.name}): تجاوز الوقت المسموح (Timeout) أو خطأ اتصال.`);
+  }
+  return out;
+}
+
+/**
  * يكتب نقطة سعر واحدة لكل متجر في اليوم (يحدّثها إن تغيّر السعر).
  * يُمرَّر عميل prisma من المسار — الوحدة لا تستورده.
  */
