@@ -1206,6 +1206,10 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
      يُستدعى بعد أن يفهم المساعد النيّة. النموذج لا يلمس هذا إطلاقاً —
      كل قطعة هنا موجودة ومتوفّرة في كتالوجنا بسعرها الفعلي. */
   const applyPlan = (plan: TierPlan) => {
+    /* ⚠️ و«بدأ بناءً» يُطلق هنا أيضاً: هذا المسار يضع القطع دفعةً واحدة
+       ولا يمرّ بـ`handleSelect`. فكان القُمع يعطي رقماً **مستحيلاً** —
+       ٩٨ وصلوا و٦٥ بدأوا. ومن بنى بالمساعد بدأ بناءً كمن اختار بيده. */
+    trackOnce('build_start', 'build_start', { label: 'assistant' });
     setSelectedComponents(plan.picks as any);
     setAiPlans(null);
     toast.success(`تم بناء تجميعة ${plan.label} — ${Math.round(plan.total)} ﷼`, { icon: '✨' });
