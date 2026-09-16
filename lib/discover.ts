@@ -15,25 +15,21 @@
  * سقفَ ما نكتشفه. أمّا الكتالوج فينمو، فينمو معه ما نسأل عنه.
  */
 
-import { queryFor } from './source-match';
+import { queryFor, IS_SYSTEM } from './source-match';
 
 /**
- * حاسوبٌ جاهز أو خادمٌ لا قطعة — تُذكر مواصفاته فيلتقطه البحث.
+ * حاسوبٌ جاهز أو خادمٌ لا قطعة — القاعدة في `lib/source-match.ts`.
  *
- * ⚠️ ومكانُه هنا لا في المسار: كان مكتوباً داخل `route.ts` وحده، فبقي
- * غيرَ قابلٍ للاختبار — وأوّلُ فحصٍ للاكتشاف أعاد ١٦٩ «قطعة» أوّلُها اثنتا
- * عشرة تجميعةً جاهزة، لأنّ الفاحص لم يستطع استيراد القاعدة.
+ * ⚠️ ولا تُكتب هنا نسخةٌ ثانية منها. كانت نسختين فتباعدتا **مرّتين**:
+ *   • «desktop computer» أُضيفت هنا ولم تُضف هناك، فقبِل المُطابِق جهاز
+ *     «ASUS D500ME … NVIDIA GeForce RTX 3060» مرشَّحاً لكرت شاشة.
+ *   • و«all-in-one» و«bundle» أُضيفتا هناك ولم تُضافا هنا، فمرّ
+ *     «Dell Pro 24 **All-In-One** … Core Ultra 5 235T» بـ٥٬٨٠١ ﷼ مرشَّحاً
+ *     لمعالج — قِيس يوم 2026-09-16.
  *
- * ⚠️ و«خادم» أُضيف بعد أن ظهر EPYC بـ١٬٠١٦٬٥٩٢ ﷼ مرشّحاً لقرص NVMe.
- * ⚠️ والعربيّة أُضيفت بعد قياس: إنفيني آرك يسمّي أجهزته «بي سي قيمنق»،
- * فمرّت أربعةُ أجهزةٍ من مرشِّحٍ لاتينيٍّ خالص.
- *
- * ⚠️ و«gaming desktop» و«desktop computer» أُضيفتا بعد أوّل تشغيلٍ حقيقيّ
- * للاكتشاف: مرّ «HP Victus 15L TG02 **Gaming Desktop Computer**» مرشَّحاً
- * لكرت شاشة — ولا تحمل تسميتُه «PC» ولا «prebuilt».
+ * والنسختان تسألان نفس السؤال، فخطأٌ يُصلَح في إحداهما يعيش في الأخرى.
  */
-export const IS_SYSTEM =
-  /gaming pc|gaming desktop|gaming computer|desktop pc|desktop computer|desktop configuration|\bpc\b.*(ryzen|core ultra|rtx)|prebuilt|barebone|workstation|\bserver\b|rack ?mount|\bepyc\b|laptop|notebook|بي ?سي ?قيمنق|جهاز جاهز|تجميعة جاهزة|كمبيوتر مكتبي/i;
+export { IS_SYSTEM };
 
 export const isSystem = (title: string): boolean => IS_SYSTEM.test(String(title || ''));
 
