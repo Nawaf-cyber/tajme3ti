@@ -7,7 +7,7 @@ import { prisma } from '../lib/prisma';
 import AutoBuildsSection from '../components/AutoBuildsSection';
 import CompareTeaser from '../components/CompareTeaser';
 import PriceDropsSection from '../components/PriceDropsSection';
-import { productImage } from '../lib/image';
+import { productImage, IMAGE_FALLBACK } from '../lib/image';
 
 /* ⚠️ كانت revalidate = 300 فتُخزَّن النسخة ٥ دقائق، ومع stale-while-revalidate
    يرى أول زائرٍ بعدها النسخة **القديمة** ويُطلق التجديد للتالي — فالتأخير
@@ -144,7 +144,7 @@ export default async function HomePage() {
               <Link href={`/components/${comp.id}`} key={comp.id} className="group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300">
                 <div className="h-40 bg-slate-50 dark:bg-white p-6 flex items-center justify-center border-b border-slate-100 dark:border-slate-200 relative">
                   <img 
-                    src={productImage(comp.imageUrl, `/images/${comp.categoryId}/boxed.png`)} 
+                    src={productImage(comp.imageUrl, IMAGE_FALLBACK)} 
                     alt={comp.name} 
                     className="max-w-full max-h-full object-contain filter drop-shadow-sm mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                   />

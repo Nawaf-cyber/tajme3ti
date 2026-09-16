@@ -12,7 +12,7 @@ import { OFFER_INCLUDE, getStoreNotices } from '../../../lib/stores-server';
 import { cheapestStoreNames, offerDeal, liveOffers, priceAsOf } from '../../../lib/stores';
 import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
-import { productImage } from '../../../lib/image';
+import { productImage, IMAGE_FALLBACK } from '../../../lib/image';
 import RichDescription from '../../../components/RichDescription';
 import SpecSheet from '../../../components/SpecSheet';
 import { Panel, SectionHeading, MicroLabel } from '../../../components/Panel';
@@ -155,7 +155,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             <div className="w-full max-w-[450px] aspect-square bg-white rounded-sm flex items-center justify-center p-6 shadow-md">
 
               <ImageZoom 
-                src={productImage(comp.imageUrl, `/images/${comp.categoryId}/boxed.png`)} 
+                src={productImage(comp.imageUrl, IMAGE_FALLBACK)} 
                 alt={comp.name} 
               />
             </div>

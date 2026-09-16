@@ -8,11 +8,13 @@
  *   ١) **أمازون** أوّلاً — صورها على خلفية بيضاء نظيفة وبدقّة عالية،
  *      وهو ما يناسب إطار الصورة الأبيض في صفحة القطعة.
  *   ٢) **كازاسوق** بديلاً حين لا يوجد عرض أمازون.
+ *   ٣) **نون** ثم **إنفيني آرك** حين لا يوجد غيرهما.
  *   ✗ **مايكرولس مستبعد** بطلب صاحب الموقع.
  *
- * والنطاقان المستعملان (m.media-amazon.com وstatic.cazasouq.com) داخل
- * قائمة /api/img-proxy البيضاء أصلاً، فالصورة تُقدَّم من نطاقنا لا مربوطةً
- * من نطاق المتجر — انظر التعليق في lib/image.ts.
+ * ⚠️ والقائمة البيضاء تُقرأ من `lib/image-hosts.ts` — هي نفسها التي يفرضها
+ * `/api/img-proxy`، فالصورة تُقدَّم من نطاقنا لا مربوطةً من نطاق المتجر
+ * (انظر التعليق في lib/image.ts). وكانت هنا نسخةٌ ثانية منها فتباعدتا:
+ * نطاق نون أُضيف هنا ولم يُضف هناك، فصورُه تُحفظ ثمّ تُردّ 403.
  *
  *   npx tsx scripts/fetch-images.ts <id> [<id> …]
  *   npx tsx scripts/fetch-images.ts --missing      # بلا صورة
@@ -25,6 +27,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import * as cheerio from 'cheerio';
 import 'dotenv/config';
 import { scrapeFetch, setScrapeDeadline } from '../lib/scrape-prices';
+import { IMAGE_HOSTS } from '../lib/image-hosts';
 
 /** الترتيب هو التفضيل؛ وما ليس في القائمة لا يُستعمل مصدراً للصور
  *
@@ -32,18 +35,12 @@ import { scrapeFetch, setScrapeDeadline } from '../lib/scrape-prices';
  * الوحيد نوني: خمسٌ في دفعة و اثنتان قبلها، جُلبت صورها يدوياً في كل مرّة.
  * والمعالجة اليدوية المتكرّرة علامةُ نقصٍ في الأداة لا في الدفعة.
  * وهي آخر الترتيب لأن صور أمازون وكازاسوق أعلى دقّةً وأثبت روابط. */
-const SOURCE_ORDER = ['amazon', 'cazasouq', 'noon'];
+/* ⚠️ وإنفيني آرك أُضيف بعد دفعة 2026-09-16: خرجت أربعُ قطعٍ بلا صورة لأن
+   عرضها الوحيد مايكرولس (مستبعد) أو إنفيني آرك (لم يكن في القائمة أصلاً).
+   وصورتُه تُقدَّم من نطاقه نفسه — `/web/image/product.template/<id>/image_1024`.
+   وهو آخر الترتيب لأن صور أمازون أنظف خلفيةً وأعلى دقّة. */
+const SOURCE_ORDER = ['amazon', 'cazasouq', 'noon', 'infiniarc'];
 const PREMIUM = new Set(['amazon']);
-
-const ALLOWED_HOSTS = new Set([
-  'm.media-amazon.com',
-  'images-na.ssl-images-amazon.com',
-  'images-eu.ssl-images-amazon.com',
-  'cazasouq.com',
-  'www.cazasouq.com',
-  'static.cazasouq.com',
-  'f.nooncdn.com',
-]);
 
 const scrapeUrl = (token: string, target: string, premium: boolean) =>
   `https://api.scrape.do/?token=${token}&url=${encodeURIComponent(target)}${premium ? '&super=true' : ''}`;
@@ -103,10 +100,16 @@ function extractNoon($: cheerio.CheerioAPI): string | null {
   return og && /nooncdn/.test(og) ? og.split('?')[0] : null;
 }
 
+/** إنفيني آرك — Odoo يضع صورة المنتج في og:image بدقّة 1024 */
+function extractInfiniarc($: cheerio.CheerioAPI): string | null {
+  return $('meta[property="og:image"]').attr('content') || null;
+}
+
 const EXTRACT: Record<string, ($: cheerio.CheerioAPI) => string | null> = {
   amazon: extractAmazon,
   cazasouq: extractCazasouq,
   noon: extractNoon,
+  infiniarc: extractInfiniarc,
 };
 
 async function main() {
@@ -172,7 +175,7 @@ async function main() {
         /* الحارس: رابطٌ خارج قائمة البروكسي البيضاء سيُقدَّم للزائر مربوطاً
            من نطاق المتجر مباشرةً — وهو ما بُني البروكسي لمنعه. */
         const host = new URL(abs).hostname;
-        if (!ALLOWED_HOSTS.has(host)) { console.log(`   ${slug}: نطاق خارج القائمة البيضاء (${host})`); continue; }
+        if (!IMAGE_HOSTS.has(host)) { console.log(`   ${slug}: نطاق خارج القائمة البيضاء (${host})`); continue; }
 
         await prisma.component.update({ where: { id: c.id }, data: { imageUrl: abs } });
         console.log(`   ✔ من ${slug}: ${abs.slice(0, 95)}`);

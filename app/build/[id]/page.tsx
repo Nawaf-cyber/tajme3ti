@@ -7,7 +7,7 @@ import StoreBuyChips from '../../../components/StoreBuyChips';
 import { OFFER_INCLUDE } from '../../../lib/stores-server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { productImage } from '../../../lib/image';
+import { productImage, IMAGE_FALLBACK } from '../../../lib/image';
 import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
 import { priceAsOf } from '../../../lib/stores';
 
@@ -266,7 +266,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 shrink-0 bg-slate-50 dark:bg-slate-900/50 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800">
                     <img 
-                      src={productImage(part?.imageUrl, `/images/${category.toLowerCase()}/boxed.png`)} 
+                      src={productImage(part?.imageUrl, IMAGE_FALLBACK)} 
                       alt={part?.name || category} 
                       className="max-w-full max-h-full object-contain filter drop-shadow-sm opacity-90"
                     />

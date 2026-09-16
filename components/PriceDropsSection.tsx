@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 import { OFFER_INCLUDE } from '../lib/stores-server';
 import { cheapestOffer, isAvailable } from '../lib/stores';
 import { dropPercent, formatPrice, MIN_DROP_PERCENT } from '../lib/price';
-import { productImage } from '../lib/image';
+import { productImage, IMAGE_FALLBACK } from '../lib/image';
 import { specBadges } from '../lib/spec-badges';
 import MarqueeRail from './MarqueeRail';
 
@@ -189,7 +189,7 @@ export default async function PriceDropsSection() {
                       {/* لوح الصورة الأبيض — نفس معالجة بطاقات «أحدث القطع» */}
                       <div className="relative w-[5.25rem] h-[5.25rem] shrink-0 bg-slate-50 dark:bg-white rounded-sm border border-slate-100 dark:border-slate-200 flex items-center justify-center p-2.5">
                         <img
-                          src={productImage(c.imageUrl, `/images/${c.categoryId}/boxed.png`)}
+                          src={productImage(c.imageUrl, IMAGE_FALLBACK)}
                           alt={c.name}
                           loading="lazy"
                           draggable={false}

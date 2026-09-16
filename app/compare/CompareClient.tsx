@@ -11,7 +11,7 @@ import CompareActions from './CompareActions';
 import BuyCell from './BuyCell';
 import ComparePriceHistory, { SERIES_COLORS, type HistorySeries } from './ComparePriceHistory';
 import SuggestPartCard from '../../components/SuggestPartCard';
-import { productImage } from '../../lib/image';
+import { productImage, IMAGE_FALLBACK } from '../../lib/image';
 import { specLabelLoose } from '../../lib/spec-labels';
 import { isFeatureKey } from '../../lib/spec-schema';
 import { capacityGb } from '../../lib/capacity';
@@ -774,7 +774,7 @@ export default function CompareClient({
                         <Link href={`/components/${c.id}`} className="block group/link mt-2">
                           <div className="relative h-20 md:h-24 bg-white rounded-sm mb-3 flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800">
                             <img
-                              src={productImage(c.imageUrl, `/images/${c.categoryId}/boxed.png`)}
+                              src={productImage(c.imageUrl, IMAGE_FALLBACK)}
                               alt={c.name}
                               loading="lazy"
                               className="max-w-full max-h-full object-contain mix-blend-multiply group-hover/link:scale-105 transition-transform"

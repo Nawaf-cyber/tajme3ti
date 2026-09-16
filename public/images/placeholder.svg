@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="لا صورة لهذه القطعة">
+  <!-- صندوقٌ محايد يُقرأ على الفاتح والداكن معاً: الخلفية شفّافة والخطوط
+       رماديّةٌ متوسّطة، فلا يظهر مربّعٌ أبيض في الوضع الليليّ. -->
+  <g fill="none" stroke="#94a3b8" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" opacity="0.55">
+    <path d="M200 96 L308 148 L308 260 L200 312 L92 260 L92 148 Z"/>
+    <path d="M92 148 L200 200 L308 148"/>
+    <path d="M200 200 L200 312"/>
+  </g>
+  <text x="200" y="356" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif"
+        font-size="26" fill="#94a3b8" opacity="0.7">لا صورة</text>
+</svg>

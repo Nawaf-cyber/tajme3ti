@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { IMAGE_HOSTS } from '../../../lib/image-hosts';
 
 export const runtime = 'nodejs';
 
@@ -10,20 +11,9 @@ export const runtime = 'nodejs';
  *
  * ⚠️ لا تفتح هذا للنطاقات الحرّة — يصير open proxy يُساء استخدامه.
  */
-const ALLOWED_HOSTS = new Set([
-  // أمازون
-  'm.media-amazon.com',
-  'images-na.ssl-images-amazon.com',
-  'images-eu.ssl-images-amazon.com',
-  // كازاسوق
-  'cazasouq.com',
-  'www.cazasouq.com',
-  'static.cazasouq.com',   // نطاق أصول كازاسوق (صور المنتجات الفعلية)
-  // مايكرولس
-  'saudi.microless.com',
-  'microless.com',
-  'www.microless.com',
-]);
+/* ⚠️ والقائمة نفسها في lib/image-hosts.ts — لا نسخةَ هنا. كانت نسختين
+   فتباعدتا: نطاق نون أُضيف إلى ساحب الصور وحده، فصارت صورُه تُحفظ ثمّ
+   يردّها هذا المسار 403. */
 
 const MAX_BYTES = 3 * 1024 * 1024; // 3MB
 
@@ -42,7 +32,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse('https only', { status: 400 });
   }
 
-  if (!ALLOWED_HOSTS.has(target.hostname)) {
+  if (!IMAGE_HOSTS.has(target.hostname)) {
     return new NextResponse('host not allowed', { status: 403 });
   }
 
