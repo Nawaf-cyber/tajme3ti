@@ -7,7 +7,7 @@ import { formatPrice } from '../../lib/price';
 import { specBadges as getSpecBadges } from '../../lib/spec-badges';
 import { track } from '../../lib/track';
 import SuggestPartCard from '../../components/SuggestPartCard';
-import { productImage } from '../../lib/image';
+import { productImage, IMAGE_FALLBACK } from '../../lib/image';
 
 // إضافة colorClass للتحكم بلون الشعار حسب مكانه (أزرق للفلتر، أخضر للأسعار)
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -86,7 +86,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
 
   /* نحسب الخصم مرّة واحدة لكل قطعة — الدالة مشتركة مع صفحة المنتج */
   const withDeals = useMemo(
-    () => components.map(c => ({ ...c, _deal: offerDeal(c) })),
+    () => components.map(c => ({ ...c, _deal: offerDeal(c), _live: isAvailable(c) })),
     [components]
   );
 
@@ -126,6 +126,18 @@ export default function ComponentsClient({ components, categories, dealsLocked =
         ((b._deal.listPrice ?? b.price) - b.price) - ((a._deal.listPrice ?? a.price) - a.price),
       );
     }
+    /* ============ النافد إلى الذيل ============
+     *
+     * ⚠️ والترتيب الافتراضي «الأحدث»، والنافد لا يشيخ — فكانت قطعةٌ
+     * أُضيفت أمس ونفدت اليوم تجلس في أوّل صفٍّ يراه الزائر. قِيس:
+     * ٣٢ قطعةً بلا عرضٍ حيّ من ٣٣١، وأعلاها في «المعالجات» و«الكيسات».
+     * ولا تُحذف ولا تُخفى: من يبحث عنها باسمها يجدها، ومن يتصفّح لا
+     * يصطدم بها. والفرز يبقى فرزاً — النافد مرتَّبٌ داخل ذيله بنفس
+     * القاعدة، فلا يبدو الذيل عشوائياً.
+     *
+     * ⚠️ و`sort` في جافاسكربت **مستقرّة** منذ ES2019، فمفتاحٌ واحد يكفي
+     * ولا حاجة لتقسيمٍ يدويّ يُفسد ترتيب ما قبله. */
+    list.sort((a, b) => Number(b._live) - Number(a._live));
     return list;
   }, [baseFiltered, onlyDeals, sortBy, dealsLocked]);
 
@@ -365,7 +377,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                 <div className="relative w-full h-52 bg-white mx-4 mb-1 rounded-sm flex items-center justify-center" style={{width:'calc(100% - 2rem)'}}>
                   {/* loading="lazy" — كانت كل الصور تُطلب فوراً عند التحميل */}
                   <img
-                    src={productImage(comp.imageUrl, `/images/${comp.categoryId}/boxed.png`)}
+                    src={productImage(comp.imageUrl, IMAGE_FALLBACK)}
                     alt={comp.name}
                     loading="lazy"
                     decoding="async"
