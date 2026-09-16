@@ -31,6 +31,7 @@
 
 import type { Candidate } from './source-match';
 import { isBhdText, bhdToSar } from './currency';
+import { correctStock } from './stock-truth';
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';
@@ -406,6 +407,9 @@ export async function readProductPage(url: string): Promise<ProductRead | null> 
       const av = meta('product:availability');
       inStock = av ? !/out ?of ?stock|oos/i.test(av) : true;
     }
+
+    /* متجرٌ لا يُحدّث بيانه المُهيكل — الشرح في lib/stock-truth.ts */
+    inStock = correctStock(url, html, inStock);
 
     return {
       title: (meta('og:title') || (html.match(/<title[^>]*>([^<]*)/i) || [])[1] || '').replace(/\s+/g, ' ').trim(),

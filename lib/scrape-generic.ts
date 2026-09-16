@@ -16,6 +16,7 @@
 
 import * as cheerio from 'cheerio';
 import { round2, parseMoney, acceptListPrice, scrapeFetch, httpReason, isBrokenPage } from './scrape-prices';
+import { correctStock } from './stock-truth';
 
 export type GenericStoreConfig = {
   slug: string;
@@ -212,6 +213,9 @@ export async function scrapeGeneric(
 
   out.price = price;
   out.listPrice = acceptListPrice(listPrice, price);
-  out.inStock = found.inStock ?? true;
+  /* ⚠️ ولا يُصدَّق بيانُ التوفّر على عِلّاته: متجرٌ عندنا يُعلن InStock في
+     JSON-LD على صفحةٍ زرُّ شرائها معطَّل. والشرح كاملاً في lib/stock-truth.ts
+     — ونسخةٌ واحدة يقرؤها هذا المسار ومسارُ الاكتشاف معاً. */
+  out.inStock = correctStock(url, html, found.inStock ?? true);
   return out;
 }
