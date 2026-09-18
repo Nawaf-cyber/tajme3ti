@@ -90,6 +90,27 @@ const IS_ACCESSORY =
   /distro plate|\bbracket\b|\briser\b|mounting kit|\bstand\b|dust filter|cable (kit|comb|extension)|adapter kit|replacement (fan|panel)|\bsleeve\b|\bscrews?\b/i;
 
 /**
+ * قطعتان تُباعان معاً — ولا تُسمّى «bundle».
+ *
+ * ⚠️ قِيس يوم 2026-09-18: أعاد بحثُ «Radeon RX 9070 XT» **خمسةَ** صفوفٍ
+ * مثل «ASUS ROG Strix B850-E Gaming WiFi AM5 ATX Motherboard **with**
+ * ASUS Prime Radeon RX 9070 XT OC Edition Graphics Card» بـ٤٬٨١٠ ﷼.
+ * ولا تحمل كلمة bundle ولا kit ولا combo، فمرّت من `IS_SYSTEM` كلّها.
+ *
+ * والضرر مضاعف: تدخل مرشَّحةً **للوحة أمّ** بسعر لوحةٍ + كرت، وتدخل
+ * مرشَّحةً **لكرت شاشة** بنفس السعر. وفي الحالتين رقمٌ يقارب ضعف الصواب.
+ *
+ * والقاعدة أنّ العنوان يسمّي **نوعين مختلفين** من القطع موصولين بـ«with»
+ * أو «+». ولا تُفحص الكلمتان مبعثرتين في العنوان: «Motherboard» وحدها
+ * تَرِد في كلّ عنوان لوحة، و«Graphics Card» في كلّ عنوان كرت. الرابط
+ * بينهما هو ما يدلّ على الحزمة.
+ */
+const PART_NOUN =
+  '(?:motherboard|graphics\\s*card|video\\s*card|processor|\\bcpu\\b|\\bgpu\\b|power\\s*supply|\\bpsu\\b|memory\\s*kit|\\bssd\\b|\\bcase\\b|cpu\\s*cooler)';
+const IS_BUNDLE = new RegExp(`${PART_NOUN}[^,،]{0,80}?\\s(?:with|\\+)\\s[^,،]{0,80}?${PART_NOUN}`, 'i');
+
+
+/**
  * لابتوبٌ لا يسمّي نفسه لابتوباً.
  *
  * ⚠️ قِيس: «MSI Creator Z16 with 16" QHD display, Intel Core **i9-12900H**,
@@ -99,6 +120,24 @@ const IS_ACCESSORY =
  */
 const IS_LAPTOP =
   /\b\d{2}(\.\d)?"\s*(qhd|fhd|uhd|oled|ips|display|screen)|\b(core\s*)?i[3579][- ]?\d{4,5}(hx|hs|h|u)\b|\bryzen\s*\d\s*\d{4}(hx|hs|h|u)\b/i;
+
+/**
+ * «هذا ليس قطعةً مفردة» — بوّابةٌ واحدة لمسار الاكتشاف.
+ *
+ * ⚠️ ووُجدت لأنّ الاكتشاف كان يفحص `IS_SYSTEM` وحدها في أربعة مواضع،
+ * فكلُّ حارسٍ جديدٍ يُضاف إلى `matches` لا يصل إليه. والحارسان يسألان
+ * نفس السؤال على طرفي المسار.
+ *
+ * وتُعيد **سبب** الرفض لا `true`: صفحةُ الإدارة تعدّ المرفوض وتشرحه،
+ * ورقمٌ بلا سبب لا يُراجَع.
+ */
+export const notPartReason = (title: string): string | null => {
+  const t = String(title || '');
+  if (IS_SYSTEM.test(t)) return 'جهازٌ كامل لا قطعة';
+  if (IS_BUNDLE.test(t)) return 'حزمةُ قطعتين لا قطعة';
+  if (IS_LAPTOP.test(t)) return 'محمولٌ لا قطعة';
+  return null;
+};
 
 /**
  * ألوانُ الطراز — نسخةٌ بلونٍ آخر رمزٌ آخر وسعرٌ آخر.
@@ -249,6 +288,7 @@ export function fingerprint(brand: string, name: string, specs: any): Fingerprin
 export function matches(fp: Fingerprint, cand: string): Verdict {
   if (IS_SYSTEM.test(cand)) return { ok: false, why: 'جهازٌ كامل لا قطعة' };
   if (IS_ACCESSORY.test(cand)) return { ok: false, why: 'ملحقٌ للقطعة لا القطعة' };
+  if (IS_BUNDLE.test(cand)) return { ok: false, why: 'حزمةُ قطعتين لا قطعة' };
   if (IS_LAPTOP.test(cand)) return { ok: false, why: 'محمولٌ لا قطعة' };
 
   /* ⚠️ لاحقةُ الطراز قبل كلّ شيء: «3080» و«3080 Ti» فئتان لا نسختان */

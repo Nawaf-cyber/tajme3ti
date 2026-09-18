@@ -15,7 +15,7 @@
  * سقفَ ما نكتشفه. أمّا الكتالوج فينمو، فينمو معه ما نسأل عنه.
  */
 
-import { queryFor, IS_SYSTEM } from './source-match';
+import { queryFor, IS_SYSTEM, notPartReason } from './source-match';
 
 /**
  * حاسوبٌ جاهز أو خادمٌ لا قطعة — القاعدة في `lib/source-match.ts`.
@@ -29,9 +29,9 @@ import { queryFor, IS_SYSTEM } from './source-match';
  *
  * والنسختان تسألان نفس السؤال، فخطأٌ يُصلَح في إحداهما يعيش في الأخرى.
  */
-export { IS_SYSTEM };
+export { IS_SYSTEM, notPartReason };
 
-export const isSystem = (title: string): boolean => IS_SYSTEM.test(String(title || ''));
+export const isSystem = (title: string): boolean => notPartReason(title) !== null;
 
 export type Known = { id: string; brand: string; name: string; categoryName: string; offerUrls: string[] };
 export type Found = { title: string; url: string; price?: number | null; image?: string | null };

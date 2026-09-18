@@ -13,6 +13,7 @@
  *   npx tsx scripts/find-candidates.ts "استعلام" ["استعلام آخر" …]
  */
 
+import { notPartReason } from '../lib/source-match';
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -23,7 +24,8 @@ const G = '\x1b[32m', Y = '\x1b[33m', D = '\x1b[2m', X = '\x1b[0m';
 
 /* حاسوبٌ جاهز لا قطعة — تُذكر مواصفاته فيلتقطه البحث.
    ⚠️ و«خادم» أُضيف بعد أن ظهر EPYC بـ١٬٠١٦٬٥٩٢ ﷼ مرشّحاً لقرص NVMe. */
-const IS_SYSTEM = /gaming pc|desktop pc|\bpc\b.*(ryzen|core ultra|rtx)|prebuilt|barebone|workstation|\bserver\b|rack ?mount|\bepyc\b|laptop|notebook/i;
+/* ⚠️ لا نسخةَ هنا: القاعدة في lib/source-match.ts. كانت هذه نسخةً ثالثة
+   وقد شاخت — بلا «all-in-one» ولا «desktop computer» ولا حارس الحزم. */
 
 /* ⚠️ القارئ يعيش في `lib/store-search` لا هنا: صفحة الإدارة تحتاجه أيضاً،
    ونسختان تتباعدان — تُصلَح إحداهما ويبقى العطل في الأخرى. وهذا الاسم يبقى
@@ -41,7 +43,7 @@ async function main() {
     .map((c) => c.name.toLowerCase().replace(/[^a-z0-9]/g, '')));
 
   for (const q of queries) {
-    const cands = (await searchStore('microless', q, '')).filter((c) => !IS_SYSTEM.test(c.title));
+    const cands = (await searchStore('microless', q, '')).filter((c) => notPartReason(c.title) === null);
     console.log(`\n${Y}=== ${q}${X} ${D}(${cands.length} بعد استبعاد الأجهزة الجاهزة)${X}`);
     for (const c of cands.slice(0, 10)) {
       if (haveUrls.has(c.url.replace(/\/$/, ''))) { console.log(`  ${D}— عندنا: ${c.title.slice(0, 62)}${X}`); continue; }

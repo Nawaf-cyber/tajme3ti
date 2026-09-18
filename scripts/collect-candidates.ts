@@ -6,6 +6,7 @@
  *   npx tsx scripts/collect-candidates.ts out.json "استعلام" ["آخر" …]
  */
 
+import { notPartReason } from '../lib/source-match';
 import 'dotenv/config';
 import { writeFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
@@ -14,7 +15,8 @@ import { searchStore, readProductPage } from '../lib/store-search';
 import { readProduct } from './find-candidates';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
-const IS_SYSTEM = /gaming pc|desktop pc|\bpc\b.*(ryzen|core ultra|rtx)|prebuilt|barebone|workstation|\bserver\b|rack ?mount|\bepyc\b|laptop|notebook/i;
+/* ⚠️ لا نسخةَ هنا: القاعدة في lib/source-match.ts. كانت هذه نسخةً ثالثة
+   وقد شاخت — بلا «all-in-one» ولا «desktop computer» ولا حارس الحزم. */
 
 async function main() {
   const [out, ...queries] = process.argv.slice(2);
@@ -23,7 +25,7 @@ async function main() {
 
   const rows: any[] = [];
   for (const q of queries) {
-    for (const c of (await searchStore('microless', q, '')).filter((x) => !IS_SYSTEM.test(x.title))) {
+    for (const c of (await searchStore('microless', q, '')).filter((x) => notPartReason(x.title) === null)) {
       if (have.has(c.url.replace(/\/$/, ''))) continue;
       if (rows.some((r) => r.url === c.url)) continue;
       const d = await readProduct(c.url);

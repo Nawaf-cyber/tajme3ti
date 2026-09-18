@@ -5,7 +5,7 @@
  *
  *   npx tsx scripts/source-match-check.ts
  */
-import { fingerprint, matches, queryFor } from '../lib/source-match';
+import { fingerprint, matches, queryFor, notPartReason } from '../lib/source-match';
 const G='\x1b[32m',R='\x1b[31m',D='\x1b[2m',X='\x1b[0m';
 let pass=0, fail=0;
 const t = (ok: boolean, title: string, detail = '') => {
@@ -56,6 +56,31 @@ for (const c of CASES) {
   const fp = fingerprint(c.brand, c.name, c.specs ?? {});
   const got = matches(fp, c.cand).ok;
   t(got === c.want, `${c.note}`, got === c.want ? '' : `(المتوقّع ${c.want} والناتج ${got})`);
+}
+
+/* ============ ما ليس قطعةً مفردة ============
+ * ⚠️ وتُفحص عبر `notPartReason` لا `matches`: مسارُ الاكتشاف لا بصمةَ
+ * عنده يقارن بها — يرى العنوان وحده. فكان يفحص `IS_SYSTEM` فقط، وكلُّ
+ * حارسٍ يُضاف إلى `matches` لا يصل إليه. */
+console.log('\nما ليس قطعةً مفردة:');
+const NOT_PART: Array<[string, string | null]> = [
+  /* خمسةُ صفوفٍ حقيقيّة من بحث «Radeon RX 9070 XT» يوم 2026-09-18 */
+  ['ASUS ROG Strix B850-E Gaming WiFi AM5 ATX Motherboard with ASUS Prime Radeon RX 9070 XT OC Edition Graphics Card', 'حزمةُ قطعتين لا قطعة'],
+  ['ASUS PRIME X870-P WIFI ATX Motherboard with ASUS Prime Radeon RX 9070 XT OC Edition Graphics Card', 'حزمةُ قطعتين لا قطعة'],
+  /* ومن بحث «Core Ultra 5 235» يوم 2026-09-16 */
+  ['Dell Pro 24 All-In-One 35W Computer, Intel Core Ultra 5 235T, 16GB RAM', 'جهازٌ كامل لا قطعة'],
+  ['ASUS D500ME Desktop Computers, 13th Gen i7-13700, NVIDIA GeForce RTX 3060', 'جهازٌ كامل لا قطعة'],
+  ['MSI Creator Z16 with 16" QHD display, Intel Core i9-12900H, NVIDIA GeForce RTX 3060', 'محمولٌ لا قطعة'],
+  /* ⚠️ وهذه تمرّ: «Graphics Card with 8GB GDDR6» تصف القطعة بمواصفتها لا
+     بقطعةٍ ثانية — فالاسمُ بعد «with» ليس نوعَ قطعةٍ آخر. */
+  ['XFX Speedster SWFT210 Radeon RX 7600 Graphics Card with 8GB GDDR6 HDMI 3xDP', null],
+  ['Gigabyte GeForce RTX 5070 EAGLE OC ICE 12G Graphics Card', null],
+  ['ASUS TUF GAMING B850M-PLUS II AM5 Micro-ATX Motherboard, AMD B850 Chipset', null],
+  ['Noctua NH-D12L CPU Air Cooler, Dual Tower Heatsink, 120mm NF-A12x25r PWM Fan', null],
+];
+for (const [title, want] of NOT_PART) {
+  const got = notPartReason(title);
+  t(got === want, `${want ?? 'قطعةٌ سليمة'} — ${title.slice(0, 54)}…`, got === want ? '' : `(المتوقّع «${want}» والناتج «${got}»)`);
 }
 
 console.log('\nصياغة السؤال:');

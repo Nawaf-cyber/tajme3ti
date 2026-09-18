@@ -19,7 +19,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { adapterFor, searchStore, sourceMeta, readProductPage, maxItemsIn } from '../../../../lib/store-search';
-import { seedQueries, unknownOnly, shortTitle, rotate, dedupeByName, normUrl, IS_SYSTEM, type Known } from '../../../../lib/discover';
+import { seedQueries, unknownOnly, shortTitle, rotate, dedupeByName, normUrl, notPartReason, type Known } from '../../../../lib/discover';
 import { readOffset, writeOffset, readDismissed, addDismissed, clearDismissed } from '../../../../lib/discover-state';
 import { draftDescription, costUsd } from '../../../../lib/describe';
 import { buildDraft, REQUIRED_SPECS, guessCategory } from '../../../../lib/component-draft';
@@ -217,7 +217,7 @@ export async function POST(req: Request) {
         try {
           const raw = await searchStore(a.slug, q, token);
           for (const c of raw) {
-            if (!withSystemsFlag(body) && IS_SYSTEM.test(c.title)) { systems++; continue; }
+            if (!withSystemsFlag(body) && notPartReason(c.title) !== null) { systems++; continue; }
             hits.push({ title: c.title, url: c.url, price: c.price ?? null, image: c.image ?? null, query: q, store: a.slug });
           }
         } catch { failed++; }
@@ -327,7 +327,7 @@ export async function POST(req: Request) {
 
   try {
     const raw = await searchStore(source, query, token);
-    const filtered = withSystems ? raw : raw.filter((c) => !IS_SYSTEM.test(c.title));
+    const filtered = withSystems ? raw : raw.filter((c) => notPartReason(c.title) === null);
     const hidden = raw.length - filtered.length;
 
     /* ما عندنا: بالرابط، ومجرّداً من الشرطة الأخيرة كي لا يُفلت المكرّر بسببها */
@@ -363,7 +363,7 @@ export async function POST(req: Request) {
 
       /* ⚠️ ويُعاد المرشِّح على العنوان النهائيّ: قائمة النتائج تسمّي الجهاز
          بالعربية وصفحتُه تسمّيه بالإنجليزية، فما نجا من الأولى يُمسك بالثانية. */
-      if (!withSystems && IS_SYSTEM.test(title)) {
+      if (!withSystems && notPartReason(title) !== null) {
         hiddenAfterRead++;
         if (needsRead) await new Promise((r) => setTimeout(r, adapter.delayMs));
         continue;
