@@ -183,6 +183,29 @@ export default function MyBuildsPage() {
     }
   };
 
+  /**
+   * تعيين تجميعةٍ جهازاً حاليّاً — أو إلغاؤه.
+   *
+   * ⚠️ والحالة تُصحَّح محليّاً بلا إعادة جلب: المسار يُنزل العَلَم عن
+   * الباقي في معاملةٍ واحدة، فالواجهة تفعل المثل — وإلّا ظهرت بطاقتان
+   * تقولان «جهازي الحالي» حتى التحديث التالي.
+   */
+  const handleSetCurrent = async (id: string, next: boolean, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      const res = await fetch('/api/rig', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ buildId: next ? id : null }),
+      });
+      if (!res.ok) throw new Error('فشل');
+      setBuilds((prev) => prev.map((b) => ({ ...b, isCurrent: next && b.id === id })));
+      toast.success(next ? 'صارت جهازك الحالي' : 'أُلغي التعيين');
+    } catch {
+      toast.error('تعذّر التعيين');
+    }
+  };
+
   const handleDelete = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!confirm('هل أنت متأكد من حذف هذه التجميعة نهائياً؟')) return;
@@ -445,6 +468,13 @@ export default function MyBuildsPage() {
                   <div className="p-5 flex-1">
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="font-bold text-lg text-slate-900 dark:text-white line-clamp-1">{build.name}</h3>
+                      {/* ⚠️ وسمُ «جهازي» يسبق التاريخ: هو ما يبحث عنه بصرُه
+                          حين يفتح الصفحة، والتاريخ تفصيلٌ يُقرأ بعده. */}
+                      {build.isCurrent && (
+                        <span className="shrink-0 me-auto ms-2 text-[10px] font-black text-cyan-800 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-900/40 border border-cyan-300 dark:border-cyan-700/50 px-2 py-1 rounded">
+                          🖥️ جهازي الحالي
+                        </span>
+                      )}
                       {/* ⚠️ كان `ar-SA` مجرّداً، وهو يترك التقويم ونظام الأرقام
                           لتقدير المتصفّح: فيخرج التاريخ بأرقامٍ هندية (٢٠٢٦/٧/١٨)
                           بينما السعر تحته بأرقامٍ لاتينية (9602.00) — نظامان في
@@ -522,6 +552,20 @@ export default function MyBuildsPage() {
                       {Number(build.totalPrice).toFixed(2)} <RiyalIcon size="h-4 w-4" />
                     </span>
                     <div className="flex gap-2">
+                      {/* ⚠️ نقرةٌ واحدة لا نموذجُ إدخال: ٤٣ من ١٢٩ مستخدماً
+                          لهم تجميعةٌ محفوظة أصلاً، فأسرعُ طريقٍ إلى «جهازي»
+                          أن يشير إلى واحدةٍ منها لا أن يعيد اختيار ثمانٍ. */}
+                      <button
+                        onClick={(e) => handleSetCurrent(build.id, !build.isCurrent, e)}
+                        className={`p-2 rounded-lg border transition-colors ${
+                          build.isCurrent
+                            ? 'text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-900/30 border-cyan-300 dark:border-cyan-700/50'
+                            : 'text-slate-400 hover:text-cyan-600 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                        }`}
+                        title={build.isCurrent ? 'ليست جهازي الحالي' : 'هذي تجميعتي الحاليّة'}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                      </button>
                       <button onClick={(e) => handleShare(build.id, e)} className="p-2 text-slate-400 hover:text-blue-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors" title="مشاركة">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
                       </button>

@@ -7,6 +7,7 @@ import PriceHistoryChart from '../../../components/PriceHistoryChart';
 import StoreOfferList from '../../../components/StoreOfferList';
 import PriceMismatchReport from '../../../components/PriceMismatchReport';
 import WatchPriceButton from '../../../components/WatchPriceButton';
+import RigFitPanel from '../../../components/RigFitPanel';
 import StoreNotices from '../../../components/StoreNotice';
 import { OFFER_INCLUDE, getStoreNotices } from '../../../lib/stores-server';
 import { cheapestStoreNames, offerDeal, liveOffers, priceAsOf } from '../../../lib/stores';
@@ -236,6 +237,10 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             {/* «تابع السعر» هنا لا في أسفل الصفحة: القرار يُتّخذ عند رؤية
                 الرقم — من رآه غالياً ونزل، هذا مكان اعتراضه. */}
             <WatchPriceButton componentId={comp.id} />
+            {/* ⚠️ فوق «تابع السعر» لا تحته: «هل تناسب جهازي؟» سؤالُ قرارٍ،
+                و«تابع السعر» سؤالُ تأجيل. ومن يقرأ أنّها لا تناسبه لا
+                يحتاج أن يتابع سعرها. */}
+            <RigFitPanel category={comp.category?.name as any} part={comp as any} />
           </div>
         </div>
 
