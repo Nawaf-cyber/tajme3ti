@@ -61,31 +61,45 @@ export default function CurrentRigCard({
   const filled = ORDER.filter((k) => parts[k] || custom[k]).length;
 
   return (
-    <section className="mb-8">
-      <div className="relative overflow-hidden rounded-2xl border border-cyan-300/70 dark:border-cyan-800/50 bg-gradient-to-b from-cyan-50/80 to-white/60 dark:from-cyan-950/30 dark:to-slate-900/40 backdrop-blur-sm shadow-sm">
-        {/* شريطٌ سماويّ علويّ — نفس مفردة البطاقات في الموقع */}
-        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-500" />
+    <section className="mb-10">
+      <div className="relative overflow-hidden rounded-2xl border border-cyan-300/60 dark:border-cyan-800/40 bg-gradient-to-br from-cyan-50/90 via-white/70 to-white/50 dark:from-cyan-950/40 dark:via-slate-900/50 dark:to-slate-900/30 backdrop-blur-sm shadow-lg shadow-cyan-500/5">
+        {/* شريطٌ سماويّ علويّ — نفس توقيع الرئيسية */}
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400" />
+        {/* هالتان تُعطيان العمق الذي يليق بأوّل ما تقع عليه العين */}
+        <div className="absolute -top-24 -start-24 w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/[0.07] blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute -bottom-28 -end-20 w-72 h-72 bg-blue-500/8 dark:bg-blue-500/[0.05] blur-3xl rounded-full pointer-events-none" />
+        {/* زاويةٌ هندسيّة — مفردةُ البطاقات في الموقع */}
+        <div className="absolute top-0 end-0 w-0 h-0 border-t-[18px] border-t-cyan-500/50 border-s-[18px] border-s-transparent" />
 
-        <div className="p-5 sm:p-6">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-4">
-            <span className="text-[11px] font-black text-cyan-800 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-900/40 border border-cyan-300 dark:border-cyan-700/50 px-2 py-1 rounded">
-              🖥️ جهازي الحالي
+        <div className="relative p-5 sm:p-7">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-3 mb-5">
+            <span className="flex items-center gap-1.5 text-[11px] font-black text-cyan-800 dark:text-cyan-300 bg-cyan-100/80 dark:bg-cyan-900/40 border border-cyan-300 dark:border-cyan-700/50 px-2.5 py-1.5 rounded-full">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-60" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-500" />
+              </span>
+              جهازي الحالي
             </span>
-            <h2 className="font-black text-xl text-slate-900 dark:text-white truncate">{build.name}</h2>
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              {filled} من ٨ قطع
-            </span>
+
+            <div className="min-w-0">
+              <h2 className="font-black text-2xl sm:text-[28px] leading-tight text-slate-900 dark:text-white truncate">
+                {build.name}
+              </h2>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
+                {filled} من ٨ قطع
+              </span>
+            </div>
 
             <div className="ms-auto flex items-center gap-2">
               <button
                 onClick={onOpen}
-                className="px-3 py-1.5 rounded-sm text-[12px] font-black bg-cyan-600 hover:bg-cyan-500 text-white transition-colors"
+                className="px-4 py-2 rounded-sm text-[12.5px] font-black bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm hover:shadow-md hover:shadow-cyan-500/20 transition-all"
               >
                 افتحه
               </button>
               <button
                 onClick={onUnset}
-                className="px-3 py-1.5 rounded-sm text-[12px] font-bold text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:border-rose-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                className="px-3 py-2 rounded-sm text-[12px] font-bold text-slate-500 dark:text-slate-400 border border-slate-300/80 dark:border-slate-700 hover:border-rose-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                 title="لم يعد هذا جهازي"
               >
                 ليس جهازي
@@ -94,7 +108,7 @@ export default function CurrentRigCard({
           </div>
 
           {/* ============ القطع ============ */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
             {ORDER.map((k) => {
               const p = parts[k];
               const text = custom[k];
@@ -102,9 +116,9 @@ export default function CurrentRigCard({
               return (
                 <div
                   key={k}
-                  className={`flex items-center gap-2 p-2 rounded-sm border ${
+                  className={`group/part flex items-center gap-2.5 p-2.5 rounded-sm border transition-colors ${
                     p
-                      ? 'bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800'
+                      ? 'bg-white/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-cyan-400/60 dark:hover:border-cyan-600/50'
                       : text
                         /* ⚠️ الحدُّ المتقطّع ليس زخرفة: القطعةُ المكتوبة بخطّ
                            اليد بلا سعرٍ ولا تنبيهٍ ولا فحصِ توافق، فالشكلُ
@@ -118,17 +132,19 @@ export default function CurrentRigCard({
                       src={productImage(p.imageUrl, IMAGE_FALLBACK)}
                       alt=""
                       loading="lazy"
-                      className="w-8 h-8 object-contain rounded-sm bg-white shrink-0"
+                      className="w-9 h-9 object-contain rounded-sm bg-white shrink-0 p-0.5"
                     />
                   ) : (
-                    <span className="w-8 h-8 flex items-center justify-center text-[15px] opacity-50 shrink-0">
+                    <span className="w-9 h-9 flex items-center justify-center text-[16px] opacity-40 shrink-0">
                       {text ? '✍️' : meta?.icon ?? '—'}
                     </span>
                   )}
                   <div className="min-w-0">
-                    <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500">{LABEL[k]}</span>
+                    <span className="block text-[9.5px] font-black tracking-wide text-slate-400 dark:text-slate-500 uppercase">
+                      {LABEL[k]}
+                    </span>
                     <span
-                      className={`block text-[11.5px] font-bold truncate ${
+                      className={`block text-[12px] font-bold truncate ${
                         p ? 'text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'
                       }`}
                       title={p ? `${p.brand} ${p.name}` : text || 'لم تُضف'}
@@ -142,32 +158,31 @@ export default function CurrentRigCard({
           </div>
 
           {/* ============ الحكم ============ */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1 font-black text-lg text-emerald-600 dark:text-emerald-400 tabular-nums">
-              {formatPrice(Number(build.totalPrice) || 0)} <RiyalIcon />
+          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-200/70 dark:border-slate-800/70">
+            <span className="flex items-center gap-1.5 font-black text-2xl text-emerald-600 dark:text-emerald-400 tabular-nums">
+              {formatPrice(Number(build.totalPrice) || 0)} <RiyalIcon size="h-5 w-5" />
             </span>
 
-            <span className="mx-1 w-px h-5 bg-slate-300/70 dark:bg-slate-700" />
-
             {blocks.length > 0 ? (
-              <span className="text-[12px] font-black text-rose-700 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/30 px-2 py-1 rounded-sm">
+              <span className="text-[12px] font-black text-rose-700 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800/40 px-2.5 py-1.5 rounded-full">
                 ⛔ {blocks.length} تعارض
               </span>
             ) : warns.length > 0 ? (
-              <span className="text-[12px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-sm">
+              <span className="text-[12px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/40 px-2.5 py-1.5 rounded-full">
                 ⚠️ {warns.length} ملاحظة
               </span>
             ) : (
-              <span className="text-[12px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded-sm">
+              <span className="text-[12px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/40 px-2.5 py-1.5 rounded-full">
                 ✓ متوافق
               </span>
             )}
 
             <Link
               href="/components"
-              className="ms-auto text-[12px] font-bold text-cyan-700 dark:text-cyan-400 hover:underline"
+              className="ms-auto group/cta inline-flex items-center gap-1.5 text-[12.5px] font-black text-cyan-700 dark:text-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors"
             >
-              تصفّح القطع — نقول لك ما يناسبه ←
+              تصفّح القطع — نقول لك ما يناسبه
+              <span className="transition-transform group-hover/cta:-translate-x-1">←</span>
             </Link>
           </div>
 

@@ -241,6 +241,20 @@ export default function MyBuildsPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         
+        {/* ============ جهازي الحالي — قبل كلّ شيء ============
+            ⚠️ وفوق العنوان لا تحته: هو **مرجعُك**، والمكتبةُ ما تخطّط له.
+            ووضعُه بعد العنوان والحصيلة والمقارنة يجعله نتيجةَ تصفّحٍ لا
+            نقطةَ بداية — وأوّلُ ما تقع عليه العين يجب أن يكون ما تملكه.
+            ⚠️ ويُستبعد من الشبكة أدناه لا يُكرَّر فيها: ظهورُه مرّتين
+            يجعل عدّاد «تجميعاتك» يكذب، ويُربك من يبحث عنه. */}
+        {currentRig && (
+          <CurrentRigCard
+            build={currentRig}
+            onOpen={() => setSelectedBuild(currentRig)}
+            onUnset={() => handleSetCurrent(currentRig.id, false)}
+          />
+        )}
+
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
           {/* ============ من مفردات الصفحة الرئيسية ============
               الشريط المتدرّج المتوهّج قبل العنوان هو توقيع الرئيسية —
@@ -404,17 +418,6 @@ export default function MyBuildsPage() {
                 ))}
               </div>
             )}
-
-          {/* ============ جهازي الحالي — خارج الشبكة ============
-              ⚠️ ويُستبعد من الشبكة أدناه لا يُكرَّر فيها: ظهورُه مرّتين
-              يجعل عدّاد «تجميعاتك» يكذب، ويُربك من يبحث عنه. */}
-          {currentRig && (
-            <CurrentRigCard
-              build={currentRig}
-              onOpen={() => setSelectedBuild(currentRig)}
-              onUnset={() => handleSetCurrent(currentRig.id, false)}
-            />
-          )}
 
           {currentRig && otherBuilds.length > 0 && (
             <h2 className="mb-3 text-[13px] font-black text-slate-500 dark:text-slate-400">
