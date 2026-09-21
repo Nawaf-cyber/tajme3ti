@@ -91,6 +91,13 @@ export type DropsView = {
   lowest: Drop[];
   /** مجموع ما وفّره الجديد */
   totalSaved: number;
+  /**
+   * كم قطعةً كُتمت لأنّها في جهازه.
+   *
+   * ⚠️ ويُعاد الرقم لا يُطوى بصمت: من جهازُه هو تجميعتُه الوحيدة تفرغ
+   * لوحتُه بعد الكتم — وفراغٌ بلا سبب يُقرأ عطلاً. فالسطر يقول لماذا.
+   */
+  mutedCount: number;
 };
 
 type Pin = { price: number; at: Date };
@@ -103,12 +110,15 @@ export async function watchedComponentIds(
   ids: string[];
   fromBuild: Map<string, { id: string; name: string }>;
   pins: Map<string, Pin>;
+  /** قطعُ «جهازي الحالي» — يملكها فلا يُنبَّه على أسعارها */
+  owned: Set<string>;
 }> {
   const builds = await prisma.savedBuild.findMany({
     where: { userId },
     select: {
       id: true,
       name: true,
+      isCurrent: true,
       cpuId: true, gpuId: true, ramId: true, motherboardId: true,
       caseId: true, psuId: true, storageId: true, coolerId: true,
     },
@@ -135,8 +145,27 @@ export async function watchedComponentIds(
     if (w.pinnedPrice != null && w.pinnedAt) pins.set(w.componentId, { price: w.pinnedPrice, at: w.pinnedAt });
   }
 
+  /* ============ ما يملكه لا يُنبَّه عليه ============
+   *
+   * ⚠️ وهذا فرقُ «جهازي الحالي» عن التجميعة المحفوظة: المحفوظةُ قائمةُ
+   * شراء، والجهازُ ما اشتراه فعلاً. ومن يملك كرت 5060 من سنتين لا يريد
+   * أن نخبره كلّما نزل سعرُه — ذاك إزعاجٌ بلا فعلٍ ممكن.
+   *
+   * ⚠️ والمتابعةُ الصريحة تغلبه: من ثبّت سعر قطعةٍ بيده قال صراحةً إنّه
+   * يريدها مرصودة — ولو كانت في جهازه (يشتري ثانيةً، أو يراقب سوقها).
+   * فالكتم على الاستنتاج، والتثبيت على التصريح، والتصريح أقوى.
+   */
+  const owned = new Set<string>();
+  const rig = builds.find((b) => b.isCurrent);
+  if (rig) {
+    for (const col of BUILD_PART_COLUMNS) {
+      const id = (rig as any)[col] as string | null;
+      if (id) owned.add(id);
+    }
+  }
+
   const ids = new Set<string>([...fromBuild.keys(), ...watches.map((w) => w.componentId)]);
-  return { ids: [...ids], fromBuild, pins };
+  return { ids: [...ids], fromBuild, pins, owned };
 }
 
 /**
@@ -151,8 +180,8 @@ export async function userDropsView(
   userId: string,
   opts: { seenAt?: Date | null } = {},
 ): Promise<DropsView> {
-  const { ids, fromBuild, pins } = await watchedComponentIds(prisma, userId);
-  if (!ids.length) return { fresh: [], pinned: [], lowest: [], totalSaved: 0 };
+  const { ids, fromBuild, pins, owned } = await watchedComponentIds(prisma, userId);
+  if (!ids.length) return { fresh: [], pinned: [], lowest: [], totalSaved: 0, mutedCount: 0 };
 
   const now = Date.now();
   const cap = new Date(now - MAX_WINDOW_DAYS * 86400000);
@@ -217,7 +246,11 @@ export async function userDropsView(
     };
   };
 
-  const all = comps.map(base);
+  const allRows = comps.map(base);
+
+  /* ⚠️ والمثبَّت ينجو من الكتم: التصريح يغلب الاستنتاج. */
+  const muted = allRows.filter((d) => owned.has(d.componentId) && d.pinnedPrice == null);
+  const all = allRows.filter((d) => !muted.includes(d));
 
   /* ⚠️ والمحفوظ يُستبعد من الاثنين: من حفظ قطعةً نقلها إلى قائمته، فبقاؤها
      في «جديد» أيضاً يعني صفّاً مرّتين — والمستخدم يقرأ ذلك «لم يتغيّر شيء». */
@@ -244,5 +277,6 @@ export async function userDropsView(
     pinned,
     lowest,
     totalSaved: Math.round(fresh.reduce((s, d) => s + d.saved, 0)),
+    mutedCount: muted.length,
   };
 }

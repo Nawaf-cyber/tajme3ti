@@ -12,6 +12,8 @@ import toast from 'react-hot-toast';
 import { isAvailable, priceAsOf } from '../../lib/stores';
 import MyPartRequests from './MyPartRequests';
 import PriceDropsForUser from '../../components/PriceDropsForUser';
+import CurrentRigCard from '../../components/CurrentRigCard';
+import { bottleneck as computeBottleneck } from '../../lib/bottleneck';
 import { productImage } from '../../lib/image';
 import { catMeta, BUILD_ORDER } from '../../lib/category-meta';
 import { timeAgoAr, exactAr, isPriceStale } from '../../lib/time-ago';
@@ -82,36 +84,7 @@ const CoolerNotice = ({ parts }: { parts: any }) => {
   return null;
 };
 
-const getBottleneckMessage = (parts: any) => {
-  const cpu = parts['CPU'];
-  const gpu = parts['GPU'];
-  if (cpu?.performanceTier && gpu?.performanceTier) {
-    const diff = cpu.performanceTier - gpu.performanceTier;
-    if (diff < -1) {
-      return {
-        title: "⚠️ تنبيه: المعالج أضعف من الكرت",
-        desc: "سيشكل المعالج 'عنق زجاجة' ولن يتمكن من مجاراة الكرت، خاصة على دقة 1080p. يُنصح بترقية المعالج أو اللعب على دقة 4K لتقليل الضغط عليه.",
-        color: "text-amber-700 dark:text-amber-400",
-        bg: "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/40"
-      };
-    } else if (diff > 1) {
-      return {
-        title: "💡 تنبيه: الكرت أضعف من المعالج",
-        desc: "أداء ممتاز في ألعاب (Esports) لاعتمادها على المعالج، لكن الكرت سيحد من قوة الجهاز في ألعاب القصة (AAA) والدقات العالية.",
-        color: "text-blue-700 dark:text-blue-400",
-        bg: "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/40"
-      };
-    } else {
-      return {
-        title: "🚀 توازن أداء مثالي",
-        desc: "المعالج والكرت من نفس الفئة تقريباً. ستحصل على أداء مستقر وتستغل كامل قوة الجهاز بدون عنق زجاجة ملحوظ.",
-        color: "text-emerald-700 dark:text-emerald-400",
-        bg: "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/40"
-      };
-    }
-  }
-  return null;
-};
+const getBottleneckMessage = (parts: any) => computeBottleneck(parts?.['CPU'], parts?.['GPU']);
 
 /* FpsEstimator صار مكوّناً مشتركاً — components/FpsEstimator */
 
@@ -205,6 +178,12 @@ export default function MyBuildsPage() {
       toast.error('تعذّر التعيين');
     }
   };
+
+  /* ⚠️ الفصل مشتقٌّ لا محفوظ: قائمةٌ ثانية تتباعد عن `builds` مع كلّ حذفٍ
+     أو تعيين. ومصدرٌ واحد يعني أنّ تعيين جهازٍ جديدٍ يُخرج القديم من
+     البطاقة ويُدخله الشبكة في تصييرةٍ واحدة. */
+  const currentRig = builds.find((b) => b.isCurrent) ?? null;
+  const otherBuilds = currentRig ? builds.filter((b) => b.id !== currentRig.id) : builds;
 
   const handleDelete = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -426,8 +405,25 @@ export default function MyBuildsPage() {
               </div>
             )}
 
+          {/* ============ جهازي الحالي — خارج الشبكة ============
+              ⚠️ ويُستبعد من الشبكة أدناه لا يُكرَّر فيها: ظهورُه مرّتين
+              يجعل عدّاد «تجميعاتك» يكذب، ويُربك من يبحث عنه. */}
+          {currentRig && (
+            <CurrentRigCard
+              build={currentRig}
+              onOpen={() => setSelectedBuild(currentRig)}
+              onUnset={() => handleSetCurrent(currentRig.id, false)}
+            />
+          )}
+
+          {currentRig && otherBuilds.length > 0 && (
+            <h2 className="mb-3 text-[13px] font-black text-slate-500 dark:text-slate-400">
+              تجميعاتك المحفوظة ({otherBuilds.length})
+            </h2>
+          )}
+
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[...builds]
+            {[...otherBuilds]
               .sort((a, b) => {
                 if (sort === 'cheapest') return (Number(a.totalPrice) || 0) - (Number(b.totalPrice) || 0);
                 if (sort === 'priciest') return (Number(b.totalPrice) || 0) - (Number(a.totalPrice) || 0);

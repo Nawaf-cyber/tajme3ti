@@ -36,7 +36,7 @@ export type Drop = {
   pinnedPrice?: number; vsPinned?: number;
 };
 
-export type DropsView = { fresh: Drop[]; pinned: Drop[]; lowest: Drop[]; totalSaved: number };
+export type DropsView = { fresh: Drop[]; pinned: Drop[]; lowest: Drop[]; totalSaved: number; mutedCount?: number };
 
 /** كم يُعرض من كل مجموعةٍ قبل الطيّ */
 const HEAD = 3;
@@ -239,7 +239,7 @@ export default function DropsPanel({ view, onOpenBuild, onPin, busy }: {
   onPin?: (componentId: string, next: boolean) => void;
   busy?: boolean;
 }) {
-  const { fresh, pinned, lowest, totalSaved } = view;
+  const { fresh, pinned, lowest, totalSaved, mutedCount = 0 } = view;
 
   /* «أرخص ما كانت» بديلٌ عن الفراغ لا إضافةٌ فوق الجديد: عرضُها مع الجديد
      يعيد الحائط الذي أزلناه. */
@@ -287,6 +287,16 @@ export default function DropsPanel({ view, onOpenBuild, onPin, busy }: {
         {/* ⚠️ ولا يُكتب «يصلك إشعار»: لا بريد ولا دفعَ ويب. المكتوب هو الواقع. */}
         <p className="mt-4 text-[12px] font-semibold text-slate-600 dark:text-slate-400">
           نرصد الأسعار يومياً وتظهر هنا حين تفتح الصفحة — لا نُرسل بريداً بعد.
+          {/* ⚠️ والكتم يُعلَن: من جهازُه تجميعتُه الوحيدة تفرغ لوحتُه بعده،
+              وفراغٌ بلا سببٍ يُقرأ عطلاً لا خدمة. */}
+          {mutedCount > 0 && (
+            <>
+              {' '}
+              <span className="text-slate-500 dark:text-slate-500">
+                و{mutedCount} من قطعك مكتومةٌ لأنّها في جهازك الحالي — تملكها فلا نُنبّهك عليها.
+              </span>
+            </>
+          )}
         </p>
       </div>
     </section>

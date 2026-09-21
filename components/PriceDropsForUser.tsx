@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import DropsPanel, { type DropsView } from './DropsPanel';
 
-const EMPTY: DropsView = { fresh: [], pinned: [], lowest: [], totalSaved: 0 };
+const EMPTY: DropsView = { fresh: [], pinned: [], lowest: [], totalSaved: 0, mutedCount: 0 };
 
 export default function PriceDropsForUser({ onOpenBuild }: {
   onOpenBuild?: (buildId: string) => void;
@@ -37,6 +37,7 @@ export default function PriceDropsForUser({ onOpenBuild }: {
           pinned: Array.isArray(d.pinned) ? d.pinned : [],
           lowest: Array.isArray(d.lowest) ? d.lowest : [],
           totalSaved: Number(d.totalSaved) || 0,
+          mutedCount: Number(d.mutedCount) || 0,
         });
         /* الاطّلاع يُسجَّل بعد العرض — ولو لم يكن جديدٌ فلا حاجة لكتابة */
         if ((Number(d.unseen) || 0) > 0) {
@@ -64,6 +65,7 @@ export default function PriceDropsForUser({ onOpenBuild }: {
       pinned: Array.isArray(d.pinned) ? d.pinned : [],
       lowest: Array.isArray(d.lowest) ? d.lowest : [],
       totalSaved: Number(d.totalSaved) || 0,
+      mutedCount: Number(d.mutedCount) || 0,
     });
   };
 

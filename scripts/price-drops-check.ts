@@ -149,6 +149,60 @@ async function main() {
     check('لا أثر بعد التراجع', left === explicit, `${left} مقابل ${explicit}`);
   }
 
+  /* ============ ٦) ما يملكه لا يُنبَّه عليه ============
+   *
+   * ⚠️ والفرق بين «جهازي» والتجميعة المحفوظة هو كلُّ المسألة: المحفوظةُ
+   * قائمةُ شراء، والجهازُ ما اشتراه. ومن يملك كرتاً من سنتين لا يريد
+   * خبراً عن سعره كلَّ أسبوع.
+   */
+  console.log(`\n${Y}٦) الكتم التلقائيّ لقطع «جهازي الحالي»${X}`);
+  {
+    const before = await userDropsView(prisma, uid, { seenAt: null });
+    /* ⚠️ ويُقاس الفرق لا القيمة: كتبتُ أوّلاً «صفرٌ بعد التراجع» فسقط —
+       لأنّ المستخدم كان قد عيّن جهازاً من الواجهة. والاختبار يحرس أثر
+       المعاملة، لا حالةَ حسابٍ لا يملكها. */
+    const currentBefore = await prisma.savedBuild.count({ where: { userId: uid, isCurrent: true } });
+    const rigBuild = await prisma.savedBuild.findFirst({
+      where: { userId: uid },
+      orderBy: { createdAt: 'desc' },
+    });
+    check('للمستخدم تجميعةٌ تصلح جهازاً', !!rigBuild);
+    if (!rigBuild) return;
+
+    const rigParts = ['cpuId', 'gpuId', 'ramId', 'motherboardId', 'caseId', 'psuId', 'storageId', 'coolerId']
+      .map((c) => (rigBuild as any)[c] as string | null).filter(Boolean) as string[];
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await (tx as any).savedBuild.update({ where: { id: rigBuild.id }, data: { isCurrent: true } });
+        const after = await userDropsView(tx as any, uid, { seenAt: null });
+
+        const leaked = [...after.fresh, ...after.lowest].filter((d) => rigParts.includes(d.componentId));
+        check('لا قطعةَ من الجهاز في «جديد» ولا «الأدنى»', leaked.length === 0,
+          leaked.map((d) => d.name).join('، '));
+
+        check('وعدد المكتوم يُعلَن لا يُطوى', after.mutedCount > 0, `${after.mutedCount}`);
+
+        /* ⚠️ والمثبَّت ينجو: التصريح يغلب الاستنتاج */
+        const pinnedInRig = after.pinned.filter((d) => rigParts.includes(d.componentId));
+        const pinnedIdsInRig = [...pins.keys()].filter((id) => rigParts.includes(id));
+        check('والمثبَّت بيده يبقى ولو كان في جهازه',
+          pinnedInRig.length === pinnedIdsInRig.length,
+          `${pinnedInRig.length} مقابل ${pinnedIdsInRig.length}`);
+
+        /* ما ليس في الجهاز لا يتأثّر */
+        const outside = before.fresh.filter((d) => !rigParts.includes(d.componentId)).length;
+        const outsideAfter = after.fresh.filter((d) => !rigParts.includes(d.componentId)).length;
+        check('وما خارج الجهاز يبقى كما كان', outside === outsideAfter, `${outside} → ${outsideAfter}`);
+
+        throw new Rollback();
+      });
+    } catch (e) { if (!(e instanceof Rollback)) throw e; }
+
+    const currentAfter = await prisma.savedBuild.count({ where: { userId: uid, isCurrent: true } });
+    check('ولا أثر بعد التراجع', currentAfter === currentBefore, `${currentBefore} → ${currentAfter}`);
+  }
+
   console.log(`\n${'═'.repeat(48)}`);
   console.log(fail === 0 ? `${G}نجحت (${pass})${X}` : `${R}فشل ${fail} من ${pass + fail}${X}`);
   await prisma.$disconnect();

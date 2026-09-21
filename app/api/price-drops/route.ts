@@ -21,7 +21,7 @@ import { userDropsView } from '../../../lib/price-drops';
 
 export const dynamic = 'force-dynamic';
 
-const EMPTY = { fresh: [], pinned: [], lowest: [], totalSaved: 0, unseen: 0 };
+const EMPTY = { fresh: [], pinned: [], lowest: [], totalSaved: 0, mutedCount: 0, unseen: 0 };
 
 async function currentUser() {
   const session = await getServerSession(authOptions);
