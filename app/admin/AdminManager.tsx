@@ -193,7 +193,7 @@ export default function AdminManager({ categories, components, news, cronStatus,
       comp.brand.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'ALL' || comp.categoryId === filterCategory;
     const matchesStore = filterStore === 'ALL' || hasStoreUrl(comp, filterStore);
-    if (onlyStale && !isStale(comp.lastScrapedAt)) return false;
+    if (onlyStale && !isStale(comp)) return false;
     return matchesSearch && matchesCategory && matchesStore;
   });
 
@@ -203,7 +203,7 @@ export default function AdminManager({ categories, components, news, cronStatus,
   );
 
   /* مؤشّرات صحّة التحديث — تجيب سؤال «هل كل القطع تتحدّث؟» بنظرة واحدة */
-  const staleCount = components.filter((c) => isStale(c.lastScrapedAt)).length;
+  const staleCount = components.filter((c) => isStale(c)).length;
   const failingCount = components.filter((c) =>
     (c.offers || []).some((o: any) => o.url && o.lastError),
   ).length;
