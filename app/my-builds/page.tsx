@@ -13,6 +13,7 @@ import { isAvailable, priceAsOf } from '../../lib/stores';
 import MyPartRequests from './MyPartRequests';
 import PriceDropsForUser from '../../components/PriceDropsForUser';
 import CurrentRigCard from '../../components/CurrentRigCard';
+import RigIntroModal from '../../components/RigIntroModal';
 import { bottleneck as computeBottleneck } from '../../lib/bottleneck';
 import { productImage } from '../../lib/image';
 import { catMeta, BUILD_ORDER } from '../../lib/category-meta';
@@ -247,6 +248,14 @@ export default function MyBuildsPage() {
             نقطةَ بداية — وأوّلُ ما تقع عليه العين يجب أن يكون ما تملكه.
             ⚠️ ويُستبعد من الشبكة أدناه لا يُكرَّر فيها: ظهورُه مرّتين
             يجعل عدّاد «تجميعاتك» يكذب، ويُربك من يبحث عنه. */}
+        {/* ⚠️ وتُركَّب دائماً لا داخل شرطٍ: هي تسأل الخادم بنفسها،
+            ولا تُعرض إلّا لمن لم يرها ولم يعيّن جهازاً. */}
+        <RigIntroModal onPick={() => {
+          /* الدعوة تُنزل نظره إلى الشبكة حيث الأزرار — ونافذةٌ تُغلق
+             على صفحةٍ لم تتغيّر تُقرأ «لم يقع شيء». */
+          document.getElementById('builds-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }} />
+
         {currentRig && (
           <CurrentRigCard
             build={currentRig}
@@ -425,7 +434,7 @@ export default function MyBuildsPage() {
             </h2>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div id="builds-grid" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[...otherBuilds]
               .sort((a, b) => {
                 if (sort === 'cheapest') return (Number(a.totalPrice) || 0) - (Number(b.totalPrice) || 0);
