@@ -261,6 +261,7 @@ export default function MyBuildsPage() {
             build={currentRig}
             onOpen={() => setSelectedBuild(currentRig)}
             onUnset={() => handleSetCurrent(currentRig.id, false)}
+            onCustomChange={(cp) => setBuilds((prev) => prev.map((b) => (b.id === currentRig.id ? { ...b, customParts: cp } : b)))}
           />
         )}
 

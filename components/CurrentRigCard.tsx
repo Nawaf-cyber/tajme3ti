@@ -13,12 +13,15 @@
  * معه.
  */
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { productImage, IMAGE_FALLBACK } from '../lib/image';
 import { formatPrice } from '../lib/price';
 import { checkBuild } from '../lib/build-check';
 import { bottleneck } from '../lib/bottleneck';
 import { CATEGORY_META } from '../lib/category-meta';
+import CustomPartInput from './CustomPartInput';
+import RigUpgradeHint from './RigUpgradeHint';
 
 const RiyalIcon = ({ size = 'h-4 w-4' }: { size?: string }) => (
   <div
@@ -34,6 +37,7 @@ const RiyalIcon = ({ size = 'h-4 w-4' }: { size?: string }) => (
 
 /** الترتيب الذي يقرأ به الناس تجميعةً — لا ترتيب الأعمدة في القاعدة */
 const ORDER = ['CPU', 'GPU', 'Motherboard', 'RAM', 'Storage', 'PSU', 'Case', 'Cooler'] as const;
+type RigSlot = (typeof ORDER)[number];
 
 const LABEL: Record<string, string> = {
   CPU: 'المعالج', GPU: 'الكرت', Motherboard: 'اللوحة', RAM: 'الذاكرة',
@@ -44,11 +48,15 @@ export default function CurrentRigCard({
   build,
   onOpen,
   onUnset,
+  onCustomChange,
 }: {
   build: any;
   onOpen: () => void;
   onUnset: () => void;
+  /** تُستدعى بعد كتابة/حذف قطعةٍ يدويّة — الصفحةُ تحفظ الحالة لا البطاقة */
+  onCustomChange?: (customParts: Record<string, string>) => void;
 }) {
+  const [editing, setEditing] = useState<RigSlot | null>(null);
   const parts = build.parts ?? {};
   const custom: Record<string, string> =
     build.customParts && typeof build.customParts === 'object' ? build.customParts : {};
@@ -139,7 +147,7 @@ export default function CurrentRigCard({
                       {text ? '✍️' : meta?.icon ?? '—'}
                     </span>
                   )}
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <span className="block text-[9.5px] font-black tracking-wide text-slate-400 dark:text-slate-500 uppercase">
                       {LABEL[k]}
                     </span>
@@ -151,10 +159,39 @@ export default function CurrentRigCard({
                     >
                       {p ? p.name : text || '—'}
                     </span>
+                    {/* ⚠️ ولا يُعرض الزرّ على فتحةٍ فيها قطعةٌ من الكتالوج:
+                        نصٌّ يدويٌّ فوق قطعةٍ لها سعرٌ وفحصُ توافقٍ تنازلٌ
+                        بلا مقابل. الفارغةُ وحدها تقبله. */}
+                    {!p && (
+                      <button
+                        onClick={() => setEditing(editing === k ? null : k)}
+                        className="mt-0.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors"
+                      >
+                        {text ? '✍️ عدّلها' : '✍️ اكتبها بنفسك'}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
             })}
+
+            {editing && (
+              <CustomPartInput
+                key={editing}
+                category={editing}
+                label={LABEL[editing]}
+                value={custom[editing]}
+                onSaved={(cp) => { setEditing(null); onCustomChange?.(cp); }}
+                onPickExisting={(cid) => {
+                  setEditing(null);
+                  /* ⚠️ ولا يُكتب المعرّف من هنا: اختيارُ قطعةٍ من الكتالوج
+                     تعديلٌ للتجميعة نفسها لا لحقلٍ نصّيّ، ومساره الموجود
+                     هو الباني. فيُفتح عليها بدل أن نبني مساراً ثانياً
+                     يكتب نفس الأعمدة. */
+                  window.location.href = `/components/${cid}`;
+                }}
+              />
+            )}
           </div>
 
           {/* ============ الحكم ============ */}
@@ -199,6 +236,9 @@ export default function CurrentRigCard({
               <p className="mt-1 text-[12px] text-slate-600 dark:text-slate-300 leading-relaxed">{balance.desc}</p>
             </div>
           )}
+
+          {/* «وش أرقّي؟» — ولا يظهر لمن جهازُه متوازن */}
+          <RigUpgradeHint rigId={build.id} />
         </div>
       </div>
     </section>
