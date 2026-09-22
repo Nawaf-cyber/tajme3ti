@@ -11,6 +11,7 @@
 
 import { fitsRig, type RigCategory } from './rig-fit';
 import type { BuildParts, PartLike } from './build-check';
+import { upgradeRejectReason } from './upgrade-guard';
 
 export type Candidate = PartLike & {
   id?: string;
@@ -40,9 +41,15 @@ export function pickUpgrade(
 ): UpgradePick {
   const currentTier = (rig[weak] as any)?.performanceTier ?? 0;
 
+  const current = rig[weak] as PartLike;
+
   const stronger = all
     .filter((c) => c.live !== false)
     .filter((c) => (c.performanceTier ?? 0) > currentTier)
+    /* ⚠️ والدرجةُ وحدها لا تكفي: قِيس فوجدنا 9600x درجتُه ٣ و9600 درجتُه
+       ٤ — فيُقترح الأضعف ترقيةً للأقوى. والحارسان يقرآن رقم الطراز
+       والمواصفات، لا الدرجة. انظر `lib/upgrade-guard.ts`. */
+    .filter((c) => upgradeRejectReason(weak, c, current) === null)
     /* ⚠️ الأرخص أوّلاً: الغرضُ أن يعرف الحدَّ الأدنى الذي يحلّ مشكلته،
        لا أن نبيعه أغلى ما عندنا. */
     .sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));

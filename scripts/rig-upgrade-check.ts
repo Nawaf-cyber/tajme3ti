@@ -19,6 +19,7 @@ import { liveOffers } from '../lib/stores';
 import { weakestLink } from '../lib/bottleneck';
 import { fitsRig, type RigCategory } from '../lib/rig-fit';
 import { pickUpgrade } from '../lib/rig-upgrade';
+import { upgradeRejectReason } from '../lib/upgrade-guard';
 import type { BuildParts, PartLike } from '../lib/build-check';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
@@ -80,9 +81,13 @@ const COLUMN: Record<RigCategory, string> = {
     if ((pick.performanceTier ?? 0) <= curTier) strongerOk = false;
     if (fitsRig(rig, weak, pick).state !== 'fits') fitsOk = false;
 
-    /* ولا أرخصَ منه يُركَّب */
+    /* ولا أرخصَ منه يُركَّب.
+       ⚠️ وبنفس الحارس: أوّلُ صياغةٍ بحثت عن الأرخص بلا `upgradeRejectReason`،
+       فوجدت ما رفضه المنتقي عمداً (نفس الشريحة بلاحقةٍ أدنى) وأعلنته عطلاً.
+       والاختبار يقيس المنتقي بقواعده لا بقواعدَ أخرى. */
     const cheaperThatFits = pool[weak]
       .filter((c) => c.live && (c.performanceTier ?? 0) > curTier && (c.price ?? Infinity) < (pick.price ?? 0))
+      .filter((c) => upgradeRejectReason(weak, c, rig[weak] as any) === null)
       .find((c) => fitsRig(rig, weak, c).state === 'fits');
     if (cheaperThatFits) cheapestOk = false;
 
