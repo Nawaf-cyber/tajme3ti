@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { productImage, IMAGE_FALLBACK } from '../../../lib/image';
 import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
 import { priceAsOf } from '../../../lib/stores';
+import { buildCard, formatTotal, STATE_TEXT } from '../../../lib/build-card';
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
@@ -40,12 +41,29 @@ const parseSpecs = (specsStr: any) => {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const build = await prisma.savedBuild.findUnique({ where: { id }, select: { name: true } });
-  if (!build) return { title: 'التجميعة غير موجودة', robots: { index: false, follow: true } };
+  const card = await buildCard(id);
+  if (!card) return { title: 'التجميعة غير موجودة', robots: { index: false, follow: true } };
+
+  /* ⚠️ `openGraph` و`twitter` صريحان هنا: بدونهما يُورَّثان من الجذر كاملَين،
+     فتظهر المعاينة في واتساب بعنوان الموقع العامّ لا باسم التجميعة.
+     والصورة من `opengraph-image.tsx` المجاور — لا تُذكر هنا فتُلغى. */
+  const [gpu, cpu] = [card.parts.find((p) => p.category === 'GPU'), card.parts.find((p) => p.category === 'CPU')];
+  const headline = [cpu?.title, gpu?.title].filter(Boolean).join(' · ');
+  const summary = `${headline ? headline + ' — ' : ''}${formatTotal(card.total)} ريال · ${STATE_TEXT[card.state]}. شوف القطع وأسعارها اليوم في المتاجر السعودية.`;
+
   return {
-    title: `${build.name} — تجميعة مشتركة`,
-    description: `تفاصيل تجميعة "${build.name}": القطع وأسعارها اللحظية وفحص التوافق — على منصة تجميعتي.`,
+    title: `${card.name} — تجميعة مشتركة`,
+    description: summary,
     alternates: { canonical: `/build/${id}` },
+    openGraph: {
+      type: 'website',
+      locale: 'ar_SA',
+      siteName: 'تجميعتي',
+      url: `/build/${id}`,
+      title: card.name,
+      description: summary,
+    },
+    twitter: { card: 'summary_large_image', title: card.name, description: summary },
   };
 }
 
