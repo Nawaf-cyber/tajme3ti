@@ -22,6 +22,7 @@ import { bottleneck } from '../lib/bottleneck';
 import { CATEGORY_META } from '../lib/category-meta';
 import CustomPartInput from './CustomPartInput';
 import RigUpgradeHint from './RigUpgradeHint';
+import RigStoryButton from './RigStoryButton';
 
 const RiyalIcon = ({ size = 'h-4 w-4' }: { size?: string }) => (
   <div
@@ -99,6 +100,7 @@ export default function CurrentRigCard({
             </div>
 
             <div className="ms-auto flex items-center gap-2">
+              <RigStoryButton hasCustom={ORDER.some((k) => !parts[k] && custom[k])} />
               <button
                 onClick={onOpen}
                 className="px-4 py-2 rounded-sm text-[12.5px] font-black bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm hover:shadow-md hover:shadow-cyan-500/20 transition-all"

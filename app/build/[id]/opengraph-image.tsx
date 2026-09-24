@@ -4,16 +4,13 @@
  * الذي يصنعه المستخدم بنفسه: يرسل تجميعته لصاحبه يسأله رأيه — فإمّا
  * شعارٌ عامّ، أو القطعُ والسعر واسمُ الموقع.
  *
- * ⚠️ العربيّ يمرّ على `rtlPieces` لا مباشرةً: Satori يرصّ الكلمات يساراً
- * (lib/og-bidi.ts). والخطّ ملفٌّ في المستودع لا جلبٌ من Google في كلّ
- * رسم — المعاينة تُطلب من خوادم واتساب، وجلبٌ يتعثّر يعني صورةً فارغة.
+ * ⚠️ النصّ يمرّ على `Line` من lib/og-kit لا مباشرةً: Satori يرصّ الكلمات
+ * العربيّة يساراً ويقيسها منفصلة (lib/og-bidi.ts).
  */
 
 import { ImageResponse } from 'next/og';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { buildCard, STATE_TEXT, formatTotal, type CardState, type CardPart } from '../../../lib/build-card';
-import { rtlPieces } from '../../../lib/og-bidi';
+import { OG as C, Line, ogFonts, riyalUri } from '../../../lib/og-kit';
 
 export const alt = 'تجميعة على منصة تجميعتي — القطع والسعر وفحص التوافق';
 export const size = { width: 1200, height: 630 };
@@ -21,33 +18,7 @@ export const contentType = 'image/png';
 /* الأسعار تتغيّر يومياً، والمعاينة تُطلب مرّةً لكلّ مشاركة — ساعةٌ تكفي */
 export const revalidate = 3600;
 
-const C = {
-  bg: '#0B1120',
-  surface: '#0F172A',
-  line: '#1E293B',
-  text: '#F8FAFC',
-  soft: '#CBD5E1',
-  mute: '#64748B',
-  cyan: '#22D3EE',
-  emerald: '#34D399',
-};
-
-const STATE_COLOR: Record<CardState, string> = {
-  fits: '#34D399',
-  warn: '#FBBF24',
-  block: '#FB7185',
-};
-
-/** سطرٌ بقطعه المرئيّة — والمسافة هامشٌ لا حرف */
-function Line({ text, max, style }: { text: string; max?: number; style: Record<string, any> }) {
-  return (
-    <div style={{ display: 'flex', whiteSpace: 'nowrap', ...style }}>
-      {rtlPieces(text, max).map((p, i) => (
-        <span key={i} style={{ marginLeft: p.gap ? '0.28em' : 0 }}>{p.text}</span>
-      ))}
-    </div>
-  );
-}
+const STATE_COLOR: Record<CardState, string> = { fits: C.emerald, warn: C.amber, block: C.rose };
 
 /** [القيمة][التسمية] — التسمية يميناً كما تُقرأ */
 function Row({ part, size: fs, labelSize, max, color }: { part: CardPart; size: number; labelSize: number; max: number; color: string }) {
@@ -61,17 +32,11 @@ function Row({ part, size: fs, labelSize, max, color }: { part: CardPart; size: 
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const dir = join(process.cwd(), 'assets/fonts');
-  const [medium, bold, riyalSvg, card] = await Promise.all([
-    readFile(join(dir, 'IBMPlexSansArabic-Medium.ttf')),
-    readFile(join(dir, 'IBMPlexSansArabic-Bold.ttf')),
-    readFile(join(process.cwd(), 'public/riyal.svg'), 'utf8'),
+  const [fonts, riyal, card] = await Promise.all([
+    ogFonts(),
+    riyalUri(C.emerald),
     buildCard(id).catch(() => null),
   ]);
-  const fonts = [
-    { name: 'Plex', data: medium, weight: 500 as const, style: 'normal' as const },
-    { name: 'Plex', data: bold, weight: 700 as const, style: 'normal' as const },
-  ];
 
   const brand = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -96,7 +61,6 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const right = rest.filter((_, i) => i % 2 === 0);
   const left = rest.filter((_, i) => i % 2 === 1);
   const stateColor = STATE_COLOR[card.state];
-  const riyal = `data:image/svg+xml;base64,${Buffer.from(riyalSvg.replace(/#231f20/gi, C.emerald)).toString('base64')}`;
 
   return new ImageResponse(
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', background: C.bg, fontFamily: 'Plex', padding: '40px 60px 38px' }}>
