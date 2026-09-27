@@ -133,23 +133,64 @@ export default async function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center border-b-2 border-gray-200 dark:border-slate-800 pb-4 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">لوحة تحكم النظام</h1>
-          <span className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-lg shadow-sm">
-            مدير النظام
-          </span>
-        </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
+      <div className="max-w-7xl mx-auto">
+        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} newRequests={newRequests}>
+        {/* ============ الرأس: ما يحتاج انتباهك، قبل أن تبحث عنه ============
+            الرقمُ الملوّن وحده يستدعي فعلاً؛ والرماديّ معلومةٌ للاطمئنان. */}
+        <header>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+                <span className="w-1.5 h-9 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40" />
+                لوحة التحكّم
+              </h1>
+              <p className="mt-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                {session.user?.name ? `أهلاً ${session.user.name} — ` : ''}الكتالوج والأسعار وطلبات الزوّار في مكانٍ واحد.
+              </p>
+            </div>
+            <span className="text-[11.5px] font-black px-3 py-1.5 rounded-full bg-slate-900 dark:bg-white/10 text-white dark:text-slate-200">
+              مدير النظام
+            </span>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+            {[
+              { label: 'قطعة في الكتالوج', value: components.length, tone: 'plain' },
+              { label: 'متجراً مفعّلاً', value: stores.length, tone: 'plain' },
+              { label: 'طلبٌ أو ردٌّ جديد', value: newRequests, tone: newRequests ? 'alert' : 'ok', href: '/admin/part-requests' },
+              { label: 'بلاغُ سعرٍ من زائر', value: reportRows.length, tone: reportRows.length ? 'alert' : 'ok', href: '#price-reports' },
+              { label: 'ارتفاعٌ ينتظر قرارك', value: reviewRows.length, tone: reviewRows.length ? 'warn' : 'ok', href: '#price-reviews' },
+              { label: 'رابطٌ مكسور في وصف', value: brokenLinks.length, tone: brokenLinks.length ? 'alert' : 'ok' },
+            ].map((s) => {
+              const tone =
+                s.tone === 'alert' ? 'border-rose-300 dark:border-rose-500/40 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300'
+                : s.tone === 'warn' ? 'border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300'
+                : s.tone === 'ok' ? 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 text-emerald-600 dark:text-emerald-400'
+                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white';
+              const body = (
+                <>
+                  <span className="block text-2xl font-black tabular-nums">{s.value}</span>
+                  <span className="block text-[11.5px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">{s.label}</span>
+                </>
+              );
+              return s.href && s.value ? (
+                <Link key={s.label} href={s.href} className={`rounded-xl border px-4 py-3 transition-transform hover:-translate-y-0.5 ${tone}`}>{body}</Link>
+              ) : (
+                <div key={s.label} className={`rounded-xl border px-4 py-3 ${tone}`}>{body}</div>
+              );
+            })}
+          </div>
+        </header>
         
         {/* فوق كل شيء: سعرٌ خاطئ معروض للزوار أعجل من أي إعداد.
             والبلاغ البشري قبل الرصد الآلي — لأن أحداً رأى الخطأ بعينه. */}
-        <PriceReportsPanel rows={reportRows} />
-        <PriceReviewPanel rows={reviewRows} />
+        {reportRows.length > 0 && <div id="price-reports" className="scroll-mt-6"><PriceReportsPanel rows={reportRows} /></div>}
+        {reviewRows.length > 0 && <div id="price-reviews" className="scroll-mt-6"><PriceReviewPanel rows={reviewRows} /></div>}
 
         {/* لا يظهر إلا عند وجود مكسور — لوحة تقول «كل شيء سليم» ضجيج دائم */}
         {brokenLinks.length > 0 && (
-          <div className="mb-8 rounded-xl border border-rose-300 dark:border-rose-500/40 bg-rose-50/70 dark:bg-rose-500/5 px-4 py-3">
+          <div className="rounded-xl border border-rose-300 dark:border-rose-500/40 bg-rose-50/70 dark:bg-rose-500/5 px-4 py-3">
             <h3 className="font-black text-sm text-rose-900 dark:text-rose-200 flex items-center gap-2">
               <span>🔗</span> {brokenLinks.length} رابط داخلي مكسور في أوصاف القطع
             </h3>
@@ -170,8 +211,7 @@ export default async function AdminDashboard() {
           </div>
         )}
 
-        {/* 3. تمرير القيمة المستخرجة كمستند أساسي إلى المكون الإداري */}
-        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} newRequests={newRequests} />
+        </AdminManager>
       </div>
     </div>
   );

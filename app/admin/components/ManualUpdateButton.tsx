@@ -47,18 +47,14 @@ export default function ManualUpdateButton() {
   };
 
   return (
-    <div className="mt-4">
-      <div className="flex items-center gap-4 mb-4">
+    <div>
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={handleUpdate}
           disabled={isLoading}
-          className={`px-4 py-2 rounded font-bold text-white transition-colors ${
-            isLoading
-              ? "bg-gray-500 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
+          className="py-2 px-5 rounded-lg font-bold text-sm border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 hover:border-cyan-500 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors disabled:opacity-50 disabled:cursor-wait w-fit"
         >
-          {isLoading ? "جاري التحديث..." : `فحص سريع (أقدم ${QUICK_LIMIT} قطع)`}
+          {isLoading ? "⏳ جاري الفحص…" : `⚡ فحص سريع (أقدم ${QUICK_LIMIT} قطع)`}
         </button>
 
         {message && (
@@ -70,9 +66,9 @@ export default function ManualUpdateButton() {
 
       {/* عرض قائمة القطع المحدثة */}
       {updatedItems.length > 0 && (
-        <div className="p-4 bg-gray-50 border border-gray-200 rounded">
-          <h3 className="font-bold text-sm text-gray-800 mb-2">القطع التي تم تحديثها:</h3>
-          <ul className="list-disc list-inside text-sm text-gray-600 flex flex-col gap-1">
+        <div className="mt-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg max-h-48 overflow-y-auto">
+          <h3 className="font-bold text-xs text-slate-700 dark:text-slate-300 mb-2">القطع التي فُحصت:</h3>
+          <ul className="list-disc list-inside text-xs text-slate-600 dark:text-slate-400 flex flex-col gap-1">
             {updatedItems.map((item, index) => (
               <li key={index}>{item}</li>
             ))}

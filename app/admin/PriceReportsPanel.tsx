@@ -52,7 +52,7 @@ export default function PriceReportsPanel({ rows }: { rows: ReportRow[] }) {
   const openCount = rows.filter((r) => !closed[r.id]).length;
 
   return (
-    <div className="mb-8 rounded-xl border border-sky-300 dark:border-sky-500/40 bg-sky-50/70 dark:bg-sky-500/5 overflow-hidden">
+    <div className="rounded-xl border border-sky-300 dark:border-sky-500/40 bg-sky-50/70 dark:bg-sky-500/5 overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-sky-200 dark:border-sky-500/30 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-lg">⚑</span>

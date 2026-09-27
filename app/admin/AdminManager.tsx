@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { addComponent, deleteComponent, addNews, deleteNews, updateComponent, updateNews } from './actions';
 import toast from 'react-hot-toast';
@@ -11,7 +11,8 @@ import UpdatePricesButton from './UpdatePricesButton';
 import UpdateSingleButton from './components/UpdateSingleButton';
 import CronControlToggle from './components/CronControlToggle';
 import ManualUpdateButton from "./components/ManualUpdateButton";
-import ExportComponentsButton from './ExportComponentsButton';
+import AdminNav from './AdminNav';
+import BackToMenuButton from './BackToMenuButton';
 import StoreFieldsGroup from './StoreFieldsGroup';
 import ScrapeStatusBadge, { isStale } from './ScrapeStatusBadge';
 import { storeVars, type StoreInfo } from '../../lib/stores';
@@ -31,7 +32,7 @@ import { fieldMeta } from '../../lib/spec-fields';
 /** حالة التحديث الآلي كما تعيدها getCronStatus */
 type CronStatus = { enabled: boolean; updatesPerDay: number; lastRunAt: Date | string | null };
 
-export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [], newRequests = 0 }: { categories: any[], components: any[], news: any[], cronStatus: CronStatus, settings?: Record<string, string>, stores?: StoreInfo[], newRequests?: number }) {
+export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [], newRequests = 0, children }: { categories: any[], components: any[], news: any[], cronStatus: CronStatus, settings?: Record<string, string>, stores?: StoreInfo[], newRequests?: number, /** الرأس ولوحات التنبيه — تُعرض أعلى عمود المحتوى بجانب الشريط */ children?: ReactNode }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news' | 'affiliates'>('components');
   
   const [editingComponent, setEditingComponent] = useState<any>(null);
@@ -219,113 +220,72 @@ export default function AdminManager({ categories, components, news, cronStatus,
     : 0;
 
   return (
-    <div className="flex flex-col gap-8">
-      
-      <div className="flex flex-wrap gap-4 border-b border-gray-200 dark:border-slate-800 pb-4">
-        <button
-          onClick={() => { setActiveTab('components'); cancelEdit(); }}
-          className={`px-6 py-3 font-bold rounded-lg transition-colors ${activeTab === 'components' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
-        >
-          💻 إدارة القطع
-        </button>
-        {/* صفحة مستقلّة (خادم) لأنها تجلب عدّادات الطلبات — رابط لا تبويب */}
-        <Link
-          href="/admin/part-requests"
-          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
-        >
-          🙋 طلبات القطع
-        </Link>
-        {/* ⚠️ كانت هذه في شريط التنقّل العام خلف شرطٍ مكتوبٍ بالحرف:
-            `email === "admin@pcbuilder.com"` — فأيّ أدمنٍ غيره لا يراها.
-            ومكانها هنا مع أخواتها، والشرط صار الدور لا البريد. */}
-        <Link
-          href="/admin/suggestions"
-          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
-        >
-          💡 اقتراحات الزوّار
-        </Link>
-
-        {/* ٦٠٪ من الكتالوج بشاهدٍ واحد — والصفحة تُؤتمت البحث وتُبقي
-            الكتابة بإقرار. رابطٌ لا تبويب: لها حالتها الخاصّة. */}
-        <Link
-          href="/admin/find-sources"
-          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
-        >
-          🔍 مصدر ثانٍ
-        </Link>
-        {/* ⚠️ ٢٣ قطعةً خرجت بلا وصفٍ ولم يُكتشف حتى سُئل عنه بعد يومين —
-            فالعدّاد على هذه الصفحة يُرى قبل أن يُسأل. */}
-        <Link
-          href="/admin/describe"
-          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
-        >
-          ✍️ كاتب الأوصاف
-        </Link>
-        {/* الزيارات: مقيسةٌ من عندنا، ومربوطةٌ بالقطع — وهو ما لا يعطيه فيرسل */}
-        <Link
-          href="/admin/analytics"
-          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
-        >
-          📈 الزيارات
-        </Link>
-        {/* أختُ «مصدر ثانٍ»: تلك تُكمل قطعةً عندنا، وهذه تبحث عمّا ليس عندنا */}
-        <Link
-          href="/admin/store-search"
-          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
-        >
-          🛒 ابحث في المتاجر
-        </Link>
-        <Link
-          href="/admin/stores"
-          className="px-6 py-3 font-bold rounded-lg transition-colors bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5"
-        >
-          🏪 المتاجر
-          <span className="text-[11px] font-black px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 tabular-nums">{stores.length}</span>
-        </Link>
-        <button 
-          onClick={() => { setActiveTab('news'); cancelEdit(); }}
-          className={`px-6 py-3 font-bold rounded-lg transition-colors ${activeTab === 'news' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
-        >
-          📰 إدارة الأخبار
-        </button>
-        <button 
-          onClick={() => { setActiveTab('affiliates'); cancelEdit(); }}
-          className={`px-6 py-3 font-bold rounded-lg transition-colors ${activeTab === 'affiliates' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
-        >
-          🔗 إدارة العمولات
-        </button>
-
-        <Link 
-          href="/admin/import" 
-          className="px-6 py-3 font-bold rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-        >
-          📥 استيراد من JSON
-        </Link>
-
-        <Link 
-          href="/admin/prebuilds" 
-          className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-sm">
-          <span>➕</span> إضافة تجميعة جاهزة
-        </Link>
-        <ExportComponentsButton />
-        
-      </div>
-      
-      <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
-        <UpdatePricesButton />
-        <CronControlToggle
-          initialStatus={cronStatus.enabled}
-          initialPerDay={cronStatus.updatesPerDay}
-          lastRunAt={cronStatus.lastRunAt}
-          catalogCount={components.length}
+    /* الشريط يميناً بجانب الجزء العلويّ وحده (الرأس والمؤشّرات والأسعار)،
+       والمحتوى الطويل — النموذج والجدول — يمتدّ بعرض الصفحة تحته: فلا يبقى
+       تحت الشريط عمودٌ فارغ بطول الجدول. وعلى الشاشات الصغيرة عمودٌ واحد. */
+    <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-6 items-start">
+      <aside id="admin-menu" className="scroll-mt-6">
+        <BackToMenuButton targetId="admin-menu" />
+        <AdminNav
+          variant="sidebar"
+          activeTab={activeTab}
+          onTab={(t) => { setActiveTab(t); cancelEdit(); }}
+          storesCount={stores.length}
+          newRequests={newRequests}
         />
+      </aside>
+
+      <div className="flex flex-col gap-6 min-w-0">
+      {children}
+
+      {/* ============ الأسعار — لوحةٌ واحدة ============
+          كانت ثلاث قطعٍ مبعثرة: زرّ التحديث الشامل يميناً، ولوحة الآليّ
+          يساراً، و«فحص سريع» تحتهما وحده. وهي عملٌ واحد: هل الأسعار حيّة؟ */}
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-5">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
+          <h2 className="text-[15px] font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <span className="w-7 h-7 rounded-md bg-emerald-500/15 flex items-center justify-center text-sm">🔄</span>
+            تحديث الأسعار
+          </h2>
+          {/* صحّة التحديث بنظرة — الرقم الأحمر وحده يستدعي فتح الجدول */}
+          <div className="ms-auto flex flex-wrap gap-2 text-[11.5px] font-black">
+            <span className={`px-2.5 py-1 rounded-full ${staleCount ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'}`}>
+              {staleCount ? `🕰 ${staleCount} قطعةً سعرُها متأخّر` : '✓ لا سعرَ متأخّر'}
+            </span>
+            <span className={`px-2.5 py-1 rounded-full ${failingCount ? 'bg-rose-100 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
+              {failingCount ? `⚠️ ${failingCount} قطعةً فشل آخرُ سحبٍ لأحد متاجرها` : 'لا فشلَ في آخر سحب'}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-4">
+          <CronControlToggle
+            initialStatus={cronStatus.enabled}
+            initialPerDay={cronStatus.updatesPerDay}
+            lastRunAt={cronStatus.lastRunAt}
+            catalogCount={components.length}
+          />
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/50 p-4 flex flex-col gap-3">
+            <div>
+              <span className="block font-bold text-sm text-slate-900 dark:text-white">تشغيلٌ يدويّ الآن</span>
+              <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                الشامل يمرّ على الكتالوج كلّه دفعةً بعد دفعة، والسريع على أقدم القطع تحديثاً.
+              </span>
+            </div>
+            <UpdatePricesButton />
+            <ManualUpdateButton />
+          </div>
+        </div>
+      </section>
       </div>
-      <ManualUpdateButton />
+
+      {/* ============ المحتوى الطويل — بعرض الصفحة كلّها تحت الشريط ============ */}
+      <div className="lg:col-span-2 flex flex-col gap-8 min-w-0">
 
       {activeTab === 'affiliates' && (
         <div className="flex flex-col gap-8 animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">إعدادات التسويق بالعمولة (Affiliates)</h2>
+          <div className="bg-white dark:bg-slate-900/70 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2.5 before:content-[''] before:w-1 before:h-6 before:rounded-full before:bg-cyan-500">إعدادات التسويق بالعمولة (Affiliates)</h2>
             {/* معرّفات العمولة انتقلت لصفّ كل متجر في «المتاجر».
                 إبقاء الحقول هنا كان سيصير فخّاً: تعدّلها وتُحفظ ولا تؤثّر في
                 أي رابط، لأن الرابط يُبنى من إعدادات المتجر. مصدر واحد فقط. */}
@@ -367,8 +327,8 @@ export default function AdminManager({ categories, components, news, cronStatus,
 
       {activeTab === 'components' && (
         <div className="flex flex-col gap-8 animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 transition-colors duration-200">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+          <div className="bg-white dark:bg-slate-900/70 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 transition-colors duration-200">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2.5 before:content-[''] before:w-1 before:h-6 before:rounded-full before:bg-cyan-500">
               {editingComponent ? 'تعديل بيانات القطعة' : 'إضافة قطعة جديدة'}
             </h2>
             <form key={editingComponent?.id || 'new-comp'} action={handleComponentSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -593,8 +553,8 @@ export default function AdminManager({ categories, components, news, cronStatus,
             </form>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">إدارة القطع الحالية</h2>
+          <div className="bg-white dark:bg-slate-900/70 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2.5 before:content-[''] before:w-1 before:h-6 before:rounded-full before:bg-cyan-500">إدارة القطع الحالية</h2>
             
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <input
@@ -786,8 +746,8 @@ export default function AdminManager({ categories, components, news, cronStatus,
               يبقى لمن أراد أن يكتب بيده أو يُعدّل خبراً منشوراً. */}
           <NewsAgentPanel />
 
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+          <div className="bg-white dark:bg-slate-900/70 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2.5 before:content-[''] before:w-1 before:h-6 before:rounded-full before:bg-cyan-500">
               {editingNews ? 'تعديل الخبر' : 'إضافة خبر جديد'}
             </h2>
             <form key={editingNews?.id || 'new-news'} action={handleNewsSubmit} className="grid grid-cols-1 gap-4">
@@ -810,8 +770,8 @@ export default function AdminManager({ categories, components, news, cronStatus,
               </div>
             </form>
           </div>
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">إدارة الأخبار الحالية</h2>
+          <div className="bg-white dark:bg-slate-900/70 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2.5 before:content-[''] before:w-1 before:h-6 before:rounded-full before:bg-cyan-500">إدارة الأخبار الحالية</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-right border-collapse">
                 <thead>
@@ -857,6 +817,7 @@ export default function AdminManager({ categories, components, news, cronStatus,
         </div>
       )}
 
+      </div>
     </div>
   );
 }

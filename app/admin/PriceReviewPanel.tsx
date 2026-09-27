@@ -54,7 +54,7 @@ export default function PriceReviewPanel({ rows }: { rows: ReviewRow[] }) {
   const open = rows.filter((r) => !done[r.id]);
 
   return (
-    <div className="mb-8 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50/70 dark:bg-amber-500/5 overflow-hidden">
+    <div className="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50/70 dark:bg-amber-500/5 overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-amber-200 dark:border-amber-500/30 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-lg">⚠️</span>
