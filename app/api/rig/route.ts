@@ -62,9 +62,24 @@ export async function GET() {
       if (id && byId.has(id)) rig[k] = byId.get(id);
     }
 
+    /* ============ النصُّ يسقط أمام القطعة ============
+     *
+     * ⚠️ وإلّا ضعف الفحص صامتاً إلى الأبد: يكتب «GTX 1060» في فتحة الكرت
+     * وهي فارغة، ثمّ يختار كرتاً حقيقيّاً من الباني لاحقاً. فالبطاقة تعرض
+     * الكرت الحقيقيّ (القطعة تغلب النصّ)، لكنّ `customParts.GPU` يبقى —
+     * و`fitsRig` تحذف كلَّ فئةٍ فيه، فلا يُفحص طولُ الكرت ولا طاقتُه بعدها
+     * أبداً، ولا شيءَ في الواجهة يقول ذلك.
+     *
+     * فالتصفيةُ هنا لا في كلّ مستدعٍ: مصدرٌ واحد يمنع أن ينسى أحدُهم.
+     */
     const raw = build.customParts as any;
-    const customParts: Record<string, string> =
+    const stored: Record<string, string> =
       raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+
+    const customParts: Record<string, string> = {};
+    for (const [k, v] of Object.entries(stored)) {
+      if (!rig[k as RigCategory] && v) customParts[k] = v;
+    }
 
     const payload: RigPayload = { buildId: build.id, name: build.name, rig, customParts };
     return NextResponse.json(payload, { status: 200 });
