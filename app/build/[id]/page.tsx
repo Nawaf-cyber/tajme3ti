@@ -9,8 +9,11 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { productImage, IMAGE_FALLBACK } from '../../../lib/image';
 import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
-import { priceAsOf } from '../../../lib/stores';
+import { priceAsOf, liveOffers } from '../../../lib/stores';
 import { buildCard, formatTotal, STATE_TEXT } from '../../../lib/build-card';
+import { bottleneck as computeBottleneck } from '../../../lib/bottleneck';
+import { upgradeOptions } from '../../../lib/rig-upgrade';
+import type { BuildParts } from '../../../lib/build-check';
 
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emerald-400' }: { size?: string, colorClass?: string }) => (
   <div 
@@ -29,11 +32,6 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emer
 );
 
 /* لون العلامة صار من lib/brand — كانت أربع نسخ بأربع لوحات */
-
-const parseSpecs = (specsStr: any) => {
-  if (!specsStr) return {};
-  return typeof specsStr === 'string' ? JSON.parse(specsStr) : specsStr;
-};
 
 // حاسبة الفريمات مجهزة للعمل بشكل كامل على السيرفر باستخدام Tailwind CSS
 /* FpsEstimator صار مكوّناً مشتركاً — components/FpsEstimator */
@@ -93,7 +91,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
 
   const components = await prisma.component.findMany({
     where: { id: { in: componentIds } },
-    select: { id: true, name: true, brand: true, price: true, imageUrl: true, performanceTier: true, specs: true, lastScrapedAt: true, ...OFFER_INCLUDE }
+    select: { id: true, name: true, brand: true, price: true, imageUrl: true, performanceTier: true, specs: true, tdpWattage: true, lastScrapedAt: true, ...OFFER_INCLUDE }
   });
 
   const compMap = new Map(components.map(c => [c.id, c]));
@@ -112,67 +110,42 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
   const totalPriceRaw = Object.values(parts).reduce((sum, part) => sum + (part?.price || 0), 0);
   const totalPrice = Number(totalPriceRaw.toFixed(2));
   
-  let bottleneck = null;
-  if (parts.CPU?.performanceTier && parts.GPU?.performanceTier) {
-    const diff = parts.CPU.performanceTier - parts.GPU.performanceTier;
-    let suggestions: any[] = [];
+  /* ============ التوازن والترقية — من المصدر الواحد ============
+   *
+   * ⚠️ كانت الصفحة تحمل نسختها من الاثنين: عتبةُ الاختناق مكتوبةٌ هنا،
+   * والاقتراحُ «الأرخص بالدرجة» بلا فحص توفّر ولا حارس ترقية، ولا فحص
+   * تركيبٍ إلّا المقبس أو الطول. فكانت تقترح قطعةً نافدة، أو نسخةً أضعف
+   * من الشريحة نفسها («9600X ← 9600»). وهذه الصفحة أوّلُ ما يراه من
+   * يضغط رابطاً مشاركاً.
+   *
+   * الآن: التوازن من lib/bottleneck، والاقتراحات من upgradeOptions — نفسُ
+   * ما يُجيب «وش أرقّي؟» في بطاقة الجهاز، بشرطٍ واحدٍ مختلف مقصود: هنا
+   * يُطلب ما **يسدّ الفجوة** مع القطعة الأخرى لا مجرّد «أقوى».
+   */
+  const balance = computeBottleneck(parts.CPU, parts.GPU);
+  const weak: 'CPU' | 'GPU' | null =
+    balance?.kind === 'cpu-weak' ? 'CPU' : balance?.kind === 'gpu-weak' ? 'GPU' : null;
 
-    if (diff < -1) {
-      const moboSpecs = parseSpecs(parts.Motherboard?.specs);
-      const allCpus = await prisma.component.findMany({
-        where: { category: { name: 'CPU' } },
-        select: { id: true, name: true, brand: true, price: true, specs: true, performanceTier: true }
-      });
-      
-      suggestions = allCpus.filter(c => {
-        const cSpecs = parseSpecs(c.specs);
-        const isSocketMatch = moboSpecs.socket && cSpecs.socket ? cSpecs.socket === moboSpecs.socket : true;
-        return isSocketMatch &&
-               c.performanceTier !== null &&
-               c.performanceTier >= parts.GPU.performanceTier - 1 &&
-               c.id !== parts.CPU.id;
-      }).sort((a, b) => a.price - b.price).slice(0, 6).map(item => ({ category: 'CPU', item }));
-
-      bottleneck = {
-        title: "⚠️ المعالج قد يحد من أداء الكرت في بعض الألعاب، خصوصًا على 1080p و1440p.",
-        desc: "يُنصح بترقية المعالج، أو اللعب بدقة 4K لنقل ثقل المعالجة إلى الكرت وتخفيف الضغط عن المعالج.",
-        color: "text-amber-900 dark:text-amber-400",
-        bg: "bg-amber-100 dark:bg-amber-900/20 border-amber-300 dark:border-amber-800/50",
-        suggestions
-      };
-    } else if (diff > 1) {
-      const caseSpecs = parseSpecs(parts.Case?.specs);
-      const allGpus = await prisma.component.findMany({
-        where: { category: { name: 'GPU' } },
-        select: { id: true, name: true, brand: true, price: true, specs: true, performanceTier: true }
-      });
-
-      suggestions = allGpus.filter(c => {
-        const cSpecs = parseSpecs(c.specs);
-        const maxLen = parseFloat(caseSpecs.maxGpuLength || "999");
-        const gpuLen = parseFloat(cSpecs.lengthMm || "0");
-        return gpuLen <= maxLen &&
-               c.performanceTier !== null &&
-               c.performanceTier >= parts.CPU.performanceTier - 1 &&
-               c.id !== parts.GPU.id;
-      }).sort((a, b) => a.price - b.price).slice(0, 6).map(item => ({ category: 'GPU', item }));
-
-      bottleneck = {
-        title: "💡 كرت الشاشة سيحد من قوة الجهاز.",
-        desc: "الأداء سيكون ممتازاً وسلساً في ألعاب الشوتر والتنافسية، لكن الكرت سيقلل الفريمات في ألعاب القصة الثقيلة والدقات العالية.",
-        color: "text-blue-900 dark:text-blue-400",
-        bg: "bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-800/50",
-        suggestions
-      };
-    } else {
-      bottleneck = {
-        title: "🚀 توازن أداء مثالي.",
-        desc: "المعالج والكرت من نفس الفئة تقريباً. ستحصل على أداء مستقر وتستغل كامل قوة الجهاز بدون اختناق.",
-        color: "text-emerald-900 dark:text-emerald-400",
-        bg: "bg-emerald-100 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-800/50"
-      };
-    }
+  let suggestions: { category: string; item: any }[] = [];
+  if (weak) {
+    const other = weak === 'CPU' ? parts.GPU : parts.CPU;
+    const raw = await prisma.component.findMany({
+      where: { category: { name: weak } },
+      select: {
+        id: true, name: true, brand: true, price: true, specs: true,
+        tdpWattage: true, performanceTier: true, ...OFFER_INCLUDE,
+      },
+    });
+    const all = raw.map((c) => ({ ...c, live: liveOffers(c.offers as any).length > 0 }));
+    const rig = Object.fromEntries(Object.entries(parts).filter(([, v]) => v)) as BuildParts;
+    suggestions = upgradeOptions(rig, weak, all, [], {
+      limit: 6,
+      minTier: (other?.performanceTier ?? 0) - 1,
+      allowWarn: true,
+    }).options.map((item) => ({ category: weak, item }));
   }
+
+  const bottleneck = balance ? { ...balance, suggestions } : null;
 
   const getUpgradeUrl = (sugCategory: string, sugItemId: string) => {
     const p = new URLSearchParams();
@@ -249,6 +222,12 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                       <span className="text-sm font-extrabold line-clamp-2 leading-relaxed mb-4 text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" title={sug.item.name}>
                         {sug.item.name}
                       </span>
+                      {/* ملاحظة التركيب («لا يأتي بمبرّد») تُقال مع الاقتراح لا بدلَه */}
+                      {sug.item.fitNote && (
+                        <span className="-mt-2 mb-3 text-[11px] font-bold leading-relaxed text-amber-700 dark:text-amber-400">
+                          ⚠️ {sug.item.fitNote}
+                        </span>
+                      )}
                       <div className="mt-auto flex justify-between items-end w-full pt-3 border-t border-slate-100 dark:border-slate-800">
                         <div>
                           <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-0.5">السعر</span>
