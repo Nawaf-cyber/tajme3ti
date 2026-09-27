@@ -15,7 +15,7 @@
  */
 
 import * as cheerio from 'cheerio';
-import { round2, parseMoney, acceptListPrice, scrapeFetch, httpReason, isBrokenPage } from './scrape-prices';
+import { round2, parseMoney, acceptListPrice, scrapeFetch, isBrokenPage, httpFailure, markIfRedirectedHome } from './scrape-prices';
 import { correctStock } from './stock-truth';
 
 export type GenericStoreConfig = {
@@ -38,6 +38,8 @@ export type GenericResult = {
   via: 'json-ld' | 'meta' | 'selector' | 'none';
   currencyFound: string | null;
   errors: string[];
+  /** المتجر قال إنّ المنتج غير موجود — lib/scrape-prices.ts · GONE_MARK */
+  gone?: boolean;
 };
 
 const scrapeUrl = (token: string, target: string, premium: boolean) =>
@@ -122,7 +124,7 @@ export async function scrapeGeneric(
   try {
     const res = await scrapeFetch(scrapeUrl(token, url, store.premiumProxy));
     if (!res.ok) {
-      out.errors.push(`${store.name}: ${httpReason(res.status)}`);
+      httpFailure(out, store.name, res.status);
       return out;
     }
     html = await res.text();
@@ -137,6 +139,7 @@ export async function scrapeGeneric(
     out.inStock = true; // لا نغيّر شيئاً: المستدعي يتجاهل النتيجة بلا سعر
     return out;
   }
+  if (markIfRedirectedHome(out, store.name, html, url)) return out;
 
   const $ = cheerio.load(html);
 

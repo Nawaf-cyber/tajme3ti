@@ -53,6 +53,15 @@ export default function UpdateSingleButton({ id, name }: { id: string, name: str
           );
         }
 
+        /* السعر المعروض يدويّ: الزرّ سحب المتاجر الأخرى ولم يلمسه. بلا هذا
+           يبقى الأدمن يضغط وشارة التأخّر باقية بلا تفسير. */
+        if (data.manualStore) {
+          toast(
+            `السعر المعروض من «${data.manualStore}» وسحبُه موقوف — هذا الزرّ لا يقرؤه.\nيُحدَّث من المتصفّح: scripts/noon-refresh.ts`,
+            { icon: '✋', duration: 10000 },
+          );
+        }
+
         // تنبيهات جزئية: نجح التحديث لكن متجر أو أكثر تعذّر قراءته
         if (Array.isArray(data.errors) && data.errors.length) {
           toast(data.errors.slice(0, 3).join('\n'), { icon: '⚠️', duration: 9000 });

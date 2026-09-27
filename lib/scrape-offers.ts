@@ -12,7 +12,7 @@
  */
 
 import {
-  round2, applyPriceVerdict,
+  round2, applyPriceVerdict, GONE_MARK,
   scrapeAmazon, scrapeCazasouq, scrapeMicroless, scrapeJarir,
   type OfferTarget, type StoreOutcome,
 } from './scrape-prices';
@@ -36,6 +36,8 @@ export type OfferRow = {
   price: number | null;
   listPrice: number | null;
   inStock: boolean;
+  /** خطأ الفحص السابق — منه تُعرف الإشارة الثانية لـ«أُزيل من المتجر» */
+  lastError?: string | null;
   store: StoreRow;
 };
 
@@ -71,7 +73,7 @@ export async function scrapeComponentOffers(
       }
 
       const g = await scrapeGeneric(o.store, o.url, token);
-      const outcome: StoreOutcome = { price: null, listPrice: undefined, inStock: g.inStock, errors: g.errors };
+      const outcome: StoreOutcome = { price: null, listPrice: undefined, inStock: g.inStock, errors: g.errors, gone: g.gone };
 
       if (g.price != null && g.price > 0) {
         /* نفس حكم المتاجر المكتوبة بالكود: المتجر الذي يضيفه الأدمن يخضع
@@ -135,10 +137,20 @@ export function resolveOfferPrices(
     // undefined = لم نقرأ الصفحة → نُبقي القديم؛ null = قرأناها ولا خصم
     const listPrice = o.listPrice !== undefined ? o.listPrice : prev.listPrice;
 
+    /* ============ «أُزيل من المتجر» بإشارتين لا بواحدة ============
+       قال المتجر إنّ المنتج غير موجود (lib/scrape-prices · GONE_MARK).
+       ⚠️ والمرّة الأولى تُسجَّل ولا تُسقط: 404 عابرٌ من الوسيط كان سيُخفي
+       سعراً صحيحاً يوماً كاملاً — وهو درسُ كازاسوق الذي علّم ٥٦ منتجاً
+       نافدةً دفعةً واحدة. فإن تكرّرت في الفحص التالي سقط العرض من
+       المنافسة (`inStock: false`)، وانتقل السعر المعروض إلى المتجر التالي.
+       والعرض يعود وحده متى قُرئت صفحتُه ثانيةً. */
+    const goneTwice = !!o.gone && !!prev.lastError?.includes(GONE_MARK);
+    const inStock = goneTwice ? false : o.gone ? prev.inStock : o.inStock;
+
     /* نسجّل أثر كل محاولة — لا النجاح وحده. بلا هذا، العرض النافد أو
        المحظور يبدو "لم يُحدَّث منذ أسبوع" وهو يُفحص كل يوم. */
     const data: Record<string, any> = {
-      inStock: o.inStock,
+      inStock,
       lastError: o.errors.length ? o.errors[0].slice(0, 300) : null,
     };
     /* المتخطّى لا يُكتب له وقتُ فحص — لم يُفحص. ويُمسح خطؤه القديم لأنه
@@ -148,11 +160,11 @@ export function resolveOfferPrices(
     if (o.listPrice !== undefined) data.listPrice = o.listPrice;
     offerUpdates.push({ offerId: r.offerId, data });
 
-    if (o.inStock && (price ?? 0) > 0) {
+    if (inStock && (price ?? 0) > 0) {
       candidates.push({ store: r.storeSlug, price: price!, list: listPrice ?? null });
     }
     if (o.price != null && o.price > 0) pricePoints.push({ store: r.storeSlug, price: o.price });
-    if (prev.inStock === false && o.inStock && o.price != null) restocked = true;
+    if (prev.inStock === false && inStock && o.price != null) restocked = true;
 
     if (o.heldPrice != null && prev.price != null) {
       holds.push({ offerId: r.offerId, storeName: r.storeName, oldPrice: prev.price, newPrice: o.heldPrice });
@@ -163,7 +175,7 @@ export function resolveOfferPrices(
       settled.push(r.offerId);
     }
 
-    lines.push({ label: r.storeName, url: r.url, price: price ?? null, inStock: o.inStock });
+    lines.push({ label: r.storeName, url: r.url, price: price ?? null, inStock });
   }
 
   candidates.sort((a, b) => a.price - b.price);

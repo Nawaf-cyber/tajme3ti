@@ -188,6 +188,60 @@ export const httpReason = (status: number): string =>
   : status === 403 || status === 401 ? `حظر من المتجر (${status}) — جرّب البروكسي المتقدّم`
   : `فشل الاتصال ${status}`;
 
+/* ============ «أُزيل من المتجر» ≠ «تعذّرت القراءة» ============
+ *
+ * حارسُ الصفحة المعطّلة أعلاه يُبقي الحالة السابقة عند كلّ فشل — وهو
+ * صحيحٌ للعطل العابر، وخاطئٌ للمنتج الذي أزاله المتجر: كان يُفحص يومياً
+ * ويبقى «متوفّراً» بسعره القديم **إلى الأبد**. قِيس 2026-09-24:
+ *   · Ryzen 5 5500 — سعرُه المعروض ٤٢٥ من أمازون، وصفحة أمازون ترجع 404
+ *     «الصفحة غير موجودة». فمن يضغط يصل إلى لا شيء.
+ *   · ثلاثة كروت في إنفيني آرك — الرابط يُحوَّل إلى الرئيسيّة (أزالها
+ *     المتجر)، فسُجّل «لم نجد سعراً» وبقي العرض متوفّراً ٥–٩ أيّام.
+ *
+ * فالإشارتان القاطعتان هنا: 404/410، أو صفحةٌ رابطُها الأصليّ (canonical)
+ * هو الرئيسيّة. وتُعلَّم `gone` لا `inStock: false` مباشرةً:
+ * `resolveOfferPrices` يُسقط العرض عند **الإشارة الثانية المتتالية** —
+ * فـ404 عابرٌ من الوسيط لا يُخفي سعراً، وهو درسُ كازاسوق نفسه.
+ */
+export const GONE_MARK = 'أُزيل من المتجر';
+
+/** ردٌّ غير ناجح: يكتب سببه، ويعلّم `gone` إن قال المتجر إنّ الصفحة غير موجودة */
+export function httpFailure(out: { errors: string[]; gone?: boolean }, label: string, status: number) {
+  if (status === 404 || status === 410) {
+    out.gone = true;
+    out.errors.push(`${label}: ${GONE_MARK} — الصفحة غير موجودة (${status})`);
+  } else {
+    out.errors.push(`${label}: ${httpReason(status)}`);
+  }
+}
+
+/** هل وصلت الصفحةُ الرئيسيّة بدل صفحة المنتج؟ (تحويلُ رابطٍ أُزيل منتجه) */
+export function redirectedHome(html: string, requested: string): boolean {
+  const head = html.slice(0, 60000);
+  const href =
+    head.match(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)?.[1] ??
+    head.match(/<link[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["']/i)?.[1] ??
+    head.match(/<meta[^>]*property=["']og:url["'][^>]*content=["']([^"']+)["']/i)?.[1];
+  if (!href) return false;
+  try {
+    const c = new URL(href, requested);
+    const r = new URL(requested);
+    const host = (u: URL) => u.hostname.replace(/^www\./, '');
+    const bare = (p: string) => p.replace(/\/+$/, '');
+    return host(c) === host(r) && bare(c.pathname) === '' && bare(r.pathname) !== '';
+  } catch {
+    return false;
+  }
+}
+
+/** يعلّم `gone` ويكتب السبب إن كانت الصفحة الرئيسيّة — ويُرجع هل كانت */
+export function markIfRedirectedHome(out: { errors: string[]; gone?: boolean }, label: string, html: string, url: string): boolean {
+  if (!redirectedHome(html, url)) return false;
+  out.gone = true;
+  out.errors.push(`${label}: ${GONE_MARK} — الرابط يُحوَّل إلى الصفحة الرئيسيّة`);
+  return true;
+}
+
 /** حماية الاتصال من التعليق */
 export async function fetchWithTimeout(url: string, options: any = {}, timeout = 10000) {
   const controller = new AbortController();
@@ -231,6 +285,8 @@ export type StoreOutcome = {
    * فكتابة `lastCheckedAt` عليه تجعل سعراً يدوياً يبدو مسحوباً للتوّ.
    */
   skipped?: boolean;
+  /** المتجر قال إنّ المنتج غير موجود (404، أو تحويلٌ إلى الرئيسيّة) — انظر GONE_MARK */
+  gone?: boolean;
 };
 
 const emptyOutcome = (inStock: boolean): StoreOutcome => ({
@@ -290,7 +346,7 @@ export async function scrapeAmazon(t: OfferTarget, token: string): Promise<Store
   try {
     const res = await scrapeFetch(scrapeUrl(token, t.url, true));
     if (!res.ok) {
-      out.errors.push(`أمازون (${t.name}): ${httpReason(res.status)}`);
+      httpFailure(out, `أمازون (${t.name})`, res.status);
       return out;
     }
     const html = await res.text();
@@ -300,6 +356,7 @@ export async function scrapeAmazon(t: OfferTarget, token: string): Promise<Store
       out.errors.push(`أمازون (${t.name}): صفحة المتجر معطّلة أو تحت الصيانة — أُبقيت الحالة السابقة.`);
       return out;
     }
+    if (markIfRedirectedHome(out, `أمازون (${t.name})`, html, t.url)) return out;
     const $ = cheerio.load(html);
 
     /* ---- التوفّر — من مسار الشراء لا من نصّ #availability وحده ----
@@ -361,7 +418,7 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
     // بروكسي عادي (بلا super) — كازاسوق لا يحتاج حماية متقدمة، فيوفّر الرصيد
     const res = await scrapeFetch(scrapeUrl(token, t.url, false));
     if (!res.ok) {
-      out.errors.push(`كازاسوق (${t.name}): ${httpReason(res.status)}`);
+      httpFailure(out, `كازاسوق (${t.name})`, res.status);
       return out;
     }
     const html = await res.text();
@@ -371,6 +428,7 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
       out.errors.push(`كازاسوق (${t.name}): صفحة المتجر معطّلة أو تحت الصيانة — أُبقيت الحالة السابقة.`);
       return out;
     }
+    if (markIfRedirectedHome(out, `كازاسوق (${t.name})`, html, t.url)) return out;
     const $ = cheerio.load(html);
 
     /* ---- التوفّر — من كتلة المنتج نفسه فقط ----
@@ -461,7 +519,7 @@ export async function scrapeMicroless(t: OfferTarget, token: string): Promise<St
   try {
     const res = await scrapeFetch(scrapeUrl(token, t.url, true));
     if (!res.ok) {
-      out.errors.push(`مايكروليس (${t.name}): ${httpReason(res.status)}`);
+      httpFailure(out, `مايكروليس (${t.name})`, res.status);
       return out;
     }
     const html = await res.text();
@@ -471,6 +529,7 @@ export async function scrapeMicroless(t: OfferTarget, token: string): Promise<St
       out.errors.push(`مايكروليس (${t.name}): صفحة المتجر معطّلة أو تحت الصيانة — أُبقيت الحالة السابقة.`);
       return out;
     }
+    if (markIfRedirectedHome(out, `مايكروليس (${t.name})`, html, t.url)) return out;
     const $ = cheerio.load(html);
     const htmlLower = html.toLowerCase();
 

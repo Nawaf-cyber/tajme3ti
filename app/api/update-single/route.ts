@@ -91,7 +91,14 @@ export async function POST(req: Request) {
     // والطابور نفسه: الزرّ اليدوي لا يُفلت ارتفاعاً يوقفه الكرون
     const held = await recordPriceHolds(prisma, id, resolved.holds, resolved.settled);
 
+    /* ⚠️ السعر المعروض من متجرٍ سحبُه موقوف (نون): الزرّ لم يقرأه. وكان
+       يردّ «تمّ» بالسعر نفسه، فيضغطه الأدمن مراراً وشارةُ «قبل ٣١ يوماً»
+       باقية — والزرّ صادقٌ تقنيّاً وكاذبٌ فعلاً. فيُقال صراحةً. */
+    const winner = comp.offers.find((o) => o.store.slug === resolved.cheapestStore);
+    const manualStore = winner && winner.store.scrapeMode === 'off' ? winner.store.name : null;
+
     return NextResponse.json({
+      manualStore,
       success: true,
       heldForReview: held,
       price: resolved.lowestPrice,
