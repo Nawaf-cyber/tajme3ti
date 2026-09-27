@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 import CountdownTimer from './CountdownTimer';
 import { isAvailable } from '../lib/stores';
 import { OFFER_INCLUDE } from '../lib/stores-server';
-import { boardFitsCase, psuFitsCase } from '../lib/fit';
+import { boardFitsCase, psuFitsCase, gpuFitsCase, shownGpuLengthMm } from '../lib/fit';
 import { buildBlocks } from '../lib/build-check';
 import { capacityGb } from '../lib/capacity';
 
@@ -107,8 +107,6 @@ export default async function AutoBuildsSection() {
 
     const cpuSpecs = parseSpecs(cpu.specs);
     const gpuSpecs = parseSpecs(gpu.specs);
-    // بعض الكروت تستخدم lengthMm وأخرى length — نلتقط الحالتين
-    const reqGpuLength = parseFloat(gpuSpecs.lengthMm || gpuSpecs.length || '320');
 
     /* 3. اللوحة الأم — بالمستوى لا بقائمة شرائح ثابتة.
        الفلتر السابق كان يبحث عن أسماء شرائح مكتوبة يدوياً (H610/A620/…)
@@ -194,7 +192,8 @@ export default async function AutoBuildsSection() {
        Micro-ATX ولوحة Micro-ATX في كيس Mini-ITX — تجميعتان لا تُركَّبان.
        انظر lib/fit.ts. */
     let compCases = cases.filter(
-      c => parseFloat(parseSpecs(c.specs).maxGpuLength || '999') >= reqGpuLength
+      /* الكيس يُختار بدل الزائر: الكرت المجهول الطول يُفترض طويلاً (lib/fit) */
+      c => gpuFitsCase({ lengthMm: shownGpuLengthMm(gpu) }, parseSpecs(c.specs), { unknownGpuMm: 320 }) !== false
         && boardFitsCase(moboSpecs.formFactor, parseSpecs(c.specs).formFactor)
         && psuFitsCase(parseSpecs(psu?.specs).formFactor, parseSpecs(c.specs).psuFormFactor)
     );

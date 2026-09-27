@@ -231,7 +231,11 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
             {/* إعلانات المتاجر السارية — تشمل الموقوف، فيعرف الزائر سبب اختفائه */}
             <StoreNotices stores={notices as any} />
-            <StoreOfferList offers={comp.offers as any} stats={priceStats} />
+            <StoreOfferList
+              offers={comp.offers as any}
+              stats={priceStats}
+              gpuSpecs={comp.category?.name === 'GPU' ? (typeof comp.specs === 'string' ? JSON.parse(comp.specs) : comp.specs ?? {}) : undefined}
+            />
             {/* تحت الأسعار مباشرةً — عند النظر إلى الرقم لا في أسفل الصفحة */}
             <PriceMismatchReport offers={comp.offers as any} />
             {/* «تابع السعر» هنا لا في أسفل الصفحة: القرار يُتّخذ عند رؤية

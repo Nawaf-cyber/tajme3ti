@@ -26,7 +26,8 @@ import SpecSheet from './SpecSheet';
 import {
   boardFitsCase, fitReason, psuFitsCase, psuFitReason,
   coolerFitsCase, coolerFitReason, coolerFitsCpu, coolerCpuReason,
-  socketMatch, ramTypeMatch,
+  socketMatch, ramTypeMatch, gpuFitsCase, caseGpuMaxMm,
+  gpuFitVerdict, shortestGpuMm, shownGpuLengthMm,
 } from '../lib/fit';
 import { checkBuild } from '../lib/build-check';
 
@@ -952,14 +953,14 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     }
     else if (categoryName === 'GPU' && selectedComponents['Case']) {
       const caseSpecs = parseSpecs(selectedComponents['Case']!.specs);
-      if (specs.lengthMm && caseSpecs.maxGpuLength && parseFloat(specs.lengthMm) > parseFloat(caseSpecs.maxGpuLength)) {
+      if (gpuFitVerdict(component, caseSpecs) === false) {
         newSelections['Case'] = null;
         toastMessage = 'تم إزالة الكيس لأن الكرت الجديد أطول من المساحة المتاحة';
       }
     }
     else if (categoryName === 'Case' && selectedComponents['GPU']) {
       const gpuSpecs = parseSpecs(selectedComponents['GPU']!.specs);
-      if (specs.maxGpuLength && gpuSpecs.lengthMm && parseFloat(gpuSpecs.lengthMm) > parseFloat(specs.maxGpuLength)) {
+      if (gpuFitVerdict(selectedComponents['GPU']!, specs) === false) {
         newSelections['GPU'] = null;
         toastMessage = 'تم إزالة الكرت لأن الكيس الجديد مساحته أصغر';
       }
@@ -1062,10 +1063,10 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       }
       
       if (categoryName === 'Case' && gpu) {
-        const gpuSpecs = parseSpecs(gpu.specs);
-        if (specs.maxGpuLength && gpuSpecs.lengthMm && parseFloat(specs.maxGpuLength) < parseFloat(gpuSpecs.lengthMm)) {
+        /* بعروض الكرت: «لا يدخل» حين لا تدخل أيُّ نسخةٍ متوفّرة منه (lib/fit) */
+        if (gpuFitVerdict(gpu, specs) === false) {
           isCompatible = false;
-          reason = `طول الكرت الحالي (${gpuSpecs.lengthMm}mm) يتجاوز مساحة الكيس (${specs.maxGpuLength}mm)`;
+          reason = `طول الكرت الحالي (${shortestGpuMm(gpu)}mm) يتجاوز مساحة الكيس (${caseGpuMaxMm(specs)}mm)`;
         }
       }
 
@@ -1107,9 +1108,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
       if (categoryName === 'GPU' && pcCase) {
         const caseSpecs = parseSpecs(pcCase.specs);
-        if (specs.lengthMm && caseSpecs.maxGpuLength && parseFloat(specs.lengthMm) > parseFloat(caseSpecs.maxGpuLength)) {
+        if (gpuFitVerdict(comp, caseSpecs) === false) {
           isCompatible = false;
-          reason = `طول الكرت (${specs.lengthMm}mm) لا يتسع داخل الكيس (${caseSpecs.maxGpuLength}mm)`;
+          reason = `طول الكرت (${shortestGpuMm(comp)}mm) لا يتسع داخل الكيس (${caseGpuMaxMm(caseSpecs)}mm)`;
         }
       }
 
@@ -1463,11 +1464,13 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       /* ---- الكيس: أرخص يتسع للكرت **وللوحة** ----
          كان يفحص طول الكرت وحده، فيختار أرخص كيس ولو كان Mini-ITX واللوحة
          ATX — تجميعةٌ تُقترح على الزائر وهي لا تُركَّب. */
-      const gpuLen = parseFloat(parseSpecs(picks['GPU'].specs).lengthMm || '320');
+      /* الكيس يُختار بدل الزائر ولسعرٍ بعينه: فيسع **الكرت الذي يُعرض سعرُه**
+         (أرخص عرضٍ متوفّر)، والمجهول الطول يُفترض طويلاً (lib/fit) */
+      const shownGpuMm = shownGpuLengthMm(picks['GPU']);
       const moboFF = parseSpecs(picks['Motherboard'].specs).formFactor;
       const psuFF = parseSpecs(picks['PSU'].specs).formFactor;
       const okCases = cases.filter(c =>
-        parseFloat(parseSpecs(c.specs).maxGpuLength || '999') >= gpuLen
+        gpuFitsCase({ lengthMm: shownGpuMm }, parseSpecs(c.specs), { unknownGpuMm: 320 }) !== false
         && boardFitsCase(moboFF, parseSpecs(c.specs).formFactor)
         && psuFitsCase(psuFF, parseSpecs(c.specs).psuFormFactor));
       if (!okCases.length) continue;
@@ -1628,8 +1631,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const gpuCategory = categories.find(c => c.name === 'GPU');
         if (gpuCategory && caseSpecs) {
           suggestions = gpuCategory.components.filter(c => {
-            const cSpecs = parseSpecs(c.specs);
-            return parseFloat(cSpecs.lengthMm || "0") <= parseFloat(caseSpecs.maxGpuLength || "999") && 
+            return gpuFitVerdict(c, caseSpecs) !== false && 
                    c.performanceTier !== null && 
                    c.performanceTier >= cpu!.performanceTier! - 1 &&
                    c.id !== gpu!.id;

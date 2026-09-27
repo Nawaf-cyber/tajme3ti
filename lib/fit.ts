@@ -193,6 +193,115 @@ export function coolerFitReason(
     : `الكيس يقبل مبرّداً بارتفاع ${num(caseMaxCoolerHeight)}مم والمبرّد ${num(coolerSizeMm)}مم.`;
 }
 
+/* ============ طول الكرت ومساحة الكيس ============
+ *
+ * ⚠️ مكانٌ واحد لا أربعة عشر: كانت المقارنة منسوخةً ١٤ مرّةً في ٧ ملفّات —
+ * الباني وحده ستّاً (عند الاختيار، وفي قائمة الخيارات، والتجميعة الآليّة،
+ * واقتراحات الترقية)، والمُوالِف ولوحة التجميعات الجاهزة مرّتين مرّتين،
+ * والفحص الموحّد، وصفحة التجميعة، ومولّدا التجميعات. كلٌّ بـ`parseFloat`
+ * خامٍ إلّا الفحص الموحّد الذي ينظّف الرقم. وقِيس قبل الاستبدال: الصيغ
+ * كلّها تحكم كالجديدة على كلّ زوجٍ حقيقيّ (scripts/gpu-fit-unify-check.ts).
+ * وهو درسُ التكرار الذي كلّفنا ساحبات الأسعار.
+ *
+ * والجواب ثلاثيّ: `true` يدخل · `false` لا يدخل · `null` لا نعرف (رقمٌ
+ * غائب). والمستدعي يقرّر معنى الجهل صراحةً:
+ *   · الفحوص (`!== false`): لا تمنع ما لا تعرف — منعٌ صامتٌ بلا سببٍ يُقرأ
+ *     يُخفي قطعةً صالحة.
+ *   · مولّدا التجميعات: `unknownGpuMm: 320` — يفترضان الكرت المجهول طويلاً،
+ *     لأنّهما يختاران الكيس **بدل** الزائر، فلا أحدَ يراجع اختيارهما.
+ *
+ * ⚠️ و`length` مفتاحٌ بديلٌ لـ`lengthMm` في صفوفٍ قديمة — كان مولّدُ
+ * التجميعات وحده يقرؤه، فكرتٌ بـ`length` فقط يُحسب طولُه هناك ويُجهل في
+ * الفحص. الآن يُقرأ في الجميع.
+ */
+export const gpuLengthMm = (gpuSpecs: any): number | null =>
+  num(gpuSpecs?.lengthMm ?? gpuSpecs?.length);
+
+export const caseGpuMaxMm = (caseSpecs: any): number | null => num(caseSpecs?.maxGpuLength);
+
+export function gpuFitsCase(
+  gpuSpecs: any,
+  caseSpecs: any,
+  opts: { unknownGpuMm?: number } = {},
+): boolean | null {
+  const len = gpuLengthMm(gpuSpecs) ?? opts.unknownGpuMm ?? null;
+  const max = caseGpuMaxMm(caseSpecs);
+  if (len === null || max === null) return null;
+  return len <= max;
+}
+
+/* ============ الطول لكلّ عرض، لا لكلّ صفّ ============
+ *
+ * صفُّ الشريحة العامّ («NVIDIA RTX 5070») يحمل عروضاً من شركاء مختلفين،
+ * وكلُّ متجرٍ يبيع كرتاً بطوله. قِيس 2026-09-25 على صفّ 5070 وحده:
+ *   أمازون WINDFORCE SFF ٢٨٢ · ريد زون ZOTAC Solid ٣٠٤٫٤ · مايكرولس ASUS TUF **٣٢٩**
+ * والصفّ يقول ٢٨٢ للجميع. فكيسٌ يتّسع ٢٩٠ كان يُقال له «يدخل»، وأرخصُ
+ * رابطٍ فيه (ZOTAC) لا يدخله.
+ *
+ * فالطولُ على العرض (`ComponentOffer.lengthMm`)، والعرضُ بلا طولٍ يأخذ طولَ
+ * صفّه كما قبل. والحكم على العروض **المتوفّرة** وحدها — النافد لا يُشترى:
+ *   · كلُّها تدخل ← يدخل
+ *   · لا شيء يدخل ← لا يدخل
+ *   · بعضها ← «some»: يدخل بنسخةٍ بعينها، ويُسمّى المتجرُ وسعرُه.
+ * وبلا عروضٍ متوفّرة يُحكم بطول الصفّ — كما كان قبل هذا كلّه.
+ */
+type OfferLike = { lengthMm?: number | null; variant?: string | null; price?: number | null; inStock?: boolean; url?: string | null; store?: { name?: string; slug?: string; sortOrder?: number } };
+
+export type OfferFit = { offer: OfferLike; lengthMm: number | null; fits: boolean | null };
+
+/** العروض المتوفّرة مرتّبةً بالسعر — نفس شرط «العرض الحيّ» في lib/stores */
+const liveSorted = (offers?: OfferLike[] | null): OfferLike[] =>
+  (offers ?? [])
+    .filter((o) => (o.price ?? 0) > 0 && o.inStock !== false && !!o.url)
+    .sort((a, b) => a.price! - b.price! || (a.store?.sortOrder ?? 0) - (b.store?.sortOrder ?? 0));
+
+/** طولُ الكرت الذي يبيعه هذا العرض — أو طولُ صفّه إن لم يُقَس */
+export const offerLengthMm = (offer: OfferLike, gpuSpecs: any): number | null =>
+  num(offer.lengthMm) ?? gpuLengthMm(gpuSpecs);
+
+export function gpuOffersFit(gpu: { specs?: any; offers?: OfferLike[] | null }, caseSpecs: any): OfferFit[] {
+  const specs = typeof gpu.specs === 'string' ? safeParse(gpu.specs) : gpu.specs ?? {};
+  return liveSorted(gpu.offers).map((offer) => {
+    const lengthMm = offerLengthMm(offer, specs);
+    return { offer, lengthMm, fits: gpuFitsCase({ lengthMm }, caseSpecs) };
+  });
+}
+
+/**
+ * حكمُ الكرت (بعروضه) مع الكيس: `true` · `false` · `'some'` · `null` (لا نعرف).
+ * ⚠️ والمستدعي الذي يمنع يسأل `=== false` وحده: «some» ليس منعاً — الكرت
+ * يدخل بنسخةٍ تُباع فعلاً.
+ */
+export function gpuFitVerdict(gpu: { specs?: any; offers?: OfferLike[] | null }, caseSpecs: any): boolean | 'some' | null {
+  const fits = gpuOffersFit(gpu, caseSpecs);
+  if (!fits.length) {
+    const specs = typeof gpu.specs === 'string' ? safeParse(gpu.specs) : gpu.specs ?? {};
+    return gpuFitsCase(specs, caseSpecs);
+  }
+  const known = fits.filter((f) => f.fits !== null);
+  if (!known.length) return null;
+  if (known.every((f) => f.fits)) return true;
+  if (known.every((f) => !f.fits)) return false;
+  return 'some';
+}
+
+/** طولُ الكرت الذي يُعرض سعرُه — أرخص عرضٍ متوفّر. لمولّدات التجميعات:
+ *  تختار الكيس لسعرٍ بعينه، فالكيس يجب أن يسع **ذلك** الكرت. */
+export function shownGpuLengthMm(gpu: { specs?: any; offers?: OfferLike[] | null }): number | null {
+  const specs = typeof gpu.specs === 'string' ? safeParse(gpu.specs) : gpu.specs ?? {};
+  const cheapest = liveSorted(gpu.offers)[0];
+  return cheapest ? offerLengthMm(cheapest, specs) : gpuLengthMm(specs);
+}
+
+/** أقصرُ نسخةٍ متوفّرة — لرسالة «لا يدخل»: إن لم تدخل هذه فلا شيء يدخل */
+export function shortestGpuMm(gpu: { specs?: any; offers?: OfferLike[] | null }): number | null {
+  const specs = typeof gpu.specs === 'string' ? safeParse(gpu.specs) : gpu.specs ?? {};
+  const lens = liveSorted(gpu.offers).map((o) => offerLengthMm(o, specs)).filter((n): n is number => n !== null);
+  return lens.length ? Math.min(...lens) : gpuLengthMm(specs);
+}
+
+const safeParse = (s: string) => { try { return JSON.parse(s); } catch { return {}; } };
+
 /* ============ المبرّد والمعالج: عضويّةٌ في مجموعة ============
  *
  * المبرّد يدعم مقابس كثيرة («AM5/AM4/LGA1700») بخلاف بقيّة الفحوص التي

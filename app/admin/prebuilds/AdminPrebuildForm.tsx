@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { gpuFitVerdict } from '../../../lib/fit';
 
 export default function AdminPrebuildForm({ dbComponents, categories, action }: { dbComponents: any[], categories: any[], action: any }) {
   // حالة حفظ القطع المحددة
@@ -63,13 +64,13 @@ export default function AdminPrebuildForm({ dbComponents, categories, action }: 
       // توافق الكيس مع طول كرت الشاشة
       if (category.name === 'Case' && gpu) {
         const gpuSpecs = parseSpecs(gpu.specs);
-        if (specs.maxGpuLength && gpuSpecs.lengthMm && parseFloat(specs.maxGpuLength) < parseFloat(gpuSpecs.lengthMm)) return false;
+        if (gpuFitVerdict(gpu, specs) === false) return false;
       }
       
       // توافق كرت الشاشة مع الكيس
       if (category.name === 'GPU' && pcCase) {
         const caseSpecs = parseSpecs(pcCase.specs);
-        if (specs.lengthMm && caseSpecs.maxGpuLength && parseFloat(specs.lengthMm) > parseFloat(caseSpecs.maxGpuLength)) return false;
+        if (gpuFitVerdict(comp, caseSpecs) === false) return false;
       }
 
       return true;

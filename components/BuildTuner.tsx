@@ -5,6 +5,7 @@ import { CATEGORY_META } from '../lib/category-meta';
 import { productImage } from '../lib/image';
 import { isAvailable } from '../lib/stores';
 import { checkBuild } from '../lib/build-check';
+import { gpuFitVerdict, shortestGpuMm, caseGpuMaxMm } from '../lib/fit';
 
 /* ============ الأنواع ============ */
 type Comp = any;
@@ -165,17 +166,14 @@ export default function BuildTuner({
     if (catName === 'GPU') {
       const cse = effective['Case'];
       if (cse) {
-        const len = parseFloat(sp.lengthMm);
-        const max = parseFloat(parseSpecs(cse.specs).maxGpuLength);
-        if (!isNaN(len) && !isNaN(max) && len > max) return `أطول من الكيس (${max}mm)`;
+        const cs = parseSpecs(cse.specs);
+        if (gpuFitVerdict(comp, cs) === false) return `أطول من الكيس (${caseGpuMaxMm(cs)}mm)`;
       }
     }
     if (catName === 'Case') {
       const gpu = effective['GPU'];
       if (gpu) {
-        const len = parseFloat(parseSpecs(gpu.specs).lengthMm);
-        const max = parseFloat(sp.maxGpuLength);
-        if (!isNaN(len) && !isNaN(max) && len > max) return `أصغر من الكرت (${len}mm)`;
+        if (gpuFitVerdict(gpu, sp) === false) return `أصغر من الكرت (${shortestGpuMm(gpu)}mm)`;
       }
     }
     if (catName === 'PSU') {

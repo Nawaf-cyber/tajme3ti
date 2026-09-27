@@ -13,8 +13,8 @@
  * نقيّة عليه. فلا طلبَ ثانٍ لكلّ صفحةٍ يفتحها.
  */
 
-import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRig } from '../lib/use-rig';
 import Link from 'next/link';
 import { goToLogin } from '../lib/login-href';
 import { fitsRig, type RigCategory, type FitVerdict } from '../lib/rig-fit';
@@ -44,17 +44,11 @@ const HEAD_TONE: Record<FitVerdict['state'], string> = {
 
 export default function RigFitPanel({ category, part }: { category: RigCategory; part: PartLike }) {
   const { status } = useSession();
-  const [rig, setRig] = useState<Rig | null | 'none'>(null);
-
-  useEffect(() => {
-    if (status !== 'authenticated') return;
-    let alive = true;
-    fetch('/api/rig')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive) setRig(d && d.buildId ? d : 'none'); })
-      .catch(() => { if (alive) setRig('none'); });
-    return () => { alive = false; };
-  }, [status]);
+  /* ⚠️ الجلبُ مشتركٌ مع شارات «يدخل كيسك» بجانب المتاجر (lib/use-rig) —
+     طلبٌ واحدٌ للصفحة لا طلبٌ لكلّ مكوّن */
+  const rigState = useRig();
+  const rig: Rig | null | 'none' =
+    rigState.state === 'ready' ? (rigState.rig as Rig) : rigState.state === 'none' ? 'none' : null;
 
   /* الزائر والمسجَّل بلا جهاز: سطرٌ واحد يدعوه، ولا صندوق */
   if (status !== 'authenticated' || rig === 'none') {
@@ -70,6 +64,26 @@ export default function RigFitPanel({ category, part }: { category: RigCategory;
   }
 
   if (!rig) return null; // أثناء الجلب — لا هيكلٌ يقفز
+
+  /* ============ هذي في جهازك أصلاً ============
+   *
+   * ⚠️ وبلا هذا يُقال لصاحب الكرت عن كرته «✅ تناسب جهازك» — جوابٌ صحيحٌ
+   * منطقيّاً (الفرقُ بينه وبين نفسه صفر) وفارغٌ من المعنى. ومن يقرأ
+   * جواباً فارغاً مرّةً يتوقّف عن قراءة الصندوق.
+   */
+  const mine = (rig.rig[category] as any)?.id;
+  if (mine && mine === (part as any)?.id) {
+    return (
+      <div className="mt-3 rounded-sm border border-cyan-300 dark:border-cyan-800/50 bg-cyan-50/70 dark:bg-cyan-900/15 p-3.5">
+        <p className="text-[13px] font-black text-cyan-800 dark:text-cyan-300">
+          🖥️ هذي في جهازك الحالي
+        </p>
+        <p className="mt-1 text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">
+          ولذلك لا نُنبّهك على سعرها — تملكها.
+        </p>
+      </div>
+    );
+  }
 
   const custom = Object.keys(rig.customParts).filter(Boolean) as RigCategory[];
   const v = fitsRig(rig.rig, category, part, custom);

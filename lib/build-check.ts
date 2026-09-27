@@ -31,6 +31,7 @@
 import {
   socketMatch, ramTypeMatch, fitReason, psuFitReason,
   coolerFitsCpu, coolerCpuReason, coolerFitsCase, coolerFitReason,
+  gpuLengthMm, caseGpuMaxMm, gpuFitVerdict, gpuOffersFit,
 } from './fit';
 import { capacityGb, formatCapacity } from './capacity';
 
@@ -40,6 +41,8 @@ export type PartLike = {
   brand?: string;
   specs?: any;
   tdpWattage?: number | null;
+  /** عروض القطعة — للكرت يُقرأ منها طولُ كلّ نسخةٍ تُباع (lib/fit · gpuFitVerdict) */
+  offers?: any[] | null;
 } | null | undefined;
 
 export type BuildParts = {
@@ -163,12 +166,35 @@ export function checkBuild(parts: BuildParts): Issue[] {
   }
 
   if (parts.GPU && parts.Case) {
-    const len = numOf(gpu.lengthMm);
-    const max = numOf(cse.maxGpuLength);
-    if (len && max && len > max) {
+    /* ⚠️ بعروض الكرت لا بطول صفّه وحده: صفُّ الشريحة العامّ يبيع نسخاً
+       بأطوالٍ مختلفة (lib/fit · gpuFitVerdict). */
+    const card = { specs: gpu, offers: parts.GPU.offers };
+    const verdict = gpuFitVerdict(card, cse);
+    const max = caseGpuMaxMm(cse);
+    const fits = gpuOffersFit(card, cse);
+
+    if (verdict === false) {
+      const shortest = fits.length ? Math.min(...fits.map((f) => f.lengthMm ?? Infinity)) : gpuLengthMm(gpu);
       out.push({
         level: 'block', fixCategory: 'Case', code: 'gpuLength',
-        message: `طول الكرت ${len}مم أكبر من مساحة الصندوق ${max}مم.`,
+        message: fits.length > 1
+          ? `أقصرُ نسخةٍ متوفّرة من الكرت ${shortest}مم، ومساحة الصندوق ${max}مم.`
+          : `طول الكرت ${shortest}مم أكبر من مساحة الصندوق ${max}مم.`,
+      });
+    } else if (verdict === 'some') {
+      /* يدخل — بنسخةٍ بعينها. فيُسمّى المتجرُ الذي يبيعها وسعرُه، وما لا يدخل */
+      const ok = fits.find((f) => f.fits);
+      /* واسمُ النسخة إن عُرف (ComponentOffer.variant): «ASUS TUF من مايكرولس»
+         يقول أيَّ كرتٍ هو، و«مايكرولس» وحدها لا تقول */
+      const who = (f: typeof ok) => {
+        const store = f?.offer.store?.name ?? '?';
+        const v = f?.offer.variant;
+        return v ? `${v} من ${store}` : store;
+      };
+      const tooLong = fits.filter((f) => f.fits === false).map((f) => `${who(f)} (${f.lengthMm}مم)`);
+      out.push({
+        level: 'warn', fixCategory: 'GPU', code: 'gpuLengthSome',
+        message: `ليست كلُّ نسخ الكرت تدخل الصندوق (${max}مم): تدخل نسخة ${who(ok)} بـ${ok?.offer.price} ريال (${ok?.lengthMm}مم)، ولا تدخل ${tooLong.join('، ')}.`,
       });
     }
   }

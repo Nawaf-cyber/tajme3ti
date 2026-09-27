@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { prisma } from '../../lib/prisma';
 import CountdownTimer from '../../components/CountdownTimer';
 import { capacityGb } from '../../lib/capacity';
+import { gpuFitsCase } from '../../lib/fit';
 
 export const revalidate = 86400;
 
@@ -48,7 +49,8 @@ export default async function AutoBuildsPage() {
 
     const cpuSpecs = parseSpecs(cpu.specs);
     const reqWattage = (cpu.tdpWattage || 0) + (gpu.tdpWattage || 0) + 200;
-    const reqGpuLength = parseFloat(parseSpecs(gpu.specs).lengthMm || "320");
+    /* الكيس يُختار بدل الزائر: الكرت المجهول الطول يُفترض طويلاً (lib/fit) */
+    const gpuSpecs = parseSpecs(gpu.specs);
 
     const compMobos = mobos.filter(mb => String(parseSpecs(mb.specs).socket) === String(cpuSpecs.socket));
     let mobo = compMobos.find(mb => {
@@ -92,7 +94,7 @@ export default async function AutoBuildsPage() {
       return true;
     }) || storages[0];
 
-    const compCases = cases.filter(c => parseFloat(parseSpecs(c.specs).maxGpuLength || "999") >= reqGpuLength);
+    const compCases = cases.filter(c => gpuFitsCase(gpuSpecs, parseSpecs(c.specs), { unknownGpuMm: 320 }) !== false);
     let pcase = compCases.find(c => {
       if (tier === 'economy') return c.price <= 350;
       if (tier === 'mid') return c.price > 350 && c.price <= 650;

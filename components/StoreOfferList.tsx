@@ -13,6 +13,8 @@ import { formatPrice, discountPercent } from '../lib/price';
 import { pctAboveMin, type PriceStats } from '../lib/price-stats';
 import { storeVars, type Offer } from '../lib/stores';
 import { StoreNoticeInline } from './StoreNotice';
+import OfferLengthTag from './OfferLengthTag';
+import { offerLengthMm } from '../lib/fit';
 
 const RiyalIcon = ({ size = 'h-5 w-5' }: { size?: string }) => (
   <div
@@ -67,10 +69,13 @@ function PriceContextNote({ stats, now }: { stats: PriceStats; now: number }) {
 export default function StoreOfferList({
   offers,
   stats,
+  gpuSpecs,
 }: {
   offers: Offer[];
   /** موضع السعر من تاريخه — يُغني عن المقارنة حين لا يوجد إلّا متجرٌ واحد */
   stats?: PriceStats | null;
+  /** مواصفات الكرت — للكروت وحدها: يُقرأ منها طول الصفّ لعرضٍ لم يُقَس */
+  gpuSpecs?: any;
 }) {
   // نعرض كل متجر له رابط — حتى النافد، ليعرف الزائر أنه مرصود لا مفقود
   const rows = (offers || []).filter((o) => !!o.url);
@@ -84,6 +89,18 @@ export default function StoreOfferList({
      تاريخه» — وهي مقارنةٌ نملك بياناتها وحدنا. */
   const live = rows.filter((o) => o.inStock && !!o.price);
   const single = live.length === 1;
+
+  /* طولُ نسخة كلّ متجر — ويُعرض فقط حين تختلف الأطوال: كرتٌ بطولٍ واحد
+     يكفيه رقمُه في المواصفات، وتكرارُه بجانب كلّ سعرٍ ضجيج. */
+  const lengthOf = (o: Offer) => (gpuSpecs ? offerLengthMm(o as any, gpuSpecs) : null);
+  const lengthsVary = !!gpuSpecs && new Set(rows.map(lengthOf).filter((n) => n !== null)).size > 1;
+  /* ⚠️ ويُعرض الرقمُ المقيس وحده: عرضٌ لم يُقَس يأخذ طولَ صفّه **للفحص**
+     احتياطاً، لكنّ عرضَ ذلك الرقم بجانبه يُقدّمه للزائر قياساً وهو تخمين —
+     جرير يبيع PNY ARGB، وكان يظهر بطول WINDFORCE. */
+  const measured = (o: Offer): number | null => {
+    const n = Number((o as any).lengthMm);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
 
   return (
     <div className="flex flex-col gap-3 mt-4 w-full relative z-0">
@@ -122,6 +139,9 @@ export default function StoreOfferList({
               <span className="font-mono font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-[color:var(--store-color)] transition-colors flex flex-col">
                 {o.store.latinName}
                 {!live && <span className="text-[11.5px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>}
+                {lengthsVary && measured(o) !== null && (
+                  <OfferLengthTag lengthMm={measured(o)!} variant={(o as any).variant} />
+                )}
                 {/* إعلان حالة المتجر — في اللحظة التي يهمّ فيها: قبل الضغط */}
                 <StoreNoticeInline store={{ ...o.store, id: o.storeId }} />
               </span>
