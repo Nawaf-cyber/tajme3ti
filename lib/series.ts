@@ -17,6 +17,8 @@
  * أنّ كلَّ مزوّدٍ في الكتالوج يطابق سلسلةً واحدة بالضبط.
  */
 
+import { MOTHERBOARD_LINES, MSI_LADDER_SOURCE } from './series-motherboard';
+
 export type Warranty = { min: number; max: number };
 
 /**
@@ -53,7 +55,7 @@ type Issue = {
 /** تاريخ مراجعتنا للمصادر — يُعرض مع الملاحظات */
 export const ISSUES_CHECKED = '2026-09-29';
 
-type Series = {
+export type Series = {
   /** الاسم المعروض — كما تكتبه الشركة */
   label: string;
   match: RegExp;
@@ -64,25 +66,37 @@ type Series = {
   /** سنوات؛ ومدىً إن كان الصفُّ يجمع نسختين بضمانين */
   warranty?: number | [number, number];
   note?: string;
-  source: string;
+  /** مصدر ضمان السلسلة — وإن غاب فمصدر ضمان الشركة (warrantySource) */
+  source?: string;
   issues?: Issue[];
   /** مختبرٌ مستقلّ راجع السلسلة ولم يجد ما يمسّ المشتري — يُقال ذلك بمصدره */
   cleanTest?: Source & { models?: RegExp };
 };
 
-type BrandLine = {
+export type BrandLine = {
   category: string;
   brand: string;
-  /** ترتيبُ الشركة لسلاسلها من الأدنى إلى الأعلى — منشورٌ منها لا مستنتَج */
+  /** ترتيبُ الشركة لسلاسلها من الأدنى إلى الأعلى — منشورٌ منها لا مستنتَج.
+   *  والدرجة قد تجمع سلسلتين إن جمعتهما الشركة («Pro RS · Steel Legend» عند ASRock). */
   ladder?: string[];
   ladderSource?: string;
+  /** ضمان الشركة لكلّ سلاسلها إن نشرته رقماً واحداً (Gigabyte للوحات: 3 سنوات) */
+  warranty?: number;
+  /** وإن لم تنشر رقماً: ما تقوله هي بلفظها («تختلف بحسب المنطقة») */
+  warrantyNote?: string;
+  warrantySource?: string;
   series: Series[];
+};
+
+/** ما يُقال عن الدرجة في فئةٍ بعينها — تحت السُّلَّم */
+const LADDER_NOTE: Record<string, string> = {
+  Motherboard: 'الدرجة للسلسلة لا للشريحة: لوحةٌ من سلسلةٍ أدنى بشريحة X670E أو Z790 قد تفوق لوحةً من سلسلةٍ أعلى بشريحة B650 أو B760.',
 };
 
 const CORSAIR_LINEUP = 'https://www.corsair.com/us/en/explorer/diy-builder/power-supply-units/explaining-the-corsair-psu-lineup/';
 const SFF = 'خطّ الكيسات الصغيرة (SFX)';
 
-const LINES: BrandLine[] = [
+const PSU_LINES: BrandLine[] = [
   {
     category: 'PSU', brand: 'Corsair',
     ladder: ['CX-M', 'RMe', 'RMx', 'RMx SHIFT', 'HXi', 'HXi SHIFT'], ladderSource: CORSAIR_LINEUP,
@@ -102,7 +116,8 @@ const LINES: BrandLine[] = [
   },
   {
     category: 'PSU', brand: 'MSI',
-    ladder: ['MAG', 'MPG', 'MEG'], ladderSource: 'https://www.msi.com/Power-Supply/Products',
+    /* «from the flagship MEG series to the premium MPG series and the mainstream MAG series» — يعمّ مزوّداتها ولوحاتها */
+    ladder: ['MAG', 'MPG', 'MEG'], ladderSource: MSI_LADDER_SOURCE,
     series: [
       /* صفحة المواصفات لا تذكر ضماناً — يبقى فارغاً */
       { label: 'MAG A-DN', family: 'MAG', match: /^MAG A\d+DN\b/i, source: 'https://www.msi.com/Power-Supply/MAG-A600DN/Specification' },
@@ -201,6 +216,9 @@ const LINES: BrandLine[] = [
   },
 ];
 
+/* كلُّ فئةٍ بعد المزوّدات في ملفّها — lib/series-<فئة>.ts */
+const LINES: BrandLine[] = [...PSU_LINES, ...MOTHERBOARD_LINES];
+
 export type SeriesInfo = {
   brand: string;
   label: string;
@@ -210,8 +228,11 @@ export type SeriesInfo = {
   /** موضعها فيه (يبدأ من ١) — غائبٌ إن كانت خارجه */
   rank?: number;
   offLadder?: string;
+  ladderNote?: string;
   warranty?: Warranty;
+  warrantyNote?: string;
   note?: string;
+  /** مصدر الضمان — فارغٌ إن لم يكن */
   source: string;
   /** ما يخصّ هذه القطعة من ملاحظات سلسلتها */
   issues: Omit<Issue, 'models'>[];
@@ -226,7 +247,7 @@ export function matchSeries(c: { brand: string; name: string }, category: string
   if (!line) return [];
   return line.series.filter((s) => s.match.test(c.name.trim())).map((s) => {
     const rank = s.family && line.ladder ? line.ladder.indexOf(s.family) + 1 || undefined : undefined;
-    const w = s.warranty;
+    const w = s.warranty ?? line.warranty;
     return {
       brand: line.brand,
       label: s.label,
@@ -234,9 +255,12 @@ export function matchSeries(c: { brand: string; name: string }, category: string
       ladderSource: line.ladderSource,
       rank,
       offLadder: s.offLadder,
+      /* تشرح الدرجة، فلا تظهر إلا معها */
+      ladderNote: rank ? LADDER_NOTE[category] : undefined,
       warranty: w == null ? undefined : Array.isArray(w) ? { min: w[0], max: w[1] } : { min: w, max: w },
+      warrantyNote: w == null ? line.warrantyNote : undefined,
       note: s.note,
-      source: s.source,
+      source: s.source ?? line.warrantySource ?? '',
       issues: (s.issues ?? []).filter((i) => !i.models || i.models.test(c.name)).map(({ models: _m, ...i }) => i),
       cleanTest: s.cleanTest && (!s.cleanTest.models || s.cleanTest.models.test(c.name))
         ? { name: s.cleanTest.name, url: s.cleanTest.url, date: s.cleanTest.date }

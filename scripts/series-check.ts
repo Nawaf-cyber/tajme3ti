@@ -20,7 +20,7 @@ let rowsAll: { brand: string; name: string }[] = [];
 
 async function main() {
   rowsAll = await prisma.component.findMany({ where: { category: { name: 'PSU' } }, select: { brand: true, name: true } });
-  for (const category of ['PSU']) {
+  for (const category of ['PSU', 'Motherboard']) {
     const rows = await prisma.component.findMany({ where: { category: { name: category } }, select: { brand: true, name: true }, orderBy: [{ brand: 'asc' }, { name: 'asc' }] });
     console.log(`\n${category} — ${rows.length} قطعة`);
     const none: string[] = [], many: string[] = [];
@@ -44,6 +44,20 @@ async function main() {
   check('شركةٌ بلا سُلَّم ← لا درجة', !s('DeepCool', 'PL550D')?.rank && !s('DeepCool', 'PL550D')?.ladder);
   check('«12 سنة» · «7 سنوات» · مدى', warrantyText({ min: 12, max: 12 }) === '12 سنة' && warrantyText({ min: 7, max: 7 }) === '7 سنوات' && warrantyText({ min: 7, max: 10 }) === '7 إلى 10 سنوات');
   check('فئةٌ بلا بيانات ← لا شيء', matchSeries({ brand: 'Corsair', name: 'Vengeance 32GB' }, 'RAM').length === 0);
+
+  console.log('\nاللوحات الأمّ');
+  const mb = (brand: string, name: string) => matchSeries({ brand, name }, 'Motherboard')[0];
+  /* كانت «X670E Carbon WiFi» بلا بادئة واحتاجت استثناءً؛ صُحّح الاسم (scripts/fix-mb-name-2026-09-29.mjs) */
+  check('MPG X670E Carbon = MPG', mb('MSI', 'MPG X670E Carbon WiFi')?.label === 'MPG' && mb('MSI', 'MPG X670E Carbon WiFi')?.rank === 2);
+  check('Gaming Plus خارج سُلَّم MSI', !mb('MSI', 'B650 Gaming Plus WiFi')?.rank && !!mb('MSI', 'B650 Gaming Plus WiFi')?.offLadder);
+  check('MAG Tomahawk ليست Gaming', mb('MSI', 'MAG B650 TOMAHAWK WIFI')?.label === 'MAG');
+  check('ASRock: Steel Legend وPro RS درجةٌ واحدة كما قالت', mb('ASRock', 'X670E Steel Legend')?.rank === 1 && mb('ASRock', 'B760M Pro RS')?.rank === 1);
+  check('ROG Crosshair وStrix درجةٌ واحدة (ROG)', mb('ASUS', 'ROG Crosshair X670E Hero')?.rank === 3 && mb('ASUS', 'ROG Strix B650-A Gaming WiFi')?.rank === 3);
+  check('MAX Gaming وProArt خارج سُلَّم ASUS', !mb('ASUS', 'B850 MAX GAMING WIFI W')?.rank && !mb('ASUS', 'ProArt X670E-Creator WiFi')?.rank);
+  check('Gigabyte: لا سُلَّم، وضمان 3 سنوات', !mb('Gigabyte', 'B650M DS3H')?.ladder && mb('Gigabyte', 'B650M DS3H')?.warranty?.max === 3);
+  check('ASUS: لا رقم ضمان، بل لفظها', !mb('ASUS', 'PRIME A620M-K')?.warranty && !!mb('ASUS', 'PRIME A620M-K')?.warrantyNote);
+  check('ملاحظة الشريحة مع الدرجة فقط', !!mb('MSI', 'MEG Z790 ACE')?.ladderNote && !mb('Gigabyte', 'B650M DS3H')?.ladderNote && !mb('MSI', 'PRO B650M-A WiFi')?.ladderNote);
+  check('لا تمسّ المزوّدات', !matchSeries({ brand: 'MSI', name: 'MAG A650BN' }, 'PSU')[0]?.ladderNote);
 
   console.log('\nالملاحظات');
   const iss = (brand: string, name: string) => s(brand, name)?.issues ?? [];

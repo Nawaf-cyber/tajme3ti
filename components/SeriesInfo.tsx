@@ -93,6 +93,7 @@ export function SeriesDetails({ part, category }: { part: Part; category: string
                 ? <>هذه القطعة من سلسلة <span dir="ltr">{s.label}</span>: الدرجة {s.rank} من {s.ladder.length}.</>
                 : <>هذه القطعة من سلسلة <span dir="ltr">{s.label}</span>: {s.offLadder}.</>}
             </div>
+            {s.ladderNote && <div className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">{s.ladderNote}</div>}
           </div>
         ) : (
           <div>
@@ -103,7 +104,7 @@ export function SeriesDetails({ part, category }: { part: Part; category: string
 
         <div>
           <span className="font-bold">ضمان الشركة: </span>
-          {s.warranty ? warrantyText(s.warranty) : 'لم تنشر الشركة مدّته لهذه السلسلة.'}
+          {s.warranty ? warrantyText(s.warranty) : s.warrantyNote ?? 'لم تنشر الشركة مدّته لهذه السلسلة.'}
           {s.warranty && (
             <div className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">
               هذا ما تنشره الشركة، وقد يختلف بحسب المنطقة. الضمان الفعليّ في السعودية يحدّده المتجر والوكيل، فاسأل عنه قبل الشراء.
@@ -145,7 +146,7 @@ export function SeriesDetails({ part, category }: { part: Part; category: string
         <div className="text-[12px] text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-3">
           <span>مصادر الترتيب والضمان:</span>
           {s.ladderSource && <a href={s.ladderSource} target="_blank" rel="noopener noreferrer" className={linkCls}>ترتيب التشكيلة</a>}
-          <a href={s.source} target="_blank" rel="noopener noreferrer" className={linkCls}>الضمان</a>
+          {s.source && <a href={s.source} target="_blank" rel="noopener noreferrer" className={linkCls}>الضمان</a>}
         </div>
       </div>
   );
