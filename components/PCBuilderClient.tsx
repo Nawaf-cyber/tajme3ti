@@ -23,6 +23,7 @@ import { track, trackOnce } from '../lib/track';
 import { productImage } from '../lib/image';
 import RichDescription from './RichDescription';
 import SpecSheet from './SpecSheet';
+import { SeriesLine, SeriesPanel } from './SeriesInfo';
 import {
   boardFitsCase, fitReason, psuFitsCase, psuFitReason,
   coolerFitsCase, coolerFitReason, coolerFitsCpu, coolerCpuReason,
@@ -338,6 +339,11 @@ const SearchableSelect = ({
                 </button>
               </div>
             </div>
+
+            {/* السلسلة وضمان الشركة — بعرض البطاقة كلّه، لا في العمود الأوسط الضيّق على الجوال */}
+            {selectedComponent && (
+              <SeriesLine part={selectedComponent} category={categoryName} onMore={() => onShowDetails(selectedComponent)} />
+            )}
 
             {/* تنبيه عدم التوفّر */}
             {selectedComponent && !avail && (
@@ -2355,6 +2361,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 </h4>
                 {renderSpecs(detailsModal.comp.specs, detailsModal.categoryName)}
               </div>
+
+              <SeriesPanel part={detailsModal.comp} category={detailsModal.categoryName} />
 
               <div>
                 <h4 className="font-extrabold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
