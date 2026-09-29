@@ -16,6 +16,8 @@ import type { Metadata } from 'next';
 import { productImage, IMAGE_FALLBACK } from '../../../lib/image';
 import RichDescription from '../../../components/RichDescription';
 import SpecSheet from '../../../components/SpecSheet';
+import { SeriesDetails, SeriesLine } from '../../../components/SeriesInfo';
+import { seriesInfo } from '../../../lib/series';
 import { Panel, SectionHeading, MicroLabel } from '../../../components/Panel';
 import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
 import { fetchPriceStats } from '../../../lib/price-stats';
@@ -184,6 +186,17 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               )}
             </div>
 
+            {/* تحت الاسم لا بعيداً عنه: السلسلة والضمان من هويّة القطعة، يُقرآن
+                معها قبل السعر. والتفاصيل والملاحظات في قسمها تحت المواصفات. */}
+            {comp.category?.name && (
+              <SeriesLine
+                part={{ brand: comp.brand, name: comp.name }}
+                category={comp.category.name}
+                href="#series"
+                className="-mt-3 mb-6 text-[13px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed"
+              />
+            )}
+
             <div className="flex flex-wrap items-end gap-5 mb-4 pb-6 border-b border-slate-100 dark:border-slate-800">
               <div>
                 {/* كان: font-mono uppercase tracking-widest بحجم ١٠ بكسل.
@@ -257,6 +270,17 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             <Panel className="px-6 py-4">
               <SpecSheet categoryName={comp.category?.name} specs={specs} />
             </Panel>
+
+            {/* ما تنشره الشركة عن سلسلتها وضمانها، وما قاله عنها مختبرٌ مستقلّ —
+                كان في الباني وحده، ومن يأتي من البحث يهبط هنا. lib/series.ts */}
+            {comp.category?.name && seriesInfo(comp, comp.category.name) && (
+              <div id="series" className="scroll-mt-24 flex flex-col gap-4">
+                <SectionHeading>السلسلة وضمان الشركة</SectionHeading>
+                <Panel className="px-6 py-5">
+                  <SeriesDetails part={{ brand: comp.brand, name: comp.name }} category={comp.category.name} />
+                </Panel>
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-7 flex flex-col gap-4">

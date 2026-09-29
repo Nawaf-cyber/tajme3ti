@@ -18,37 +18,53 @@ const linkCls = 'text-cyan-600 dark:text-cyan-400 hover:underline';
 
 type Part = { brand: string; name: string };
 
-/** سطرٌ واحد: «سلسلة RMe · الدرجة 2 من 6 في تشكيلة Corsair · ضمان الشركة 7 سنوات» */
-export function SeriesLine({ part, category, onMore }: { part: Part; category: string; onMore?: () => void }) {
+/** سطرٌ واحد: «سلسلة RMe · الدرجة 2 من 6 في تشكيلة Corsair · ضمان الشركة 7 سنوات»
+ *  في الباني: زرٌّ يفتح نافذة التفاصيل (onMore). في صفحة القطعة: رابطٌ ينزل
+ *  إلى القسم الكامل (href)، وتنسيقه تحت العنوان (className). */
+export function SeriesLine({ part, category, onMore, href, className }: {
+  part: Part; category: string; onMore?: () => void; href?: string; className?: string;
+}) {
   const s = seriesInfo(part, category);
   if (!s) return null;
+  const more = s.issues.length === 0 ? 'المزيد' : s.issues.length === 1 ? 'المزيد وملاحظة' : `المزيد و${s.issues.length} ملاحظات`;
+  const moreCls = 'mr-1.5 text-cyan-600 dark:text-cyan-400 hover:underline';
   return (
-    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-[12px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed">
+    <div className={className ?? 'mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-[12px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed'}>
       {seriesLine(s)}
-      {onMore && (
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onMore(); }}
-          className="mr-1.5 text-cyan-600 dark:text-cyan-400 hover:underline"
-        >
-          · {s.issues.length === 0 ? 'المزيد' : s.issues.length === 1 ? 'المزيد وملاحظة' : `المزيد و${s.issues.length} ملاحظات`}
+      {href ? (
+        <a href={href} className={moreCls}>· {more} ↓</a>
+      ) : onMore && (
+        <button type="button" onClick={(e) => { e.stopPropagation(); onMore(); }} className={moreCls}>
+          · {more}
         </button>
       )}
     </div>
   );
 }
 
-/** قسمٌ كامل: سُلَّم الشركة وموضعها فيه، والضمان، والمصادر */
+/** القسم في نافذة التفاصيل بالباني — عنوانه وإطاره حول SeriesDetails */
 export function SeriesPanel({ part, category }: { part: Part; category: string }) {
-  const s = seriesInfo(part, category);
-  if (!s) return null;
-
+  if (!seriesInfo(part, category)) return null;
   return (
     <div className="mb-8">
       <h4 className="font-extrabold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
         <span className="text-cyan-600">🏷️</span> السلسلة وضمان الشركة
       </h4>
-      <div className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-sm border border-slate-200 dark:border-slate-700/30 text-sm text-slate-700 dark:text-slate-300 space-y-3">
+      <div className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-sm border border-slate-200 dark:border-slate-700/30">
+        <SeriesDetails part={part} category={category} />
+      </div>
+    </div>
+  );
+}
+
+/** المحتوى وحده: سُلَّم الشركة وموضعها فيه، والضمان، والملاحظات، والمصادر.
+ *  نافذة الباني وصفحة القطعة تغلّفانه كلٌّ بإطارها. */
+export function SeriesDetails({ part, category }: { part: Part; category: string }) {
+  const s = seriesInfo(part, category);
+  if (!s) return null;
+
+  return (
+      <div className="text-sm text-slate-700 dark:text-slate-300 space-y-3">
         {s.ladder ? (
           <div>
             <div className="text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2">
@@ -81,7 +97,7 @@ export function SeriesPanel({ part, category }: { part: Part; category: string }
         ) : (
           <div>
             <span className="font-bold">السلسلة: <span dir="ltr">{s.label}</span>{s.offLadder ? ` · ${s.offLadder}` : ''}.</span>{' '}
-            <span className="text-slate-500 dark:text-slate-400">لا تنشر {s.brand} ترتيباً رسمياً لسلاسلها، فلا نرتّبها نحن.</span>
+            <span className="text-slate-500 dark:text-slate-400">لم نجد ترتيباً رسمياً تنشره {s.brand} لسلاسلها، فلا نرتّبها نحن.</span>
           </div>
         )}
 
@@ -132,6 +148,5 @@ export function SeriesPanel({ part, category }: { part: Part; category: string }
           <a href={s.source} target="_blank" rel="noopener noreferrer" className={linkCls}>الضمان</a>
         </div>
       </div>
-    </div>
   );
 }
