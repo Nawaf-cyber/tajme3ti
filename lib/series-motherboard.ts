@@ -19,7 +19,16 @@
  * ASUS وMSI تقولان إنه يختلف بحسب المنطقة وتحيلان إلى المكتب المحلّي،
  * وASRock تجعله عبر الموزّع — فيُقال ذلك بلفظهنّ بدل رقمٍ مخترَع.
  */
-import type { BrandLine, Issue } from './series';
+import type { BrandLine, Issue, Source } from './series';
+
+/* ============ اختبارات اللوحات — 2026-10-02 ============
+ * من TechPowerUp (.minus في الخلاصة) وTom's Hardware (عيوب رأس المراجعة)، على
+ * اللوحة نفسها لا أختها (B850M Stealth Ice ليست B850 Stealth Ice ATX عندنا،
+ * وTUF B760-Plus D4 ليست DDR5 عندنا، وZ790 Tomahawk Max ليست Tomahawk).
+ * ويُنقل ما يمسّ المشتري: تشارك الممرّات (منفذٌ يعطّل آخر أو ينقصه)، والحرارة.
+ * ولا يُنقل: عيوب BIOS 2022 (أُصلحت)، والبرامج، والسعر، وعدد المنافذ المعتاد. */
+const TPU = (path: string, date: string): Source => ({ name: 'TechPowerUp', url: `https://www.techpowerup.com/review/${path}`, date });
+const TOMS = (path: string, date: string): Source => ({ name: "Tom's Hardware", url: `https://www.tomshardware.com/${path}`, date });
 
 /**
  * ============ ملاحظات الشرائح — 2026-09-29 ============
@@ -75,10 +84,19 @@ export const MOTHERBOARD_LINES: BrandLine[] = [
           sources: [{ name: 'ASUS', url: 'https://www.asus.com/motherboards-components/motherboards/prime/prime-a620m-k/techspec/' }],
         }] },
       { label: 'TUF Gaming', family: 'TUF Gaming', match: /^TUF Gaming\b/i },
-      { label: 'ROG Strix', family: 'ROG', match: /^ROG Strix\b/i },
+      { label: 'ROG Strix', family: 'ROG', match: /^ROG Strix\b/i,
+        issues: [{ level: 'tested', models: /Z890-E/i,
+          text: 'استعمال منفذَي M.2 الثاني والثالث يُنقص سرعة منفذ كرت الشاشة، بحسب المراجع.',
+          sources: [TPU('asus-rog-strix-z890-e-gaming-wi-fi/12.html', '2026-07')] }],
+        cleanTest: [
+          { ...TOMS('pc-components/motherboards/asus-rog-strix-x870e-e-gaming-wifi-review', '2025-04'), models: /X870E-E/i },
+          { ...TOMS('pc-components/motherboards/asus-rog-strix-z890-a-gaming-wifi-motherboard-review', '2024-12'), models: /Z890-A/i },
+        ] },
       { label: 'ROG Crosshair', family: 'ROG', match: /^ROG Crosshair\b/i },
-      { label: 'ROG Maximus', family: 'ROG', match: /^ROG Maximus\b/i },
-      { label: 'ProArt', match: /^ProArt\b/i, offLadder: 'خطّ صنّاع المحتوى، خارج سلاسل الألعاب' },
+      { label: 'ROG Maximus', family: 'ROG', match: /^ROG Maximus\b/i,
+        cleanTest: { ...TOMS('reviews/asus-rog-maximus-z790-hero-review', '2022-12'), models: /Z790 Hero/i } },
+      { label: 'ProArt', match: /^ProArt\b/i, offLadder: 'خطّ صنّاع المحتوى، خارج سلاسل الألعاب',
+        cleanTest: { ...TOMS('reviews/asus-proart-x670e-creator-wi-fi-review', '2023-08'), models: /X670E-Creator/i } },
       { label: 'MAX Gaming', match: /\bMAX GAMING\b/i, offLadder: 'مصنّفةٌ «أخرى» في موقع ASUS، خارج سلاسلها الأساسيّة' },
     ],
   },
@@ -89,8 +107,15 @@ export const MOTHERBOARD_LINES: BrandLine[] = [
     warrantySource: 'https://us.msi.com/page/warranty/mb',
     series: [
       { label: 'MAG', family: 'MAG', match: /^MAG\b/i },
-      { label: 'MPG', family: 'MPG', match: /^MPG\b/i },
-      { label: 'MEG', family: 'MEG', match: /^MEG\b/i },
+      { label: 'MPG', family: 'MPG', match: /^MPG\b/i,
+        issues: [{ level: 'tested', models: /B850I EDGE TI/i,
+          text: 'حرارة دائرة الطاقة فيه مرتفعةٌ نسبياً، بحسب المراجع.',
+          sources: [TPU('msi-mpg-b850i-edge-ti-wi-fi/12.html', '2025-07')] }],
+        cleanTest: { ...TOMS('pc-components/motherboards/msi-x870e-carbon-wifi-motherboard-review', '2024-09'), models: /X870E Carbon/i } },
+      { label: 'MEG', family: 'MEG', match: /^MEG\b/i,
+        issues: [{ level: 'tested', models: /^MEG Z790 ACE$/i,
+          text: 'تركيب قرص PCIe 5.0 في منفذ M.2 الخاصّ به يعطّل منفذ PCIe الثاني، بحسب المراجع.',
+          sources: [TPU('msi-z790-meg-z790-ace/15.html', '2023-02')] }] },
       { label: 'PRO', match: /^PRO\b/i, offLadder: 'خارج ترتيب MSI لسلاسل الألعاب الثلاث' },
       { label: 'Gaming', match: /^[A-Z]\d{3}M? GAMING PLUS\b/i, offLadder: 'سلسلةٌ مستقلّة في موقع MSI، خارج سلاسل الألعاب الثلاث' },
     ],
@@ -99,7 +124,18 @@ export const MOTHERBOARD_LINES: BrandLine[] = [
     category: 'Motherboard', brand: 'Gigabyte',
     warranty: 3, warrantySource: 'https://www.gigabyte.com/Support/Consumer/Warranty/Motherboard',
     series: [
-      { label: 'AORUS', match: /\bAORUS\b/i },
+      { label: 'AORUS', match: /\bAORUS\b/i,
+        issues: [
+          { level: 'tested', models: /^B650E AORUS Master$/i,
+            text: 'منافذ M.2 تتشارك مع منفذ PCIe، فاستعمالها يُنقص منه، بحسب المراجع.',
+            sources: [TPU('gigabyte-b650e-aorus-master/15.html', '2022-10')] },
+          { level: 'tested', models: /^X670E AORUS Master$/i,
+            text: 'منافذ SATA تتشارك مع منفذ PCIe الثالث، بحسب المراجع.',
+            sources: [TPU('gigabyte-x670e-aorus-master/15.html', '2022-10')] },
+          { level: 'tested', models: /^X870 AORUS Elite WiFi ?7$/i,
+            text: 'منفذ M.2 واحدٌ فقط لا يتشارك الممرّات؛ واستعمال الباقي يُنقص منافذ M.2 أو PCIe أخرى، بحسب المراجع.',
+            sources: [TPU('gigabyte-x870-aorus-elite-wifi-7/12.html', '2025-02')] },
+        ] },
       { label: 'GAMING', match: /\bGAMING X\b/i },
       /* صفحات DS3H وH610M H وH810M H تعرّفها «Ultra Durable» */
       { label: 'ULTRA DURABLE', match: /(\bDS3H\b|\bUD\b|^H\d{3}M H\b)/i },

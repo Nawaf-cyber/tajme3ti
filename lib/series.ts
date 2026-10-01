@@ -68,7 +68,7 @@ export type Issue = {
 };
 
 /** تاريخ مراجعتنا للمصادر — يُعرض مع الملاحظات */
-export const ISSUES_CHECKED = '2026-10-01';
+export const ISSUES_CHECKED = '2026-10-02';
 
 export type Series = {
   /** الاسم المعروض — كما تكتبه الشركة */

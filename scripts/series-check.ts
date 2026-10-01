@@ -63,7 +63,7 @@ async function main() {
   check('A620M-K: حدّ 120 واط + شريحة A620 + BIOS', mbi('ASUS', 'PRIME A620M-K').length === 3);
   check('TUF A620M-Plus: بلا حدّ 120', mbi('ASUS', 'TUF Gaming A620M-Plus WiFi').length === 2);
   check('ملاحظة الشريحة تعمّ الشركات: A620 عند MSI', mbi('MSI', 'PRO A620M-E').some((t) => t.startsWith('شريحة A620')));
-  check('BIOS لوحات 600 فقط: B650 نعم، B850 وX870 لا', mbi('Gigabyte', 'B650M DS3H').length === 1 && mbi('MSI', 'B850 GAMING PLUS WiFi').length === 0 && mbi('Gigabyte', 'X870 AORUS Elite WiFi7').length === 0);
+  check('BIOS لوحات 600 فقط: B650 نعم، B850 وX870 لا', mbi('Gigabyte', 'B650M DS3H').length === 1 && !mbi('MSI', 'B850 GAMING PLUS WiFi').some((t) => t.includes('BIOS')) && !mbi('Gigabyte', 'X870 AORUS Elite WiFi7').some((t) => t.includes('BIOS')));
   check('H610 وH810 عند أربع شركات', mbi('ASRock', 'H610M-HDV/M.2+ D5').length === 1 && mbi('Gigabyte', 'H810M H').length === 1 && mbi('MSI', 'PRO H610M-G WiFi DDR4').length === 1 && mbi('ASUS', 'PRIME H610M-K D4').length === 1);
   check('لا تمسّ Intel B760 وZ790', mbi('MSI', 'PRO B760M-A WiFi').length === 0 && mbi('ASUS', 'Prime Z790-P WiFi').length === 0);
   check('ملاحظات الشرائح لا تمسّ المزوّدات', (matchSeries({ brand: 'Corsair', name: 'RM750e' }, 'PSU')[0]?.issues.length ?? 0) === 1);
@@ -196,12 +196,21 @@ async function main() {
   check('Phantom Spirit 120 EVO: الرامات والصوت · وVision EVO وSE بلا شيء', coi('Thermalright', 'Phantom Spirit 120 EVO').length === 1 && coi('Thermalright', 'Phantom Spirit 120 Vision EVO').length === 0 && coi('Thermalright', 'Phantom Spirit 120 SE ARGB').length === 0);
   check('Peerless Assassin 120 SE نظيف بلونيه، باسم النسخة المختبَرة', ['Peerless Assassin 120 SE ARGB', 'Peerless Assassin 120 SE ARGB White'].every((n) => co('Thermalright', n)?.cleanTest?.name.includes('بلا إضاءة') === true));
   check('GL360 V2 نظيف · وGL240 V2 لم يُختبر', !!co('Gamdias', 'Aura GL360 V2')?.cleanTest && !co('Gamdias', 'Aura GL240 V2')?.cleanTest);
-  check('Kraken Plus المختلط بلا اختبار · وضمانه ستّ', !co('NZXT', 'Kraken Plus 360 RGB')?.cleanTest && coi('NZXT', 'Kraken Plus 360 RGB').length === 0 && co('NZXT', 'Kraken Plus 360 RGB')?.warranty?.max === 6);
+  check('Kraken Plus 360 نظيف بعد حذف رابط Elite · وضمانه ستّ', !!co('NZXT', 'Kraken Plus 360 RGB')?.cleanTest && co('NZXT', 'Kraken Plus 360 RGB')?.warranty?.max === 6);
   check('DeepCool: AG سنة · LE ثلاث · LT وMystique خمس', co('DeepCool', 'AG300')?.warranty?.max === 1 && co('DeepCool', 'LE360 V2')?.warranty?.max === 3 && co('DeepCool', 'LT360 ARGB')?.warranty?.max === 5 && co('DeepCool', 'Mystique 360 ARGB')?.warranty?.max === 5);
   check('Thermalright مدى 3 إلى 6 بلفظها', co('Thermalright', 'Frozen Notte 240 White ARGB V2')?.warranty?.min === 3 && co('Thermalright', 'Frozen Notte 240 White ARGB V2')?.warranty?.max === 6 && !!co('Thermalright', 'Frozen Notte 240 White ARGB V2')?.warrantyNote);
   check('ولا مبرّد بملاحظة اختبارٍ واختبارٍ نظيفٍ معاً', coolers.every((r) => { const x = co(r.brand, r.name); return !(x?.issues.some((i) => i.level === 'tested') && x?.cleanTest); }));
   const coolNotes = coolers.filter((r) => coi(r.brand, r.name).length || co(r.brand, r.name)?.cleanTest);
   console.log(`    ${coolNotes.length} من ${coolers.length} مبرّداً عليه ملاحظة أو اختبارٌ نظيف`);
+
+  console.log('\nاختبارات اللوحات');
+  const mbx = (brand: string, name: string) => matchSeries({ brand, name }, 'Motherboard')[0];
+  const mbt = (brand: string, name: string) => (mbx(brand, name)?.issues ?? []).filter((i) => i.level === 'tested').length;
+  check('Z890-E عليها تشارك الممرّات · وZ890-A وX870E-E نظيفتان', mbt('ASUS', 'ROG STRIX Z890-E Gaming WiFi') === 1 && !!mbx('ASUS', 'ROG Strix Z890-A Gaming WiFi White')?.cleanTest && !!mbx('ASUS', 'ROG Strix X870E-E Gaming WiFi')?.cleanTest && !mbx('ASUS', 'ROG STRIX Z890-E Gaming WiFi')?.cleanTest);
+  check('X870 AORUS Elite WiFi7 عليها · وX870 Elite X3D ICE لا (لوحةٌ أخرى)', mbt('Gigabyte', 'X870 AORUS Elite WiFi7') === 1 && mbt('Gigabyte', 'X870 Aorus Elite X3D ICE Motherboard') === 0);
+  check('B850 Stealth Ice ATX لا يرث مراجعة B850M', mbt('Gigabyte', 'B850 AORUS STEALTH ICE') === 0 && !mbx('Gigabyte', 'B850 AORUS STEALTH ICE')?.cleanTest);
+  check('MEG Z790 ACE: PCIe 5.0 يعطّل المنفذ الثاني · وB850I Edge Ti: الحرارة', mbt('MSI', 'MEG Z790 ACE') === 1 && mbt('MSI', 'MPG B850I EDGE TI WIFI') === 1);
+  check('ولا لوحة بملاحظة اختبارٍ واختبارٍ نظيفٍ معاً', (await prisma.component.findMany({ where: { category: { name: 'Motherboard' } }, select: { brand: true, name: true } })).every((r) => { const x = mbx(r.brand, r.name); return !(x?.issues.some((i) => i.level === 'tested') && x?.cleanTest); }));
 
   console.log('\nالرامات');
   const rm = (brand: string, name: string) => matchSeries({ brand, name }, 'RAM')[0];

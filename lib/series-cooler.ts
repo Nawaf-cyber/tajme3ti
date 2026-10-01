@@ -18,8 +18,8 @@
  * والاختبارات من TechPowerUp وTom's Hardware بما يمسّ المشتري: الصوت،
  * والتعارض مع الرامات، والتركيب.
  * ⚠️ AG400 مراجَعٌ عند Tom's، وعندنا AG400 G2 — جيلٌ آخر فلا يُنقل.
- * ⚠️ Kraken Plus 360 RGB مراجَعٌ، لكنّ رابط كازاسوق في صفّنا «Kraken Elite
- *    360» — صفٌّ مختلط فلا يُكتب عليه اختبار (والضمان ستٌّ للاثنين).
+ * Kraken Plus 360 RGB كان رابط كازاسوق فيه «Kraken Elite 360»، فحُذف
+ *    (scripts/fix-kraken-plus-offer-2026-10-02) وصارت مراجعته تنطبق عليه.
  */
 import type { BrandLine, Source } from './series';
 
@@ -61,7 +61,9 @@ export const COOLER_LINES: BrandLine[] = [
     series: [
       { label: 'Kraken Core', match: /\bKraken Core\b/i, warranty: 5,
         warrantyNote: 'خمس سنوات لـKraken Core RGB (RL-KR24C-B1 وRL-KR36C-B1)، وستٌّ لـKraken Core بلا RGB.' },
-      { label: 'Kraken Plus', match: /\bKraken Plus\b/i, warranty: 6 },
+      /* عيباه عند Tom's: شاشةٌ صغيرة، وضبط المراوح ببرنامج — لا يمسّان المشتري */
+      { label: 'Kraken Plus', match: /\bKraken Plus\b/i, warranty: 6,
+        cleanTest: { ...TOMS('pc-components/liquid-cooling/nzxt-kraken-plus-360-rgb-review', '2025-05'), models: /Kraken Plus 360/i } },
     ],
   },
   {
