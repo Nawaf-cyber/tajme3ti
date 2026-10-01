@@ -380,6 +380,25 @@ export const socketMatch = (cpuSocket: unknown, boardSocket: unknown): MatchVerd
     `المعالج بمقبس ${a} واللوحة الأم بمقبس ${b}`,
   );
 
+/**
+ * ============ قدرة المعالج مقابل حدّ اللوحة — 2026-09-30 ============
+ *
+ * بعض اللوحات الاقتصاديّة تعلن شركتها حدّاً لقدرة المعالج: ASUS PRIME A620M-K
+ * «Supports up to AMD 120W CPU»، وقائمة معالجاتها الرسميّة تخلو من كلّ
+ * معالجٍ 170 واط (7900X و7950X و9950X و9950X3D) — فهو عدم توافقٍ لا تنبيه.
+ *
+ * ⚠️ يقارن `specs.tdpW` (القدرة الحراريّة الرسميّة كما تكتبها قوائم الشركات)
+ * لا عمود `tdpWattage`: ذاك لحساب المزوّد، وفيه لبعضها أقصى سحبٍ (PPT) —
+ * 7700X فيه 142 وقدرته الرسميّة 105 — فمقارنته بحدّ 120 تمنع ما يعمل.
+ * وبلا الرقمين لا حكم: لا نمنع بتخمين.
+ */
+export function cpuPowerFitsBoard(cpuSpecs: unknown, boardSpecs: unknown): string | null {
+  const n = (v: unknown) => { const x = parseFloat(String(v ?? '')); return Number.isFinite(x) && x > 0 ? x : null; };
+  const tdp = n((cpuSpecs as any)?.tdpW), max = n((boardSpecs as any)?.maxCpuTdpW);
+  if (!tdp || !max || tdp <= max) return null;
+  return `اللوحة تدعم معالجاتٍ حتى ${max} واط بحسب شركتها، وهذا المعالج ${tdp} واط`;
+}
+
 /** الذاكرة مقابل اللوحة الأم */
 export const ramTypeMatch = (ramType: unknown, boardRamType: unknown): MatchVerdict =>
   verdict(ramType, boardRamType, 'الرام', 'اللوحة الأم', (a, b) =>

@@ -39,6 +39,10 @@ const RAM_TYPES = ['DDR5', 'DDR4'];
 /** المفتاح → شكله. مشتركٌ بين الفئات ما لم تُخصّصه `BY_CATEGORY`. */
 const COMMON: Record<string, FieldMeta> = {
   socket: { type: 'select', options: SOCKETS },
+  /* القدرة الرسميّة كما في قوائم الشركات — لا tdpWattage (فيه PPT لبعضها). lib/fit · cpuPowerFitsBoard */
+  tdpW: { type: 'number', hint: '120' },
+  /* حدٌّ تعلنه شركة اللوحة («Supports up to AMD 120W CPU») — يُترك فارغاً إن لم تعلنه */
+  maxCpuTdpW: { type: 'number', hint: '170' },
   cores: { type: 'number', hint: '8' },
   threads: { type: 'number', hint: '16' },
   baseClock: { type: 'text', hint: '4.7 GHz' },

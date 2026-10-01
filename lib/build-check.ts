@@ -29,7 +29,7 @@
  */
 
 import {
-  socketMatch, ramTypeMatch, fitReason, psuFitReason,
+  socketMatch, ramTypeMatch, fitReason, psuFitReason, cpuPowerFitsBoard,
   coolerFitsCpu, coolerCpuReason, coolerFitsCase, coolerFitReason,
   gpuLengthMm, caseGpuMaxMm, gpuFitVerdict, gpuOffersFit,
 } from './fit';
@@ -156,6 +156,9 @@ export function checkBuild(parts: BuildParts): Issue[] {
     if (!v.ok) {
       out.push({ level: v.unknown ? 'warn' : 'block', fixCategory: 'Motherboard', code: 'socket', message: v.reason! });
     }
+    /* حدّ قدرة اللوحة — منعٌ لا تنبيه: المعالج غائبٌ عن قائمتها الرسميّة (lib/fit) */
+    const power = cpuPowerFitsBoard(cpu, mobo);
+    if (power) out.push({ level: 'block', fixCategory: 'Motherboard', code: 'cpuPower', message: power });
   }
 
   if (parts.RAM && parts.Motherboard) {

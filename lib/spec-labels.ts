@@ -20,6 +20,8 @@ const LABELS: Record<string, string> = {
 
   // المعالج
   socket: 'المقبس',
+  tdpW: 'القدرة الحراريّة الرسميّة (TDP)',
+  maxCpuTdpW: 'أقصى قدرةٍ للمعالج',
   cores: 'الأنوية',
   threads: 'المسارات',
   baseClock: 'التردد الأساسي',
@@ -145,9 +147,9 @@ export const specLabelLoose = (key: string): string =>
  * ثم الأداء ثم الوصفي. وما ليس في القائمة يُلحق بآخرها كما هو.
  */
 const ORDER: Record<string, string[]> = {
-  CPU: ['socket', 'cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'pCores', 'eCores', 'integratedGraphics', 'memorySupport', 'architecture'],
+  CPU: ['socket', 'tdpW', 'cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'pCores', 'eCores', 'integratedGraphics', 'memorySupport', 'architecture'],
   GPU: ['vram', 'memoryType', 'memoryBus', 'lengthMm', 'powerConnectors', 'interface', 'ports', 'architecture', 'formFactor', 'includedAio'],
-  Motherboard: ['socket', 'chipset', 'formFactor', 'ramType', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion'],
+  Motherboard: ['socket', 'chipset', 'maxCpuTdpW', 'formFactor', 'ramType', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion'],
   RAM: ['type', 'capacity', 'kit', 'speed', 'casLatency', 'profile', 'rgb', 'heightMm', 'color'],
   /* النوع فوق المقاس مباشرةً: 165 لهوائيّ و360 لمائيّ شيئان مختلفان،
      ولا يُقرأ المقاس إلا بعد معرفة نوعه. */
@@ -227,8 +229,8 @@ export function specValueLines(key: string, value: unknown): { lines: string[]; 
  * مهذّباً، فليبقَ الاثنان متطابقين.
  */
 const COMPAT_KEYS: Record<string, string[]> = {
-  CPU: ['socket'],
-  Motherboard: ['socket', 'ramType'],
+  CPU: ['socket', 'tdpW'],
+  Motherboard: ['socket', 'ramType', 'maxCpuTdpW'],
   RAM: ['type'],
   GPU: ['lengthMm'],
   /* `psuFormFactor` يقرؤه `psuFitsCase` فعلاً — وكان غائباً عن هذه القائمة
