@@ -23,6 +23,7 @@ import { GPU_LINES, GPU_ISSUES } from './series-gpu';
 import { STORAGE_LINES } from './series-storage';
 import { CASE_LINES } from './series-case';
 import { COOLER_LINES } from './series-cooler';
+import { RAM_LINES } from './series-ram';
 
 /** ملاحظاتٌ على الفئة لا على الشركة — تعمّ كلَّ قطعةٍ يطابق اسمُها models
  *  (شريحة لوحة، جيل معالج)، فلا تُنسخ في سلاسل كلّ شركة. تُضاف بعد ملاحظات السلسلة. */
@@ -32,7 +33,8 @@ const CATEGORY_ISSUES: Record<string, Issue[]> = {
   GPU: GPU_ISSUES,
 };
 
-export type Warranty = { min: number; max: number };
+/** lifetime: «ضمانٌ محدود مدى الحياة» — الرامات (Corsair وG.Skill وKingston…) */
+export type Warranty = { min: number; max: number; lifetime?: boolean };
 
 /**
  * ============ الملاحظات المعروفة — 2026-09-29 ============
@@ -77,7 +79,7 @@ export type Series = {
   /** لماذا هي خارج السُّلَّم — خطُّ الكيسات الصغيرة، أو سلسلةٌ سابقة */
   offLadder?: string;
   /** سنوات؛ ومدىً إن كان الصفُّ يجمع نسختين بضمانين */
-  warranty?: number | [number, number];
+  warranty?: number | [number, number] | 'lifetime';
   /** تغلب ملاحظة الشركة — حين تخصّ السلاسل ذات الرقم وحدها (Crucial: TBW، وBX500 بلا رقم) */
   warrantyNote?: string;
   note?: string;
@@ -99,7 +101,7 @@ export type BrandLine = {
   ladder?: string[];
   ladderSource?: string;
   /** ضمان الشركة لكلّ سلاسلها إن نشرته (Gigabyte للوحات: 3؛ XFX للكروت: 2 إلى 3 بالتسجيل) */
-  warranty?: number | [number, number];
+  warranty?: number | [number, number] | 'lifetime';
   /** ما تقوله الشركة بلفظها عن الضمان: مكان الرقم إن لم تنشره («تختلف بحسب
    *  المنطقة»)، وتحته إن نشرته («هذا للمعالج في علبته») */
   warrantyNote?: string;
@@ -240,7 +242,7 @@ const PSU_LINES: BrandLine[] = [
 ];
 
 /* كلُّ فئةٍ بعد المزوّدات في ملفّها — lib/series-<فئة>.ts */
-const LINES: BrandLine[] = [...PSU_LINES, ...MOTHERBOARD_LINES, ...CPU_LINES, ...GPU_LINES, ...STORAGE_LINES, ...CASE_LINES, ...COOLER_LINES];
+const LINES: BrandLine[] = [...PSU_LINES, ...MOTHERBOARD_LINES, ...CPU_LINES, ...GPU_LINES, ...STORAGE_LINES, ...CASE_LINES, ...COOLER_LINES, ...RAM_LINES];
 
 export type SeriesInfo = {
   brand: string;
@@ -284,7 +286,7 @@ export function matchSeries(c: { brand: string; name: string }, category: string
       offLadder: s.offLadder,
       /* تشرح الدرجة، فلا تظهر إلا معها */
       ladderNote: rank ? LADDER_NOTE[category] : undefined,
-      warranty: w == null ? undefined : Array.isArray(w) ? { min: w[0], max: w[1] } : { min: w, max: w },
+      warranty: w == null ? undefined : w === 'lifetime' ? { min: 0, max: 0, lifetime: true } : Array.isArray(w) ? { min: w[0], max: w[1] } : { min: w, max: w },
       warrantyNote: s.warrantyNote ?? line.warrantyNote,
       tierInName: line.tierInName,
       note: s.note,
@@ -351,6 +353,7 @@ export function notesCount(n: number): string {
 /** «7 سنوات» · «12 سنة» · «سنتان» (لا «2 سنة» — BarraCuda) · «7 إلى 10 سنوات» */
 export function warrantyText(w: Warranty): string {
   const unit = (n: number) => (n >= 3 && n <= 10 ? 'سنوات' : 'سنة');
+  if (w.lifetime) return 'مدى الحياة (محدود)';
   if (w.min === w.max && w.min === 1) return 'سنة واحدة';
   if (w.min === w.max && w.min === 2) return 'سنتان';
   return w.min === w.max ? `${w.min} ${unit(w.min)}` : `${w.min} إلى ${w.max} ${unit(w.max)}`;

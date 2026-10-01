@@ -24,7 +24,15 @@
  * الجهاز المكتبيّ)؛ فمن لم يبقَ عليه إلا هذا فاختباره نظيف.
  * ومراجعة BX500 (2019) لا تُنقل: تبدّلت شرائحه بعدها، فالمختبَر غير المبيع.
  */
-import type { BrandLine, Source } from './series';
+import type { BrandLine, Issue, Source } from './series';
+
+/* بيان Micron يعمّ Crucial كلّها — التخزين والرامات (lib/series-ram) تستعمله
+   من هنا، لا نسختين تفترقان */
+export const CRUCIAL_EXIT: Issue = {
+  level: 'official',
+  text: 'أعلنت Micron (مالكة Crucial) خروجها من سوق المستهلكين، وتوقّف شحن منتجات Crucial إلى المتاجر نهاية فبراير 2026؛ فما يُباع الآن من مخزونٍ سابق. وقالت إنّها مستمرّةٌ في خدمة الضمان والدعم.',
+  sources: [{ name: 'Micron', url: 'https://investors.micron.com/news-releases/news-release-details/micron-announces-exit-crucial-consumer-business', date: '2025-12' }],
+};
 
 const TOMS = (path: string, date: string, name = "Tom's Hardware"): Source =>
   ({ name, url: `https://www.tomshardware.com/${path}`, date });
@@ -86,11 +94,7 @@ export const STORAGE_LINES: BrandLine[] = [
   },
   {
     category: 'Storage', brand: 'Crucial',
-    issues: [
-      { level: 'official',
-        text: 'أعلنت Micron (مالكة Crucial) خروجها من سوق المستهلكين، وتوقّف شحن منتجات Crucial إلى المتاجر نهاية فبراير 2026؛ فما يُباع الآن من مخزونٍ سابق. وقالت إنّها مستمرّةٌ في خدمة الضمان والدعم.',
-        sources: [{ name: 'Micron', url: 'https://investors.micron.com/news-releases/news-release-details/micron-announces-exit-crucial-consumer-business', date: '2025-12' }] },
-    ],
+    issues: [CRUCIAL_EXIT],
     series: [
       { label: 'T705', match: /\bT705\b/i, warranty: 5, warrantyNote: CRUCIAL_TBW, source: 'https://www.crucial.com/ssd/t705/ct2000t705ssd3',
         issues: [{ level: 'tested', text: 'حرارته واستهلاكه للطاقة مرتفعان بحسب المراجع، فيحتاج مبرّد M.2 (غطاء اللوحة الحراريّ أو مبرّداً خاصاً).', sources: [TOMS('pc-components/ssds/crucial-t705-2tb-ssd-review', '2024-02')] }] },

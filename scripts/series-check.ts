@@ -20,7 +20,7 @@ let rowsAll: { brand: string; name: string }[] = [];
 
 async function main() {
   rowsAll = await prisma.component.findMany({ where: { category: { name: 'PSU' } }, select: { brand: true, name: true } });
-  for (const category of ['PSU', 'Motherboard', 'CPU', 'Storage', 'Case', 'Cooler']) {
+  for (const category of ['PSU', 'Motherboard', 'CPU', 'Storage', 'Case', 'Cooler', 'RAM']) {
     const rows = await prisma.component.findMany({ where: { category: { name: category } }, select: { brand: true, name: true }, orderBy: [{ brand: 'asc' }, { name: 'asc' }] });
     console.log(`\n${category} — ${rows.length} قطعة`);
     const none: string[] = [], many: string[] = [];
@@ -43,7 +43,8 @@ async function main() {
   check('الشركة تُطابق بلا اعتبار للحالة', s('corsair', 'RM750e')?.label === 'RMe');
   check('شركةٌ بلا سُلَّم ← لا درجة', !s('DeepCool', 'PL550D')?.rank && !s('DeepCool', 'PL550D')?.ladder);
   check('«12 سنة» · «7 سنوات» · مدى', warrantyText({ min: 12, max: 12 }) === '12 سنة' && warrantyText({ min: 7, max: 7 }) === '7 سنوات' && warrantyText({ min: 7, max: 10 }) === '7 إلى 10 سنوات');
-  check('فئةٌ بلا بيانات ← لا شيء', matchSeries({ brand: 'Corsair', name: 'Vengeance 32GB' }, 'RAM').length === 0);
+  /* كانت RAM مثالها حتى صارت لها بيانات (2026-10-01) */
+  check('فئةٌ بلا بيانات ← لا شيء', matchSeries({ brand: 'Corsair', name: 'Vengeance 32GB' }, 'Monitor').length === 0);
 
   console.log('\nاللوحات الأمّ');
   const mb = (brand: string, name: string) => matchSeries({ brand, name }, 'Motherboard')[0];
@@ -194,6 +195,13 @@ async function main() {
   check('ولا مبرّد بملاحظة اختبارٍ واختبارٍ نظيفٍ معاً', coolers.every((r) => { const x = co(r.brand, r.name); return !(x?.issues.some((i) => i.level === 'tested') && x?.cleanTest); }));
   const coolNotes = coolers.filter((r) => coi(r.brand, r.name).length || co(r.brand, r.name)?.cleanTest);
   console.log(`    ${coolNotes.length} من ${coolers.length} مبرّداً عليه ملاحظة أو اختبارٌ نظيف`);
+
+  console.log('\nالرامات');
+  const rm = (brand: string, name: string) => matchSeries({ brand, name }, 'RAM')[0];
+  check('«مدى الحياة (محدود)» نصّاً', !!rm('Corsair', 'Vengeance DDR5 32GB 6000MHz')?.warranty && warrantyText(rm('Corsair', 'Vengeance DDR5 32GB 6000MHz')!.warranty!) === 'مدى الحياة (محدود)' && seriesLine(rm('Corsair', 'Vengeance DDR5 32GB 6000MHz')!).includes('مدى الحياة'));
+  check('خروج Micron على رام Crucial — النصّ نفسه الذي في التخزين', rm('Crucial', 'Pro DDR5 32GB 5600MHz')?.issues[0]?.text === matchSeries({ brand: 'Crucial', name: 'P310 1TB' }, 'Storage')[0]?.issues.find((i) => i.text.includes('Micron'))?.text);
+  check('TeamGroup: Delta بضمانه · وVulcan وElite بلا رقم', rm('TeamGroup', 'T-Force Delta RGB 32GB 6400MHz')?.warranty?.lifetime === true && !rm('TeamGroup', 'T-Force Vulcan 32GB DDR5 6000MHz')?.warranty && !rm('TeamGroup', 'Elite 16GB (2x8GB) 4800MHz')?.warranty);
+  check('Renegade لا تُحسب Beast', rm('Kingston', 'Fury Renegade 48GB 7200MHz')?.label === 'FURY Renegade' && rm('Kingston', 'Fury Beast DDR5 32GB 6000MHz')?.label === 'FURY Beast');
 
   console.log(`\n${'═'.repeat(46)}`);
   console.log(fail === 0 ? `${G}نجحت (${pass})${X}` : `${R}فشل ${fail} من ${pass + fail}${X}`);
