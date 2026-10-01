@@ -20,7 +20,7 @@ let rowsAll: { brand: string; name: string }[] = [];
 
 async function main() {
   rowsAll = await prisma.component.findMany({ where: { category: { name: 'PSU' } }, select: { brand: true, name: true } });
-  for (const category of ['PSU', 'Motherboard', 'CPU', 'Storage', 'Case']) {
+  for (const category of ['PSU', 'Motherboard', 'CPU', 'Storage', 'Case', 'Cooler']) {
     const rows = await prisma.component.findMany({ where: { category: { name: category } }, select: { brand: true, name: true }, orderBy: [{ brand: 'asc' }, { name: 'asc' }] });
     console.log(`\n${category} — ${rows.length} قطعة`);
     const none: string[] = [], many: string[] = [];
@@ -180,6 +180,20 @@ async function main() {
   check('ولا ملاحظة كيس بلا مصدر https', cases.every((r) => (cs(r.brand, r.name)?.issues ?? []).every((i) => i.sources.length > 0 && i.sources.every((x) => x.url.startsWith('https://')))));
   const withNotes = cases.filter((r) => csi(r.brand, r.name).length || cs(r.brand, r.name)?.cleanTest);
   console.log(`    ${withNotes.length} من ${cases.length} كيساً عليه ملاحظة أو اختبارٌ نظيف`);
+
+  console.log('\nالمبرّدات');
+  const co = (brand: string, name: string) => matchSeries({ brand, name }, 'Cooler')[0];
+  const coi = (brand: string, name: string) => (co(brand, name)?.issues ?? []).map((i) => i.text);
+  const coolers = await prisma.component.findMany({ where: { category: { name: 'Cooler' } }, select: { brand: true, name: true } });
+  check('Phantom Spirit 120 EVO: الرامات والصوت · وVision EVO وSE بلا شيء', coi('Thermalright', 'Phantom Spirit 120 EVO').length === 1 && coi('Thermalright', 'Phantom Spirit 120 Vision EVO').length === 0 && coi('Thermalright', 'Phantom Spirit 120 SE ARGB').length === 0);
+  check('Peerless Assassin 120 SE نظيف بلونيه، باسم النسخة المختبَرة', ['Peerless Assassin 120 SE ARGB', 'Peerless Assassin 120 SE ARGB White'].every((n) => co('Thermalright', n)?.cleanTest?.name.includes('بلا إضاءة') === true));
+  check('GL360 V2 نظيف · وGL240 V2 لم يُختبر', !!co('Gamdias', 'Aura GL360 V2')?.cleanTest && !co('Gamdias', 'Aura GL240 V2')?.cleanTest);
+  check('Kraken Plus المختلط بلا اختبار · وضمانه ستّ', !co('NZXT', 'Kraken Plus 360 RGB')?.cleanTest && coi('NZXT', 'Kraken Plus 360 RGB').length === 0 && co('NZXT', 'Kraken Plus 360 RGB')?.warranty?.max === 6);
+  check('DeepCool: AG سنة · LE ثلاث · LT وMystique خمس', co('DeepCool', 'AG300')?.warranty?.max === 1 && co('DeepCool', 'LE360 V2')?.warranty?.max === 3 && co('DeepCool', 'LT360 ARGB')?.warranty?.max === 5 && co('DeepCool', 'Mystique 360 ARGB')?.warranty?.max === 5);
+  check('Thermalright مدى 3 إلى 6 بلفظها', co('Thermalright', 'Frozen Notte 240 White ARGB V2')?.warranty?.min === 3 && co('Thermalright', 'Frozen Notte 240 White ARGB V2')?.warranty?.max === 6 && !!co('Thermalright', 'Frozen Notte 240 White ARGB V2')?.warrantyNote);
+  check('ولا مبرّد بملاحظة اختبارٍ واختبارٍ نظيفٍ معاً', coolers.every((r) => { const x = co(r.brand, r.name); return !(x?.issues.some((i) => i.level === 'tested') && x?.cleanTest); }));
+  const coolNotes = coolers.filter((r) => coi(r.brand, r.name).length || co(r.brand, r.name)?.cleanTest);
+  console.log(`    ${coolNotes.length} من ${coolers.length} مبرّداً عليه ملاحظة أو اختبارٌ نظيف`);
 
   console.log(`\n${'═'.repeat(46)}`);
   console.log(fail === 0 ? `${G}نجحت (${pass})${X}` : `${R}فشل ${fail} من ${pass + fail}${X}`);

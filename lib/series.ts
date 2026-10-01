@@ -22,6 +22,7 @@ import { CPU_LINES, CPU_ISSUES } from './series-cpu';
 import { GPU_LINES, GPU_ISSUES } from './series-gpu';
 import { STORAGE_LINES } from './series-storage';
 import { CASE_LINES } from './series-case';
+import { COOLER_LINES } from './series-cooler';
 
 /** ملاحظاتٌ على الفئة لا على الشركة — تعمّ كلَّ قطعةٍ يطابق اسمُها models
  *  (شريحة لوحة، جيل معالج)، فلا تُنسخ في سلاسل كلّ شركة. تُضاف بعد ملاحظات السلسلة. */
@@ -65,7 +66,7 @@ export type Issue = {
 };
 
 /** تاريخ مراجعتنا للمصادر — يُعرض مع الملاحظات */
-export const ISSUES_CHECKED = '2026-09-30';
+export const ISSUES_CHECKED = '2026-10-01';
 
 export type Series = {
   /** الاسم المعروض — كما تكتبه الشركة */
@@ -239,7 +240,7 @@ const PSU_LINES: BrandLine[] = [
 ];
 
 /* كلُّ فئةٍ بعد المزوّدات في ملفّها — lib/series-<فئة>.ts */
-const LINES: BrandLine[] = [...PSU_LINES, ...MOTHERBOARD_LINES, ...CPU_LINES, ...GPU_LINES, ...STORAGE_LINES, ...CASE_LINES];
+const LINES: BrandLine[] = [...PSU_LINES, ...MOTHERBOARD_LINES, ...CPU_LINES, ...GPU_LINES, ...STORAGE_LINES, ...CASE_LINES, ...COOLER_LINES];
 
 export type SeriesInfo = {
   brand: string;
