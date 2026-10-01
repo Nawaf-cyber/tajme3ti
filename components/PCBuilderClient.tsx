@@ -1,6 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { brandColor } from '../lib/brand';
 import { catMeta } from '../lib/category-meta';
 import type { FC } from 'react';
@@ -27,7 +28,7 @@ import { SeriesLine, SeriesPanel } from './SeriesInfo';
 import {
   boardFitsCase, fitReason, psuFitsCase, psuFitReason,
   coolerFitsCase, coolerFitReason, coolerFitsCpu, coolerCpuReason,
-  socketMatch, ramTypeMatch, gpuFitsCase, caseGpuMaxMm,
+  socketMatch, ramTypeMatch, gpuFitsCase, caseGpuMaxMm, cpuPowerFitsBoard,
   gpuFitVerdict, shortestGpuMm, shownGpuLengthMm,
 } from '../lib/fit';
 import { checkBuild } from '../lib/build-check';
@@ -342,7 +343,7 @@ const SearchableSelect = ({
 
             {/* السلسلة وضمان الشركة — بعرض البطاقة كلّه، لا في العمود الأوسط الضيّق على الجوال */}
             {selectedComponent && (
-              <SeriesLine part={selectedComponent} category={categoryName} onMore={() => onShowDetails(selectedComponent)} />
+              <SeriesLine part={selectedComponent} category={categoryName} offers={(selectedComponent.offers ?? []) as any} onMore={() => onShowDetails(selectedComponent)} />
             )}
 
             {/* تنبيه عدم التوفّر */}
@@ -1042,6 +1043,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             isCompatible = false;
             reason = `المعالج المختار يتطلب مقبس ${cpuSpecs.socket}`;
           }
+          /* حدّ قدرة اللوحة — القاعدة في lib/fit لا هنا، والفحص الموحّد يقرؤها نفسها */
+          const power = isCompatible ? cpuPowerFitsBoard(cpuSpecs, specs) : null;
+          if (power) { isCompatible = false; reason = power; }
         }
         if (isCompatible && ram) {
           const ramSpecs = parseSpecs(ram.specs);
@@ -1058,6 +1062,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           isCompatible = false;
           reason = `اللوحة الأم الحالية بمقبس ${moboSpecs.socket} فقط`;
         }
+        const power = isCompatible ? cpuPowerFitsBoard(specs, moboSpecs) : null;
+        if (power) { isCompatible = false; reason = power; }
       }
       
       if (categoryName === 'RAM' && mobo) {
@@ -2313,8 +2319,10 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         )}
       </div>
 
-      {/* نافذة التفاصيل */}
-      {detailsModal && (
+      {/* نافذة التفاصيل — في body لا هنا: حاوية الباني فيها backdrop-blur، وهو
+          يجعلها مرجعَ fixed بدل الشاشة، فكانت النافذة تتوسّط الباني كلّه (3720px)
+          وتنزل تحته — وأكثر كلّما طال بنتيجة التوافق. والحفظ مثلها. */}
+      {detailsModal && createPortal((
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#0F172A] rounded-sm w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-[#0B1120]/60 backdrop-blur-sm shrink-0">
@@ -2362,7 +2370,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 {renderSpecs(detailsModal.comp.specs, detailsModal.categoryName)}
               </div>
 
-              <SeriesPanel part={detailsModal.comp} category={detailsModal.categoryName} />
+              <SeriesPanel part={detailsModal.comp} category={detailsModal.categoryName} offers={(detailsModal.comp.offers ?? []) as any} />
 
               <div>
                 <h4 className="font-extrabold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
@@ -2386,10 +2394,10 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
 
-      {/* شريط الملخص العائم للجوال */}
-      {result.status === 'success' && (
+      {/* شريط الملخص العائم للجوال — في body لما سبق: داخل الحاوية يلتصق بأسفلها لا بأسفل الشاشة */}
+      {result.status === 'success' && createPortal((
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] lg:hidden flex justify-between items-center animate-in slide-in-from-bottom-full duration-300">
           <div className="flex flex-col">
             <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">التكلفة الإجمالية</span>
@@ -2413,10 +2421,10 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             </button>
           </div>
         </div>
-      )}
+      ), document.body)}
 
-      {/* نافذة حفظ التجميعة */}
-      {saveModalOpen && (
+      {/* نافذة حفظ التجميعة — في body لما سبق في نافذة التفاصيل */}
+      {saveModalOpen && createPortal((
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#0F172A] rounded-sm w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-[#0B1120]/60 backdrop-blur-sm shrink-0">
@@ -2470,7 +2478,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
 
     </div>
   );
