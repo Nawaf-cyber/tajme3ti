@@ -168,8 +168,15 @@ async function main() {
   const csi = (brand: string, name: string) => (cs(brand, name)?.issues ?? []).map((i) => i.text);
   const cases = await prisma.component.findMany({ where: { category: { name: 'Case' } }, select: { brand: true, name: true } });
   /* صفوفٌ روابطها لمنتجٍ غير المختبَر — لا شيء عليها (lib/series-case) */
-  const mixed: [string, string][] = [['Cooler Master', 'MasterBox NR200P'], ['ASUS', 'TUF GT502'], ['NZXT', 'H9 Flow'], ['Corsair', '4000D Airflow'], ['Corsair', '5000D Airflow'], ['Fractal Design', 'Meshify 2'], ['Fractal Design', 'Meshify 3 White']];
-  check('الصفوف المختلطة بلا ملاحظة ولا اختبارٍ نظيف', mixed.every(([b, n]) => csi(b, n).length === 0 && !cs(b, n)?.cleanTest), mixed.filter(([b, n]) => csi(b, n).length || cs(b, n)?.cleanTest).map(([, n]) => n).join('، '));
+  /* صفّان مراجعتهما لنسخةٍ غير المبيعة — لا شيء عليهما */
+  const mixed: [string, string][] = [['Cooler Master', 'MasterBox NR200P V2'], ['Fractal Design', 'Meshify 3 White']];
+  check('NR200P V2 وMeshify 3 بلا ملاحظة ولا اختبارٍ نظيف', mixed.every(([b, n]) => csi(b, n).length === 0 && !cs(b, n)?.cleanTest), mixed.filter(([b, n]) => csi(b, n).length || cs(b, n)?.cleanTest).map(([, n]) => n).join('، '));
+  check('صفّ NR200P صار V2 في القاعدة', cases.some((r) => r.name === 'MasterBox NR200P V2') && !cases.some((r) => r.name === 'MasterBox NR200P'));
+  /* وصُحّحت روابط الستّة (fix-case-offers-2026-10-01) فانطبقت مراجعاتها — على النسخة الصحيحة وحدها */
+  check('GT502 الأصليّ بلا مراوح · لا PLUS ولا Horizon', csi('ASUS', 'TUF GT502').length === 1 && csi('ASUS', 'TUF GT502 Plus').length === 0 && csi('ASUS', 'TUF GT502 Horizon').length === 0);
+  check('4000D Airflow عليه · وFRAME 4000D لا', csi('Corsair', '4000D Airflow').length === 1 && csi('Corsair', 'FRAME 4000D').length === 0);
+  check('5000D Airflow وMeshify 2 نظيفان · وMeshify 2 Compact لا', !!cs('Corsair', '5000D Airflow')?.cleanTest && !!cs('Fractal Design', 'Meshify 2')?.cleanTest && !cs('Fractal Design', 'Meshify 2 Compact')?.cleanTest);
+  check('H9 Flow (2023) عليه · وH9 Flow (2025) لا', csi('NZXT', 'H9 Flow').length === 1 && csi('NZXT', 'H9 Flow (2025)').length === 0);
   check('North XL: «Noisy» من Tom\'s يغلب نظافة TechPowerUp', csi('Fractal Design', 'North XL').length === 1 && !cs('Fractal Design', 'North XL')?.cleanTest);
   check('وMomentum بحدود السقف والكرت لا بصوت XL', csi('Fractal Design', 'North Momentum Edition (Black)').some((t) => t.includes('240')) && !csi('Fractal Design', 'North Momentum Edition (Black)').some((t) => t.includes('Noisy')));
   check('AIR 903: BASE نظيف · وMAX بتذبذب الصوت', !!cs('Montech', 'AIR 903 BASE White')?.cleanTest && csi('Montech', 'AIR 903 BASE White').length === 0 && csi('Montech', 'AIR 903 MAX White').length === 1 && !cs('Montech', 'AIR 903 MAX White')?.cleanTest);

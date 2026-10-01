@@ -16,13 +16,12 @@
  * وحين يختلف المصدران يُؤخذ العيب: North XL نظيفٌ عند TechPowerUp و«Noisy»
  * عند Tom's — فعليه ملاحظة، لا «لم يجد ما يمسّ المشتري».
  *
- * ⚠️ ولا يُكتب شيءٌ على صفٍّ روابطُه لمنتجٍ آخر غير المختبَر:
- *   NR200P — روابطنا V2 والمراجعة لـV1 (2021)
- *   TUF GT502 — كازاسوق ومايكرولس «GT502 PLUS»
- *   H9 Flow — أمازون نسخة 2025، وكازاسوق 2023، ومايكرولس RGB
- *   4000D Airflow — كازاسوق «4000D V2» والمراجعة 2020
- *   5000D Airflow — كازاسوق «iCUE 5000D RGB» لا Airflow
- *   Meshify 2 — مايكرولس «Meshify 2 Compact Lite»
+ * ⚠️ ولا يُكتب شيءٌ على صفٍّ روابطُه لمنتجٍ آخر غير المختبَر. وكانت ستّة
+ * صفوف كذلك، فصُحّحت روابطها (scripts/fix-case-offers-2026-10-01): حُذف
+ * الخاطئ (GT502 PLUS وHorizon، H9 Flow 2025 وRGB، FRAME 4000D و4000D V2،
+ * iCUE 5000D RGB، Meshify 2 Compact) وأُضيف الصحيح حيث وُجد — فصارت
+ * مراجعاتها تنطبق عليها. وبقي بلا شيء:
+ *   NR200P V2 — صُحّح الصفّ إليها (scripts/fix-nr200p-v2-2026-10-01) والمراجعة لـV1
  *   Meshify 3 — المراجعة لنسخة Ambience Pro RGB
  */
 import type { BrandLine, Source } from './series';
@@ -38,7 +37,10 @@ export const CASE_LINES: BrandLine[] = [
   {
     category: 'Case', brand: 'ASUS',
     series: [
-      { label: 'TUF Gaming', match: /\bTUF\b/i },
+      /* GT502 الأصليّ بلا مراوح — لا PLUS ولا Horizon (بمراوح) */
+      { label: 'TUF Gaming', match: /\bTUF\b/i,
+        issues: [{ level: 'tested', models: /\bGT502\b(?!\s*(Plus|Horizon))/i, text: NO_FANS,
+          sources: [TPU('asus-tuf-gaming-gt502/10.html', '2023-03')] }] },
       { label: 'A23', match: /\bA23\b/i },
     ],
   },
@@ -62,8 +64,13 @@ export const CASE_LINES: BrandLine[] = [
         /* نسخة RGB تأتي بمراوح؛ صفّنا العاديّ */
         issues: [{ level: 'tested', models: /^(?!.*RGB).*2000D/i, text: NO_FANS,
           sources: [TPU('corsair-2000d-airflow/10.html', '2024-04')] }] },
-      { label: '4000D', match: /\b4000D\b/i },
-      { label: '5000D', match: /\b5000D\b/i },
+      /* الأصليّ (2020) لا FRAME 4000D ولا V2 */
+      { label: '4000D', match: /\b4000D\b/i,
+        issues: [{ level: 'tested', models: /^4000D Airflow$/i,
+          text: 'دعم التبريد المائيّ فيه أضيق من أغلب كيسات ATX، بحسب المراجع.',
+          sources: [TPU('corsair-4000d-airflow/7.html', '2020-09')] }] },
+      { label: '5000D', match: /\b5000D\b/i,
+        cleanTest: { ...TPU('corsair-5000d-airflow/8.html', '2021-01'), models: /^5000D Airflow$/i } },
     ],
   },
   {
@@ -86,7 +93,9 @@ export const CASE_LINES: BrandLine[] = [
             text: 'صوته مرتفعٌ نسبياً بحسب أحد المرجعين («Noisy»).',
             sources: [TOMS('pc-components/pc-cases/fractal-design-north-xl-review', '2024-03')] },
         ] },
-      { label: 'Meshify', match: /\bMeshify\b/i },
+      { label: 'Meshify', match: /\bMeshify\b/i,
+        /* Meshify 2 الكامل — لا Compact ولا Lite ولا XL */
+        cleanTest: { ...TPU('fractal-design-meshify-2-atx-case/8.html', '2020-11'), models: /^Meshify 2$/i } },
     ],
   },
   {
@@ -170,7 +179,11 @@ export const CASE_LINES: BrandLine[] = [
     category: 'Case', brand: 'NZXT',
     warranty: 2, warrantySource: 'https://nzxt.com/warranty',
     series: [
-      { label: 'H9', match: /\bH9\b/i },
+      /* نسخة 2023 (صفّنا: أربع مراوح 120) — لا 2025 */
+      { label: 'H9', match: /\bH9\b/i,
+        issues: [{ level: 'tested', models: /^H9 Flow$/i,
+          text: 'صوته أعلى قليلاً من المعتاد وهو خامل، بحسب المراجع.',
+          sources: [TPU('nzxt-h9-flow/9.html', '2023-02')] }] },
       { label: 'H6', match: /\bH6\b/i,
         issues: [{ level: 'tested', models: /\bFlow\b/i,
           text: 'صاخبٌ نسبياً تحت الحمل، ومواضع الأقراص فيه قليلة، بحسب المراجع.',
