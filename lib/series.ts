@@ -17,7 +17,19 @@
  * أنّ كلَّ مزوّدٍ في الكتالوج يطابق سلسلةً واحدة بالضبط.
  */
 
-import { MOTHERBOARD_LINES, MSI_LADDER_SOURCE } from './series-motherboard';
+import { MOTHERBOARD_LINES, MOTHERBOARD_CHIPSET_ISSUES, MSI_LADDER_SOURCE } from './series-motherboard';
+import { CPU_LINES, CPU_ISSUES } from './series-cpu';
+import { GPU_LINES, GPU_ISSUES } from './series-gpu';
+import { STORAGE_LINES } from './series-storage';
+import { CASE_LINES } from './series-case';
+
+/** ملاحظاتٌ على الفئة لا على الشركة — تعمّ كلَّ قطعةٍ يطابق اسمُها models
+ *  (شريحة لوحة، جيل معالج)، فلا تُنسخ في سلاسل كلّ شركة. تُضاف بعد ملاحظات السلسلة. */
+const CATEGORY_ISSUES: Record<string, Issue[]> = {
+  Motherboard: MOTHERBOARD_CHIPSET_ISSUES,
+  CPU: CPU_ISSUES,
+  GPU: GPU_ISSUES,
+};
 
 export type Warranty = { min: number; max: number };
 
@@ -41,9 +53,9 @@ export type Warranty = { min: number; max: number };
  */
 export type IssueLevel = 'official' | 'tested' | 'reported';
 
-type Source = { name: string; url: string; date?: string };
+export type Source = { name: string; url: string; date?: string };
 
-type Issue = {
+export type Issue = {
   level: IssueLevel;
   text: string;
   sources: Source[];
@@ -53,7 +65,7 @@ type Issue = {
 };
 
 /** تاريخ مراجعتنا للمصادر — يُعرض مع الملاحظات */
-export const ISSUES_CHECKED = '2026-09-29';
+export const ISSUES_CHECKED = '2026-09-30';
 
 export type Series = {
   /** الاسم المعروض — كما تكتبه الشركة */
@@ -65,13 +77,18 @@ export type Series = {
   offLadder?: string;
   /** سنوات؛ ومدىً إن كان الصفُّ يجمع نسختين بضمانين */
   warranty?: number | [number, number];
+  /** تغلب ملاحظة الشركة — حين تخصّ السلاسل ذات الرقم وحدها (Crucial: TBW، وBX500 بلا رقم) */
+  warrantyNote?: string;
   note?: string;
   /** مصدر ضمان السلسلة — وإن غاب فمصدر ضمان الشركة (warrantySource) */
   source?: string;
   issues?: Issue[];
-  /** مختبرٌ مستقلّ راجع السلسلة ولم يجد ما يمسّ المشتري — يُقال ذلك بمصدره */
-  cleanTest?: Source & { models?: RegExp };
+  /** مختبرٌ مستقلّ راجع السلسلة ولم يجد ما يمسّ المشتري — يُقال ذلك بمصدره.
+   *  وقائمةٌ حين اختُبرت السلسلة على أكثر من شريحة (MERC على 7800 XT و6800 XT) */
+  cleanTest?: CleanTest | CleanTest[];
 };
+
+type CleanTest = Source & { models?: RegExp };
 
 export type BrandLine = {
   category: string;
@@ -80,17 +97,22 @@ export type BrandLine = {
    *  والدرجة قد تجمع سلسلتين إن جمعتهما الشركة («Pro RS · Steel Legend» عند ASRock). */
   ladder?: string[];
   ladderSource?: string;
-  /** ضمان الشركة لكلّ سلاسلها إن نشرته رقماً واحداً (Gigabyte للوحات: 3 سنوات) */
-  warranty?: number;
-  /** وإن لم تنشر رقماً: ما تقوله هي بلفظها («تختلف بحسب المنطقة») */
+  /** ضمان الشركة لكلّ سلاسلها إن نشرته (Gigabyte للوحات: 3؛ XFX للكروت: 2 إلى 3 بالتسجيل) */
+  warranty?: number | [number, number];
+  /** ما تقوله الشركة بلفظها عن الضمان: مكان الرقم إن لم تنشره («تختلف بحسب
+   *  المنطقة»)، وتحته إن نشرته («هذا للمعالج في علبته») */
   warrantyNote?: string;
+  /** فئةٌ الدرجةُ فيها جزءٌ من الاسم (Ryzen 7، i7): لا سُلَّم، ولا جملة «لم نجد ترتيباً» */
+  tierInName?: boolean;
+  /** ملاحظاتٌ على الشركة كلّها في الفئة (بيان Gigabyte عن معجون RTX 50) — تُضاف لكلّ سلاسلها */
+  issues?: Issue[];
   warrantySource?: string;
   series: Series[];
 };
 
 /** ما يُقال عن الدرجة في فئةٍ بعينها — تحت السُّلَّم */
 const LADDER_NOTE: Record<string, string> = {
-  Motherboard: 'الدرجة للسلسلة لا للشريحة: لوحةٌ من سلسلةٍ أدنى بشريحة X670E أو Z790 قد تفوق لوحةً من سلسلةٍ أعلى بشريحة B650 أو B760.',
+  Motherboard: 'هذه الدرجة للسلسلة لا للشريحة. السلسلة تحدّد مستوى البناء والإضافات، أمّا الشريحة (الرمز في اسم اللوحة مثل B650 أو Z790) فتحدّد أغلب القدرات. لذلك قد تتفوّق لوحةٌ من سلسلةٍ أدنى بشريحةٍ أقوى على لوحةٍ من سلسلةٍ أعلى بشريحةٍ أضعف.',
 };
 
 const CORSAIR_LINEUP = 'https://www.corsair.com/us/en/explorer/diy-builder/power-supply-units/explaining-the-corsair-psu-lineup/';
@@ -160,7 +182,7 @@ const PSU_LINES: BrandLine[] = [
     ladder: ['System Power', 'Pure Power', 'Power Zone', 'Dark Power'], ladderSource: 'https://www.bequiet.com/en/powersupply',
     series: [
       { label: 'Pure Power 13 M', family: 'Pure Power', match: /^Pure Power 13 M\b/i, warranty: 10, source: 'https://www.bequiet.com/en/press/38769',
-        cleanTest: { name: 'HWBusters · اختُبر 550W', url: 'https://hwbusters.com/psus/be-quiet-pure-power-13-m-550w-atx-v3-1-psu-review/11/', date: '2025-07' } },
+        cleanTest: { name: 'HWBusters (على نسخة 550W)', url: 'https://hwbusters.com/psus/be-quiet-pure-power-13-m-550w-atx-v3-1-psu-review/11/', date: '2025-07' } },
       { label: 'Power Zone 2', family: 'Power Zone', match: /^Power Zone 2\b/i, warranty: 10, source: 'https://www.bequiet.com/en/press/38769',
         cleanTest: { name: 'HWBusters', url: 'https://hwbusters.com/psus/be-quiet-power-zone-2-850w-atx-v3-1-psu-review/11/', date: '2025-03' } },
       { label: 'Straight Power 12', match: /^Straight Power 12\b/i, offLadder: 'سلسلةٌ سابقة، لم تعد في صفحة be quiet! الحاليّة', warranty: 10, source: 'https://www.bequiet.com/en/powersupply/4111',
@@ -217,7 +239,7 @@ const PSU_LINES: BrandLine[] = [
 ];
 
 /* كلُّ فئةٍ بعد المزوّدات في ملفّها — lib/series-<فئة>.ts */
-const LINES: BrandLine[] = [...PSU_LINES, ...MOTHERBOARD_LINES];
+const LINES: BrandLine[] = [...PSU_LINES, ...MOTHERBOARD_LINES, ...CPU_LINES, ...GPU_LINES, ...STORAGE_LINES, ...CASE_LINES];
 
 export type SeriesInfo = {
   brand: string;
@@ -231,21 +253,25 @@ export type SeriesInfo = {
   ladderNote?: string;
   warranty?: Warranty;
   warrantyNote?: string;
+  tierInName?: boolean;
   note?: string;
   /** مصدر الضمان — فارغٌ إن لم يكن */
   source: string;
   /** ما يخصّ هذه القطعة من ملاحظات سلسلتها */
   issues: Omit<Issue, 'models'>[];
   cleanTest?: Source;
+  /** ملاحظات فئةٍ بلا سلسلة — لا سُلَّم ولا ضمان، الملاحظات وحدها */
+  notesOnly?: boolean;
 };
 
 const norm = (s: string) => s.trim().toLowerCase();
 
-/** كلُّ السلاسل المطابقة — للفحص؛ والعرضُ يأخذ الأولى */
-export function matchSeries(c: { brand: string; name: string }, category: string): SeriesInfo[] {
-  const line = LINES.find((l) => l.category === category && norm(l.brand) === norm(c.brand));
-  if (!line) return [];
-  return line.series.filter((s) => s.match.test(c.name.trim())).map((s) => {
+/** كلُّ السلاسل المطابقة — للفحص؛ والعرضُ يأخذ الأولى.
+ *  withCategory=false لنسخ العروض: ملاحظة الشريحة تُقال مرّةً على الصفّ لا على كلّ عرض. */
+export function matchSeries(c: { brand: string; name: string }, category: string, withCategory = true): SeriesInfo[] {
+  /* قد يكون للشركة أكثر من خطّ بسُلَّمه (Intel: Core i وCore Ultra) — تُجمع مطابقات كلّها */
+  const lines = LINES.filter((l) => l.category === category && norm(l.brand) === norm(c.brand));
+  return lines.flatMap((line) => line.series.filter((s) => s.match.test(c.name.trim())).map((s) => {
     const rank = s.family && line.ladder ? line.ladder.indexOf(s.family) + 1 || undefined : undefined;
     const w = s.warranty ?? line.warranty;
     return {
@@ -258,24 +284,74 @@ export function matchSeries(c: { brand: string; name: string }, category: string
       /* تشرح الدرجة، فلا تظهر إلا معها */
       ladderNote: rank ? LADDER_NOTE[category] : undefined,
       warranty: w == null ? undefined : Array.isArray(w) ? { min: w[0], max: w[1] } : { min: w, max: w },
-      warrantyNote: w == null ? line.warrantyNote : undefined,
+      warrantyNote: s.warrantyNote ?? line.warrantyNote,
+      tierInName: line.tierInName,
       note: s.note,
       source: s.source ?? line.warrantySource ?? '',
-      issues: (s.issues ?? []).filter((i) => !i.models || i.models.test(c.name)).map(({ models: _m, ...i }) => i),
-      cleanTest: s.cleanTest && (!s.cleanTest.models || s.cleanTest.models.test(c.name))
-        ? { name: s.cleanTest.name, url: s.cleanTest.url, date: s.cleanTest.date }
-        : undefined,
+      issues: [...(s.issues ?? []), ...(line.issues ?? []), ...(withCategory ? CATEGORY_ISSUES[category] ?? [] : [])]
+        .filter((i) => !i.models || i.models.test(c.name)).map(({ models: _m, ...i }) => i),
+      cleanTest: [s.cleanTest ?? []].flat().filter((t) => !t.models || t.models.test(c.name))
+        .map(({ models: _m, ...t }): Source => t)[0],
     };
-  });
+  }));
 }
 
 export function seriesInfo(c: { brand: string; name: string }, category: string): SeriesInfo | null {
-  return matchSeries(c, category)[0] ?? null;
+  const s = matchSeries(c, category)[0];
+  if (s) return s;
+  /* بلا سلسلة وعليها ملاحظة فئة: صفّ الشريحة العامّ (NVIDIA RTX 5090) — الشريك
+     على العرض لا على الصفّ، والملاحظة تخصّ الشريحة فتظهر وحدها (notesOnly) */
+  const issues = (CATEGORY_ISSUES[category] ?? []).filter((i) => i.models?.test(c.name)).map(({ models: _m, ...i }) => i);
+  return issues.length ? { brand: c.brand, label: '', source: '', issues, notesOnly: true } : null;
 }
 
-/** «7 سنوات» · «12 سنة» · «7 إلى 10 سنوات» */
+/** عروضٌ يحتاجها صفّ الشريحة العامّ ليجمع ملاحظات نسخها */
+export type VariantOffer = { variant?: string | null; store: { name: string } };
+
+/** عنوان القسم: «السلسلة وضمان الشركة»، أو «ملاحظات معروفة» لصفّ الشريحة العامّ
+ *  (ملاحظة الشريحة، أو ملاحظات نسخٍ تبيعها متاجره).
+ *  هنا لا في المكوّن: صفحة القطعة (مكوّن خادم) تستدعيه، ولا تستدعي دوالّ ملفّ 'use client'. */
+export function seriesHeading(c: { brand: string; name: string }, category: string, offers?: VariantOffer[]): string | null {
+  const s = seriesInfo(c, category);
+  if (s && !s.notesOnly) return 'السلسلة وضمان الشركة';
+  return s || variantNotes(c.name, offers ?? [], category).length ? 'ملاحظات معروفة' : null;
+}
+
+/** سلسلة نسخة العرض — «ASUS TUF OC»: الكلمة الأولى الشركة، والباقي يُطابَق مع اسم
+ *  الصفّ: ملاحظة TUF على 5090 غيرُ ملاحظتها على 5070، فالشريحة من الصفّ.
+ *  لشارة كلّ متجر في صفّ الشريحة العامّ (#٤). */
+export function offerSeries(variant: string | null | undefined, category: string, rowName = ''): SeriesInfo | null {
+  const m = variant?.trim().match(/^(\S+)\s+(.+)$/);
+  if (!m) return null;
+  return matchSeries({ brand: m[1], name: `${m[2]} ${rowName}`.trim() }, category, false)[0] ?? null;
+}
+
+/** ملاحظات النسخ التي تبيعها متاجر هذا الصفّ، مجمّعةً بالنسخة ومتاجرها —
+ *  لقسم «ملاحظات معروفة» في صفّ الشريحة العامّ */
+export function variantNotes(rowName: string, offers: VariantOffer[], category: string) {
+  const by = new Map<string, string[]>();
+  for (const o of offers) if (o.variant) by.set(o.variant, [...(by.get(o.variant) ?? []), o.store.name]);
+  return [...by].flatMap(([variant, stores]) => {
+    const s = offerSeries(variant, category, rowName);
+    return s && (s.issues.length || s.cleanTest) ? [{ variant, stores: [...new Set(stores)], s }] : [];
+  });
+}
+
+/** «TUF Gaming · الدرجة 2 من 4» أو الاسم وحده إن لم يكن سُلَّم */
+export function seriesBadge(s: SeriesInfo): string {
+  return s.rank && s.ladder ? `${s.label} · الدرجة ${s.rank} من ${s.ladder.length}` : s.label;
+}
+
+/** «ملاحظة» · «ملاحظتان» · «3 ملاحظات» · «11 ملاحظة» — العدد العربيّ لا «2 ملاحظات» */
+export function notesCount(n: number): string {
+  return n === 1 ? 'ملاحظة' : n === 2 ? 'ملاحظتان' : n <= 10 ? `${n} ملاحظات` : `${n} ملاحظة`;
+}
+
+/** «7 سنوات» · «12 سنة» · «سنتان» (لا «2 سنة» — BarraCuda) · «7 إلى 10 سنوات» */
 export function warrantyText(w: Warranty): string {
   const unit = (n: number) => (n >= 3 && n <= 10 ? 'سنوات' : 'سنة');
+  if (w.min === w.max && w.min === 1) return 'سنة واحدة';
+  if (w.min === w.max && w.min === 2) return 'سنتان';
   return w.min === w.max ? `${w.min} ${unit(w.min)}` : `${w.min} إلى ${w.max} ${unit(w.max)}`;
 }
 

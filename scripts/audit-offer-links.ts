@@ -104,6 +104,15 @@ async function main() {
           add(`العائلة: قطعتنا Ryzen ${ryz[1]} والمسار يذكر Ryzen ${[...new Set(inUrl)].join('، ')}`);
         }
       }
+
+      /* ٥ — مقاس القرص الصلب: BarraCuda 2TB بمقاس 3.5 كان رابطُه في مايكرولس
+         ST2000LM015 — قرص لابتوب 2.5 (2026-09-30). ورمز Seagate يقول المقاس:
+         DM سطح مكتب 3.5، وLM لابتوب 2.5. */
+      if (specs.type === 'HDD' && specs.formFactor) {
+        const ours = String(specs.formFactor).startsWith('3.5') ? '3.5' : String(specs.formFactor).startsWith('2.5') ? '2.5' : '';
+        const theirs = /\bst\d+lm\d|\b2[.-]5[\s-]*(inch|in\b|")/.test(slug) ? '2.5' : /\bst\d+dm\d|\b3[.-]5[\s-]*(inch|in\b|")/.test(slug) ? '3.5' : '';
+        if (ours && theirs && ours !== theirs) add(`المقاس: قطعتنا ${ours} بوصة والمسار يذكر ${theirs}`);
+      }
     }
   }
 

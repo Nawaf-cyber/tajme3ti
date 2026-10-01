@@ -19,7 +19,42 @@
  * ASUS وMSI تقولان إنه يختلف بحسب المنطقة وتحيلان إلى المكتب المحلّي،
  * وASRock تجعله عبر الموزّع — فيُقال ذلك بلفظهنّ بدل رقمٍ مخترَع.
  */
-import type { BrandLine } from './series';
+import type { BrandLine, Issue } from './series';
+
+/**
+ * ============ ملاحظات الشرائح — 2026-09-29 ============
+ *
+ * حدودٌ تعلنها AMD وIntel نفسها، لا عيوب لوحة. تعمّ كلَّ لوحةٍ بالشريحة
+ * أيّاً كانت شركتها، ولا يعرفها المشتري إلا بعد الشراء — فمكانها هنا.
+ */
+const AMD_AM5 = 'https://www.amd.com/en/products/processors/chipsets/am5.html';
+export const MOTHERBOARD_CHIPSET_ISSUES: Issue[] = [
+  {
+    level: 'official', models: /\bA620/i,
+    text: 'شريحة A620 لا تسمح برفع سرعة المعالج (ومنه ميزة PBO) بحسب AMD، وتسمح بتشغيل الرامات بسرعة EXPO المكتوبة عليها.',
+    sources: [{ name: 'AMD', url: AMD_AM5 }],
+  },
+  {
+    /* لوحات 600 من AM5 — وصلت قبل معالجات 8000 و9000 وقبل إصلاح 2023 */
+    level: 'official', models: /\b(A620|B650|X670)/i,
+    text: 'حدّث BIOS قبل التركيب أو اسأل المتجر عنه: تقول AMD إنّ معالجات Ryzen 8000 و9000 قد تحتاج تحديثاً على لوحات 600. وفي 2023 احترقت معالجات Ryzen 7000 (خصوصاً X3D) في بعض لوحات AM5 من جهدٍ زائد، فحدّت AMD الجهد بتحديث BIOS (AGESA 1.0.0.7 وما بعده).',
+    resolved: 'مشكلة الاحتراق عولجت منذ مايو 2023، واللوحات الحديثة تأتي بالإصلاح. يبقى التحديث للمخزون القديم.',
+    sources: [
+      { name: 'AMD', url: AMD_AM5 },
+      { name: "Tom's Hardware (بيان AMD)", url: 'https://www.tomshardware.com/news/amd-issues-follow-up-statement-on-ryzen-burnout-issues-limits-soc-voltages', date: '2023-04' },
+    ],
+  },
+  {
+    level: 'official', models: /\bH610/i,
+    text: 'لا تدعم Intel في شريحة H610 رفع سرعة الرامات، فتعمل الرامات بالسرعة الأساسيّة التي يدعمها المعالج لا بسرعة XMP المكتوبة على علبتها.',
+    sources: [{ name: 'Intel', url: 'https://www.intel.com/content/www/us/en/products/sku/218829/intel-h610-chipset/specifications.html' }],
+  },
+  {
+    level: 'official', models: /\bH810/i,
+    text: 'لا تدعم Intel في شريحة H810 رفع سرعة الرامات، فتعمل الرامات بالسرعة الأساسيّة التي يدعمها المعالج لا بسرعة XMP المكتوبة على علبتها.',
+    sources: [{ name: 'Intel', url: 'https://www.intel.com/content/www/us/en/products/sku/241150/intel-h810-chipset/specifications.html' }],
+  },
+];
 
 export const MSI_LADDER_SOURCE = 'https://www.msi.com/news/detail/Discover-MSI-s-Gaming-Series-Identities--MEG--MPG--and-MAG-Series-at-Computex-143732';
 
@@ -33,7 +68,12 @@ export const MOTHERBOARD_LINES: BrandLine[] = [
     warrantyNote: 'تقول ASUS إنّ مدّته تختلف بحسب المنطقة، ومكتوبةٌ على ملصقٍ خلف اللوحة.',
     warrantySource: 'https://www.asus.com/support/faq/1030275/',
     series: [
-      { label: 'PRIME', family: 'PRIME', match: /^PRIME\b/i },
+      { label: 'PRIME', family: 'PRIME', match: /^PRIME\b/i,
+        issues: [{
+          level: 'official', models: /A620M-K/i,
+          text: 'تدعم ASUS فيها معالجاتٍ حتى 120 واط فقط، فلا تناسب معالجات 170 واط مثل Ryzen 9 7950X و9950X. (أختها TUF Gaming A620M-Plus تدعم حتى 170 واط.)',
+          sources: [{ name: 'ASUS', url: 'https://www.asus.com/motherboards-components/motherboards/prime/prime-a620m-k/techspec/' }],
+        }] },
       { label: 'TUF Gaming', family: 'TUF Gaming', match: /^TUF Gaming\b/i },
       { label: 'ROG Strix', family: 'ROG', match: /^ROG Strix\b/i },
       { label: 'ROG Crosshair', family: 'ROG', match: /^ROG Crosshair\b/i },
@@ -72,7 +112,9 @@ export const MOTHERBOARD_LINES: BrandLine[] = [
     warrantySource: 'https://www.asrock.com/support/index.us.asp?cat=Policy',
     series: [
       { label: 'Pro RS', family: ASRock_MAINSTREAM, match: /\bPro RS\b/i },
-      { label: 'Steel Legend', family: ASRock_MAINSTREAM, match: /\bSteel Legend\b/i },
+      { label: 'Steel Legend', family: ASRock_MAINSTREAM, match: /\bSteel Legend\b/i,
+        /* سلبيّتها الوحيدة عند المراجع: «No quick release or latches for M.2» — راحةٌ لا عيب */
+        cleanTest: { name: "Tom's Hardware", url: 'https://www.tomshardware.com/reviews/asrock-X670e-steel-legend-review', date: '2023-09', models: /X670E Steel Legend/i } },
       { label: 'Phantom Gaming', family: ASRock_FLAGSHIP, match: /\bPhantom Gaming\b/i },
       { label: 'Taichi', family: ASRock_FLAGSHIP, match: /\bTaichi\b/i },
       { label: 'HDV', match: /\bHDV\b/i, offLadder: 'خطٌّ اقتصاديّ لا تذكره ASRock في ترتيبها' },

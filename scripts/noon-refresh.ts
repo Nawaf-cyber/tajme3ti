@@ -44,7 +44,8 @@ import { recordPriceHistory, round2 } from '../lib/scrape-prices';
 
 const apply = process.argv.includes('--apply');
 
-/** [اسم القطعة كما في الكتالوج، السعر المقروء أو null إن نفد] — قُرئت 2026-09-24 */
+/** [اسم القطعة كما في الكتالوج، السعر المقروء أو null إن نفد] — قُرئت 2026-09-24،
+ *  وأُعيدت قراءتها كلّها 2026-09-30 فطابقت (١٦ متوفّرة بسعرها، ٣ نافدة) */
 const READINGS: [string, number | null][] = [
   ['FOCUS 650 Gold SSR-650FM', 810],
   ['GeForce RTX 5060 Ti WINDFORCE 16G', 4468],

@@ -63,6 +63,8 @@ const BRAND_AR: Record<string, RegExp> = {
   msi: /[إا]م\s*[إا]س\s*[آا]ي/,
   corsair: /كورسير/,
   kingston: /كينج?ستون/,
+  /* الكتالوج «WD» (scripts/fix-wd-brand-2026-09-30)، وبعض المتاجر تكتب الاسم كاملاً */
+  wd: /western\s*digital|[وو]ي?سترن\s*ديجيتال/i,
 };
 
 /** أنظمةٌ كاملة تحمل اسم القطعة ولا تُساويها — لابتوب فيه Ryzen 5500H ليس معالجاً */

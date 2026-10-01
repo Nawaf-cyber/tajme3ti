@@ -14,6 +14,7 @@ import { pctAboveMin, type PriceStats } from '../lib/price-stats';
 import { storeVars, type Offer } from '../lib/stores';
 import { StoreNoticeInline } from './StoreNotice';
 import OfferLengthTag from './OfferLengthTag';
+import OfferSeriesTag from './OfferSeriesTag';
 import { offerLengthMm } from '../lib/fit';
 
 const RiyalIcon = ({ size = 'h-5 w-5' }: { size?: string }) => (
@@ -70,8 +71,11 @@ export default function StoreOfferList({
   offers,
   stats,
   gpuSpecs,
+  rowName,
 }: {
   offers: Offer[];
+  /** اسم الصفّ — لسلسلة نسخة العرض: ملاحظة TUF على 5090 غيرُ ملاحظتها على 5070 */
+  rowName?: string;
   /** موضع السعر من تاريخه — يُغني عن المقارنة حين لا يوجد إلّا متجرٌ واحد */
   stats?: PriceStats | null;
   /** مواصفات الكرت — للكروت وحدها: يُقرأ منها طول الصفّ لعرضٍ لم يُقَس */
@@ -141,6 +145,10 @@ export default function StoreOfferList({
                 {!live && <span className="text-[11.5px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>}
                 {lengthsVary && measured(o) !== null && (
                   <OfferLengthTag lengthMm={measured(o)!} variant={(o as any).variant} />
+                )}
+                {/* سلسلة النسخة ودرجتها — ويُعرض اسمها هنا إن لم يعرضه سطر الطول */}
+                {gpuSpecs && (
+                  <OfferSeriesTag variant={(o as any).variant} rowName={rowName} showName={!(lengthsVary && measured(o) !== null)} />
                 )}
                 {/* إعلان حالة المتجر — في اللحظة التي يهمّ فيها: قبل الضغط */}
                 <StoreNoticeInline store={{ ...o.store, id: o.storeId }} />

@@ -17,7 +17,7 @@ import { productImage, IMAGE_FALLBACK } from '../../../lib/image';
 import RichDescription from '../../../components/RichDescription';
 import SpecSheet from '../../../components/SpecSheet';
 import { SeriesDetails, SeriesLine } from '../../../components/SeriesInfo';
-import { seriesInfo } from '../../../lib/series';
+import { seriesHeading } from '../../../lib/series';
 import { Panel, SectionHeading, MicroLabel } from '../../../components/Panel';
 import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
 import { fetchPriceStats } from '../../../lib/price-stats';
@@ -134,6 +134,10 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
      مجاوراً له. */
   /* ⚠️ من العرض الفائز لا من القطعة: `lastScrapedAt` تُكتب كلَّ دورةٍ حتى
      لو تُخطّيت عروضها كلّها، فتقول «منذ ٨ ساعات» على سعرٍ عمره ستّة أيام. */
+  /* نسخ الشركاء على عروض هذا الصفّ — لملاحظات صفّ الشريحة العامّ (lib/series · variantNotes).
+     باسم المتجر العربيّ كما يُقال في النصّ: «عند أمازون، نون». */
+  const variantOffers = comp.offers.map((o: any) => ({ variant: o.variant, store: { name: o.store.name } }));
+
   const asOf = priceAsOf(comp as any);
   const priceAge = timeAgoAr(asOf);
   const priceAgeExact = exactAr(asOf);
@@ -192,6 +196,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               <SeriesLine
                 part={{ brand: comp.brand, name: comp.name }}
                 category={comp.category.name}
+                offers={variantOffers}
                 href="#series"
                 className="-mt-3 mb-6 text-[13px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed"
               />
@@ -202,9 +207,14 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                 {/* كان: font-mono uppercase tracking-widest بحجم ١٠ بكسل.
                     ثلاثتها تؤذي العربية — انظر MicroLabel في Panel.tsx */}
                 <MicroLabel className="mb-2">أقل سعر متاح</MicroLabel>
-                <div className="text-4xl md:text-5xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-2 font-mono">
-                  {formatPrice(comp.price)} <RiyalIcon size="h-9 w-9" />
-                </div>
+                {/* سعرٌ صفر = لا سعر مسجّل (نُزع عرضٌ خاطئ ولم يبقَ ما يسنده) — لا «0 ريال» */}
+                {comp.price > 0 ? (
+                  <div className="text-4xl md:text-5xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-2 font-mono">
+                    {formatPrice(comp.price)} <RiyalIcon size="h-9 w-9" />
+                  </div>
+                ) : (
+                  <div className="text-2xl font-black text-slate-500 dark:text-slate-400">غير متوفر — لا سعر مسجّل</div>
+                )}
                 {/* السعر قبل الخصم — مشطوباً، مع قيمة التوفير */}
                 {mainDiscount > 0 && cheapestListPrice && (
                   <div className="flex items-center gap-2.5 mt-2">
@@ -246,6 +256,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             <StoreNotices stores={notices as any} />
             <StoreOfferList
               offers={comp.offers as any}
+              rowName={comp.name}
               stats={priceStats}
               gpuSpecs={comp.category?.name === 'GPU' ? (typeof comp.specs === 'string' ? JSON.parse(comp.specs) : comp.specs ?? {}) : undefined}
             />
@@ -273,11 +284,11 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
             {/* ما تنشره الشركة عن سلسلتها وضمانها، وما قاله عنها مختبرٌ مستقلّ —
                 كان في الباني وحده، ومن يأتي من البحث يهبط هنا. lib/series.ts */}
-            {comp.category?.name && seriesInfo(comp, comp.category.name) && (
+            {comp.category?.name && seriesHeading(comp, comp.category.name, variantOffers) && (
               <div id="series" className="scroll-mt-24 flex flex-col gap-4">
-                <SectionHeading>السلسلة وضمان الشركة</SectionHeading>
+                <SectionHeading>{seriesHeading(comp, comp.category.name, variantOffers)}</SectionHeading>
                 <Panel className="px-6 py-5">
-                  <SeriesDetails part={{ brand: comp.brand, name: comp.name }} category={comp.category.name} />
+                  <SeriesDetails part={{ brand: comp.brand, name: comp.name }} category={comp.category.name} offers={variantOffers} />
                 </Panel>
               </div>
             )}
