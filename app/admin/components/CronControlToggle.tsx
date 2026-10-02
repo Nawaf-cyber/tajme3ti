@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { toggleCronStatus, setUpdateFrequency } from '../actions';
-import { UPDATE_FREQUENCIES, BATCHES_PER_RUN, PER_RUN } from '../../../lib/cron-settings';
+import { toggleCronStatus, setUpdateFrequency, setCronSource } from '../actions';
+import { UPDATE_FREQUENCIES, BATCHES_PER_RUN, PER_RUN, type CronSource } from '../../../lib/cron-settings';
 import toast from 'react-hot-toast';
 
 /**
  * لوحة التحديث الآلي: مفتاح تشغيل + عدد الدورات اليومية.
  *
  * ملاحظة مهمّة عن معنى المفتاح: هو **بوّابة** لا مُجدوِل. الجدولة تعيش في
- * GitHub Actions التي تنادي /api/cron/update-all كل ساعة؛ والمسار يقرأ من
- * هنا: هل التحديث مسموح؟ وهل مضى ما يكفي منذ آخر دورة؟ فإطفاء المفتاح
- * يوقف التنفيذ فوراً بلا حاجة إلى لمس أي ملف جدولة.
+ * فيرسل (vercel.json) وGitHub Actions معاً، وكلتاهما تنادي
+ * /api/cron/update-all كل ساعة؛ والمسار يقرأ من هنا: هل التحديث مسموح؟ ومن
+ * المصدر المعتمد؟ وهل مضى ما يكفي منذ آخر دورة؟ فلا شيء هنا يحتاج لمس ملف.
  *
  * (الوصف القديم كان يقول "كل 24 ساعة" — لم يكن صحيحاً في أي وقت.)
  */
@@ -20,16 +20,35 @@ export default function CronControlToggle({
   initialPerDay,
   lastRunAt,
   catalogCount = 0,
+  initialSource = 'vercel',
 }: {
   initialStatus: boolean;
   initialPerDay: number;
   lastRunAt?: Date | string | null;
   /** حجم الكتالوج الحقيقي — كان مكتوباً في النصّ «٢٢٥» وقد صار ٢٥٦ */
   catalogCount?: number;
+  /** مصدر الجدولة المُنفَّذ — والآخر مربوطٌ ويُهمَل نداؤه */
+  initialSource?: CronSource;
 }) {
   const [isEnabled, setIsEnabled] = useState(initialStatus);
   const [perDay, setPerDay] = useState(initialPerDay);
+  const [source, setSource] = useState<CronSource>(initialSource);
   const [pending, startTransition] = useTransition();
+
+  const handleSource = (value: CronSource) => {
+    if (value === source) return;
+    const previous = source;
+    setSource(value);
+    startTransition(async () => {
+      const res = await setCronSource(value);
+      if (res.success) {
+        toast.success(`صارت الجدولة من ${value === 'vercel' ? 'فيرسل' : 'GitHub'}`);
+      } else {
+        setSource(previous);
+        toast.error(res.error || 'فشل حفظ المصدر');
+      }
+    });
+  };
 
   const handleToggle = async () => {
     const nextState = !isEnabled;
@@ -133,6 +152,31 @@ export default function CronControlToggle({
               {n}
             </button>
           ))}
+        </div>
+
+        {/* مصدر الجدولة — الاثنان مربوطان، والمختار وحده يُنفَّذ */}
+        <div className="mt-4 mb-1">
+          <span className="block font-bold text-xs text-slate-900 dark:text-white mb-2">مصدر الجدولة</span>
+          <div className="inline-flex rounded-md border border-slate-200 dark:border-slate-700 overflow-hidden">
+            {(['vercel', 'github'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => handleSource(s)}
+                disabled={pending}
+                className={`px-3.5 h-8 text-xs font-bold transition-colors disabled:opacity-50 ${
+                  source === s
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                {s === 'vercel' ? 'فيرسل' : 'GitHub'}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+            الاثنان يناديان كلّ ساعة، ويُنفَّذ المختار وحده؛ ونداء الآخر يُهمل قبل أيّ سحب فلا يتضاعف الرصيد.
+            فيرسل في موعده بالدقيقة، وGitHub يأتي متأخّراً ويُسقط مواعيد.
+          </p>
         </div>
 
         {/* تحذير التكلفة: كل دورة تستهلك رصيد سحب، والرقم يتضاعف بصمت */}

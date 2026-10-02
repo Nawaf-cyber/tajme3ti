@@ -36,3 +36,31 @@ export const PER_RUN = BATCHES_PER_RUN * BATCH_EFFECTIVE;
 
 export const isValidFrequency = (n: number): n is UpdateFrequency =>
   (UPDATE_FREQUENCIES as readonly number[]).includes(n);
+
+/* ============ مصدر الجدولة — مفتاحٌ بين فيرسل وGitHub ============
+ * الجدولتان مربوطتان معاً (vercel.json و.github/workflows/update-prices.yml)
+ * وكلٌّ تنادي المسار كلّ ساعة. والمسار يُنفّذ نداء المصدر المختار وحده،
+ * ويُهمل الآخر قبل أيّ سحب — فلا تتضاعف الدفعات ولا رصيد Scrape.do، والتبديل
+ * ضغطةٌ في اللوحة لا تعديلُ ملفٍ ونشر.
+ *
+ * ولماذا فيرسل افتراضياً: جدولة GitHub في المستودع العامّ «أفضل جهد» — آخر
+ * ١٢ تشغيلة قبل 2026-10-02 جاءت ~٥ يومياً لموعدٍ كلّ ساعة. وفيرسل Pro بالدقيقة.
+ *
+ * والقيمة في جدول Setting (مفتاحٌ ونصّ) لا عمودٌ في SystemSetting: لا تغيير مخطّط.
+ */
+export const CRON_SOURCES = ['vercel', 'github'] as const;
+export type CronSource = (typeof CRON_SOURCES)[number];
+export const CRON_SOURCE_KEY = 'cronSource';
+export const DEFAULT_CRON_SOURCE: CronSource = 'vercel';
+
+export const isValidCronSource = (s: unknown): s is CronSource =>
+  (CRON_SOURCES as readonly unknown[]).includes(s);
+
+/**
+ * من نادى المسار؟ فيرسل يرسل مع كلّ نداء كرون ترويسة `x-vercel-cron-schedule`
+ * (بنصّ الجدولة)، ووكيلُه `vercel-cron/…` — بحسب توثيقه. وما سواه نداء الـworkflow.
+ */
+export const cronCaller = (headers: Headers): CronSource =>
+  headers.get('x-vercel-cron-schedule') || (headers.get('user-agent') ?? '').startsWith('vercel-cron')
+    ? 'vercel'
+    : 'github';

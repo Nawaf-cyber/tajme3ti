@@ -10,6 +10,7 @@ import NewsAgentPanel from '../../components/NewsAgentPanel';
 import UpdatePricesButton from './UpdatePricesButton';
 import UpdateSingleButton from './components/UpdateSingleButton';
 import CronControlToggle from './components/CronControlToggle';
+import type { CronSource } from '../../lib/cron-settings';
 import ManualUpdateButton from "./components/ManualUpdateButton";
 import AdminNav from './AdminNav';
 import BackToMenuButton from './BackToMenuButton';
@@ -30,7 +31,7 @@ import { fieldMeta } from '../../lib/spec-fields';
    والحقول الآن تُشتقّ من المخطّط، وشكلُ كلٍّ منها من `lib/spec-fields.ts`. */
 
 /** حالة التحديث الآلي كما تعيدها getCronStatus */
-type CronStatus = { enabled: boolean; updatesPerDay: number; lastRunAt: Date | string | null };
+type CronStatus = { enabled: boolean; updatesPerDay: number; lastRunAt: Date | string | null; source?: CronSource };
 
 export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [], newRequests = 0, children }: { categories: any[], components: any[], news: any[], cronStatus: CronStatus, settings?: Record<string, string>, stores?: StoreInfo[], newRequests?: number, /** الرأس ولوحات التنبيه — تُعرض أعلى عمود المحتوى بجانب الشريط */ children?: ReactNode }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news' | 'affiliates'>('components');
@@ -263,6 +264,7 @@ export default function AdminManager({ categories, components, news, cronStatus,
             initialStatus={cronStatus.enabled}
             initialPerDay={cronStatus.updatesPerDay}
             lastRunAt={cronStatus.lastRunAt}
+            initialSource={cronStatus.source}
             catalogCount={components.length}
           />
           <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/50 p-4 flex flex-col gap-3">

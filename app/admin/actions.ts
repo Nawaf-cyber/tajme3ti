@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../api/auth/[...nextauth]/route';
 import { isCazasouqTrackingUrl } from '../../lib/affiliate';
-import { DEFAULT_UPDATES_PER_DAY, isValidFrequency } from '../../lib/cron-settings';
+import { DEFAULT_UPDATES_PER_DAY, isValidFrequency, CRON_SOURCE_KEY, DEFAULT_CRON_SOURCE, isValidCronSource, type CronSource } from '../../lib/cron-settings';
 
 /* رابط تتبّع كازاسوق: نقبله فقط إن كان رابط idevaffiliate صالحاً.
    قيمة خاطئة ملصوقة (رابط منتج عادي مثلاً) تُحفظ null فيسقط الكود
@@ -26,14 +26,35 @@ async function assertAdmin() {
 export async function getCronStatus() {
   try {
     const setting = await prisma.systemSetting.findUnique({ where: { id: "default" } });
+    const sourceRow = await prisma.setting.findUnique({ where: { key: CRON_SOURCE_KEY } });
     return {
       enabled: setting ? setting.cronEnabled : false,
       updatesPerDay: setting?.updatesPerDay ?? DEFAULT_UPDATES_PER_DAY,
       lastRunAt: setting?.lastCronRunAt ?? null,
+      source: (isValidCronSource(sourceRow?.value) ? sourceRow!.value : DEFAULT_CRON_SOURCE) as CronSource,
     };
   } catch (error) {
     console.error("Failed to fetch cron status:", error);
-    return { enabled: false, updatesPerDay: DEFAULT_UPDATES_PER_DAY, lastRunAt: null };
+    return { enabled: false, updatesPerDay: DEFAULT_UPDATES_PER_DAY, lastRunAt: null, source: DEFAULT_CRON_SOURCE };
+  }
+}
+
+/** يختار مصدر الجدولة المُنفَّذ — والآخر يبقى مربوطاً ويُهمَل نداؤه (lib/cron-settings) */
+export async function setCronSource(source: string) {
+  await assertAdmin();
+  if (!isValidCronSource(source)) {
+    return { success: false, error: 'مصدرٌ غير معروف.' };
+  }
+  try {
+    await prisma.setting.upsert({
+      where: { key: CRON_SOURCE_KEY },
+      update: { value: source },
+      create: { key: CRON_SOURCE_KEY, value: source },
+    });
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }
 

@@ -7,7 +7,7 @@ import { recordPriceHistory, setScrapeDeadline } from '../../../../lib/scrape-pr
 import { recordPriceHolds } from '../../../../lib/price-review';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT } from '../../../../lib/stores-server';
-import { BATCH_SIZE } from '../../../../lib/cron-settings';
+import { BATCH_SIZE, CRON_SOURCE_KEY, DEFAULT_CRON_SOURCE, cronCaller, isValidCronSource } from '../../../../lib/cron-settings';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -72,6 +72,25 @@ export async function GET(req: Request) {
         disabled: true,
         message: "التحديث التلقائي معطل حالياً من لوحة التحكم.",
       }, { status: 200 });
+    }
+
+    /* ============ بوّابة المصدر ============
+       الجدولتان (فيرسل وGitHub) مربوطتان وكلتاهما تنادي كلّ ساعة، والمفتاح
+       في اللوحة يختار أيّهما يُنفَّذ (lib/cron-settings). ويُهمَل الآخر **هنا** —
+       قبل بوّابة التردّد وقبل كتابة الطابع — فلا يحرّك موعداً ولا يسحب شيئاً.
+       والأدمن الضاغط على الزرّ لا يمرّ بها: ضغطةٌ صريحة لا تُردّ. */
+    if (isValidCron) {
+      const row = await prisma.setting.findUnique({ where: { key: CRON_SOURCE_KEY } });
+      const source = isValidCronSource(row?.value) ? row!.value : DEFAULT_CRON_SOURCE;
+      const caller = cronCaller(req.headers);
+      if (caller !== source) {
+        return NextResponse.json({
+          message: `المصدر المعتمد للجدولة ${source === 'vercel' ? 'فيرسل' : 'GitHub'} — أُهمل نداء ${caller === 'vercel' ? 'فيرسل' : 'GitHub'}.`,
+          skipped: true,
+          source,
+          caller,
+        }, { status: 200 });
+      }
     }
 
     /* ============ بوّابة التردّد ============
