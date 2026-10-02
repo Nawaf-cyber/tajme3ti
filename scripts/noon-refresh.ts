@@ -45,15 +45,16 @@ import { recordPriceHistory, round2 } from '../lib/scrape-prices';
 const apply = process.argv.includes('--apply');
 
 /** [اسم القطعة كما في الكتالوج، السعر المقروء أو null إن نفد] — قُرئت 2026-09-24،
- *  وأُعيدت قراءتها كلّها 2026-09-30 فطابقت (١٦ متوفّرة بسعرها، ٣ نافدة) */
+ *  وأُعيدت قراءتها كلّها 2026-09-30 فطابقت (١٦ متوفّرة بسعرها، ٣ نافدة)،
+ *  ثمّ 2026-10-02: تغيّر اثنان — LE240 V2 عاد متوفّراً بـ290، وLE360 V2 من ٣٤٦ إلى ٣٣٥ */
 const READINGS: [string, number | null][] = [
   ['FOCUS 650 Gold SSR-650FM', 810],
   ['GeForce RTX 5060 Ti WINDFORCE 16G', 4468],
   ['GeForce RTX 5070 Ti 16GB OC Triple Fan Plus', 6201],
   ['NM790 2TB', 1620],
   ['P310 2TB', 1340],
-  ['LE360 V2', 346],
-  ['LE240 V2', null],
+  ['LE360 V2', 335],
+  ['LE240 V2', 290],
   ['Radeon RX 9070 XT OC', null],
   ['TR-KG650W 650W Gold White', null],
   ['LE360 V2 White', 379],
