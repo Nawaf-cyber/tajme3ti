@@ -92,6 +92,16 @@ const IS_ACCESSORY =
   /distro plate|\bbracket\b|\briser\b|mounting kit|\bstand\b|dust filter|cable (kit|comb|extension)|adapter kit|replacement (fan|panel)|\bsleeve\b|\bscrews?\b/i;
 
 /**
+ * كابلٌ اسمُه المنتجُ نفسه — «كابل» في الاسم قبل أوّل فاصلة.
+ *
+ * ⚠️ قِيس 2026-10-02: «Fractal Design USB-C 10Gbps Model E **Cable**, USB-C
+ * Functionality to Your **Meshify 2** Lite…» قُبل مرشَّحاً لكيس Meshify 2 —
+ * الوحيد الذي «طابق» من ١٠٤ قطع. وقبل الفاصلة لا بعدها: عنوان المزوّد
+ * «…Power Supply, 850W, 12V-2x6 cable» يذكر الكابل وصفاً لا اسماً.
+ */
+const IS_CABLE = /^[^,(|]{0,80}\bcables?\b/i;
+
+/**
  * قطعتان تُباعان معاً — ولا تُسمّى «bundle».
  *
  * ⚠️ قِيس يوم 2026-09-18: أعاد بحثُ «Radeon RX 9070 XT» **خمسةَ** صفوفٍ
@@ -168,9 +178,23 @@ const colorsOf = (s: string): string =>
  */
 /* ⚠️ و«LC» منها: قِيس على «ROG Astral **LC** RTX 5090» فقُبل له الكرتُ
    الهوائيّ العاديّ — والتبريد المائيّ رمزٌ آخر وسعرٌ آخر. */
-const VARIANT = /\b(TI|XTX|XT|GRE|SUPER|GTS?|SE|LE|LC)\b/gi;
+/* ⚠️ قِيس 2026-10-02 في بحث كازاسوق: «DeepCool LT360 **VISION** ARGB» (بشاشة)
+   قُبل لـLT360 ARGB، و«i5-13400F **Tray**» (بلا مبرّد ولا علبة) لصفٍّ مواصفاته
+   «Laminar RM1» — نسختان بسعرين. فهما لاحقتان كـTi وXT. */
+const VARIANT = /\b(TI|XTX|XT|GRE|SUPER|GTS?|SE|LE|LC|VISION|TRAY)\b/gi;
 const variantsOf = (s: string): string =>
   [...new Set((s.match(VARIANT) ?? []).map((v) => v.toUpperCase()))].sort().join(',');
+
+/**
+ * حرفُ اللوحة بعد رمز الشريحة — «H610M **H**» غير «H610M-**K**».
+ *
+ * ⚠️ قِيس 2026-10-02: «Gigabyte H610M-K Motherboard» قُبل لـ«Gigabyte H610M H
+ * DDR4» — العنوان بلا DDR فلم يمسكه فحص الجيل، والحرف وحده يفرّقهما ولا
+ * تراه `models` ولا `words`. ويُقارَن حين يذكره **الطرفان** فقط (B650E-F ≠
+ * B650E-E، وB650M DS3H = B650M-DS3H)؛ و«B850 GAMING» لا لاحقة فيها (أطول من ثلاثة).
+ */
+const BOARD_SUFFIX = /\b[ABHQWXZ]\d{3}E?M?[\s-]([A-Z]{1,3}\d?[A-Z]?)(?=[\s,)]|$)/i;
+const boardSuffixOf = (s: string): string => (s.match(BOARD_SUFFIX)?.[1] ?? '').toUpperCase();
 
 /**
  * جيلُ الذاكرة — يفصل لوحتين اسمُهما واحدٌ تقريباً.
@@ -289,7 +313,7 @@ export function fingerprint(brand: string, name: string, specs: any): Fingerprin
 /** هل المرشّح هو القطعة نفسها؟ */
 export function matches(fp: Fingerprint, cand: string): Verdict {
   if (IS_SYSTEM.test(cand)) return { ok: false, why: 'جهازٌ كامل لا قطعة' };
-  if (IS_ACCESSORY.test(cand)) return { ok: false, why: 'ملحقٌ للقطعة لا القطعة' };
+  if (IS_ACCESSORY.test(cand) || IS_CABLE.test(cand)) return { ok: false, why: 'ملحقٌ للقطعة لا القطعة' };
   if (IS_BUNDLE.test(cand)) return { ok: false, why: 'حزمةُ قطعتين لا قطعة' };
   if (IS_LAPTOP.test(cand)) return { ok: false, why: 'محمولٌ لا قطعة' };
 
@@ -307,6 +331,12 @@ export function matches(fp: Fingerprint, cand: string): Verdict {
   const candDdr = ddrOf(cand);
   if (ourDdr && candDdr && ourDdr !== candDdr) {
     return { ok: false, why: `الجيل ${candDdr} لا ${ourDdr}` };
+  }
+
+  const ourSuffix = boardSuffixOf(ourName);
+  const candSuffix = boardSuffixOf(cand);
+  if (ourSuffix && candSuffix && ourSuffix !== candSuffix) {
+    return { ok: false, why: `اللوحة «${candSuffix}» لا «${ourSuffix}»` };
   }
 
   const ourRev = revOf(ourName);

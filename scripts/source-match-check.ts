@@ -22,6 +22,17 @@ const CASES: Case[] = [
   { brand:'NVIDIA', name:'GeForce RTX 3060 12GB', cand:'ASUS D500ME-7137001320 Desktop Computers, 13th Gen i7-13700, NVIDIA GeForce RTX 3060', want:false, note:'جهازٌ جاهز — والقاعدة كانت بنسختين فأفلت' },
   { brand:'Gigabyte', name:'H610M H DDR4', specs:{ramType:'DDR4'}, cand:'GIGABYTE H610M D3W WIFI6 LGA 1700 Micro ATX Motherboard, 2x DDR5 DIMM', want:false, note:'DDR4 ≠ DDR5 — وما يفرّق الاسمين حرفٌ واحد' },
   { brand:'HYTE', name:'Y60', cand:'Alphacool Apex Distro Plate Y60 for HYTE Case w/ VPP/D5 Pump', want:false, note:'ملحقٌ يُركَّب في الكيس لا الكيس' },
+  /* 2026-10-02 — ثلاثةٌ من سبعة «مطابقات» في بحث كازاسوق كانت منتجاتٍ أخرى */
+  { brand:'DeepCool', name:'LT360 ARGB', cand:'DeepCool LT360 VISION ARGB 360mm AIO Liquid CPU Cooler – Black', want:false, note:'VISION بشاشة — نسخةٌ أخرى' },
+  { brand:'Intel', name:'Core i5-13400F', cand:'Intel Core i5-13400F Tray CPU', want:false, note:'Tray بلا مبرّد ولا علبة، وصفّنا بمبرّده' },
+  { brand:'Gigabyte', name:'H610M H DDR4', specs:{ramType:'DDR4'}, cand:'Gigabyte H610M-K Motherboard', want:false, note:'H610M-K غير H610M H — والعنوان بلا DDR' },
+  { brand:'Lian Li', name:'O11 Vision Compact White', cand:'Lian Li O11 Vision Compact Mid-Tower Case - White', want:true, note:'VISION في الطرفين — يمرّ' },
+  { brand:'ASUS', name:'ROG STRIX B650E-F GAMING WIFI', cand:'ASUS ROG STRIX B650E-F GAMING WIFI AM5 ATX Motherboard', want:true, note:'حرف اللوحة F في الطرفين' },
+  { brand:'ASUS', name:'ROG STRIX B650E-F GAMING WIFI', cand:'ASUS ROG STRIX B650E-E GAMING WIFI AM5 ATX Motherboard', want:false, note:'B650E-E غير B650E-F' },
+  { brand:'Gigabyte', name:'B650M DS3H', cand:'GIGABYTE B650M-DS3H AM5 Micro ATX Motherboard', want:true, note:'الشرطة والمسافة سواء: DS3H = DS3H' },
+  /* 2026-10-02: الوحيد الذي «طابق» من ١٠٤ قطع في بحث مايكرولس */
+  { brand:'Fractal Design', name:'Meshify 2', cand:'Fractal Design USB-C 10Gbps Model E Cable, USB-C Functionality to Your Meshify 2 Lite or Meshify 2 Compact Lite Case', want:false, note:'كابلٌ للكيس لا الكيس' },
+  { brand:'Corsair', name:'RM850e 850W ATX 3.1 Gold White', specs:{wattage:850}, cand:'Corsair RM850e Fully Modular Low-Noise ATX Power Supply, 850W, ATX 3.1, 12V-2x6 cable, White', want:true, note:'«cable» بعد الفاصلة وصفٌ لا اسم — المزوّد يمرّ' },
   { brand:'Corsair', name:'4000D Airflow', cand:'CORSAIR iCUE 4000D RGB AIRFLOW V2 Mid-Tower Case', want:false, note:'V2 مراجعةٌ ثانية بسعرٍ آخر' },
   { brand:'DeepCool', name:'LE360 V2', cand:'DeepCool LE360 V2 360mm Liquid CPU Cooler', want:true, note:'والمراجعةُ باتّجاهين: V2 عندنا وV2 عنده يمرّ' },
   /* والجولةُ الثانية من نفس الكنسة: مطابقان نجَوا من الإصلاح الأوّل */
