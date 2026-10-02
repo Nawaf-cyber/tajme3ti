@@ -10,7 +10,7 @@
 
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { formatPrice, discountPercent } from '../lib/price';
-import { pctAboveMin, type PriceStats } from '../lib/price-stats';
+import { pctAboveMin, type PriceStats } from '../lib/price-stats-core';
 import { storeVars, type Offer } from '../lib/stores';
 import { StoreNoticeInline } from './StoreNotice';
 import OfferLengthTag from './OfferLengthTag';

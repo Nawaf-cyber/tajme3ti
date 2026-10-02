@@ -18,13 +18,15 @@ import { toPng } from 'html-to-image';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { isAvailable, liveOffers, type Offer } from '../lib/stores';
+import { isAvailable, liveOffers, cheapestOffer, cheapestStoreNames, type Offer } from '../lib/stores';
+import { formatPrice } from '../lib/price';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { track, trackOnce } from '../lib/track';
 import { productImage } from '../lib/image';
 import RichDescription from './RichDescription';
 import SpecSheet from './SpecSheet';
 import { SeriesLine, SeriesPanel } from './SeriesInfo';
+import StoreOfferList from './StoreOfferList';
 import {
   boardFitsCase, fitReason, psuFitsCase, psuFitReason,
   coolerFitsCase, coolerFitReason, coolerFitsCpu, coolerCpuReason,
@@ -51,6 +53,24 @@ type Category = {
   name: string;
   components: Component[];
 };
+
+/**
+ * رقم الطاقة في نافذة التفاصيل — حيث يعني شيئاً فقط.
+ *
+ * ⚠️ كان يُعرض tdpWattage لكلّ قطعة: «0W» للمزوّد والرام والقرص والكيس (يوحي
+ * أنّها لا تستهلك شيئاً)، وللمعالج رقمٌ يخلط القدرة الرسميّة بالقصوى (i5-14500
+ * = 65 الأساسيّة، وi5-14600K = 181 القصوى، و9800X3D = 162 ورسميّته 120).
+ * فالمعالج بقدرته الرسميّة specs.tdpW وحدها (لمعالجات AM5)، والكرت باستهلاكه.
+ */
+function detailsPower(comp: Component, category: string): { label: string; watts: number } | null {
+  const specs = typeof comp.specs === 'string' ? (() => { try { return JSON.parse(comp.specs); } catch { return {}; } })() : comp.specs ?? {};
+  if (category === 'CPU') {
+    const w = Number(specs.tdpW);
+    return w > 0 ? { label: 'القدرة الرسميّة (TDP)', watts: w } : null;
+  }
+  if (category === 'GPU') return comp.tdpWattage > 0 ? { label: 'استهلاك الكرت', watts: comp.tdpWattage } : null;
+  return null;
+}
 
 type ComponentWithCompatibility = Component & {
   isCompatible: boolean;
@@ -283,13 +303,19 @@ const SearchableSelect = ({
                     <div className={`text-[12px] font-black tracking-[1.5px] mb-0.5 ${getBrandColor(selectedComponent, categoryName)}`}>
                       {selectedComponent.brand}
                     </div>
-                    <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-snug truncate">
+                    {/* سطران لا سطرٌ مقطوع: «GeForce RTX 5060 Ti 16GB» كان يُقصّ على الجوال */}
+                    <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-snug line-clamp-2 break-words">
                       {selectedComponent.name}
                     </div>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        {selectedComponent.price} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
-                      </span>
+                      {/* سعرٌ صفر = لا سعر مسجّل — لا «0 ريال» (كصفحة القطعة) */}
+                      {selectedComponent.price > 0 ? (
+                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          {formatPrice(selectedComponent.price)} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                        </span>
+                      ) : (
+                        <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400">لا سعر مسجّل</span>
+                      )}
                       {quickSpec && (
                         <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
                           {quickSpec}
@@ -311,10 +337,21 @@ const SearchableSelect = ({
                 )}
               </div>
 
-              {/* الإجراءات */}
-              <div className="flex gap-1.5 shrink-0">
+              {/* الإجراءات — على الجوال شبكة ٢×٢ لا صفّ: أربعة أزرارٍ في صفٍّ
+                  تركت للاسم ٣٧ بكسلاً على عرض ٣٧٥ («Co…»)، والشبكة تعيد له ~١١٠ */}
+              <div className="grid grid-cols-2 sm:flex gap-1.5 shrink-0">
                 {selectedComponent && (
                   <>
+                    {/* التفاصيل ثابتةٌ هنا: «المزيد» في سطر السلسلة يغيب مع غيابه
+                        (كرت شاشةٍ عامّ بلا ملاحظات) — فتغيب التفاصيل معه */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onShowDetails(selectedComponent); }}
+                      title="تفاصيل القطعة"
+                      aria-label="تفاصيل القطعة"
+                      className="w-8 h-8 rounded-sm bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </button>
                     <a
                       href={`/compare?ids=${selectedComponent.id}`}
                       onClick={(e) => e.stopPropagation()}
@@ -2348,19 +2385,72 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-8">
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-sm border border-slate-200 dark:border-slate-700/50">
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">السعر الحالي</span>
-                  <span className="font-black text-xl text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                    {detailsModal.comp.price} <RiyalIcon size="h-5 w-5" colorClass="bg-emerald-700 dark:bg-emerald-400" />
-                  </span>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-sm border border-slate-200 dark:border-slate-700/50">
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">الطاقة المطلوبة</span>
-                  <span className="font-black text-xl text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                    {detailsModal.comp.tdpWattage}W
-                  </span>
-                </div>
+              {(() => {
+                /* السعر بمتجره: «أقلّ سعر من مايكرولس» — لا رقمٌ بلا مصدر، ولا «0 ريال»
+                   لقطعةٍ بلا سعر (BarraCuda 1TB بعد حذف عرضه الخاطئ) */
+                const comp = detailsModal.comp;
+                const best = cheapestOffer(comp.offers);
+                const stores = cheapestStoreNames(comp);
+                const power = detailsPower(comp, detailsModal.categoryName);
+                return (
+                  <div className={`grid ${power ? 'grid-cols-2' : 'grid-cols-1'} gap-3 mb-8`}>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-sm border border-slate-200 dark:border-slate-700/50">
+                      <span className="block text-xs font-bold text-slate-500 mb-1">{best ? 'أقلّ سعر متاح' : 'السعر'}</span>
+                      {best ? (
+                        <>
+                          <span className="font-black text-xl text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                            {formatPrice(best.price)} <RiyalIcon size="h-5 w-5" colorClass="bg-emerald-700 dark:bg-emerald-400" />
+                          </span>
+                          <span className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 mt-1">من {stores.join('، ')}</span>
+                        </>
+                      ) : comp.price > 0 ? (
+                        <>
+                          <span className="font-black text-xl text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                            {formatPrice(comp.price)} <RiyalIcon size="h-5 w-5" colorClass="bg-slate-500 dark:bg-slate-400" />
+                          </span>
+                          <span className="block text-[12px] font-bold text-amber-600 dark:text-amber-400 mt-1">نافدةٌ من كلّ المتاجر — هذا آخر سعرٍ سُجّل</span>
+                        </>
+                      ) : (
+                        <span className="block font-black text-base text-slate-500 dark:text-slate-400">غير متوفر — لا سعر مسجّل</span>
+                      )}
+                    </div>
+                    {power && (
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-sm border border-slate-200 dark:border-slate-700/50">
+                        <span className="block text-xs font-bold text-slate-500 mb-1">{power.label}</span>
+                        <span className="font-black text-xl text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                          {power.watts}W
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {(() => {
+                /* توافقها مع ما اخترتَه — بالدالّة نفسها التي تُعلّم قائمة الاختيار،
+                   لا حكمٌ ثانٍ. ولا يُقال شيءٌ إن لم يُختر غيرها: لا شيء يُقارَن به. */
+                const cat = detailsModal.categoryName;
+                const others = Object.entries(selectedComponents).some(([k, v]) => k !== cat && !!v);
+                if (!others) return null;
+                const [c] = getComponentsWithCompatibility(cat, [detailsModal.comp]);
+                return c.isCompatible ? (
+                  <div className="mb-6 px-3.5 py-2.5 rounded-sm border border-emerald-500/40 bg-emerald-500/[0.07] text-[13px] font-bold text-emerald-800 dark:text-emerald-300">
+                    ✓ تركب مع القطع التي اخترتها
+                  </div>
+                ) : (
+                  <div className="mb-6 px-3.5 py-2.5 rounded-sm border border-rose-300 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-900/20 text-[13px] font-bold text-rose-800 dark:text-rose-300 leading-relaxed">
+                    ✗ لا تركب مع قطعك: {c.reason}. واختيارها يُلغي القطعة المتعارضة.
+                  </div>
+                );
+              })()}
+
+              {/* المتاجر بأسعارها وروابطها — القائمة نفسها التي في صفحة القطعة */}
+              <div className="mb-8 -mt-4">
+                <StoreOfferList
+                  offers={(detailsModal.comp.offers ?? []) as any}
+                  rowName={detailsModal.comp.name}
+                  gpuSpecs={detailsModal.categoryName === 'GPU' ? (typeof detailsModal.comp.specs === 'string' ? JSON.parse(detailsModal.comp.specs) : detailsModal.comp.specs ?? {}) : undefined}
+                />
               </div>
 
               <div className="mb-8">
@@ -2385,12 +2475,29 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             </div>
 
             <div className="p-5 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] flex gap-3 shrink-0">
-              <button 
-                onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }} 
-                className="flex-1 py-3.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-sm font-bold transition-all shadow-md shadow-cyan-500/20 active:scale-95"
+              {/* الصفحة الكاملة: تاريخ السعر وتنبيهه وتقرير فرق السعر — في تبويبٍ
+                  جديد فتبقى التجميعة كما هي */}
+              <a
+                href={`/components/${detailsModal.comp.id}`}
+                target="_blank"
+                rel="noopener"
+                className="px-4 py-3.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-sm font-bold border border-slate-300 dark:border-slate-700 transition-colors text-center whitespace-nowrap"
               >
-                اعتماد القطعة
-              </button>
+                الصفحة الكاملة ↗
+              </a>
+              {/* القطعة المختارة أصلاً لا تُعتمد مرّةً ثانية */}
+              {selectedComponents[detailsModal.categoryName]?.id === detailsModal.comp.id ? (
+                <span className="flex-1 py-3.5 text-center rounded-sm font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                  ✓ مختارة في تجميعتك
+                </span>
+              ) : (
+                <button
+                  onClick={() => { handleSelect(detailsModal.categoryName, detailsModal.comp.id); setDetailsModal(null); }}
+                  className="flex-1 py-3.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-sm font-bold transition-all shadow-md shadow-cyan-500/20 active:scale-95"
+                >
+                  اعتماد القطعة
+                </button>
+              )}
             </div>
           </div>
         </div>

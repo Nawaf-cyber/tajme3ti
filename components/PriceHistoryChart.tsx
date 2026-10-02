@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { Panel, SectionHeading, StatStrip, type Stat } from './Panel';
-import { liveStats } from '../lib/price-stats';
+import { liveStats } from '../lib/price-stats-core';
 
 /* ============ رسم تاريخ السعر ============
    مكوّن خادم بحت (بلا 'use client') — يرندر SVG على الخادم،
