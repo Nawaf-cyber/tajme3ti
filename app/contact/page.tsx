@@ -45,10 +45,10 @@ export default function ContactPage() {
                 للاستفسارات المتعلّقة بالتعاون أو الإعلانات أو المواضيع الرسمية، يمكنك مراسلتنا مباشرة عبر البريد الإلكتروني.
               </p>
               <a
-                href="mailto:info@tajme3ti.com"
+                href="mailto:Tajme3ti02@gmail.com"
                 className="inline-block bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-6 rounded-sm transition-colors"
               >
-                tajme3ti@gmail.com
+                Tajme3ti02@gmail.com
               </a>
             </div>
 
