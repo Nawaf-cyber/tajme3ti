@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
 import SuggestionModal from '../../components/SuggestionModal';
 
 export default function ContactPage() {
@@ -53,6 +54,11 @@ export default function ContactPage() {
             </div>
 
           </div>
+
+          <p className="text-base bg-cyan-50 dark:bg-slate-800/50 border border-cyan-100 dark:border-slate-700 rounded-sm p-4">
+            صاحب متجر وتريد عرض أسعارك عندنا؟{' '}
+            <Link href="/for-stores" className="font-bold text-cyan-700 dark:text-cyan-400 hover:underline">قدّم طلب الانضمام ←</Link>
+          </p>
 
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-6">
             نبذل جهدنا للرد على جميع الرسائل في أقرب وقت ممكن. شكراً لاهتمامك ومساهمتك في تطوير المنصة.

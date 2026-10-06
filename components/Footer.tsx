@@ -34,6 +34,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
       { label: 'عن المنصّة', href: '/about' },
       { label: 'اتصل بنا', href: '/contact' },
       { label: 'أرسل اقتراحاً', action: 'suggest' },
+      { label: 'انضم كمتجر', href: '/for-stores' },
       { label: 'سياسة الخصوصية', href: '/privacy' },
       // ⚠️ فيها إخلاء مسؤوليّة الأسعار — والزائر يبحث عنه هنا لا في
       // صفحة القطعة. وغيابُها كان من نواقص مراجعة أدسنس.

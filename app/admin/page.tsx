@@ -44,6 +44,9 @@ export default async function AdminDashboard() {
     // وردود المستخدمين التي لم تُقرأ — كلاهما يستدعي فتح الصفحة
     (await prisma.partRequestMessage.count({ where: { userId: { not: null }, seenByAdmin: false } }));
 
+  /* طلبات انضمام المتاجر التي لم يُبتّ فيها — شارةٌ حمراء على «طلبات المتاجر» */
+  const newStoreApps = await prisma.storeApplication.count({ where: { status: 'NEW' } });
+
   // 2. جلب حالة التحديث التلقائي من قاعدة البيانات (سيرفر سايد)
   const cronStatus = await getCronStatus();
 
@@ -135,7 +138,7 @@ export default async function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-7xl mx-auto">
-        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} newRequests={newRequests}>
+        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} newRequests={newRequests} newStoreApps={newStoreApps}>
         {/* ============ الرأس: ما يحتاج انتباهك، قبل أن تبحث عنه ============
             الرقمُ الملوّن وحده يستدعي فعلاً؛ والرماديّ معلومةٌ للاطمئنان. */}
         <header>
@@ -154,11 +157,12 @@ export default async function AdminDashboard() {
             </span>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-7 gap-3">
             {[
               { label: 'قطعة في الكتالوج', value: components.length, tone: 'plain' },
               { label: 'متجراً مفعّلاً', value: stores.length, tone: 'plain' },
               { label: 'طلبٌ أو ردٌّ جديد', value: newRequests, tone: newRequests ? 'alert' : 'ok', href: '/admin/part-requests' },
+              { label: 'متجرٌ يطلب الانضمام', value: newStoreApps, tone: newStoreApps ? 'alert' : 'ok', href: '/admin/store-applications' },
               { label: 'بلاغُ سعرٍ من زائر', value: reportRows.length, tone: reportRows.length ? 'alert' : 'ok', href: '#price-reports' },
               { label: 'ارتفاعٌ ينتظر قرارك', value: reviewRows.length, tone: reviewRows.length ? 'warn' : 'ok', href: '#price-reviews' },
               { label: 'رابطٌ مكسور في وصف', value: brokenLinks.length, tone: brokenLinks.length ? 'alert' : 'ok' },

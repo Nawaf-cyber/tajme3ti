@@ -515,6 +515,40 @@ model PartVote {
   @@index([userId])
 }
 
+// 8. طلبات انضمام المتاجر — نموذج «انضم كمتجر» (/for-stores)
+//    بلا حساب: المتجر لا يُطلب منه التسجيل ليُرسل طلباً واحداً.
+//    والحقول مختارةٌ لما يوفّر عمل الإضافة نفسها (المنصّة، قائمة المنتجات)،
+//    لا لمجرّد التعارف.
+enum StoreApplicationStatus {
+  NEW // 🆕 لم يُفتح
+  REVIEWING // 🟡 قيد المراجعة/التواصل
+  ACCEPTED // ✅ قُبل (أُضيف أو سيُضاف)
+  REJECTED // ⛔ رُفض
+}
+
+model StoreApplication {
+  id           String                 @id @default(cuid())
+  storeName    String
+  website      String // الرابط كما كتبه بعد التطبيع (https://…)
+  host         String // النطاق بلا www — مفتاح كشف التكرار
+  contactName  String
+  contactEmail String
+  contactPhone String?
+  platform     String // salla | zid | shopify | woocommerce | custom | other
+  cities       String? // مدن الشحن، نصّاً حرّاً
+  warranty     String? // الضمان الذي يقدّمه
+  productList  Boolean                @default(false) // يقدر يرسل قائمة منتجاتٍ بروابطها
+  affiliate    String? // yes | no | maybe — برنامج عمولة
+  notes        String?
+  status       StoreApplicationStatus @default(NEW)
+  adminNote    String? // ملاحظةٌ داخليّة لا يراها المتجر
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  @@index([status, createdAt])
+  @@index([host])
+}
+
 // -------------------------------------------------
 // جداول NextAuth الإلزامية للمصادقة وجلسات Google والـ OTP
 // -------------------------------------------------

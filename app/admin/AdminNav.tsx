@@ -55,12 +55,15 @@ export default function AdminNav({
   onTab,
   storesCount,
   newRequests,
+  newStoreApps = 0,
   variant = 'sidebar',
 }: {
   activeTab: AdminTab;
   onTab: (t: AdminTab) => void;
   storesCount: number;
   newRequests: number;
+  /** طلبات «انضم كمتجر» بحالة «جديد» */
+  newStoreApps?: number;
   /** `sidebar`: عمودٌ ثابتٌ يمين الصفحة · `grid`: أربع بطاقاتٍ فوق المحتوى */
   variant?: 'sidebar' | 'grid';
 }) {
@@ -78,6 +81,10 @@ export default function AdminNav({
       title: 'المتاجر والعمولات',
       items: [
         { kind: 'link', href: '/admin/stores', icon: '🏪', label: 'المتاجر', hint: `${storesCount} متجراً مفعّلاً`, badge: storesCount },
+        {
+          kind: 'link', href: '/admin/store-applications', icon: '📨', label: 'طلبات المتاجر',
+          hint: newStoreApps ? 'طلباتٌ جديدة' : 'من «انضم كمتجر»', badge: newStoreApps || undefined, alert: newStoreApps > 0,
+        },
         { kind: 'tab', tab: 'affiliates', icon: '🔗', label: 'العمولات', hint: 'معرّفات كلّ متجر' },
         { kind: 'link', href: '/admin/import', icon: '📥', label: 'استيراد JSON', hint: 'قطعٌ وأسعارٌ بالجملة' },
         { kind: 'export' },

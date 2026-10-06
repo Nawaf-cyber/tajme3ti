@@ -33,7 +33,7 @@ import { fieldMeta } from '../../lib/spec-fields';
 /** حالة التحديث الآلي كما تعيدها getCronStatus */
 type CronStatus = { enabled: boolean; updatesPerDay: number; lastRunAt: Date | string | null; source?: CronSource };
 
-export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [], newRequests = 0, children }: { categories: any[], components: any[], news: any[], cronStatus: CronStatus, settings?: Record<string, string>, stores?: StoreInfo[], newRequests?: number, /** الرأس ولوحات التنبيه — تُعرض أعلى عمود المحتوى بجانب الشريط */ children?: ReactNode }) {
+export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [], newRequests = 0, newStoreApps = 0, children }: { categories: any[], components: any[], news: any[], cronStatus: CronStatus, settings?: Record<string, string>, stores?: StoreInfo[], newRequests?: number, newStoreApps?: number, /** الرأس ولوحات التنبيه — تُعرض أعلى عمود المحتوى بجانب الشريط */ children?: ReactNode }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news' | 'affiliates'>('components');
   
   const [editingComponent, setEditingComponent] = useState<any>(null);
@@ -233,6 +233,7 @@ export default function AdminManager({ categories, components, news, cronStatus,
           onTab={(t) => { setActiveTab(t); cancelEdit(); }}
           storesCount={stores.length}
           newRequests={newRequests}
+          newStoreApps={newStoreApps}
         />
       </aside>
 
