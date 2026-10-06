@@ -2,6 +2,9 @@ import { prisma } from '../../lib/prisma';
 import { HAS_PARTS } from '../../lib/categories';
 import CompareClient from './CompareClient';
 import { OFFER_INCLUDE } from '../../lib/stores-server';
+import { liveOffers } from '../../lib/stores';
+import { liveStats, type PriceStats } from '../../lib/price-stats-core';
+import { platformCost, type PlatformCost } from '../../lib/platform-cost';
 import type { Metadata } from 'next';
 
 // تحديث حي — الأسعار والتوفّر تتغيّر
@@ -118,25 +121,39 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
      نجمّع أدنى سعر يومي لكل قطعة عبر كل المتاجر خلال ٩٠ يوماً.
      السؤال الذي يجيبه: "هل هذا السعر لقطة أم هو الطبيعي؟" — وهو ما لا
      تجيبه أي صفحة أخرى. التجميع على الخادم كي لا نرسل ١٨٠٠ نقطة للعميل. */
+  /* «تكلفة المنصّة» — للمعالجات وحدها: المعالج + أرخص لوحةٍ متوفّرة تقبله (lib/platform-cost) */
+  let platform: (PlatformCost | null)[] = [];
+  if (ordered[0]?.category?.name === 'CPU') {
+    const boards = await prisma.component.findMany({
+      where: { category: { name: 'Motherboard' } },
+      include: OFFER_INCLUDE,
+    });
+    platform = ordered.map((c) => platformCost(c as any, boards as any));
+  }
+
   let history: { componentId: string; points: { d: string; p: number }[] }[] = [];
+  let priceStats: (PriceStats | null)[] = [];
+  /* متاجر كلّ قطعةٍ التي تبيعها الآن — للرسم ولـ«وضع السعر» معاً */
+  const liveSlugs: Record<string, string[]> = Object.fromEntries(
+    ordered.map((c) => [c.id, liveOffers(c.offers as any).map((o) => o.store.slug)]),
+  );
   if (keptIds.length >= 2) {
     const since = new Date();
     since.setDate(since.getDate() - 90);
 
-    /* المتاجر المعطّلة تُستثنى من الرسم — لو أوقفت متجراً فأسعاره القديمة
-       لا يجوز أن تبقى ترسم "أدنى سعر" لا يستطيع الزائر شراءه اليوم. */
-    const activeSlugs = (
-      await prisma.store.findMany({ where: { active: true }, select: { slug: true } })
-    ).map((s) => s.slug);
-
+    /* ⚠️ من المتاجر التي تبيع القطعة **الآن** وحدها — كما في صفحة القطعة
+       (lib/price-stats-core). كان الرسم هنا يأخذ كلَّ متجرٍ مفعّل، فيرسم
+       «أدنى سعر» من متجرٍ نافدٍ لا يشتري منه أحد، وصفُّ «وضع السعر» في
+       الجدول يقول رقماً آخر عن الشيء نفسه في الصفحة نفسها. */
     const rows = await prisma.priceHistory.findMany({
-      where: { componentId: { in: keptIds }, recordedAt: { gte: since }, store: { in: activeSlugs } },
+      where: { componentId: { in: keptIds }, recordedAt: { gte: since }, store: { in: [...new Set(Object.values(liveSlugs).flat())] } },
       orderBy: { recordedAt: 'asc' },
-      select: { componentId: true, price: true, recordedAt: true },
+      select: { componentId: true, store: true, price: true, recordedAt: true },
     });
 
     const perComp = new Map<string, Map<string, number>>();
     for (const r of rows) {
+      if (!liveSlugs[r.componentId]?.includes(r.store)) continue;
       const day = r.recordedAt.toISOString().slice(0, 10);
       let m = perComp.get(r.componentId);
       if (!m) { m = new Map(); perComp.set(r.componentId, m); }
@@ -152,6 +169,11 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
         .map(([d, p]) => ({ d, p }))
         .sort((a, b) => a.d.localeCompare(b.d)),
     }));
+
+    /* «وضع السعر» لكلّ عمود — الدالّة نفسها التي تكتب فقرة صفحة القطعة */
+    priceStats = keptIds.map((id) =>
+      liveStats(rows.filter((r) => r.componentId === id), liveSlugs[id] ?? []),
+    );
   }
 
 
@@ -164,6 +186,8 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       activeCategoryId={activeCategoryId}
       droppedNames={droppedNames}
       history={history}
+      priceStats={priceStats}
+      platform={JSON.parse(JSON.stringify(platform))}
     />
   );
 }

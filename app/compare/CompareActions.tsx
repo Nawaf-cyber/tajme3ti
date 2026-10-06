@@ -168,7 +168,7 @@ export default function CompareActions({
             d="M8.684 13.342a3 3 0 100-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
           />
         </svg>
-        <span className="text-[11px] font-black">مشاركة</span>
+        <span className="text-xs font-black">مشاركة</span>
       </button>
 
       {/* تصدير كصورة */}
@@ -176,7 +176,7 @@ export default function CompareActions({
         onClick={exportImage}
         disabled={exporting}
         title="حمّل المقارنة كصورة"
-        className="flex items-center gap-1.5 px-3 py-2 border border-cyan-500/40 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 disabled:opacity-50 disabled:pointer-events-none rounded-sm transition-all active:scale-95"
+        className="flex items-center gap-1.5 px-3 py-2 border border-cyan-500/40 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 disabled:opacity-50 disabled:pointer-events-none rounded-sm transition-all active:scale-95"
       >
         {exporting ? (
           <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -193,7 +193,7 @@ export default function CompareActions({
             />
           </svg>
         )}
-        <span className="text-[11px] font-black">{exporting ? 'جارٍ...' : 'صورة'}</span>
+        <span className="text-xs font-black">{exporting ? 'جارٍ...' : 'صورة'}</span>
       </button>
     </div>
   );

@@ -15,7 +15,7 @@ export default function BuyCell({ component }: { component: { offers?: Offer[] |
 
   if (offers.length === 0) {
     return (
-      <span className="font-mono text-[10px] font-bold text-slate-300 dark:text-slate-700">
+      <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
         غير متوفر
       </span>
     );
@@ -34,13 +34,13 @@ export default function BuyCell({ component }: { component: { offers?: Offer[] |
             href={buildStoreUrl(o.store, o.url, o.affiliateUrl)}
             {...storeLinkProps(o.store)}
             style={storeVars(o.store.color)}
-            className={`group/buy flex items-center justify-between gap-2 px-2.5 py-2 border rounded-sm transition-colors ${
+            className={`group/buy flex flex-wrap min-w-0 items-center justify-between gap-x-2 gap-y-0.5 px-2.5 py-2 border rounded-sm transition-colors ${
               i === 0
                 ? 'border-emerald-500/50 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400'
-                : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-[color:var(--store-color)] hover:text-[color:var(--store-color)]'
+                : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-[color:var(--store-color)] hover:text-[color:var(--store-color)]'
             }`}
           >
-            <span className="font-mono text-[9px] font-black uppercase tracking-wider shrink-0 flex items-center gap-1">
+            <span className="text-xs font-black shrink-0 flex items-center gap-1">
               {o.store.name}
               {pct > 0 && (
                 <span className="text-[12px] font-black text-white bg-rose-500 px-1 py-0.5 rounded-sm tabular-nums">
@@ -48,15 +48,15 @@ export default function BuyCell({ component }: { component: { offers?: Offer[] |
                 </span>
               )}
             </span>
-            <span className="flex items-center gap-1 font-mono text-[11px] font-black">
+            <span className="flex items-center gap-1 font-mono text-xs font-black">
               {/* السعر قبل الخصم مشطوباً — دليل أن العرض حقيقي */}
               {pct > 0 && o.listPrice && (
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 line-through">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 line-through">
                   {formatPrice(o.listPrice)}
                 </span>
               )}
               {formatPrice(o.price)}
-              {i === 0 && offers.length > 1 && <span className="text-[12px] opacity-70">أرخص</span>}
+              {i === 0 && offers.length > 1 && <span className="font-sans text-xs opacity-80">أرخص</span>}
               <svg
                 className="w-2.5 h-2.5 opacity-0 group-hover/buy:opacity-100 transition-opacity"
                 fill="none"

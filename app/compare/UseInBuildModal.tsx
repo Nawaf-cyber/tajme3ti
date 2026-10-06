@@ -50,10 +50,10 @@ const fmt = (n: number) => n.toLocaleString('en-US');
 
 const brandColor = (brand: string) => {
   const b = (brand || '').toLowerCase();
-  if (b.includes('nvidia')) return 'text-lime-500';
-  if (b.includes('amd')) return 'text-red-500';
-  if (b.includes('intel')) return 'text-blue-500';
-  return 'text-slate-500 dark:text-slate-400';
+  if (b.includes('nvidia')) return 'text-lime-700 dark:text-lime-400';
+  if (b.includes('amd')) return 'text-red-600 dark:text-red-400';
+  if (b.includes('intel')) return 'text-blue-600 dark:text-blue-400';
+  return 'text-slate-600 dark:text-slate-400';
 };
 
 /* ---- صورة قطعة صغيرة ---- */
@@ -200,19 +200,19 @@ export default function UseInBuildModal({
           <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-sm">
             <PartThumb src={component.imageUrl} alt={component.name} />
             <div className="flex-1 min-w-0">
-              <div className={`font-mono text-[9px] font-black uppercase tracking-wider ${brandColor(component.brand)}`}>
+              <div className={`font-mono text-xs font-black uppercase tracking-wider ${brandColor(component.brand)}`}>
                 {component.brand}
               </div>
               <div className="text-sm font-black text-slate-900 dark:text-white truncate leading-snug">
                 {component.name}
               </div>
               {component.price > 0 && (
-                <div className="mt-0.5 flex items-center gap-1 font-mono text-xs font-black text-emerald-600 dark:text-emerald-400">
+                <div className="mt-0.5 flex items-center gap-1 font-mono text-xs font-black text-emerald-700 dark:text-emerald-400">
                   {fmt(component.price)} <RiyalIcon />
                 </div>
               )}
             </div>
-            <span className="font-mono text-[9px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 rounded-sm px-2 py-1 shrink-0">
+            <span className="font-mono text-xs font-black text-cyan-700 dark:text-cyan-400 border border-cyan-500/40 rounded-sm px-2 py-1 shrink-0">
               القطعة المختارة
             </span>
           </div>
@@ -235,7 +235,7 @@ export default function UseInBuildModal({
               <p className="text-base font-black text-slate-900 dark:text-white mb-1.5">
                 {done.replaced ? 'تم الاستبدال' : 'تمت الإضافة'}
               </p>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-8">
+              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-8">
                 في تجميعة «{done.buildName}»
               </p>
               <div className="flex flex-col sm:flex-row gap-2 justify-center px-4">
@@ -257,7 +257,7 @@ export default function UseInBuildModal({
           /* ---------- خطوة تأكيد الاستبدال ---------- */
           ) : confirming ? (
             <div>
-              <p className="mb-4 text-xs font-bold text-slate-500 dark:text-slate-400 text-center leading-relaxed">
+              <p className="mb-4 text-xs font-bold text-slate-600 dark:text-slate-400 text-center leading-relaxed">
                 هذه الخانة في «{confirming.name}» مشغولة. راجع التغيير قبل التأكيد.
               </p>
 
@@ -267,10 +267,10 @@ export default function UseInBuildModal({
                 <div className="flex items-center gap-3 p-3 bg-red-50/50 dark:bg-red-950/10">
                   <PartThumb src={confirming.currentPart!.imageUrl} alt={confirming.currentPart!.name} size="w-12 h-12" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-mono text-[9px] font-black text-red-500 uppercase tracking-wider mb-0.5">
+                    <div className="text-xs font-black text-red-500 mb-0.5">
                       ستُزال
                     </div>
-                    <div className="text-sm font-bold text-slate-500 dark:text-slate-400 line-through truncate">
+                    <div className="text-sm font-bold text-slate-600 dark:text-slate-400 line-through truncate">
                       {confirming.currentPart!.name}
                     </div>
                   </div>
@@ -294,7 +294,7 @@ export default function UseInBuildModal({
                 <div className="flex items-center gap-3 p-3 bg-cyan-50/60 dark:bg-cyan-950/20 border-r-2 border-r-cyan-500">
                   <PartThumb src={component.imageUrl} alt={component.name} size="w-12 h-12" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-mono text-[9px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-wider mb-0.5">
+                    <div className="text-xs font-black text-cyan-700 dark:text-cyan-400 mb-0.5">
                       ستُضاف
                     </div>
                     <div className="text-sm font-black text-slate-900 dark:text-white truncate">
@@ -302,7 +302,7 @@ export default function UseInBuildModal({
                     </div>
                   </div>
                   {component.price > 0 && (
-                    <div className="font-mono text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1 shrink-0">
+                    <div className="font-mono text-xs font-black text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0">
                       {fmt(component.price)} <RiyalIcon />
                     </div>
                   )}
@@ -313,7 +313,7 @@ export default function UseInBuildModal({
               {confirming.totalPrice > 0 && priceDelta !== 0 && (
                 <div className="mt-3 p-3 border border-slate-200 dark:border-slate-800 rounded-sm">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-500 dark:text-slate-400">إجمالي التجميعة</span>
+                    <span className="font-bold text-slate-600 dark:text-slate-400">إجمالي التجميعة</span>
                     <div className="flex items-center gap-2 font-mono font-black">
                       <span className="text-slate-400 line-through flex items-center gap-1">
                         {fmt(confirming.totalPrice)} <RiyalIcon size="h-2.5 w-2.5" colorClass="bg-slate-400" />
@@ -325,8 +325,8 @@ export default function UseInBuildModal({
                     </div>
                   </div>
                   <div
-                    className={`mt-1.5 font-mono text-[10px] font-black ${
-                      priceDelta > 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'
+                    className={`mt-1.5 font-mono text-xs font-black ${
+                      priceDelta > 0 ? 'text-red-500' : 'text-emerald-700 dark:text-emerald-400'
                     }`}
                   >
                     {priceDelta > 0 ? '▲ زيادة' : '▼ توفير'} {fmt(Math.abs(priceDelta))} ريال
@@ -384,7 +384,7 @@ export default function UseInBuildModal({
                 </svg>
               </div>
               <p className="text-sm font-black text-slate-900 dark:text-white mb-1.5">سجّل الدخول أولاً</p>
-              <p className="font-mono text-[10px] text-slate-400 mb-7">تجميعاتك محفوظة في حسابك.</p>
+              <p className="text-xs text-slate-400 mb-7">تجميعاتك محفوظة في حسابك.</p>
               <Link
                 href="/login"
                 onClick={goToLogin}
@@ -405,7 +405,7 @@ export default function UseInBuildModal({
                 +
               </div>
               <p className="text-sm font-black text-slate-900 dark:text-white mb-1.5">ما عندك تجميعات بعد</p>
-              <p className="font-mono text-[10px] text-slate-400 mb-7 leading-relaxed">
+              <p className="text-xs text-slate-400 mb-7 leading-relaxed">
                 ابنِ تجميعتك الأولى ثم عُد لإضافة القطع إليها.
               </p>
               <Link
@@ -419,7 +419,7 @@ export default function UseInBuildModal({
           /* ---------- قائمة التجميعات ---------- */
           ) : (
             <>
-              <p className="mb-3 font-mono text-[10px] text-slate-400 px-1">
+              <p className="mb-3 text-xs text-slate-400 px-1">
                 اختر التجميعة التي تريد إضافة القطعة إليها
               </p>
 
@@ -449,15 +449,15 @@ export default function UseInBuildModal({
                           {b.name}
                         </h4>
                         {isSame ? (
-                          <span className="font-mono text-[9px] font-black text-slate-400 border border-slate-300 dark:border-slate-700 rounded-sm px-2 py-0.5 shrink-0">
+                          <span className="font-mono text-xs font-black text-slate-400 border border-slate-300 dark:border-slate-700 rounded-sm px-2 py-0.5 shrink-0">
                             موجودة هنا
                           </span>
                         ) : willReplace ? (
-                          <span className="font-mono text-[9px] font-black text-amber-600 dark:text-amber-500 border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 rounded-sm px-2 py-0.5 shrink-0">
+                          <span className="font-mono text-xs font-black text-amber-600 dark:text-amber-500 border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 rounded-sm px-2 py-0.5 shrink-0">
                             استبدال
                           </span>
                         ) : (
-                          <span className="font-mono text-[9px] font-black text-emerald-600 dark:text-emerald-400 border border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/20 rounded-sm px-2 py-0.5 shrink-0">
+                          <span className="font-mono text-xs font-black text-emerald-700 dark:text-emerald-400 border border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/20 rounded-sm px-2 py-0.5 shrink-0">
                             خانة فارغة
                           </span>
                         )}
@@ -472,9 +472,9 @@ export default function UseInBuildModal({
                             <span
                               key={s.field}
                               title={s.part ? `${s.label}: ${s.part.name}` : `${s.label}: فارغة`}
-                              className={`font-mono text-[9px] font-black px-1.5 py-1 rounded-sm border transition-colors ${
+                              className={`font-mono text-xs font-black px-1.5 py-1 rounded-sm border transition-colors ${
                                 isTarget
-                                  ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 ring-1 ring-cyan-500/30'
+                                  ? 'border-cyan-500 text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 ring-1 ring-cyan-500/30'
                                   : filled
                                   ? 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                                   : 'border-dashed border-slate-200 dark:border-slate-800 text-slate-300 dark:text-slate-700'
@@ -489,16 +489,16 @@ export default function UseInBuildModal({
                       {/* السطر الأخير: القطعة الحالية + الإجمالي */}
                       <div className="flex items-end justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/60">
                         <div className="min-w-0 flex-1">
-                          <div className="font-mono text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">
+                          <div className="text-xs text-slate-400 mb-0.5">
                             {b.currentPart ? 'الحالية في هذه الخانة' : 'هذه الخانة'}
                           </div>
-                          <div className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate">
+                          <div className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate">
                             {b.currentPart ? b.currentPart.name : '— فارغة —'}
                           </div>
                         </div>
 
                         <div className="text-left shrink-0">
-                          <div className="font-mono text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">
+                          <div className="text-xs text-slate-400 mb-0.5">
                             {b.filled}/{b.totalSlots} قطعة
                           </div>
                           {b.totalPrice > 0 && (
@@ -520,7 +520,7 @@ export default function UseInBuildModal({
         {/* ==================== التذييل ==================== */}
         {!done && !confirming && !needsLogin && builds.length > 0 && (
           <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 text-center shrink-0">
-            <p className="font-mono text-[10px] text-slate-400">
+            <p className="text-xs text-slate-400">
               {builds.length} تجميعة · لن يُستبدل شيء بدون تأكيدك
             </p>
           </div>

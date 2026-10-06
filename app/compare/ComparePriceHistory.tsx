@@ -1,7 +1,7 @@
 'use client';
 
 /* ============ مقارنة تاريخ الأسعار ============
-   خط لكل قطعة (أدنى سعر يومي عبر كل المتاجر) خلال ٩٠ يوماً.
+   خط لكل قطعة (أدنى سعر يومي بين المتاجر التي تبيعها الآن — كما في صفحة القطعة) خلال ٩٠ يوماً.
 
    لماذا أدنى سعر لا سعر كل متجر: هنا نقارن **قطعاً** لا متاجر، والزائر
    يدفع الأرخص المتاح. عرض ٣ قطع × ٣ متاجر = ٩ خطوط لا تُقرأ.
@@ -34,7 +34,7 @@ export default function ComparePriceHistory({
       <section className="mt-8 flex flex-col gap-4">
         <SectionHeading note="آخر 90 يوماً">تاريخ السعر</SectionHeading>
         <Panel className="px-6 py-8 text-center">
-          <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-bold text-slate-600 dark:text-slate-400">
             نجمع بيانات الأسعار لهذه القطع — سيظهر الرسم بعد عدة أيام من التتبّع.
           </p>
         </Panel>
@@ -144,18 +144,18 @@ export default function ComparePriceHistory({
                 className="inline-block w-5 h-0.5 rounded-full shrink-0"
                 style={{ backgroundColor: s.color }}
               />
-              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[190px]">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate max-w-[190px]">
                 {s.label?.name ?? '—'}
               </span>
               <span
-                className={`text-[11px] font-black flex items-center gap-0.5 shrink-0 ${
-                  st.change < 0 ? 'text-emerald-500' : st.change > 0 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'
+                className={`text-xs font-black flex items-center gap-0.5 shrink-0 ${
+                  st.change < 0 ? 'text-emerald-700 dark:text-emerald-400' : st.change > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
                 {st.change === 0 ? '—' : `${st.change < 0 ? '▼' : '▲'} ${formatPrice(Math.abs(st.change))}`}
               </span>
               {st.atLowest && (
-                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 px-1.5 py-0.5 rounded-sm shrink-0">
+                <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 border border-emerald-500/40 px-1.5 py-0.5 rounded-sm shrink-0">
                   أدنى سعر مسجّل
                 </span>
               )}
@@ -328,7 +328,7 @@ export default function ComparePriceHistory({
         </svg>
       </div>
 
-      <p className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 font-mono text-[10px] text-slate-400 dark:text-slate-500 text-center leading-relaxed">
+      <p className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 text-center leading-relaxed">
         أشر على أي يوم (أو المس واستمرّ) لترى أسعار القطع فيه — أدنى سعر متاح لكل قطعة، نقاط حقيقية مسجّلة بلا تقدير للفجوات
       </p>
       </Panel>

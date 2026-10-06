@@ -4,11 +4,22 @@ import { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatPrice } from '../../lib/price';
-import { isAvailable, offerDeal } from '../../lib/stores';
+import { isAvailable, offerDeal, priceAsOf } from '../../lib/stores';
+import { seriesInfo, variantNotes, warrantyText, notesCount, ISSUES_CHECKED, type SeriesInfo } from '../../lib/series';
+import { SeriesNotes } from '../../components/SeriesInfo';
+import { catMeta } from '../../lib/category-meta';
+import { bundledCooler } from '../../lib/build-check';
+import { timeAgoAr, isPriceStale } from '../../lib/time-ago';
+import { pctAboveMin, daysAr, type PriceStats } from '../../lib/price-stats-core';
+import type { PlatformCost } from '../../lib/platform-cost';
 import type { AffiliateIds } from '../../lib/affiliate';
 import UseInBuildModal from './UseInBuildModal';
 import CompareActions from './CompareActions';
 import BuyCell from './BuyCell';
+import RigFitRow, { useRigFits } from './RigFitRow';
+import { buildVerdict, type VerdictInput } from '../../lib/compare-verdict';
+import { gpuPerf, feelLine, GPU_PERF_SOURCE } from '../../lib/gpu-perf';
+import { gpuUpscaler, UPSCALING_SOURCES } from '../../lib/gpu-upscaling';
 import ComparePriceHistory, { SERIES_COLORS, type HistorySeries } from './ComparePriceHistory';
 import SuggestPartCard from '../../components/SuggestPartCard';
 import { productImage, IMAGE_FALLBACK } from '../../lib/image';
@@ -32,13 +43,14 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emer
   />
 );
 
+
 // ألوان العلامات التجارية
 const brandColor = (brand: string) => {
   const b = (brand || '').toLowerCase();
-  if (b.includes('nvidia')) return 'text-lime-500';
-  if (b.includes('amd')) return 'text-red-500';
-  if (b.includes('intel')) return 'text-blue-500';
-  return 'text-slate-500 dark:text-slate-400';
+  if (b.includes('nvidia')) return 'text-lime-700 dark:text-lime-400';
+  if (b.includes('amd')) return 'text-red-600 dark:text-red-400';
+  if (b.includes('intel')) return 'text-blue-600 dark:text-blue-400';
+  return 'text-slate-600 dark:text-slate-400';
 };
 
 /* ============ التسميات: مصدرٌ واحد ============
@@ -178,6 +190,8 @@ export default function CompareClient({
   activeCategoryId,
   droppedNames = [],
   history = [],
+  priceStats = [],
+  platform = [],
 }: {
   selected: Comp[];
   available: Comp[];
@@ -186,6 +200,10 @@ export default function CompareClient({
   activeCategoryId: string | null;
   droppedNames?: string[];
   history?: HistorySeries[];
+  /** موضع سعر كلّ عمودٍ من تاريخه — lib/price-stats-core، بترتيب الأعمدة */
+  priceStats?: (PriceStats | null)[];
+  /** للمعالجات: المعالج + أرخص لوحةٍ متوفّرة تقبله — lib/platform-cost */
+  platform?: (PlatformCost | null)[];
 }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -204,6 +222,39 @@ export default function CompareClient({
 
   /* خصم كل عمود — نفس دالة صفحتَي التصفّح والمنتج، فلا يتباعد الحساب */
   const deals = useMemo(() => selected.map((c) => offerDeal(c)), [selected]);
+
+  /* ============ حال كل عمود: التوفّر وعمر السعر والسلسلة ============
+   *
+   * ⚠️ القطعة النافدة **تبقى** في الحساب والترشيح — بقرار نوّاف: من يقارن
+   * قطعةً نافدة يريد مقارنتها هي (ينتظر عودتها، أو يقيس عليها بديلاً).
+   * فلا تُستبعد، بل يُنبَّه عليها في كل موضعٍ يُرشّحها: الشارة والسعر
+   * والتوصية والخلاصة. وكان قبل هذا يتوّجها «أفضل قيمة» بلا كلمة.
+   *
+   * والسلسلة والضمان والملاحظات من lib/series نفسها التي تعرضها صفحة
+   * القطعة ونافذة الباني — مصدرٌ واحد. */
+  const cols = useMemo(() => selected.map((c) => {
+    const cat = c.category?.name ?? '';
+    const s: SeriesInfo | null = cat ? seriesInfo(c, cat) : null;
+    const offers = (c.offers ?? []).map((o: any) => ({ variant: o.variant, store: { name: o.store.name } }));
+    const generic = !s || s.notesOnly;
+    const asOf = priceAsOf(c);
+    return {
+      category: cat,
+      offers,
+      avail: isAvailable(c),
+      hasPrice: c.price > 0,
+      series: s,
+      issues: s?.issues.length ?? 0,
+      variantNotes: generic && cat ? variantNotes(c.name, offers, cat).length : 0,
+      age: timeAgoAr(asOf),
+      stale: c.price > 0 && isPriceStale(asOf),
+      /* أداء الشريحة في الألعاب — للكروت وحدها (lib/gpu-perf) */
+      perf: cat === 'GPU' ? gpuPerf(c.name, parseNum((typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {}).vram)) : null,
+      /* الرفع بالذكاء الاصطناعي — للكروت وحدها (lib/gpu-upscaling) */
+      upscaler: cat === 'GPU' ? gpuUpscaler(c.name) : null,
+    };
+  }), [selected]);
+
 
   /* ---- تحديث الرابط ---- */
   const updateUrl = (newIds: string[]) => {
@@ -315,6 +366,52 @@ export default function CompareClient({
      حيث تختفي عشرات الصفوف المكرّرة ويبقى ما يفرّق فعلاً. */
   const [diffOnly, setDiffOnly] = useState(false);
 
+  /* ============ صفوفٌ محسوبة — رقمٌ يسأله المشتري لا تكتبه الشركة ============
+   *
+   * • الرام: زمن الاستجابة الفعليّ بالنانوثانية = CL × 2000 ÷ السرعة.
+   *   «6000 CL30» و«6400 CL32» كلاهما ١٠ ns — الأسرع على الورق ليس أسرع.
+   * • الرام والتخزين: الريال لكلّ جيجابايت / تيرابايت.
+   *
+   * ⚠️ التيرابايت هنا ١٠٢٤ جيجابايت كما في lib/capacity — فـ«2TB» تيرابايتان
+   * بالضبط لا ١٫٩٥. والسعر سعرُ العمود نفسه (أرخص متوفّر، أو آخر مسجّل
+   * للنافدة — وتنبيهها في صفّ السعر). */
+  const derivedRows = useMemo(() => {
+    const cat = selected[0]?.category?.name;
+    const sp = (c: Comp) => (typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {});
+    const gb = (c: Comp) => parseNum(sp(c).capacity);
+    const rows: { label: string; note: string; values: (number | null)[]; fmt: (n: number) => string }[] = [];
+    if (cat === 'RAM') {
+      rows.push({
+        label: 'زمن الاستجابة الفعلي', note: 'CL × 2000 ÷ السرعة · الأقل أفضل',
+        values: selected.map((c) => {
+          // «CL28-36-36-96» → 28: الرقم الأوّل وحده هو CL (الباقي توقيتاتٌ أخرى)
+          const cl = parseFloat(String(sp(c).casLatency ?? '').match(/\d+(\.\d+)?/)?.[0] ?? '');
+          // «6000» أو «DDR5-6000»: السرعة رقمٌ من أربع خانات فأكثر — لا «5» من DDR5
+          const mt = parseFloat(String(sp(c).speed ?? '').match(/\d{4,5}/)?.[0] ?? '');
+          return cl > 0 && mt > 0 ? Math.round((cl * 2000 / mt) * 100) / 100 : null;
+        }),
+        fmt: (n) => `${n} ns`,
+      });
+      rows.push({
+        label: 'ريال لكل جيجابايت', note: 'السعر ÷ السعة · الأقل أفضل',
+        values: selected.map((c) => (c.price > 0 && gb(c) ? Math.round((c.price / gb(c)!) * 10) / 10 : null)),
+        fmt: (n) => `${n.toLocaleString('en-US')} ﷼`,
+      });
+    }
+    if (cat === 'Storage') {
+      rows.push({
+        label: 'ريال لكل تيرابايت', note: 'السعر ÷ السعة · الأقل أفضل',
+        values: selected.map((c) => (c.price > 0 && gb(c) ? Math.round(c.price / (gb(c)! / 1024)) : null)),
+        fmt: (n) => `${n.toLocaleString('en-US')} ﷼`,
+      });
+    }
+    return rows.filter((r) => r.values.some((v) => v != null));
+  }, [selected]);
+
+  /* نصّ الملاحظات المعروفة — يُفتح صفّاً تحت صفّها، كلُّ نصٍّ تحت عمود قطعته،
+     فتُقرأ الملاحظات متقابلةً كبقية الجدول بدل الانتقال إلى صفحة كلّ قطعة. */
+  const [notesOpen, setNotesOpen] = useState(false);
+
   const rowDiffers = (label: string): boolean => {
     const { values } = rowData(label);
     const norm = values.map((v) => (v == null ? '' : String(v).trim().toLowerCase()));
@@ -389,13 +486,22 @@ export default function CompareClient({
     return parseNum(sp.capacity);
   };
 
+  /* ⚠️ للمعالج: السعر مع أرخص لوحة (lib/platform-cost) — كما يحسبه «الحكم»
+     (lib/compare-verdict · valueOf). وإلّا توّجت شارة «أفضل قيمة» معالجاً
+     والحكمُ تحتها يرشّح غيره للسبب نفسه. */
   const valueScore = (c: Comp): number | null => {
-    if (!c.performanceTier || c.price <= 0) return null;
+    const cost = platform[selected.indexOf(c)]?.total ?? c.price;
+    /* الكروت: الأداء المقيس لكلّ ريال إن وُجد للكلّ — كما يحكم «الحكم» */
+    if (cols.every((x) => x.perf)) {
+      const pf = cols[selected.indexOf(c)]?.perf;
+      return pf && cost > 0 ? pf.f1440 / cost : null;
+    }
+    if (!c.performanceTier || !(cost > 0)) return null;
     if (c.category?.name === 'Storage') {
       const gb = capacityGb(c);
-      if (gb) return (gb * c.performanceTier) / c.price;
+      if (gb) return (gb * c.performanceTier) / cost;
     }
-    return Math.pow(c.performanceTier, VALUE_EXPONENT) / c.price;
+    return Math.pow(c.performanceTier, VALUE_EXPONENT) / cost;
   };
 
   const analysis = useMemo(() => {
@@ -446,77 +552,49 @@ export default function CompareClient({
     };
   }, [selected]);
 
-  /* ---- «أيّهما أنصح؟» (#3) ----
-     حكم واحد حاسم لكل حاجة، بدل أن يقرأ المستخدم ٢٠ صفاً ويحتار.
-     كل توصية تُشير لعمود صراحةً وتشرح سببها بجملة واحدة. */
-  const verdicts = useMemo(() => {
-    if (selected.length < 2) return [];
-    const { bestValueIdx, topPerfIdx, cheapestIdx, lowTdpIdx, minPrice } = analysis;
-    const out: { icon: string; forWhat: string; name: string; why: string; idx: number }[] = [];
-
-    if (topPerfIdx >= 0) {
-      const c = selected[topPerfIdx];
-      const extra = c.price > minPrice ? ` (أغلى بـ ${formatPrice(c.price - minPrice)} ﷼)` : '';
-      out.push({
-        icon: '🚀', forWhat: 'للأداء الأعلى', name: c.name, idx: topPerfIdx,
-        why: `أعلى مستوى أداء في المقارنة${extra}`,
-      });
-    }
-    if (bestValueIdx >= 0 && bestValueIdx !== topPerfIdx) {
-      out.push({
-        icon: '⚖️', forWhat: 'لأفضل قيمة', name: selected[bestValueIdx].name, idx: bestValueIdx,
-        why: 'أعلى أداء مقابل كل ريال — التوازن الأمثل',
-      });
-    }
-    if (cheapestIdx >= 0 && cheapestIdx !== bestValueIdx && cheapestIdx !== topPerfIdx) {
-      out.push({
-        icon: '💰', forWhat: 'لأقل ميزانية', name: selected[cheapestIdx].name, idx: cheapestIdx,
-        why: `الأوفر سعراً (${formatPrice(selected[cheapestIdx].price)} ﷼)`,
-      });
-    }
-    if (lowTdpIdx >= 0 && selected[lowTdpIdx].tdpWattage > 0
-        && lowTdpIdx !== topPerfIdx && lowTdpIdx !== bestValueIdx) {
-      const others = selected.filter((_, j) => j !== lowTdpIdx).map((x) => x.tdpWattage).filter((t) => t > 0);
-      if (others.length) {
-        out.push({
-          icon: '🔋', forWhat: 'لأقل استهلاك', name: selected[lowTdpIdx].name, idx: lowTdpIdx,
-          why: `أقل بـ ${Math.min(...others) - selected[lowTdpIdx].tdpWattage} واط — مزوّد أصغر وحرارة أقل`,
-        });
-      }
-    }
-    return out;
-  }, [selected, analysis]);
-
-  const summary = useMemo(() => {
-    if (selected.length < 2) return [];
-    const { bestValueIdx, topPerfIdx, cheapestIdx, lowTdpIdx } = analysis;
-    const out: { name: string; text: string }[] = [];
-
-    selected.forEach((c, i) => {
-      const parts: string[] = [];
-
-      if (i === topPerfIdx) {
-        const others = selected.filter((_, j) => j !== i).map((x) => x.price).filter((p) => p > 0);
-        const cheapestOther = others.length ? Math.min(...others) : 0;
-        parts.push(
-          cheapestOther && c.price > cheapestOther
-            ? `أعلى أداء في المقارنة، لكنه الأغلى بفارق ${(c.price - cheapestOther).toLocaleString('en-US')} ريال`
-            : 'أعلى أداء في المقارنة'
-        );
-      }
-      if (i === bestValueIdx && i !== topPerfIdx) parts.push('أفضل قيمة مقابل السعر');
-      if (i === cheapestIdx && i !== bestValueIdx && i !== topPerfIdx) parts.push('الأوفر سعراً');
-
-      if (i === lowTdpIdx && c.tdpWattage > 0) {
-        const others = selected.filter((_, j) => j !== i).map((x) => x.tdpWattage).filter((t) => t > 0);
-        const gap = others.length ? Math.min(...others) - c.tdpWattage : 0;
-        if (gap > 0) parts.push(`الأقل استهلاكاً بـ ${gap} واط`);
-      }
-
-      if (parts.length) out.push({ name: c.name, text: parts.join('، و') });
-    });
-    return out;
-  }, [selected, analysis]);
+  /* ============ «الحكم» — lib/compare-verdict ============
+     كلُّ مُدخَلٍ هنا صفٌّ في الجدول أعلاه: السعر (ومع اللوحة للمعالج)،
+     والمستوى، والاستهلاك، والضمان، والملاحظات، ووضع السعر، و«تناسب جهازك؟».
+     فلا يقول الحكم ما لا يُرى في الجدول، ولا يسكت عمّا يُرى. */
+  const catName = selected[0]?.category?.name ?? '';
+  const rigFits = useRigFits(selected, catName);
+  const LEVEL_TXT: Record<string, string> = { official: 'رسميّة', tested: 'من اختبار مستقلّ', reported: 'متداولة' };
+  const latency = derivedRows.find((r) => r.label === 'زمن الاستجابة الفعلي')?.values ?? [];
+  const verdict = buildVerdict(selected.map((c, i): VerdictInput => {
+    const col = cols[i];
+    const sp = typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {};
+    const w = col?.series?.warranty;
+    const pc = platform[i];
+    const st = priceStats[i];
+    const fv = rigFits.state === 'ready' ? rigFits.verdicts[i] : null;
+    const levels = col?.series?.issues.map((x) => x.level) ?? [];
+    const top = (['official', 'tested', 'reported'] as const).find((l) => levels.includes(l));
+    return {
+      name: c.name,
+      price: c.price,
+      cost: pc?.total ?? c.price,
+      costIsPlatform: !!pc,
+      avail: !!col?.avail,
+      tier: c.performanceTier ?? null,
+      tdp: TDP_JUDGED.includes(catName) && c.tdpWattage > 0 ? c.tdpWattage : null,
+      warrantyYears: w ? (w.lifetime ? Infinity : w.min) : null,
+      warrantyText: w ? warrantyText(w) : null,
+      issues: col?.issues ?? 0,
+      issueLevel: top ? LEVEL_TXT[top] : null,
+      igpu: catName === 'CPU' && sp.integratedGraphics != null ? !/^(none|no|لا|-)$/i.test(String(sp.integratedGraphics).trim()) : null,
+      cooler: catName === 'CPU' && sp.includedCooler != null ? bundledCooler(sp.includedCooler) : null,
+      capacityGb: ['Storage', 'RAM'].includes(catName) ? parseNum(sp.capacity) : null,
+      latencyNs: latency[i] ?? null,
+      vramGb: catName === 'GPU' ? parseNum(sp.vram) : null,
+      perf: col?.perf?.f1440 ?? null,
+      fps: col?.perf ?? null,
+      upscaler: col?.upscaler ?? null,
+      pctAboveLow: st && c.price > 0 ? pctAboveMin(c.price, st.min) : null,
+      lowPrice: st?.min ?? null,
+      days: st?.days ?? null,
+      fit: fv === 'mine' ? 'mine' : fv ? fv.state : null,
+    };
+  }), catName);
 
   const PICKER_LIMIT = 40;
   /* نُعيد العدد الكامل والمعروض معاً: التذييل كان يعرض طول القائمة بعد
@@ -540,19 +618,19 @@ export default function CompareClient({
   /* ============ العرض ============ */
 
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-6 md:py-12 px-4">
       <div className="max-w-6xl mx-auto">
 
         {/* ===== الرأس ===== */}
-        <div className="text-center mb-12">
-          <div className="relative w-16 h-16 mx-auto mb-6">
+        <div className="text-center mb-6 md:mb-12">
+          <div className="relative w-16 h-16 mx-auto mb-6 hidden md:block">
             <div className="absolute inset-0 bg-cyan-400/25 blur-2xl rounded-full"></div>
             <svg viewBox="0 0 24 24" fill="currentColor" className="relative w-full h-full text-cyan-500 dark:text-cyan-400 drop-shadow-[0_0_12px_rgba(34,211,238,0.4)]">
               <path d="M13 2L4.5 13.5H11L10 22L18.5 10.5H12L13 2Z" />
             </svg>
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter mb-4 leading-tight">
+          <h1 className="text-3xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter mb-4 leading-tight">
             قارن القطع{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 dark:from-cyan-400 dark:via-blue-400 dark:to-cyan-300">
               جنباً إلى جنب
@@ -565,8 +643,8 @@ export default function CompareClient({
 
           <div className="mt-6 flex flex-col items-center gap-3">
             {categoryName && (
-              <span className="inline-flex items-center gap-2 font-mono text-[10px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-sm uppercase tracking-widest">
-                الفئة: {categoryName}
+              <span className="inline-flex items-center gap-2 text-xs font-black text-cyan-700 dark:text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-sm">
+                الفئة: {catMeta(categoryName).label}
               </span>
             )}
 
@@ -574,7 +652,7 @@ export default function CompareClient({
                 تكسر إيقاع الصفحة)، لكن بحجم ووزن يجعلانه ظاهراً فعلاً. */}
             <Link
               href="/compare/builds"
-              className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-sm text-[13px] font-black text-cyan-700 dark:text-cyan-300 bg-cyan-500/10 dark:bg-cyan-400/10 border border-cyan-500/50 dark:border-cyan-400/40 shadow-sm shadow-cyan-500/10 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 hover:shadow-md hover:shadow-cyan-500/30 transition-all active:scale-95"
+              className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-sm text-[13px] font-black text-cyan-800 dark:text-cyan-300 bg-cyan-500/10 dark:bg-cyan-400/10 border border-cyan-500/50 dark:border-cyan-400/40 shadow-sm shadow-cyan-500/10 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 hover:shadow-md hover:shadow-cyan-500/30 transition-all active:scale-95"
             >
               <span className="text-base leading-none">⚖️</span>
               تبي تقارن تجميعات كاملة؟
@@ -596,8 +674,8 @@ export default function CompareClient({
               <p className="text-[13px] font-black text-amber-600 dark:text-amber-400">
                 استُبعدت {droppedNames.length === 1 ? 'قطعة' : droppedNames.length === 2 ? 'قطعتان' : `${droppedNames.length} قطع`} من فئة مختلفة
               </p>
-              <p className="text-[11.5px] font-semibold text-amber-700/80 dark:text-amber-500/70 mt-1 leading-relaxed">
-                {droppedNames.join(' · ')} — المقارنة تعمل داخل فئة واحدة فقط{categoryName ? ` (${categoryName})` : ''}،
+              <p className="text-xs font-semibold text-amber-700/80 dark:text-amber-500/70 mt-1 leading-relaxed">
+                {droppedNames.join(' · ')} — المقارنة تعمل داخل فئة واحدة فقط{categoryName ? ` (${catMeta(categoryName).label})` : ''}،
                 لأن مقارنة قطع مختلفة الفئات تُنتج مواصفات غير متقابلة ونتائج بلا معنى.
               </p>
             </div>
@@ -611,7 +689,7 @@ export default function CompareClient({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
             </svg>
             <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2">ابدأ المقارنة</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-7 font-medium">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-7 font-medium">
               أضف قطعتين على الأقل من نفس الفئة لتبدأ المقارنة.
             </p>
             <button
@@ -636,7 +714,7 @@ export default function CompareClient({
             <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
             جدول المقارنة
             {categoryName && (
-              <span className="font-mono text-[10px] font-normal text-slate-400 tracking-wider">{categoryName}</span>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{catMeta(categoryName).label}</span>
             )}
           </h2>
 
@@ -651,7 +729,7 @@ export default function CompareClient({
                   diffOnly
                     ? 'bg-cyan-500 text-white border-cyan-500 shadow-sm shadow-cyan-500/30'
                     : identicalCount === 0
-                    ? 'bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-700/50 cursor-not-allowed'
+                    ? 'bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/50 cursor-not-allowed'
                     : 'bg-white dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-cyan-500/60 hover:text-cyan-600 dark:hover:text-cyan-400'
                 }`}
               >
@@ -660,18 +738,29 @@ export default function CompareClient({
                 </svg>
                 أظهر الفروقات فقط
                 {identicalCount > 0 && (
-                  <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-black tabular-nums ${diffOnly ? 'bg-white/25' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                  <span className={`px-1.5 py-0.5 rounded-sm text-xs font-black tabular-nums ${diffOnly ? 'bg-white/25' : 'bg-slate-100 dark:bg-slate-700'}`}>
                     {diffOnly ? `أُخفي ${identicalCount}` : `${identicalCount} متطابق`}
                   </span>
                 )}
               </button>
 
               {diffOnly && visibleSpecRows.length === 0 && (
-                <span className="font-mono text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                <span className="font-mono text-xs font-bold text-amber-600 dark:text-amber-400">
                   ⚠ كل المواصفات متطابقة — الفرق في السعر والتوفّر فقط
                 </span>
               )}
             </div>
+          )}
+
+          {/* عمود «أضف قطعة» مخفيٌّ على الجوال (لا مكان لعمودٍ رابع) — فزرٌّ هنا بدلاً منه */}
+          {selected.length < 3 && (
+            <button
+              data-noexport
+              onClick={() => setPickerOpen(true)}
+              className="md:hidden mb-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-sm border border-dashed border-cyan-500/50 text-sm font-bold text-cyan-700 dark:text-cyan-400"
+            >
+              + أضف قطعة للمقارنة
+            </button>
           )}
 
           {/* ===== جدول المقارنة ===== */}
@@ -679,11 +768,12 @@ export default function CompareClient({
             {/* الزاوية الهندسية — بصمة بطاقات الموقع */}
             <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent z-30 pointer-events-none"></div>
 
-            <table className="w-full min-w-[640px] border-collapse">
+            {/* على الجوال يصير كلّ صفٍّ شبكة: اسمه سطرٌ فوق، والقيم تحته جنباً إلى جنب (globals.css · compare-table) */}
+            <table className="compare-table w-full min-w-[640px] border-collapse" style={{ ['--ct-cols' as any]: selected.length }}>
               <thead>
                 <tr>
                   {/* خانة فارغة (عمود التسميات) — مثبّتة عند التمرير الأفقي */}
-                  <th className="sticky right-0 z-20 w-[140px] md:w-[180px] border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm"></th>
+                  <th className="ct-corner sticky right-0 z-20 w-[140px] md:w-[180px] border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm"></th>
 
                   {/* أعمدة القطع */}
                   {selected.map((c, colIdx) => {
@@ -718,13 +808,13 @@ export default function CompareClient({
                         ></div>
 
                         {/* كود القطعة — نفس بصمة بطاقات التصفّح وصفحة المنتج */}
-                        <div className="mt-1.5 mb-1 font-mono text-[9px] text-slate-400 dark:text-slate-500 tracking-wider text-center">
+                        <div className="hidden md:block mt-1.5 mb-1 font-mono text-xs text-slate-600 dark:text-slate-400 tracking-wider text-center">
                           #{c.id.slice(-4).toUpperCase()}
                         </div>
 
                         {/* شارة أفضل قيمة */}
                         {isBest && (
-                          <div className="mb-2 font-mono text-[9px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 rounded-sm py-1 uppercase tracking-widest">
+                          <div className="mb-2 text-xs font-black text-cyan-700 dark:text-cyan-400 border border-cyan-500/40 rounded-sm py-1">
                             أفضل قيمة
                           </div>
                         )}
@@ -781,12 +871,12 @@ export default function CompareClient({
                             />
                             {/* شارة الخصم على الصورة — أول ما تلحظه العين */}
                             {deal.pct > 0 && (
-                              <span className="absolute top-1 right-1 bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-sm shadow-md shadow-rose-500/40 font-mono tabular-nums">
+                              <span className="absolute top-1 right-1 bg-rose-500 text-white text-xs font-black px-1.5 py-0.5 rounded-sm shadow-md shadow-rose-500/40 font-mono tabular-nums">
                                 ‎-{deal.pct}%
                               </span>
                             )}
                           </div>
-                          <div className={`font-mono text-[9px] font-black uppercase tracking-wider mb-1 ${brandColor(c.brand)}`}>
+                          <div className={`font-mono text-xs font-black uppercase tracking-wider mb-1 ${brandColor(c.brand)}`}>
                             {c.brand}
                           </div>
                           <div className="text-xs md:text-sm font-black text-slate-900 dark:text-white leading-snug group-hover/link:text-cyan-600 dark:group-hover/link:text-cyan-400 transition-colors">
@@ -795,23 +885,23 @@ export default function CompareClient({
                         </Link>
 
                         {!avail && (
-                          <div className="mt-2 text-[9px] font-black text-red-600 dark:text-red-500 flex items-center justify-center gap-1">
-                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="mt-2 text-xs font-black text-red-700 dark:text-red-400 flex items-center justify-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
-                            غير متوفر
+                            {cols[colIdx].hasPrice ? 'نافدة حالياً' : 'لا سعر مسجّل'}
                           </div>
                         )}
                       {/* ===== زر: استخدم في تجميعتي ===== */}
                         <button
                           data-noexport
                           onClick={() => setBuildTarget(c)}
-                          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 px-2 border border-cyan-500/40 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 rounded-sm transition-all active:scale-[0.98] group/use"
+                          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 px-2 border border-cyan-500/40 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 rounded-sm transition-all active:scale-[0.98] group/use"
                         >
                           <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                           </svg>
-                          <span className="text-[10px] md:text-[11px] font-black whitespace-nowrap">
+                          <span className="text-xs font-black whitespace-nowrap">
                             استخدم في تجميعتي
                           </span>
                         </button>
@@ -821,15 +911,15 @@ export default function CompareClient({
 
                   {/* عمود الإضافة */}
                   {selected.length < 3 && (
-                    <th data-noexport className="p-4 border-b border-slate-200 dark:border-slate-800 align-middle" style={{ borderRight: '1px dashed rgba(34,211,238,0.3)' }}>
+                    <th data-noexport className="ct-add p-4 border-b border-slate-200 dark:border-slate-800 align-middle" style={{ borderRight: '1px dashed rgba(34,211,238,0.3)' }}>
                       <button
                         onClick={() => setPickerOpen(true)}
                         className="flex flex-col items-center justify-center gap-2 w-full py-6 group/add"
                       >
-                        <div className="w-11 h-11 border border-dashed border-cyan-500/50 rounded-sm flex items-center justify-center text-cyan-500 text-2xl font-light group-hover/add:bg-cyan-50 dark:group-hover/add:bg-cyan-950/30 group-hover/add:border-cyan-500 transition-colors">
+                        <div className="w-11 h-11 border border-dashed border-cyan-500/50 rounded-sm flex items-center justify-center text-cyan-700 dark:text-cyan-400 text-2xl font-light group-hover/add:bg-cyan-50 dark:group-hover/add:bg-cyan-950/30 group-hover/add:border-cyan-500 transition-colors">
                           +
                         </div>
-                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover/add:text-cyan-600 dark:group-hover/add:text-cyan-400 transition-colors">
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 group-hover/add:text-cyan-600 dark:group-hover/add:text-cyan-400 transition-colors">
                           أضف قطعة
                         </span>
                       </button>
@@ -839,6 +929,11 @@ export default function CompareClient({
               </thead>
 
               <tbody>
+                {/* صفّ القرار أوّلاً: أفضل قطعةٍ لا تنفع إن لم تُركَّب */}
+                {categoryName && (
+                  <RigFitRow parts={selected} fits={rigFits} bestIdx={analysis.bestValueIdx} addCol={selected.length < 3} />
+                )}
+
                 {/* صفوف المواصفات */}
                 {visibleSpecRows.map((label, rowIdx) => {
                   const { values, winnerIdx, deltas } = rowData(label);
@@ -861,29 +956,72 @@ export default function CompareClient({
                             i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
                           }${
                             winnerIdx.includes(i)
-                              ? 'text-cyan-600 dark:text-cyan-400'
+                              ? 'text-cyan-700 dark:text-cyan-400'
                               : 'text-slate-900 dark:text-white'
                           }`}
                           dir="ltr"
                         >
-                          {v ?? <span className="text-slate-300 dark:text-slate-700">—</span>}
-                          {winnerIdx.includes(i) && <span className="text-amber-400 mr-1">★</span>}
+                          {label === 'مبرّد مرفق' && v != null ? (
+                            /* «None» خامٌ كان يظهر هنا. والقراءة دالّةُ الباني نفسها
+                               (bundledCooler): tray وعلبة بلا مبرّد = «يعتمد على العرض» */
+                            (() => {
+                              const b = bundledCooler(v);
+                              return (
+                                <span dir="rtl" className={`font-sans ${b === 'yes' ? 'text-emerald-700 dark:text-emerald-400' : b === 'no' ? 'text-slate-700 dark:text-slate-300' : 'text-amber-700 dark:text-amber-400'}`}>
+                                  {b === 'yes' ? <>✓ <span dir="ltr">{v}</span></> : b === 'no' ? 'لا — يحتاج مبرّداً' : <><span dir="ltr">{v}</span> · يعتمد على العرض</>}
+                                </span>
+                              );
+                            })()
+                          ) : label === 'رسوميات مدمجة' && v != null ? (
+                            /* «None» خامٌ هنا أيضاً — والسؤال الحقيقيّ: هل يعمل بلا كرت؟ */
+                            /^(none|no|لا|-)$/i.test(String(v).trim())
+                              ? <span dir="rtl" className="font-sans text-slate-700 dark:text-slate-300">لا — يحتاج كرت شاشة</span>
+                              : <span dir="rtl" className="font-sans text-emerald-700 dark:text-emerald-400">✓ <span dir="ltr">{v}</span></span>
+                          ) : (v ?? <span className="text-slate-600 dark:text-slate-400">—</span>)}
+                          {winnerIdx.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
                           {/* فارق النسبة عن الأفضل — يجعل "★" رقماً ملموساً */}
                           {deltas[i] && (
-                            <span className="block mt-0.5 text-[9.5px] font-bold text-slate-400 dark:text-slate-500 tracking-tight" dir="rtl">
+                            <span className="block mt-0.5 text-xs font-bold text-slate-600 dark:text-slate-400 font-sans" dir="rtl">
                               {deltas[i]}
                             </span>
                           )}
                           {label === 'موصّلات الطاقة' && isModernConnector(v) && (
-                            <span className="block mt-1 text-[9px] font-black text-cyan-600 dark:text-cyan-400 tracking-wide">
+                            <span className="block mt-1 text-xs font-black text-cyan-700 dark:text-cyan-400 font-sans">
                               الأحدث · PCIe 5.0
                             </span>
                           )}
                         </td>
                       ))}
                       {selected.length < 3 && (
-                        <td className="border-b border-slate-200 dark:border-slate-800" style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>
+                        <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>
                       )}
+                    </tr>
+                  );
+                })}
+
+                {/* ===== الصفوف المحسوبة (derivedRows) — النجمة للأقل ===== */}
+                {selected.length > 0 && derivedRows.map((r) => {
+                  const valid = r.values.filter((n): n is number => n != null);
+                  const best = valid.length > 1 ? Math.min(...valid) : null;
+                  const allEqual = best != null && valid.every((n) => n === best);
+                  return (
+                    <tr key={r.label} className="bg-cyan-500/[0.03]">
+                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        {r.label}
+                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400">{r.note}</span>
+                      </th>
+                      {r.values.map((n, i) => {
+                        const win = n != null && n === best && !allEqual;
+                        return (
+                          <td key={selected[i].id} dir="ltr" className={`py-3.5 px-3 text-center text-xs md:text-sm font-black font-mono border-b border-r border-slate-200 dark:border-slate-800 ${
+                            i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
+                          }${win ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+                            {n != null ? r.fmt(n) : <span className="text-slate-600 dark:text-slate-400">—</span>}
+                            {win && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
+                          </td>
+                        );
+                      })}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
                     </tr>
                   );
                 })}
@@ -902,15 +1040,15 @@ export default function CompareClient({
                           className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 font-mono ${
                             i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
                           }${
-                            winnerIdx.includes(i) ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-900 dark:text-white'
+                            winnerIdx.includes(i) ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'
                           }`}
                           dir="ltr"
                         >
-                          {v ?? <span className="text-slate-300 dark:text-slate-700">—</span>}
-                          {winnerIdx.includes(i) && <span className="text-amber-400 mr-1">★</span>}
+                          {v ?? <span className="text-slate-600 dark:text-slate-400">—</span>}
+                          {winnerIdx.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
                         </td>
                       ))}
-                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
                     </tr>
                   );
                 })()}
@@ -934,7 +1072,7 @@ export default function CompareClient({
                       {selected.map((c, i) => (
                         <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
                           <span className="text-sm tracking-widest inline-flex items-center gap-1" dir="ltr">
-                            {tierWinners.includes(i) && <span className="text-amber-400">★</span>}
+                            {tierWinners.includes(i) && <span className="text-amber-600 dark:text-amber-400">★</span>}
                             <span>
                               <span className="text-cyan-500 dark:text-cyan-400">{'●'.repeat(c.performanceTier ?? 0)}</span>
                               <span className="text-slate-200 dark:text-slate-700">{'●'.repeat(5 - (c.performanceTier ?? 0))}</span>
@@ -942,10 +1080,188 @@ export default function CompareClient({
                           </span>
                         </td>
                       ))}
-                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
                     </tr>
                   );
                 })()}
+
+                {/* ===== الأداء في الألعاب (الكروت) — إطاراتٌ مقيسة (lib/gpu-perf) =====
+                    الرقم الكبير 1440p وعليه يُحكم؛ و1080p و4K تحته، ثمّ «يكفيني؟»
+                    (مريح/مقبول/محدود) — فيظهر كرتٌ تضيق ذاكرته في 4K. */}
+                {cols.some((c) => c.perf) && (() => {
+                  const ps = cols.map((c) => c.perf);
+                  const best = Math.max(...ps.map((x) => x?.f1440 ?? 0));
+                  return (
+                    <tr>
+                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                        الأداء في الألعاب
+                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
+                          متوسّط الإطارات ·{' '}
+                          <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a>
+                        </span>
+                      </th>
+                      {ps.map((x, i) => (
+                        <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
+                          i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                        }`}>
+                          {x ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={`font-black text-base ${x.f1440 === best ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+                                <span className="font-mono">{Math.round(x.f1440)}</span> إطار
+                                {x.f1440 === best && ps.filter(Boolean).length > 1 && <span className="text-amber-600 dark:text-amber-400 text-xs mr-1">★</span>}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">بدقّة 1440p</span>
+                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400" dir="ltr">
+                                1080p {Math.round(x.f1080)} · 4K {Math.round(x.f4k)}
+                              </span>
+                              <span className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{feelLine(x)}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">ليس في جدول المصدر</span>
+                          )}
+                        </td>
+                      ))}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
+                {/* ===== الرفع بالذكاء الاصطناعي (الكروت) — lib/gpu-upscaling =====
+                    التقنية وتوليد الإطارات وعدد الألعاب بمصدره. معلومةٌ لا نجمة:
+                    «أفضل» لا تُقال إلّا من الاختبار الأعمى، وفي سطر الحكم. */}
+                {cols.some((c) => c.upscaler) && (
+                  <tr className="bg-cyan-500/[0.03]">
+                    <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                      الرفع بالذكاء الاصطناعي
+                    </th>
+                    {cols.map((c, i) => (
+                      <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
+                        i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                      }`}>
+                        {c.upscaler ? (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className={`font-black text-sm ${c.upscaler.ai ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`} dir="ltr">{c.upscaler.tech}</span>
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                              {c.upscaler.ai ? 'بالذكاء الاصطناعي' : 'بلا ذكاء اصطناعي'}
+                              {c.upscaler.frameGen ? ` · ${c.upscaler.frameGen}` : ' · بلا توليد إطارات'}
+                            </span>
+                            {c.upscaler.games && <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{c.upscaler.games}</span>}
+                            {c.upscaler.note && <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{c.upscaler.note}</span>}
+                          </div>
+                        ) : (
+                          <span className="text-slate-600 dark:text-slate-400">—</span>
+                        )}
+                      </td>
+                    ))}
+                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                  </tr>
+                )}
+
+                {/* ===== ضمان الشركة =====
+                    من lib/series — ممّا تنشره الشركة، كما في صفحة القطعة. النجمة
+                    للأطول: «مدى الحياة» فوق الكلّ، والمدى (٣ إلى ٦) بحدّه الأدنى. */}
+                {cols.some((c) => c.series?.warranty) && (() => {
+                  const years = cols.map((c) => {
+                    const w = c.series?.warranty;
+                    return !w ? null : w.lifetime ? Infinity : w.min;
+                  });
+                  const valid = years.filter((y): y is number => y != null);
+                  const best = valid.length > 1 ? Math.max(...valid) : null;
+                  const wins = best != null && !valid.every((y) => y === best)
+                    ? years.map((y, i) => (y === best ? i : -1)).filter((i) => i >= 0) : [];
+                  return (
+                    <tr>
+                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        ضمان الشركة
+                      </th>
+                      {cols.map((c, i) => (
+                        <td key={selected[i].id} className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 ${
+                          i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
+                        }${wins.includes(i) ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+                          {c.series?.warranty ? (
+                            <>
+                              {warrantyText(c.series.warranty)}
+                              {wins.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
+                            </>
+                          ) : (
+                            <span className="text-slate-600 dark:text-slate-400" title={c.series?.warrantyNote ?? 'لا رقم عندنا من صفحة الشركة — اسأل المتجر'}>—</span>
+                          )}
+                        </td>
+                      ))}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
+                {/* ===== ملاحظات معروفة =====
+                    عددها ودرجتها في الصفّ، ونصّها في صفٍّ يُفتح تحته (notesOpen) —
+                    بالنقر على أيّ خليّة، فتنفتح نصوص القطع كلّها متقابلة. */}
+                {cols.some((c) => c.issues || c.variantNotes || c.series?.cleanTest) && (
+                  <tr className="bg-cyan-500/[0.03]">
+                    <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      ملاحظات معروفة
+                    </th>
+                    {cols.map((c, i) => {
+                      const id = selected[i].id;
+                      const levels = [...new Set(c.series?.issues.map((x) => x.level) ?? [])];
+                      const levelText = levels.map((l) => (l === 'official' ? 'رسميّة' : l === 'tested' ? 'من اختبار مستقلّ' : 'متداولة')).join(' و');
+                      return (
+                        <td key={id} className={`py-3.5 px-3 text-center text-xs font-bold border-b border-r border-slate-200 dark:border-slate-800 ${
+                          i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                        }`}>
+                          {c.issues > 0 ? (
+                            <button type="button" onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-controls="compare-notes"
+                              className="inline-flex flex-col items-center gap-0.5 text-amber-700 dark:text-amber-400 hover:underline">
+                              <span className="font-black">⚠️ {notesCount(c.issues)}</span>
+                              <span className="font-semibold text-slate-600 dark:text-slate-400">{levelText} · {notesOpen ? 'أخفِها ▴' : 'اقرأها ▾'}</span>
+                            </button>
+                          ) : c.variantNotes > 0 ? (
+                            <button type="button" onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-controls="compare-notes"
+                              className="text-amber-700 dark:text-amber-400 hover:underline">
+                              على نسخٍ معروضة هنا ملاحظات · {notesOpen ? 'أخفِها ▴' : 'اقرأها ▾'}
+                            </button>
+                          ) : c.series?.cleanTest ? (
+                            /* «بلا ملاحظات» لا تُقال إلا عن اختبارٍ قُرئ — كما في صفحة القطعة؛
+                               سلسلةٌ لم نجد لها اختباراً تبقى «—» لا «سليمة». والنقر يفتح مصدر الاختبار */
+                            <button type="button" onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-controls="compare-notes"
+                              className="text-emerald-700 dark:text-emerald-400 hover:underline">
+                              ✓ اختبار مستقلّ بلا ملاحظات
+                            </button>
+                          ) : (
+                            <span className="text-slate-600 dark:text-slate-400">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                  </tr>
+                )}
+
+                {/* نصوص الملاحظات — متقابلةً تحت أعمدتها. data-noexport: صورة المقارنة
+                    المصدَّرة تحمل العدد في الصفّ أعلاه، لا فقراتٍ تطيلها */}
+                {notesOpen && (
+                  <tr id="compare-notes" data-noexport>
+                    <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-4 px-4 align-top border-b border-slate-200 dark:border-slate-800">
+                      <span className="block text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400">نصّ الملاحظات</span>
+                      <span className="block mt-1 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
+                        راجعنا المصادر في <span dir="ltr" className="whitespace-nowrap">{ISSUES_CHECKED}</span>
+                      </span>
+                      <button type="button" onClick={() => setNotesOpen(false)} className="mt-2 text-xs font-bold text-cyan-700 dark:text-cyan-400 hover:underline">
+                        أخفِها ▴
+                      </button>
+                    </th>
+                    {cols.map((c, i) => (
+                      <td key={selected[i].id} className={`py-4 px-3 align-top border-b border-r border-slate-200 dark:border-slate-800 ${
+                        i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                      }`}>
+                        {c.category && (c.issues || c.variantNotes || c.series?.cleanTest)
+                          ? <SeriesNotes part={selected[i]} category={c.category} offers={c.offers} />
+                          : <span className="block text-center text-xs text-slate-600 dark:text-slate-400">لا ملاحظات عندنا عن هذه القطعة</span>}
+                      </td>
+                    ))}
+                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                  </tr>
+                )}
 
                 {/* صف السعر */}
                 {(() => {
@@ -960,38 +1276,149 @@ export default function CompareClient({
                         <td key={i} className={`py-4 px-3 text-center border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
                           {p ? (
                             <div className="flex flex-col items-center gap-1">
-                              <span className="inline-flex items-center gap-1 font-mono font-black text-lg md:text-xl text-emerald-600 dark:text-emerald-400">
+                              {/* النافدة: السعر رماديّ وتحته «آخر سعرٍ سُجّل» — لا يُقرأ سعرَ اليوم */}
+                              <span className={`inline-flex items-center gap-1 whitespace-nowrap font-mono font-black text-base md:text-xl ${
+                                cols[i].avail ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'
+                              }`}>
                                 {formatPrice(p)}
-                                <RiyalIcon size="h-4 w-4" />
-                                {winnerIdx.includes(i) && <span className="text-amber-400 text-xs">★</span>}
+                                <RiyalIcon size="h-4 w-4" colorClass={cols[i].avail ? undefined : 'bg-slate-500 dark:bg-slate-400'} />
+                                {winnerIdx.includes(i) && <span className="text-amber-600 dark:text-amber-400 text-xs">★</span>}
                               </span>
                               {/* السعر قبل الخصم + النسبة — على المتجر الأرخص فقط */}
                               {deals[i]?.pct > 0 && deals[i]?.listPrice && (
                                 <span className="inline-flex items-center gap-1.5">
-                                  <span className="font-mono text-[11px] font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
+                                  <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-400 line-through" dir="ltr">
                                     {formatPrice(deals[i].listPrice)}
                                   </span>
-                                  <span className="font-mono text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-1.5 rounded-sm tabular-nums">
+                                  <span className="font-mono text-xs font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-1.5 rounded-sm tabular-nums">
                                     ‎-{deals[i].pct}%
                                   </span>
                                 </span>
                               )}
                               {delta > 0 && cheapestName && (
-                                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 leading-tight">
-                                  أغلى بـ <span className="font-mono text-red-500 dark:text-red-400">{delta.toLocaleString('en-US')}</span> ريال من {cheapestName}
+                                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 leading-tight">
+                                  أغلى بـ <span className="font-mono text-red-700 dark:text-red-400">{delta.toLocaleString('en-US')}</span> ريال من {cheapestName}
                                 </span>
                               )}
                               {i === analysis.cheapestIdx && selected.length > 1 && (
-                                <span className="text-[10px] font-bold text-emerald-600/70 dark:text-emerald-400/70">الأوفر</span>
+                                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">الأوفر</span>
                               )}
+                              {!cols[i].avail ? (
+                                <span className="text-xs font-bold text-amber-700 dark:text-amber-400 leading-tight">
+                                  آخر سعرٍ سُجّل — نافدة الآن
+                                </span>
+                              ) : cols[i].stale && cols[i].age ? (
+                                /* نفس عتبة صفحة القطعة (٢٤ ساعة) — دونها لا يُذكر العمر */
+                                <span className="text-xs font-bold text-amber-700 dark:text-amber-400 leading-tight">
+                                  آخر تحديث للسعر {cols[i].age}
+                                </span>
+                              ) : null}
                             </div>
                           ) : (
-                            <span className="text-slate-300 dark:text-slate-700">—</span>
+                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">لا سعر مسجّل</span>
                           )}
                         </td>
                         );
                       })}
-                      {selected.length < 3 && <td style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                      {selected.length < 3 && <td data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
+                {/* ===== وضع السعر =====
+                    «هل فاتتني صفقة؟» — سعر اليوم من أدنى ما رُصد، من المتاجر البائعة
+                    الآن وحدها. ⚠️ «عند أدنى سعر» تُكتب حين تصدق فقط (فرقٌ ٢٪ فأقل،
+                    كما في صفحة القطعة)، وإلّا فالنسبة والرقم. */}
+                {priceStats.some(Boolean) && (
+                  <tr>
+                    <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      وضع السعر
+                      <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400">من أدنى ما رصدناه</span>
+                    </th>
+                    {selected.map((c, i) => {
+                      const st = priceStats[i];
+                      const pct = st && c.price > 0 ? pctAboveMin(c.price, st.min) : null;
+                      return (
+                        <td key={c.id} className={`py-3.5 px-3 text-center text-xs font-bold border-b border-r border-slate-200 dark:border-slate-800 ${
+                          i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                        }`}>
+                          {!cols[i]?.avail ? (
+                            <span className="text-slate-600 dark:text-slate-400">—</span>
+                          ) : !st || pct == null ? (
+                            <span className="text-slate-600 dark:text-slate-400">سجلٌّ قصير — لا حكم بعد</span>
+                          ) : pct <= 2 ? (
+                            <span className="text-emerald-700 dark:text-emerald-400">✓ عند أدنى سعر خلال {daysAr(st.days)} من المتابعة</span>
+                          ) : (
+                            <span className="flex flex-col items-center gap-0.5 text-slate-700 dark:text-slate-300">
+                              <span>أعلى من أدناه بـ <span className="font-black text-red-700 dark:text-red-400">{pct}%</span></span>
+                              <span className="font-semibold text-slate-600 dark:text-slate-400">
+                                أدناه في {daysAr(st.days)} من المتابعة: <span className="font-mono" dir="ltr">{formatPrice(st.min)}</span> ريال
+                              </span>
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                  </tr>
+                )}
+
+                {/* ===== تكلفة المنصّة (المعالجات) =====
+                    المعالج + أرخص لوحةٍ متوفّرة تقبله. النجمة للأقلّ مجموعاً — وقد
+                    تخالف نجمة السعر: معالجٌ أرخص بلوحةٍ أغلى. والتنبيهات تحت الرقم
+                    لا في هامشٍ بعيد (lib/platform-cost). */}
+                {platform.some(Boolean) && (() => {
+                  const totals = platform.map((p) => p?.total ?? null);
+                  const valid = totals.filter((n): n is number => n != null);
+                  const best = valid.length > 1 ? Math.min(...valid) : null;
+                  const allEqual = best != null && valid.every((n) => n === best);
+                  return (
+                    <tr>
+                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                        تكلفة المنصّة
+                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400">المعالج + أرخص لوحة متوفّرة تقبله</span>
+                      </th>
+                      {selected.map((c, i) => {
+                        const p = platform[i];
+                        const win = p != null && p.total === best && !allEqual;
+                        return (
+                          <td key={c.id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
+                            i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                          }`}>
+                            {!p ? (
+                              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">لا لوحة متوفّرة تقبله عندنا الآن</span>
+                            ) : (
+                              <div className="flex flex-col items-center gap-1">
+                                <span className={`inline-flex items-center gap-1 whitespace-nowrap font-mono font-black text-sm md:text-lg ${win ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+                                  {formatPrice(p.total)}
+                                  <RiyalIcon size="h-3.5 w-3.5" colorClass={win ? 'bg-cyan-700 dark:bg-cyan-400' : 'bg-slate-900 dark:bg-white'} />
+                                  {win && <span className="text-amber-600 dark:text-amber-400 text-xs">★</span>}
+                                </span>
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
+                                  + <Link href={`/components/${p.board.id}`} className="text-cyan-700 dark:text-cyan-400 hover:underline" dir="ltr">{p.board.brand} {p.board.name}</Link>
+                                  {' '}(<span className="font-mono" dir="ltr">{formatPrice(p.board.price)}</span>)
+                                </span>
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                  {[p.board.chipset, p.board.ramType && `ذاكرة ${p.board.ramType}`].filter(Boolean).join(' · ')}
+                                  {p.options > 1
+                                    ? ` · الأرخص من ${p.options === 2 ? 'لوحتين' : `${p.options} ${p.options <= 10 ? 'لوحات' : 'لوحة'}`}`
+                                    : ' · اللوحة الوحيدة المتوفّرة'}
+                                </span>
+                                {p.biosNote && (
+                                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 leading-relaxed">⚠️ لوحة 600: قد تحتاج تحديث BIOS لهذا المعالج — اسأل المتجر</span>
+                                )}
+                                {p.powerUnverified && (
+                                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 leading-relaxed">⚠️ لوحة اقتصاديّة: لم نتحقّق من دعمها لقدرة هذا المعالج — راجع قائمة دعمها</span>
+                                )}
+                                {p.noCooler && (
+                                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">بلا مبرّد — ثمنه غير محسوب</span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
                     </tr>
                   );
                 })()}
@@ -1014,24 +1441,24 @@ export default function CompareClient({
                     <tr className="bg-cyan-500/[0.03]">
                       <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                         القيمة مقابل السعر
-                        <div className="mt-0.5 font-mono text-[9px] font-normal text-slate-400 leading-tight">
-                          مؤشر نسبي · الأعلى أفضل
+                        <div className="mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-tight">
+                          {platform.some(Boolean) ? 'مع اللوحة · ' : ''}مؤشر نسبي · الأعلى أفضل
                         </div>
                       </th>
                       {idx.map((score, i) => (
                         <td key={selected[i].id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
                           {score != null ? (
                             <span className="inline-flex items-center gap-1 font-mono font-black text-base text-slate-900 dark:text-white">
-                              {vWinners.includes(i) && <span className="text-amber-400 text-xs">★</span>}
+                              {vWinners.includes(i) && <span className="text-amber-600 dark:text-amber-400 text-xs">★</span>}
                               {score}
-                              <span className="text-[10px] font-normal text-slate-400">/100</span>
+                              <span className="text-xs font-normal text-slate-600 dark:text-slate-400">/100</span>
                             </span>
                           ) : (
-                            <span className="text-slate-300 dark:text-slate-700">—</span>
+                            <span className="text-slate-600 dark:text-slate-400">—</span>
                           )}
                         </td>
                       ))}
-                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
                     </tr>
                   );
                 })()}
@@ -1040,7 +1467,7 @@ export default function CompareClient({
                 <tr data-noexport className="bg-slate-50/60 dark:bg-slate-900/30">
                   <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-4 px-4 text-sm font-black text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-800 align-top">
                     الشراء
-                    <div className="mt-1 font-mono text-[9px] font-normal text-slate-400 leading-tight">
+                    <div className="mt-1 text-xs font-normal text-slate-600 dark:text-slate-400 leading-tight">
                       روابط أفلييت
                     </div>
                   </th>
@@ -1057,7 +1484,7 @@ export default function CompareClient({
                   {selected.length < 3 && (
                     <td
                       className="border-t border-slate-200 dark:border-slate-800"
-                      style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}
+                      data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}
                     ></td>
                   )}
                 </tr>
@@ -1065,69 +1492,100 @@ export default function CompareClient({
             </table>
           </div>
 
-        {/* ===== أيّهما أنصح؟ — حكم حاسم قبل التفاصيل ===== */}
-        {verdicts.length > 0 && (
+        {/* ===== الحكم — سطرٌ لأغلب الناس، وبطاقةٌ لكلّ قطعة (lib/compare-verdict) ===== */}
+        {(verdict.pick || verdict.empty) && (
           <div className="relative mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-5 md:p-6 shadow-sm animate-fade-up">
             <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent pointer-events-none"></div>
             <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
               <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
-              أيّهما أنصح؟
+              الحكم
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {verdicts.map((v) => (
-                <div
-                  key={v.forWhat}
-                  className="relative flex items-start gap-3 p-3.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/30 overflow-hidden"
-                >
-                  {/* شريط لون العمود — يربط التوصية بعمودها في الجدول */}
-                  <span
-                    className="absolute top-0 bottom-0 right-0 w-[3px]"
-                    style={{ backgroundColor: SERIES_COLORS[v.idx % SERIES_COLORS.length] }}
-                  ></span>
-                  <span className="text-lg leading-none mt-0.5 shrink-0">{v.icon}</span>
-                  <div className="min-w-0">
-                    <div className="font-mono text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5">
-                      {v.forWhat}
-                    </div>
-                    <div className="text-[13px] font-black text-slate-900 dark:text-white leading-snug">{v.name}</div>
-                    <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{v.why}</div>
+            {/* ترشيحنا — أسطرٌ قصيرة بعناوين، لا فقرةٌ واحدة (lib/compare-verdict) */}
+            <div className="mb-5 p-4 rounded-sm border border-cyan-500/40 bg-cyan-500/[0.06]">
+              {verdict.empty ? (
+                <p className="text-sm md:text-[15px] font-bold text-slate-900 dark:text-white leading-relaxed">{verdict.empty}</p>
+              ) : (
+                <div className="text-sm leading-relaxed">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="font-bold text-slate-600 dark:text-slate-400">ترشيحنا</span>
+                    <span className="font-black text-base md:text-lg text-slate-900 dark:text-white" dir="ltr">{verdict.pick}</span>
+                    {verdict.price != null && (
+                      <span className="font-bold text-slate-700 dark:text-slate-300">
+                        — <span className="font-mono">{Math.round(verdict.price).toLocaleString('en-US')}</span> ريال{verdict.priceIsPlatform ? ' مع أرخص لوحة' : ''}
+                      </span>
+                    )}
                   </div>
+
+                  {verdict.lead && <p className="mt-2 font-bold text-slate-900 dark:text-white">{verdict.lead}</p>}
+                  {verdict.feel && <p className="mt-0.5 font-semibold text-slate-700 dark:text-slate-300">{verdict.feel}</p>}
+
+                  {verdict.options.length > 0 && (
+                    <ul className="mt-3 space-y-1.5">
+                      {verdict.options.map((o, k) => (
+                        <li key={k} className="font-semibold text-slate-800 dark:text-slate-200">{o}</li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {verdict.summary && (
+                    <p className="mt-3 pt-3 border-t border-cyan-500/20 font-black text-slate-900 dark:text-white">
+                      الخلاصة: {verdict.summary}.
+                    </p>
+                  )}
+                  {verdict.ai && (
+                    <p className="mt-2 font-semibold text-slate-800 dark:text-slate-200">
+                      الذكاء الاصطناعي: {verdict.ai}
+                      {/48% مقابل 15%/.test(verdict.ai) && (
+                        <> — <a href={UPSCALING_SOURCES.blindTest.url} target="_blank" rel="noopener noreferrer" className="underline text-cyan-700 dark:text-cyan-400">المصدر</a></>
+                      )}
+                    </p>
+                  )}
+                  {verdict.watch && <p className="mt-2 font-semibold text-amber-800 dark:text-amber-300">السعر: {verdict.watch}</p>}
+                  {verdict.outNote && <p className="mt-2 font-semibold text-slate-700 dark:text-slate-300">{verdict.outNote}</p>}
+                  {verdict.footnote && <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">{verdict.footnote}</p>}
+                </div>
+              )}
+            </div>
+
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${selected.length === 3 ? 'lg:grid-cols-3' : ''} gap-3`}>
+              {verdict.cards.map((card, i) => (
+                <div key={selected[i].id} className="relative p-4 rounded-sm border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/30 overflow-hidden">
+                  {/* شريط لون العمود — يربط البطاقة بعمودها في الجدول والرسم */}
+                  <span className="absolute top-0 bottom-0 right-0 w-[3px]" style={{ backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] }}></span>
+                  <div className="text-[13px] font-black text-slate-900 dark:text-white leading-snug" dir="ltr" style={{ textAlign: 'right' }}>
+                    {selected[i].name}
+                  </div>
+                  <ul className="mt-2.5 space-y-1.5">
+                    {card.pros.map((t) => (
+                      <li key={t} className="flex gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
+                        <span className="text-emerald-700 dark:text-emerald-400 font-black shrink-0" aria-label="ميزة">✓</span>{t}
+                      </li>
+                    ))}
+                    {card.cons.map((t) => (
+                      <li key={t} className="flex gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">
+                        <span className="text-rose-700 dark:text-rose-400 font-black shrink-0" aria-label="عيب">✗</span>{t}
+                      </li>
+                    ))}
+                  </ul>
+                  {cols[i]?.issues > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { setNotesOpen(true); setTimeout(() => [...document.querySelectorAll<HTMLElement>('#compare-notes')].find((el) => el.offsetParent)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); }}
+                      className="mt-2 text-xs font-bold text-cyan-700 dark:text-cyan-400 hover:underline"
+                    >
+                      اقرأ الملاحظات ↑
+                    </button>
+                  )}
+                  {card.chooseIf && (
+                    <p className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 text-xs font-bold text-cyan-800 dark:text-cyan-300">
+                      اخترها إذا: {card.chooseIf}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
 
-            <p className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 font-mono text-[10px] text-slate-400 dark:text-slate-500 text-center">
-              توصيات محسوبة من المستوى والسعر والاستهلاك — لا رأي محرّر
-            </p>
-          </div>
-        )}
-
-        {/* ===== الخلاصة ===== */}
-        {summary.length > 0 && (
-          <div className="relative mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-6 shadow-sm animate-fade-up">
-            <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent pointer-events-none"></div>
-            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-5">
-              <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
-              الخلاصة
-            </h2>
-
-            <ul className="space-y-3">
-              {summary.map((s, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0"></span>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                    <span className="font-black text-slate-900 dark:text-white">{s.name}</span>
-                    {' — '}
-                    {s.text}.
-                  </p>
-                </li>
-              ))}
-            </ul>
-
-            <p className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 font-mono text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed">
-              خلاصة محسوبة من مواصفات القطع وأسعارها اللحظية — لا من رأي محرّر.
-            </p>
           </div>
         )}
 
@@ -1146,8 +1604,8 @@ export default function CompareClient({
         {/* ===== ملاحظة ختامية ===== */}
         {selected.length >= 2 && (
           <div className="text-center mt-8">
-            <p className="font-mono text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-center gap-2">
-              <span className="text-amber-400">★</span>
+            <p className="text-xs text-slate-600 dark:text-slate-400 flex items-center justify-center gap-2">
+              <span className="text-amber-600 dark:text-amber-400">★</span>
               يشير إلى الأفضل في هذا الصف · العمود المميّز هو أفضل قيمة · اسحب الأعمدة أو استخدم الأسهم لإعادة الترتيب
             </p>
           </div>
@@ -1172,7 +1630,7 @@ export default function CompareClient({
             <div className="p-5 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                  {activeCategoryId ? `اختر قطعة من فئة ${categoryName}` : 'اختر أول قطعة'}
+                  {activeCategoryId ? `اختر قطعة من فئة ${catMeta(categoryName).label}` : 'اختر أول قطعة'}
                 </h3>
                 <button
                   onClick={() => setPickerOpen(false)}
@@ -1192,7 +1650,7 @@ export default function CompareClient({
                 >
                   <option value="">كل الفئات</option>
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <option key={cat.id} value={cat.id}>{catMeta(cat.name).label}</option>
                   ))}
                 </select>
               )}
@@ -1238,24 +1696,24 @@ export default function CompareClient({
                         )}
                       </div>
                       <div className="flex-1 overflow-hidden">
-                        <div className={`font-mono text-[9px] font-black uppercase ${brandColor(c.brand)}`}>{c.brand}</div>
+                        <div className={`font-mono text-xs font-black uppercase ${brandColor(c.brand)}`}>{c.brand}</div>
                         <div className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                           {c.name}
                         </div>
                         {!avail && (
-                          <div className="font-mono text-[9px] font-black text-amber-600 dark:text-amber-500 mt-0.5">
+                          <div className="font-mono text-xs font-black text-amber-600 dark:text-amber-500 mt-0.5">
                             ⚠ غير متوفر حالياً
                           </div>
                         )}
                       </div>
                       {c.price > 0 && (
                         <span className="flex flex-col items-end shrink-0">
-                          <span className={`font-mono font-black text-sm flex items-center gap-1 ${avail ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                          <span className={`font-mono font-black text-sm flex items-center gap-1 ${avail ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}`}>
                             {formatPrice(c.price)}
                             <RiyalIcon size="h-3 w-3" colorClass={avail ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-400'} />
                           </span>
                           {deal.pct > 0 && deal.listPrice && (
-                            <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
+                            <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-400 line-through" dir="ltr">
                               {formatPrice(deal.listPrice)}
                             </span>
                           )}
@@ -1270,7 +1728,7 @@ export default function CompareClient({
 
             {/* تذييل النافذة */}
             <div className="p-3 border-t border-slate-200 dark:border-slate-800 text-center">
-              <p className="font-mono text-[10px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 {picker.total > pickerList.length
                   ? `يُعرض ${pickerList.length} من ${picker.total} — ابحث لتضييق النتائج`
                   : `${picker.total} قطعة متاحة`}

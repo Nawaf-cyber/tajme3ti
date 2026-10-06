@@ -70,3 +70,7 @@ export function liveStats(rows: HistoryRow[], liveStores: string[]): PriceStats 
  */
 export const pctAboveMin = (now: number, min: number): number =>
   min > 0 ? Math.round(((now - min) / min) * 100) : 0;
+
+/** «يومٌ واحد» · «يومان» · «7 أيام» · «44 يوماً» — لا «10 يوماً» */
+export const daysAr = (n: number): string =>
+  n === 1 ? 'يومٍ واحد' : n === 2 ? 'يومين' : n <= 10 ? `${n} أيام` : `${n} يوماً`;

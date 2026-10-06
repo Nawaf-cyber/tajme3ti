@@ -30,7 +30,7 @@ export function SectionHeading({ children, note }: { children: ReactNode; note?:
       <span className="h-8 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-cyan-400 to-blue-500 shadow-[0_0_10px] shadow-cyan-500/40" />
       {children}
       {note && (
-        <span className="text-[12.5px] font-semibold text-slate-400 dark:text-slate-500">{note}</span>
+        <span className="text-[12.5px] font-semibold text-slate-600 dark:text-slate-400">{note}</span>
       )}
     </h3>
   );

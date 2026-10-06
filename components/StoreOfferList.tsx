@@ -10,7 +10,7 @@
 
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { formatPrice, discountPercent } from '../lib/price';
-import { pctAboveMin, type PriceStats } from '../lib/price-stats-core';
+import { pctAboveMin, daysAr, type PriceStats } from '../lib/price-stats-core';
 import { storeVars, type Offer } from '../lib/stores';
 import { StoreNoticeInline } from './StoreNotice';
 import OfferLengthTag from './OfferLengthTag';
@@ -50,11 +50,11 @@ function PriceContextNote({ stats, now }: { stats: PriceStats; now: number }) {
     >
       {atLow ? (
         <>
-          سعرُه اليوم <strong>عند أدنى ما رصدناه</strong> خلال {stats.days} يوماً من المتابعة.
+          سعرُه اليوم <strong>عند أدنى ما رصدناه</strong> خلال {daysAr(stats.days)} من المتابعة.
         </>
       ) : (
         <>
-          متجرٌ واحد يبيعها عندنا — لكنّنا نتابع سعرها منذ <strong>{stats.days} يوماً</strong>:
+          متجرٌ واحد يبيعها عندنا — لكنّنا نتابع سعرها منذ <strong>{daysAr(stats.days)}</strong>:
           أدنى ما بلغته <strong dir="ltr">{money(stats.min)} ﷼</strong>، وأعلاه{' '}
           <strong dir="ltr">{money(stats.max)} ﷼</strong>. وسعرُ اليوم أعلى من أدناه بـ
           <strong> {pct}%</strong>.

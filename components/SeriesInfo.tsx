@@ -15,7 +15,7 @@ const LEVEL: Record<IssueLevel, { label: string; cls: string }> = {
   reported: { label: 'متداول · غير رسميّ', cls: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800' },
 };
 
-const linkCls = 'text-cyan-600 dark:text-cyan-400 hover:underline';
+const linkCls = 'text-cyan-700 dark:text-cyan-400 hover:underline';
 
 type Part = { brand: string; name: string };
 
@@ -180,13 +180,37 @@ export function SeriesDetails({ part, category, offers }: { part: Part; category
   );
 }
 
+/** الملاحظات وحدها — بلا سُلَّمٍ ولا ضمان. لصفّ «ملاحظات معروفة» في المقارنة:
+ *  الضمان له صفّه هناك، والملاحظة تُقرأ في مكانها بدل الانتقال إلى صفحة القطعة.
+ *  ونصّها هو نفسه (IssueList) — لا نسخةٌ ثانية تتباعد. */
+export function SeriesNotes({ part, category, offers }: { part: Part; category: string; offers?: VariantOffer[] }) {
+  const s = seriesInfo(part, category);
+  const vn = !s || s.notesOnly ? variantNotes(part.name, offers ?? [], category) : [];
+  const own = !!s && (s.issues.length > 0 || !!s.cleanTest);
+  if (!own && !vn.length) return null;
+  return (
+    <div className="text-sm text-right text-slate-700 dark:text-slate-300 space-y-3">
+      {own && <IssueList s={s!} footer={false} />}
+      {vn.map((v, i) => (
+        <div key={v.variant} className={`space-y-3 ${i || own ? 'pt-3 border-t border-dashed border-slate-200 dark:border-slate-700/50' : ''}`}>
+          <div className="font-bold">
+            <span dir="ltr">{v.variant}</span>
+            <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400"> — عند {v.stores.join('، ')}</span>
+          </div>
+          <IssueList s={v.s} footer={false} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** الملاحظات بدرجاتها ومصادرها، والاختبار النظيف، وتاريخ المراجعة */
 function IssueList({ s, footer = true }: { s: NonNullable<ReturnType<typeof seriesInfo>>; footer?: boolean }) {
   return (
     <>
             {s.issues.map((i, k) => (
               <div key={k} className="space-y-1">
-                <span className={`inline-block text-[11px] font-bold px-1.5 py-0.5 rounded-sm border ${LEVEL[i.level].cls}`}>{LEVEL[i.level].label}</span>
+                <span className={`inline-block text-xs font-bold px-1.5 py-0.5 rounded-sm border ${LEVEL[i.level].cls}`}>{LEVEL[i.level].label}</span>
                 <div className="leading-relaxed">{i.text}</div>
                 {i.resolved && <div className="text-[12px] font-bold text-emerald-700 dark:text-emerald-400">انتهت: {i.resolved}</div>}
                 <div className="text-[12px] text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-3">
