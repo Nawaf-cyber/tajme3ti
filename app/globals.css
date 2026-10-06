@@ -224,3 +224,88 @@ body {
 .animate-lightning {
   animation: lightning 1.8s ease-in-out infinite;
 }
+/* ===== جدول المقارنة على الجوال — اسم الصفّ فوق القيم =====
+   على ٣٧٥ بكسل كان عمود الأسماء الثابت يأخذ ٤١٪ من العرض، فلا يظهر إلّا
+   عمود قطعةٍ واحدة — والمقارنة جنباً إلى جنب هي غاية الصفحة. فيصير كلّ صفٍّ
+   شبكة: اسمه سطرٌ كامل، والقطع تحته متجاورة (--ct-cols = عددها). */
+@media (max-width: 767px) {
+  .compare-table { min-width: 0 !important; display: block; }
+  .compare-table thead,
+  .compare-table tbody { display: block; }
+  .compare-table tr { display: grid; grid-template-columns: repeat(var(--ct-cols, 2), minmax(0, 1fr)); }
+  .compare-table th[scope="row"] {
+    grid-column: 1 / -1;
+    position: static;
+    padding: 0.5rem 0.75rem 0.25rem;
+    border-bottom: 0;
+    background: transparent;
+    backdrop-filter: none;
+  }
+  .compare-table .ct-corner,
+  .compare-table .ct-add,
+  .compare-table [data-filler] { display: none; }
+  .compare-table td[colspan] { grid-column: 1 / -1; }
+  .compare-table td,
+  .compare-table thead th { min-width: 0; padding-left: 0.375rem; padding-right: 0.375rem; overflow-wrap: break-word; }
+}
+
+/* ===== معاينة لوحة «ثلجي سماوي» للوضع الساطع — 2026-10-06 =====
+   قال نوّاف: «الأبيض يجهر العين». فالأبيض الصافي يصير أبيضَ مكسوراً بلمسةٍ
+   سماويّة (هويّة الموقع)، والرماديّات الفاتحة تتبعه. تُفعَّل بـ?palette=ice
+   في أيّ رابط وتبقى في متصفّحه (localStorage)، و?palette=off تُلغيها —
+   معاينةٌ قبل الاعتماد، لا تمسّ زائراً لم يطلبها. السكربت في app/layout.tsx.
+   وTailwind 4 يقرأ هذه الألوان من متغيّرات، فتغييرها هنا يغيّر الموقع كلّه. */
+:root:not(.dark)[data-palette="ice"] {
+  --color-white: #EEF6F9;
+  --color-slate-50: #E7F0F4;
+  --color-gray-50: #E7F0F4;
+  --color-slate-100: #DCE8EE;
+  --color-gray-100: #DCE8EE;
+  --color-slate-200: #C9DDE5;
+  --color-gray-200: #C9DDE5;
+  /* الأسطح أغمق قليلاً، فألوان النصّ تُغمَّق درجةً لتبقى فوق AA (قيس 2026-10-06:
+     cyan-700 كان 4.34–4.47، وred-600 ‏3.99–4.23) */
+  --color-cyan-700: #155e75;
+  --color-red-600: #b91c1c;
+  --color-lime-700: #3f6212;
+  --color-amber-700: #92400e;
+  /* والشريط العلويّ والتذييل على خلفية الصفحة نفسها: cyan-600 ‏3.04، rose-600 ‏3.90، slate-500 ‏3.92 */
+  --color-cyan-600: #155e75;
+  --color-rose-600: #be123c;
+  --color-slate-500: #475569;
+}
+:root:not(.dark)[data-palette="ice"] body { background-color: #DFEBF0 !important; }
+
+/* ===== معاينة «ضبابيّ أزرق» (اللوحة ٩) — ?palette=mist =====
+   أغمق من «ice» بدرجتين: قال نوّاف عن ice «ما أشوف فرق». */
+:root:not(.dark)[data-palette="mist"] {
+  /* قال نوّاف بعد المعايرة الأولى: «باقي بهتان للكلام والمربّعات» — البطاقة
+     والخلفيّة كانتا متلاصقتين. فالبطاقات أفتح درجةً، والخلفيّة أغمق، والحدود
+     أقوى، والنصّ الأساسيّ كحليٌّ أغمق — عمقٌ بلا رجوعٍ للأبيض الساطع. */
+  --color-white: #E9EFF5;
+  --color-slate-50: #DFE7EF;
+  --color-gray-50: #DFE7EF;
+  --color-slate-100: #D3DDE8;
+  --color-gray-100: #D3DDE8;
+  --color-slate-200: #AEBFD0;
+  --color-gray-200: #AEBFD0;
+  --color-slate-300: #93A7BC;
+  --color-slate-700: #273450;
+  --color-slate-800: #16213A;
+  --color-slate-900: #0A1222;
+  --color-gray-900: #0A1222;
+  /* قال نوّاف: «الألوان باهتة». التغميق الأوّل كان نحو الرمادي —
+     فالدرجات هنا أغمق **وأشبع**: سماويّ مائل للأزرق، وحدود أوضح (cyan-500) */
+  --color-cyan-700: #075985;
+  --color-cyan-600: #075985;
+  --color-cyan-500: #0b7285;
+  --color-red-600: #b01212;
+  --color-rose-600: #b50f3f;
+  --color-lime-700: #3d6212;
+  --color-amber-700: #8a420a;
+  --color-slate-500: #46536b;
+  --color-slate-600: #38445c;
+  --color-emerald-700: #065f46;
+  --color-cyan-800: #0f4e63;
+}
+:root:not(.dark)[data-palette="mist"] body { background-color: #C6D2DF !important; }
