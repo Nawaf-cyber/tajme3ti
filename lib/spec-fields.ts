@@ -52,7 +52,8 @@ const COMMON: Record<string, FieldMeta> = {
   pCores: { type: 'number', hint: '8' },
   eCores: { type: 'number', hint: '16' },
   integratedGraphics: { type: 'text', hint: 'Radeon Graphics' },
-  memorySupport: { type: 'select', options: ['DDR5', 'DDR4', 'DDR4 / DDR5'] },
+  /* بالسرعة الرسميّة — scripts/fill-cpu-power-mem. وقائمةٌ مغلقة بلا سرعات كانت تُفقرها */
+  memorySupport: { type: 'text', hint: 'DDR5-5600 / DDR4-3200' },
 
   ramType: { type: 'select', options: RAM_TYPES },
   chipset: { type: 'text', hint: 'B850' },

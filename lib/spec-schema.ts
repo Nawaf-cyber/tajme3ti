@@ -49,7 +49,8 @@ export const SPEC_SCHEMA: Record<string, CategorySchema> = {
        وهو الفرق الذي يجعل المُجمّع يسكت حين يجب أن ينبّه. فيُملأ على كل
        معالج صراحةً: اسم المبرّد المرفق، أو «لا يوجد». */
     compare: ['cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'architecture', 'includedCooler'],
-    conditional: ['pCores', 'eCores', 'integratedGraphics', 'memorySupport'],
+    /* tdpW: القدرة الرسميّة — يقرؤها lib/fit · cpuPowerFitsBoard (scripts/fill-cpu-power-mem) */
+    conditional: ['pCores', 'eCores', 'integratedGraphics', 'memorySupport', 'tdpW'],
     undecided: [],
   },
 
@@ -62,13 +63,15 @@ export const SPEC_SCHEMA: Record<string, CategorySchema> = {
     compat: ['lengthMm'],
     compare: ['vram', 'memoryType', 'memoryBus', 'interface', 'powerConnectors', 'ports', 'architecture'],
     conditional: ['formFactor', 'includedAio'],
-    undecided: [],
+    /* على كرتين فقط — مزايا أكثر منها مقارنة؛ تُحسم لاحقاً */
+    undecided: ['cudaCores', 'boostClock'],
   },
 
   Motherboard: {
     compat: ['socket', 'ramType', 'formFactor'],
-    compare: ['chipset', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion'],
-    conditional: [],
+    /* wifi على كلّ لوحة (scripts/fill-board-wifi) — والاسم لا ينفيه، فالحقل هو الحكم */
+    compare: ['chipset', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion', 'wifi'],
+    conditional: ['maxCpuTdpW', 'lan', 'color'],
     undecided: [],
   },
 
@@ -90,14 +93,16 @@ export const SPEC_SCHEMA: Record<string, CategorySchema> = {
   Storage: {
     compat: [],
     compare: ['type', 'capacity', 'interface', 'formFactor', 'readSpeed', 'writeSpeed'],
-    conditional: [],
+    /* لأقراص SSD وحدها — الميكانيكيّ لا يُقال له (scripts/fill-storage-dram-tbw) */
+    conditional: ['dramCache', 'tbw'],
     undecided: [],
   },
 
   PSU: {
     compat: ['wattage', 'formFactor'],
     compare: ['rating', 'modularity'],
-    conditional: ['color'],
+    /* تصنيف SPL — يغيب عمّا ليس في قائمتها الرئيسيّة (scripts/fill-psu-tier) */
+    conditional: ['color', 'qualityTier'],
     undecided: [],
   },
 

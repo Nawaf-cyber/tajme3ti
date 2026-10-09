@@ -626,7 +626,16 @@ export async function scrapeJarir(t: OfferTarget, _token: string): Promise<Store
       return out;
     }
 
-    out.inStock = src?.stock?.is_in_stock === true;
+    /* ⚠️ لا `stock.is_in_stock` وحده: قِيس 2026-10-09 أنه `false` بكمّيّة 0 حتى لما يبيعه
+       جرير فعلاً — RTX 5070 (11 قطعة) و990 PRO (43) وCS900 (8) كلّها «نافدة» به، فكان كلُّ
+       عرضٍ لجرير يُعرض نافداً. التوفّر الحقّ في مسار المخزون الذي يناديه زرّ «أضف للسلّة»
+       عندهم، و`is_stock_available` بديلٌ حين يتعذّر. */
+    out.inStock = src?.stock?.is_in_stock === true || Number(src?.is_stock_available) === 1;
+    try {
+      const st = await scrapeFetch(`https://www.jarir.com/api/v2/sa_en/stock/getavailability?skuData=${encodeURIComponent(`${sku}|1|0|0`)}&customer_group=&quote_id=`);
+      const r: any = st.ok ? (await st.json().catch(() => null))?.data?.result?.[0] : null;
+      if (r && String(r.sku_code) === sku) out.inStock = r.stock_availablity === 'AVAILABLE' && Number(r.available_qty) > 0;
+    } catch { /* يبقى البديل */ }
 
     const price = round2(Number(src.final_price) || 0);
     /* سعرُ ما قبل الخصم: يُمرَّر فقط حين يكون أعلى فعلاً — وإلّا فلا خصم */

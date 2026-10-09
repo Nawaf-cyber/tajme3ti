@@ -44,6 +44,7 @@ const LABELS: Record<string, string> = {
      خاطئ: يوم تدخل فئة المبرّدات سيحمل الاسم الواحد معنيين متناقضين —
      «الكيس يقبل راديتر ٣٦٠» و«الكرت يأتي براديتر ٣٦٠». */
   includedAio: 'تبريد مائي مرفق',
+  cudaCores: 'أنوية CUDA',
 
   // اللوحة الأم
   chipset: 'الشيبست',
@@ -52,6 +53,8 @@ const LABELS: Record<string, string> = {
   memorySpeed: 'سرعة الرام',
   m2Slots: 'فتحات M.2',
   pcieVersion: 'إصدار PCIe',
+  wifi: 'الواي فاي',
+  lan: 'الشبكة السلكية',
 
   // الرام
   speed: 'السرعة',
@@ -71,11 +74,16 @@ const LABELS: Record<string, string> = {
   // التخزين
   readSpeed: 'سرعة القراءة',
   writeSpeed: 'سرعة الكتابة',
+  /* scripts/fill-storage-dram-tbw */
+  dramCache: 'ذاكرة DRAM',
+  tbw: 'التحمّل (TBW)',
 
   // المزوّد
   wattage: 'القدرة',
   rating: 'شهادة الكفاءة',
   modularity: 'الكابلات',
+  /* scripts/fill-psu-tier — قائمة SPL المستقلّة */
+  qualityTier: 'تصنيف الجودة (SPL)',
 
   /* ============ الصندوق ============
    *
@@ -149,13 +157,13 @@ export const specLabelLoose = (key: string): string =>
 const ORDER: Record<string, string[]> = {
   CPU: ['socket', 'tdpW', 'cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'pCores', 'eCores', 'integratedGraphics', 'memorySupport', 'architecture'],
   GPU: ['vram', 'memoryType', 'memoryBus', 'lengthMm', 'powerConnectors', 'interface', 'ports', 'architecture', 'formFactor', 'includedAio'],
-  Motherboard: ['socket', 'chipset', 'maxCpuTdpW', 'formFactor', 'ramType', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion'],
+  Motherboard: ['socket', 'chipset', 'maxCpuTdpW', 'formFactor', 'ramType', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion', 'wifi', 'lan'],
   RAM: ['type', 'capacity', 'kit', 'speed', 'casLatency', 'profile', 'rgb', 'heightMm', 'color'],
   /* النوع فوق المقاس مباشرةً: 165 لهوائيّ و360 لمائيّ شيئان مختلفان،
      ولا يُقرأ المقاس إلا بعد معرفة نوعه. */
   Cooler: ['type', 'sizeMm', 'sockets', 'tdpRating', 'fanCount', 'fanSize', 'rgb', 'clearanceMm', 'color'],
-  Storage: ['type', 'capacity', 'interface', 'formFactor', 'readSpeed', 'writeSpeed'],
-  PSU: ['wattage', 'rating', 'modularity', 'formFactor'],
+  Storage: ['type', 'capacity', 'interface', 'formFactor', 'readSpeed', 'writeSpeed', 'dramCache', 'tbw'],
+  PSU: ['wattage', 'rating', 'qualityTier', 'modularity', 'formFactor'],
   Case: ['formFactor', 'maxGpuLength', 'maxCoolerHeight', 'radiatorSupport', 'psuFormFactor', 'includedFans', 'frontPanel', 'sidePanel', 'dualChamber', 'verticalGpu', 'pcieRiser', 'cableManagement', 'screen', 'color'],
 };
 
@@ -173,6 +181,8 @@ const UNITS: Record<string, string> = {
   sizeMm: 'مم',
   clearanceMm: 'مم',
   tdpRating: 'واط',
+  tdpW: 'واط',
+  maxCpuTdpW: 'واط',
   wattage: 'واط',
   speed: 'MT/s',
 };
@@ -190,6 +200,14 @@ const VALUE_LABELS: Record<string, string> = {
   Full: 'كاملة الفكّ',
   'Semi-Modular': 'نصف قابلة للفكّ',
   'Non-Modular': 'غير قابلة للفكّ',
+  Semi: 'نصف قابلة للفكّ',
+  Air: 'هوائي',
+  AIO: 'مائي (AIO)',
+};
+
+/* الألوان تُترجم جزءاً جزءاً: «Black/Silver» → «أسود / فضّي». وما لا نعرفه يبقى كما هو */
+const COLORS: Record<string, string> = {
+  black: 'أسود', white: 'أبيض', silver: 'فضّي', grey: 'رمادي', gray: 'رمادي', brown: 'بنّي', pink: 'وردي', red: 'أحمر', blue: 'أزرق',
 };
 
 /**
@@ -202,6 +220,9 @@ export function specValueLines(key: string, value: unknown): { lines: string[]; 
   const raw = String(value ?? '').trim();
   const translated = VALUE_LABELS[raw];
   if (translated) return { lines: [translated] };
+  if (key === 'color') {
+    return { lines: [raw.split(/\s*\/\s*/).map((c) => COLORS[c.toLowerCase()] ?? c).join(' / ')] };
+  }
 
   const segments = raw.split(/,\s*/).filter(Boolean);
   if (segments.length > 1 && raw.length > 16) return { lines: segments, unit: UNITS[key] };

@@ -31,8 +31,10 @@ const NOT_IN_ASUS_LIST = ['Ryzen 9 7900X', 'Ryzen 9 9950X', 'Ryzen 9 9950X3D'];
   check('9800X3D و9900X يمرّان (tdpWattage فيهما 162، والرسميّة 120)', !cpuPowerFitsBoard(sp(am5.find((c) => c.name === 'Ryzen 7 9800X3D')!.specs), sp(a620k.specs)) && !cpuPowerFitsBoard(sp(am5.find((c) => c.name === 'Ryzen 9 9900X')!.specs), sp(a620k.specs)));
   check('كلّ معالج AM5 له قدرةٌ رسميّة', am5.every((c) => Number(sp(c.specs).tdpW) > 0), am5.filter((c) => !sp(c.specs).tdpW).map((c) => c.name).join('، '));
 
-  const otherPairs = boards.filter((b) => b.name !== 'PRIME A620M-K').flatMap((b) => cpus.filter((c) => cpuPowerFitsBoard(sp(c.specs), sp(b.specs))).map((c) => `${b.name}×${c.name}`));
-  check('ولا لوحة غيرها تمنع شيئاً', otherPairs.length === 0, otherPairs.slice(0, 4).join(' · '));
+  /* المقبس نفسه وحده — Intel×AMD يمنعه فحص المقبس قبل هذا. وحدود اللوحات الاقتصاديّة الثماني
+     من قوائم شركاتها (scripts/fill-board-cpu-power، 2026-10-08): أدناها PRIME H610M-K D4 = ١٢٥ */
+  const otherPairs = boards.filter((b) => b.name !== 'PRIME A620M-K').flatMap((b) => cpus.filter((c) => sp(c.specs).socket === sp(b.specs).socket && cpuPowerFitsBoard(sp(c.specs), sp(b.specs))).map((c) => `${b.name}×${c.name}`));
+  check('وغيرها لا يمنع إلّا 13900KS على PRIME H610M-K D4 (غائبٌ عن قائمة ASUS)', JSON.stringify(otherPairs) === JSON.stringify(['PRIME H610M-K D4×Core i9-13900KS']), otherPairs.join(' · '));
 
   const issue = checkBuild({ CPU: { specs: sp(am5.find((c) => c.name === 'Ryzen 9 9950X')!.specs) }, Motherboard: { specs: sp(a620k.specs) } }).find((i) => i.code === 'cpuPower');
   check('الفحص الموحّد: منعٌ برسالته', issue?.level === 'block' && issue.message.includes('120'), issue?.message ?? 'لا منع');

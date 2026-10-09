@@ -31,10 +31,10 @@ const KEYS = [
   'socket', 'cores', 'threads', 'baseClock', 'boostClock', 'l3Cache', 'pCores', 'eCores',
   'integratedGraphics', 'memorySupport', 'architecture',
   'vram', 'memoryType', 'memoryBus', 'lengthMm', 'powerConnectors', 'ports', 'includedAio',
-  'chipset', 'ramType', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion',
+  'chipset', 'ramType', 'maxRam', 'memorySpeed', 'm2Slots', 'pcieVersion', 'wifi', 'lan', 'cudaCores',
   'type', 'capacity', 'kit', 'speed', 'casLatency', 'profile', 'rgb', 'color',
-  'interface', 'readSpeed', 'writeSpeed', 'formFactor',
-  'wattage', 'rating', 'modularity',
+  'interface', 'readSpeed', 'writeSpeed', 'dramCache', 'tbw', 'formFactor',
+  'wattage', 'rating', 'modularity', 'qualityTier',
   'maxGpuLength', 'maxCoolerHeight', 'psuFormFactor', 'radiatorSupport', 'includedFans',
   'frontPanel', 'sidePanel', 'dualChamber', 'verticalGpu', 'pcieRiser', 'cableManagement', 'screen',
 ];

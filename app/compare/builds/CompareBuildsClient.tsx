@@ -198,12 +198,12 @@ export default function CompareBuildsClient() {
                   جدول المقارنة
                 </h2>
 
-                <div className="relative bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm overflow-x-auto shadow-sm">
+                <div className="relative bg-white/70 dark:bg-[#0F172A]/50 border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm overflow-x-auto shadow-sm">
                   <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent z-30 pointer-events-none"></div>
                   <table className="w-full min-w-[600px] border-collapse">
                     <thead>
                       <tr>
-                        <th className="sticky right-0 z-20 w-[130px] md:w-[160px] border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm"></th>
+                        <th className="sticky right-0 z-20 w-[130px] md:w-[160px] border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]"></th>
                         {selected.map((b, i) => (
                           <th key={b.id} className="relative p-4 border-b border-r border-slate-200 dark:border-slate-800 align-top">
                             <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] }}></div>
@@ -222,7 +222,7 @@ export default function CompareBuildsClient() {
                         const min = Math.min(...vals.filter((v): v is number => v != null));
                         return (
                           <tr className="bg-cyan-500/[0.03]">
-                            <th scope="row" className="sticky right-0 z-10 py-4 px-4 text-right text-sm font-black text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm">السعر الكلي</th>
+                            <th scope="row" className="sticky right-0 z-10 py-4 px-4 text-right text-sm font-black text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">السعر الكلي</th>
                             {analyses.map((a, i) => (
                               <td key={i} className="py-4 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800">
                                 <div className="inline-flex items-center gap-1 font-mono font-black text-lg text-emerald-600 dark:text-emerald-400">
@@ -246,7 +246,7 @@ export default function CompareBuildsClient() {
                         const bi = bestIdx(vals, 'higher');
                         return (
                           <tr>
-                            <th scope="row" className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm">
+                            <th scope="row" className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">
                               مستوى الأداء
                               <div className="font-mono text-[9px] font-normal text-slate-400">متوسط المعالج والكرت</div>
                             </th>
@@ -270,7 +270,7 @@ export default function CompareBuildsClient() {
                         const bi = bestIdx(vals, 'lower');
                         return (
                           <tr className="bg-cyan-500/[0.03]">
-                            <th scope="row" className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm">
+                            <th scope="row" className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">
                               الاستهلاك
                               <div className="font-mono text-[9px] font-normal text-slate-400">مقابل سعة المزوّد</div>
                             </th>
@@ -306,7 +306,7 @@ export default function CompareBuildsClient() {
                         const bi = bestIdx(vals, 'higher');
                         return (
                           <tr key={row.label} className={ri % 2 === 1 ? 'bg-cyan-500/[0.03]' : ''}>
-                            <th scope="row" className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm">{row.label}</th>
+                            <th scope="row" className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">{row.label}</th>
                             {analyses.map((a, i) => (
                               <td key={i} className="py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 font-mono font-black text-sm text-slate-900 dark:text-white" dir="ltr">
                                 {row.get(a) > 0 ? <>{formatCapacity(row.get(a))}{i === bi && <span className="text-amber-400 text-xs mr-1">★</span>}</> : <span className="text-slate-300 dark:text-slate-700">—</span>}
@@ -322,7 +322,7 @@ export default function CompareBuildsClient() {
                         const bi = bestIdx(prices, 'lower');
                         return (
                           <tr key={key} className={ri % 2 === 0 ? '' : 'bg-cyan-500/[0.03]'}>
-                            <th scope="row" className="sticky right-0 z-10 py-3 px-4 text-right text-xs font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm">
+                            <th scope="row" className="sticky right-0 z-10 py-3 px-4 text-right text-xs font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">
                               {PART_LABEL(key)}
                             </th>
                             {selected.map((b, i) => {

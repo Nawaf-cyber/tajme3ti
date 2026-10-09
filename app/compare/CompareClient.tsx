@@ -8,10 +8,10 @@ import { isAvailable, offerDeal, priceAsOf } from '../../lib/stores';
 import { seriesInfo, variantNotes, warrantyText, notesCount, ISSUES_CHECKED, type SeriesInfo } from '../../lib/series';
 import { SeriesNotes } from '../../components/SeriesInfo';
 import { catMeta } from '../../lib/category-meta';
-import { bundledCooler } from '../../lib/build-check';
+import { bundledCooler, checkBuild } from '../../lib/build-check';
 import { timeAgoAr, isPriceStale } from '../../lib/time-ago';
 import { pctAboveMin, daysAr, type PriceStats } from '../../lib/price-stats-core';
-import type { PlatformCost } from '../../lib/platform-cost';
+import { biosNoteFor, type PlatformCost } from '../../lib/platform-cost';
 import type { AffiliateIds } from '../../lib/affiliate';
 import UseInBuildModal from './UseInBuildModal';
 import CompareActions from './CompareActions';
@@ -19,11 +19,12 @@ import BuyCell from './BuyCell';
 import RigFitRow, { useRigFits } from './RigFitRow';
 import { buildVerdict, type VerdictInput } from '../../lib/compare-verdict';
 import { gpuPerf, feelLine, GPU_PERF_SOURCE } from '../../lib/gpu-perf';
+import { cpuPerf, CPU_PERF_SOURCE } from '../../lib/cpu-perf';
 import { gpuUpscaler, UPSCALING_SOURCES } from '../../lib/gpu-upscaling';
 import ComparePriceHistory, { SERIES_COLORS, type HistorySeries } from './ComparePriceHistory';
 import SuggestPartCard from '../../components/SuggestPartCard';
 import { productImage, IMAGE_FALLBACK } from '../../lib/image';
-import { specLabelLoose } from '../../lib/spec-labels';
+import { specLabelLoose, specValueLines } from '../../lib/spec-labels';
 import { isFeatureKey } from '../../lib/spec-schema';
 import { capacityGb } from '../../lib/capacity';
 
@@ -70,17 +71,26 @@ const brandColor = (brand: string) => {
  */
 const specLabel = specLabelLoose;
 
+/* تسميةٌ تختلف حسب الفئة في هذا الجدول وحده:
+   • المزوّد: «الحجم» قيمته «ATX 3.1» — مقاسٌ ومعيارٌ معاً، لا حجم
+   • المبرّد: «المقاس» = ارتفاع الهوائيّ أو طول رادييتر المائيّ — والخلية تقول أيّهما */
+const ROW_LABEL_BY_CAT: Record<string, Record<string, string>> = {
+  PSU: { 'الحجم': 'المقاس والمعيار' },
+  Cooler: { 'المقاس': 'الارتفاع / الرادييتر' },
+};
+const ARABIC = /[\u0600-\u06FF]/;
+
 /* ترتيب الصفوف — بالتسميات كما تكتبها `lib/spec-labels.ts` حرفياً.
    ⚠️ أي تغيير لتسميةٍ هناك يجب أن يقابله تغييرٌ هنا، وإلّا سقط الصفّ إلى
    آخر الجدول بصمت. `label-drift` يكشف الافتراق. */
 const ROW_ORDER = [
   'المقبس', 'المعمارية', 'الأنوية', 'أنوية الأداء', 'أنوية الكفاءة', 'المسارات',
   'التردد الأساسي', 'التردد الأقصى', 'ذاكرة L3', 'رسوميات مدمجة',
-  'ذاكرة الكرت', 'نوع الذاكرة', 'ناقل الذاكرة', 'موصّلات الطاقة', 'تبريد مائي مرفق',
-  'الشيبست', 'نوع الرام', 'أقصى رام', 'سرعة الرام', 'فتحات M.2', 'إصدار PCIe',
+  'ذاكرة الكرت', 'نوع الذاكرة', 'ناقل الذاكرة', 'أنوية CUDA', 'موصّلات الطاقة', 'تبريد مائي مرفق',
+  'الشيبست', 'نوع الرام', 'أقصى رام', 'سرعة الرام', 'فتحات M.2', 'إصدار PCIe', 'الواي فاي', 'الشبكة السلكية',
   'النوع', 'السعة', 'السرعة', 'الطقم', 'زمن الاستجابة', 'البروفايل',
-  'الواجهة', 'سرعة القراءة', 'سرعة الكتابة',
-  'القدرة', 'شهادة الكفاءة', 'الكابلات',
+  'الواجهة', 'سرعة القراءة', 'سرعة الكتابة', 'ذاكرة DRAM', 'التحمّل (TBW)',
+  'القدرة', 'شهادة الكفاءة', 'تصنيف الجودة (SPL)', 'الكابلات',
   'الحجم', 'أقصى طول كرت', 'أقصى ارتفاع مبرّد', 'دعم الرادييتر', 'مقاس المزوّد المقبول',
   'المراوح المرفقة', 'الواجهة الأمامية', 'اللوح الجانبي', 'حجرتان',
   'تركيب عمودي للكرت', 'كابل رايزر', 'تنظيم الكابلات', 'شاشة',
@@ -94,9 +104,11 @@ const HIGHER_IS_BETTER = [
   'التردد الأساسي', 'التردد الأقصى', 'ذاكرة L3',
   'ذاكرة الكرت', 'ناقل الذاكرة', 'سرعة الرام',
   'السعة', 'السرعة', 'أقصى رام', 'فتحات M.2',
-  'سرعة القراءة', 'سرعة الكتابة', 'القدرة',
+  'سرعة القراءة', 'سرعة الكتابة', 'التحمّل (TBW)',
   'أقصى طول كرت',
 ];
+/* ⚠️ «القدرة» (واط المزوّد) أُخرجت: كانت تتوّج 1500 واط وتكتب تحت 550 «أقل بـ ٦٣٪»
+   — والقدرة تُختار على قدر الجهاز، والزائد عنها لا يحسّن شيئاً. شرطٌ لا جودة. */
 /* زمن الوصول: الأقل أفضل.
  *
  * وثلاثة أُخرجت عمداً — كلّها **مقاييس توافق لا جودة**، فالنجمة عليها
@@ -163,6 +175,11 @@ const RATING_RANK: Record<string, number> = {
   'bronze': 2,
   'white': 1,
   'standard': 1,
+};
+/* تصنيف SPL: A+ أعلى، F أدنى — رقمٌ ليعمل معه منطق الفائز نفسه */
+const splRank = (v: any): number | null => {
+  const m = String(v ?? '').trim().match(/^([A-F])([+-]?)/);
+  return m ? (70 - m[1].charCodeAt(0)) * 3 + (m[2] === '+' ? 1 : m[2] === '-' ? -1 : 0) : null;
 };
 const ratingRank = (v: any): number | null => {
   if (v == null) return null;
@@ -252,6 +269,8 @@ export default function CompareClient({
       perf: cat === 'GPU' ? gpuPerf(c.name, parseNum((typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {}).vram)) : null,
       /* الرفع بالذكاء الاصطناعي — للكروت وحدها (lib/gpu-upscaling) */
       upscaler: cat === 'GPU' ? gpuUpscaler(c.name) : null,
+      /* نِسَب الألعاب والتعدّد — للمعالجات وحدها (lib/cpu-perf) */
+      cpu: cat === 'CPU' ? cpuPerf(c.name) : null,
     };
   }), [selected]);
 
@@ -302,6 +321,9 @@ export default function CompareClient({
          وهو بالضبط ما أُخرجت من أجله. مكانها صفحة القطعة وحدها. */
       Object.keys(sp).filter((k) => !isFeatureKey(k)).forEach((k) => labels.add(specLabel(k)));
     });
+    /* المعالج: TDP الرسميّ سطرٌ صغير في صفّ «الاستهلاك» — كانا صفّين برقمين
+       مختلفين (9800X3D: 120 و162) بلا ما يشرح الفرق */
+    if (selected[0]?.category?.name === 'CPU') labels.delete(specLabel('tdpW'));
     return Array.from(labels).sort((a, b) => {
       const ia = ROW_ORDER.indexOf(a);
       const ib = ROW_ORDER.indexOf(b);
@@ -313,10 +335,13 @@ export default function CompareClient({
   }, [selected]);
 
   const rowData = (label: string) => {
-    const values = selected.map((c) => {
+    const keys = selected.map((c) => {
       const sp = typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {};
-      const key = Object.keys(sp).filter((k) => !isFeatureKey(k)).find((k) => specLabel(k) === label);
-      return key ? sp[key] : null;
+      return Object.keys(sp).filter((k) => !isFeatureKey(k)).find((k) => specLabel(k) === label) ?? null;
+    });
+    const values = selected.map((c, i) => {
+      const sp = typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {};
+      return keys[i] ? sp[keys[i]!] : null;
     });
     let winnerIdx: number[] = [];
     /* فارق النسبة المئوية عن الأفضل في الصف — يُعرض تحت القيمة.
@@ -325,8 +350,8 @@ export default function CompareClient({
 
     if (selected.length > 1) {
       // شهادة الكفاءة تُقارَن بالترتيب المعروف لا بالأرقام
-      if (label === 'شهادة الكفاءة') {
-        const ranks = values.map(ratingRank);
+      if (label === 'شهادة الكفاءة' || label === 'تصنيف الجودة (SPL)') {
+        const ranks = values.map(label === 'شهادة الكفاءة' ? ratingRank : splRank);
         const valid = ranks.filter((n): n is number => n != null);
         if (valid.length > 1) {
           const best = Math.max(...valid);
@@ -358,7 +383,7 @@ export default function CompareClient({
         }
       }
     }
-    return { values, winnerIdx, deltas };
+    return { keys, values, winnerIdx, deltas };
   };
 
   /* ---- فلتر "أظهر الفروقات فقط" (#1) ----
@@ -486,15 +511,39 @@ export default function CompareClient({
     return parseNum(sp.capacity);
   };
 
+  /* ============ تكلفة المنصّة الفعليّة — باختيار الزائر ============
+     الخادم يعطي كلّ اللوحات التي تقبل المعالج (lib/platform-cost) والأرخص أوّلها؛
+     والزائر يختار غيرها من القائمة تحت الرقم. ولوحةُ جهازه إن قبلت المعالج لا
+     يُحسب ثمنها — هو ما سيدفعه فعلاً. والمجموع هذا هو ما يقرؤه «الحكم» والقيمة. */
+  const [boardChoice, setBoardChoice] = useState<Record<string, string>>({});
+  const [boardsOpen, setBoardsOpen] = useState<string | null>(null);
+  const rigFits = useRigFits(selected, selected[0]?.category?.name ?? '');
+  const rigBoard = rigFits.state === 'ready' ? rigFits.rigBoard : null;
+  const plat = platform.map((p, i) => {
+    const cpu = selected[i];
+    if (!p || !cpu) return null;
+    const chosen = p.boards.find((b) => b.id === boardChoice[cpu.id]) ?? p.board;
+    const own = !!rigBoard && !checkBuild({ CPU: cpu as any, Motherboard: rigBoard }).some((x) => x.code === 'socket' || x.code === 'cpuPower');
+    const total = Math.round((cpu.price + (own ? 0 : chosen.price) + (p.cooler?.price ?? 0)) * 100) / 100;
+    /* تحذير الـBIOS للّوحة الفعليّة: لوحة جهازه إن قبلته، وإلّا التي اختارها — لا أرخصها دائماً */
+    const bios = own ? biosNoteFor(cpu.name, (typeof rigBoard.specs === 'string' ? JSON.parse(rigBoard.specs) : rigBoard.specs ?? {}).chipset) : chosen.biosNote;
+    return { ...p, board: chosen, picked: chosen.id !== p.board.id, own, total, bios };
+  });
+
   /* ⚠️ للمعالج: السعر مع أرخص لوحة (lib/platform-cost) — كما يحسبه «الحكم»
      (lib/compare-verdict · valueOf). وإلّا توّجت شارة «أفضل قيمة» معالجاً
      والحكمُ تحتها يرشّح غيره للسبب نفسه. */
   const valueScore = (c: Comp): number | null => {
-    const cost = platform[selected.indexOf(c)]?.total ?? c.price;
+    const cost = plat[selected.indexOf(c)]?.total ?? c.price;
     /* الكروت: الأداء المقيس لكلّ ريال إن وُجد للكلّ — كما يحكم «الحكم» */
-    if (cols.every((x) => x.perf)) {
+    if (cols.filter((x) => x.perf).length >= 2) {
       const pf = cols[selected.indexOf(c)]?.perf;
       return pf && cost > 0 ? pf.f1440 / cost : null;
+    }
+    /* المعالجات: نسبة الألعاب لكلّ ريال مع اللوحة إن وُجدت للكلّ */
+    if (cols.filter((x) => x.cpu?.gaming != null).length >= 2) {
+      const g = cols[selected.indexOf(c)]?.cpu?.gaming;
+      return g != null && cost > 0 ? g / cost : null;
     }
     if (!c.performanceTier || !(cost > 0)) return null;
     if (c.category?.name === 'Storage') {
@@ -557,14 +606,13 @@ export default function CompareClient({
      والمستوى، والاستهلاك، والضمان، والملاحظات، ووضع السعر، و«تناسب جهازك؟».
      فلا يقول الحكم ما لا يُرى في الجدول، ولا يسكت عمّا يُرى. */
   const catName = selected[0]?.category?.name ?? '';
-  const rigFits = useRigFits(selected, catName);
   const LEVEL_TXT: Record<string, string> = { official: 'رسميّة', tested: 'من اختبار مستقلّ', reported: 'متداولة' };
   const latency = derivedRows.find((r) => r.label === 'زمن الاستجابة الفعلي')?.values ?? [];
   const verdict = buildVerdict(selected.map((c, i): VerdictInput => {
     const col = cols[i];
     const sp = typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {};
     const w = col?.series?.warranty;
-    const pc = platform[i];
+    const pc = plat[i];
     const st = priceStats[i];
     const fv = rigFits.state === 'ready' ? rigFits.verdicts[i] : null;
     const levels = col?.series?.issues.map((x) => x.level) ?? [];
@@ -574,6 +622,7 @@ export default function CompareClient({
       price: c.price,
       cost: pc?.total ?? c.price,
       costIsPlatform: !!pc,
+      coolerInCost: !!pc?.cooler,
       avail: !!col?.avail,
       tier: c.performanceTier ?? null,
       tdp: TDP_JUDGED.includes(catName) && c.tdpWattage > 0 ? c.tdpWattage : null,
@@ -586,15 +635,60 @@ export default function CompareClient({
       capacityGb: ['Storage', 'RAM'].includes(catName) ? parseNum(sp.capacity) : null,
       latencyNs: latency[i] ?? null,
       vramGb: catName === 'GPU' ? parseNum(sp.vram) : null,
-      perf: col?.perf?.f1440 ?? null,
+      perf: col?.perf?.f1440 ?? col?.cpu?.gaming ?? null,
+      cpu: col?.cpu ?? null,
+      /* حقول الفئات (lib/compare-verdict · kind) — من المواصفات نفسها التي يعرضها الجدول */
+      readMBs: catName === 'Storage' ? parseNum(sp.readSpeed) : null,
+      dram: catName === 'Storage' && sp.dramCache != null ? /^yes$/i.test(String(sp.dramCache)) : null,
+      storageType: catName === 'Storage' ? (/hdd/i.test(String(sp.type)) ? 'hdd' : /sata/i.test(String(sp.type)) ? 'sata' : /nvme/i.test(String(sp.type)) ? 'nvme' : null) : null,
+      ramSpeed: catName === 'RAM' ? parseFloat(String(sp.speed ?? '').match(/\d{4,5}/)?.[0] ?? '') || null : null,
+      socket: catName === 'Motherboard' ? sp.socket ?? null : null,
+      /* ⚠️ الاسم يُثبت الواي فاي ولا ينفيه: X670E AORUS Master فيها واي فاي واسمها
+         لا يذكره. فـfalse لا تُقال إلّا من حقلٍ مسجَّل — وإلّا null (لا نعرف) */
+      wifi: catName === 'Motherboard'
+        ? (sp.wifi != null ? !/^(no|none|لا|-)$/i.test(String(sp.wifi).trim()) : /wi-?fi|\bAX\b/i.test(c.name) ? true : null)
+        : null,
+      m2Slots: catName === 'Motherboard' ? parseFloat(String(sp.m2Slots ?? '')) || null : null,
+      pcieGen: catName === 'Motherboard' ? parseFloat(String(sp.pcieVersion ?? '').match(/(\d)\.0/)?.[1] ?? '') || null : null,
+      ramSpeedMax: catName === 'Motherboard' ? parseFloat(String(sp.memorySpeed ?? '').match(/\d{4,5}/)?.[0] ?? '') || null : null,
+      /* «3x 140mm ARGB + 1x 140mm» = ٤، و«لا يوجد» = ٠، وما لا يُقرأ = null */
+      caseFans: catName === 'Case' ? (() => {
+        const t = String(sp.includedFans ?? '').trim();
+        if (!t) return null;
+        if (/لا يوجد|^none$|^no$/i.test(t)) return 0;
+        const n = [...t.matchAll(/(\d+)\s*[x×]/gi)].reduce((a, m) => a + Number(m[1]), 0);
+        return n || null;
+      })() : null,
+      gpuMaxMm: catName === 'Case' ? parseFloat(String(sp.maxGpuLength ?? '')) || null : null,
+      caseSize: catName === 'Case' ? sp.formFactor ?? null : null,
+      psuTier: catName === 'PSU' ? sp.qualityTier ?? null : null,
       fps: col?.perf ?? null,
       upscaler: col?.upscaler ?? null,
       pctAboveLow: st && c.price > 0 ? pctAboveMin(c.price, st.min) : null,
       lowPrice: st?.min ?? null,
       days: st?.days ?? null,
-      fit: fv === 'mine' ? 'mine' : fv ? fv.state : null,
+      /* المعالج الذي لا يقبله إلّا لوحةٌ غير لوحة الجهاز: ثمنُ لوحةٍ جديدة محسوبٌ في
+         تكلفته (lib/platform-cost) — فهو «يحتاج لوحة» لا «لا يركب». كان الحكم يقول
+         «لا تركب في جهازك» عن معالجٍ حسبنا له لوحته للتوّ (قال نوّاف: «كلام مبهم»). */
+      ...(() => {
+        const blocks = fv && fv !== 'mine' && fv.state === 'block' ? fv.issues.filter((x) => x.level === 'block') : [];
+        const boardOnly = catName === 'CPU' && !!pc && !pc.own && blocks.length > 0 && blocks.every((x) => x.code === 'socket' || x.code === 'cpuPower');
+        const rs = rigBoard ? (typeof rigBoard.specs === 'string' ? JSON.parse(rigBoard.specs) : rigBoard.specs ?? {}) : {};
+        return {
+          fit: boardOnly ? null : fv === 'mine' ? 'mine' : fv ? fv.state : null,
+          newBoard: boardOnly
+            ? (blocks.some((x) => x.code === 'socket') ? `مقبسه ${sp.socket ?? '؟'} ولوحتك ${rs.socket ?? '؟'}` : 'لوحتك لا تدعم قدرته')
+            : null,
+          ownBoard: !!pc?.own,
+        } as const;
+      })(),
     };
   }), catName);
+  /* بطاقة المرشَّح تتميّز بإطارها وشارتها — كانت الثلاث متطابقات والعين تدوّر */
+  const pickIdx = verdict.pick ? selected.findIndex((c) => c.name === verdict.pick) : -1;
+  /* شارة «أفضل قيمة» وتظليل العمود يتبعان «ترشيحنا» — كانا يُحسبان بالدرجة
+     فيتوّجان X670E والحكمُ تحته يرشّح غيرها. والقيمة القديمة لما لا ترشيح فيه */
+  const bestIdx = pickIdx >= 0 ? pickIdx : verdict.empty ? -1 : analysis.bestValueIdx;
 
   const PICKER_LIMIT = 40;
   /* نُعيد العدد الكامل والمعروض معاً: التذييل كان يعرض طول القائمة بعد
@@ -702,7 +796,20 @@ export default function CompareClient({
         ) : (
           <>
           {/* ===== شريط الأدوات ===== */}
-          <div data-noexport className="flex items-center justify-end mb-4">
+          <div data-noexport className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            {/* مسحٌ بلا تأكيد: المقارنة كلّها في الرابط، و«رجوع» المتصفّح يعيدها.
+                ويقع داخل فرع «فيه قطع» — فلا يظهر على الشاشة الفارغة */}
+            <button
+              onClick={() => { setDiffOnly(false); updateUrl([]); }}
+              title="أزل كل القطع وابدأ مقارنة جديدة"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-sm text-sm font-black border-2 transition-all active:scale-95 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-500/50 hover:bg-rose-600 hover:text-white hover:border-rose-600 dark:hover:bg-rose-600 dark:hover:text-white"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
+              </svg>
+              مسح كل القطع
+              <span className="px-1.5 py-0.5 rounded-sm text-xs tabular-nums bg-rose-600/10 dark:bg-rose-400/15">{selected.length}</span>
+            </button>
             <CompareActions targetRef={exportRef} names={selected.map((c) => c.name)} />
           </div>
 
@@ -763,8 +870,12 @@ export default function CompareClient({
             </button>
           )}
 
-          {/* ===== جدول المقارنة ===== */}
-          <div data-export-scroll className="relative bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm overflow-x-auto shadow-sm">
+          {/* ===== جدول المقارنة =====
+              ⚠️ لا backdrop-blur هنا ولا على عناوين الصفوف اللاصقة: كانت ~٤٠ طبقة
+              تضبيبٍ داخل حاوية تمرير مضبَّبة، فأسقط Chrome رسم مناطق كاملة من الجدول
+              بعد تصغير النافذة وإرجاعها (تختفي القيم وتعود — بلاغ نوّاف 2026-10-08).
+              والعناوين معتمةٌ أصلاً فالتضبيب لا يُرى. */}
+          <div data-export-scroll className="relative bg-white/70 dark:bg-[#0F172A]/50 border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm overflow-x-auto shadow-sm">
             {/* الزاوية الهندسية — بصمة بطاقات الموقع */}
             <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent z-30 pointer-events-none"></div>
 
@@ -773,12 +884,12 @@ export default function CompareClient({
               <thead>
                 <tr>
                   {/* خانة فارغة (عمود التسميات) — مثبّتة عند التمرير الأفقي */}
-                  <th className="ct-corner sticky right-0 z-20 w-[140px] md:w-[180px] border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm"></th>
+                  <th className="ct-corner sticky right-0 z-20 w-[140px] md:w-[180px] border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]"></th>
 
                   {/* أعمدة القطع */}
                   {selected.map((c, colIdx) => {
                     const avail = isAvailable(c);
-                    const isBest = colIdx === analysis.bestValueIdx;
+                    const isBest = colIdx === bestIdx;
                     const deal = deals[colIdx];
                     // اللون يطابق خط القطعة في رسم تاريخ السعر أدناه
                     const seriesColor = SERIES_COLORS[colIdx % SERIES_COLORS.length];
@@ -825,7 +936,7 @@ export default function CompareClient({
                           onClick={() => removeComponent(c.id)}
                           aria-label="إزالة القطعة"
                           title="إزالة القطعة"
-                          className="absolute top-3 left-3 z-10 w-7 h-7 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-white hover:bg-red-500 hover:border-red-500 dark:hover:bg-red-600 dark:hover:border-red-600 rounded-full transition-all shadow-sm opacity-100 cursor-pointer"
+                          className="absolute top-3 left-3 z-10 w-7 h-7 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-white hover:bg-red-500 hover:border-red-500 dark:hover:bg-red-600 dark:hover:border-red-600 rounded-full transition-all shadow-sm opacity-100 cursor-pointer"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -841,7 +952,7 @@ export default function CompareClient({
                               disabled={colIdx === 0}
                               aria-label="حرّك يميناً"
                               title="حرّك يميناً"
-                              className="w-6 h-6 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-cyan-600 hover:border-cyan-500/60 disabled:opacity-30 disabled:pointer-events-none rounded-sm transition-colors"
+                              className="w-6 h-6 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-cyan-600 hover:border-cyan-500/60 disabled:opacity-30 disabled:pointer-events-none rounded-sm transition-colors"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
@@ -852,7 +963,7 @@ export default function CompareClient({
                               disabled={colIdx === selected.length - 1}
                               aria-label="حرّك يساراً"
                               title="حرّك يساراً"
-                              className="w-6 h-6 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-cyan-600 hover:border-cyan-500/60 disabled:opacity-30 disabled:pointer-events-none rounded-sm transition-colors"
+                              className="w-6 h-6 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-cyan-600 hover:border-cyan-500/60 disabled:opacity-30 disabled:pointer-events-none rounded-sm transition-colors"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
@@ -931,12 +1042,12 @@ export default function CompareClient({
               <tbody>
                 {/* صفّ القرار أوّلاً: أفضل قطعةٍ لا تنفع إن لم تُركَّب */}
                 {categoryName && (
-                  <RigFitRow parts={selected} fits={rigFits} bestIdx={analysis.bestValueIdx} addCol={selected.length < 3} />
+                  <RigFitRow parts={selected} fits={rigFits} bestIdx={bestIdx} addCol={selected.length < 3} />
                 )}
 
                 {/* صفوف المواصفات */}
                 {visibleSpecRows.map((label, rowIdx) => {
-                  const { values, winnerIdx, deltas } = rowData(label);
+                  const { keys, values, winnerIdx, deltas } = rowData(label);
                   return (
                     <tr
                       key={label}
@@ -945,15 +1056,15 @@ export default function CompareClient({
                     >
                       <th
                         scope="row"
-                        className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm group-hover/row:text-cyan-600 dark:group-hover/row:text-cyan-400"
+                        className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] group-hover/row:text-cyan-600 dark:group-hover/row:text-cyan-400"
                       >
-                        {label}
+                        {ROW_LABEL_BY_CAT[categoryName]?.[label] ?? label}
                       </th>
                       {values.map((v, i) => (
                         <td
                           key={i}
                           className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 font-mono ${
-                            i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
+                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
                           }${
                             winnerIdx.includes(i)
                               ? 'text-cyan-700 dark:text-cyan-400'
@@ -977,6 +1088,24 @@ export default function CompareClient({
                             /^(none|no|لا|-)$/i.test(String(v).trim())
                               ? <span dir="rtl" className="font-sans text-slate-700 dark:text-slate-300">لا — يحتاج كرت شاشة</span>
                               : <span dir="rtl" className="font-sans text-emerald-700 dark:text-emerald-400">✓ <span dir="ltr">{v}</span></span>
+                          ) : v != null && keys[i] ? (
+                            /* القيمة كما تعرضها صفحة القطعة (lib/spec-labels): وحدةٌ ملاصقة
+                               («303 مم»)، وترجمة Yes/Black/Full/Air، والمنافذ أسطراً */
+                            (() => {
+                              const { lines, unit } = specValueLines(keys[i]!, v);
+                              const sp = typeof selected[i].specs === 'string' ? JSON.parse(selected[i].specs) : selected[i].specs || {};
+                              const coolerWhat = categoryName === 'Cooler' && keys[i] === 'sizeMm'
+                                ? (/aio|liquid|مائي/i.test(String(sp.type ?? '')) ? 'رادييتر' : /air|هوائي/i.test(String(sp.type ?? '')) ? 'ارتفاع' : null)
+                                : null;
+                              const ar = lines.some((l) => ARABIC.test(l));
+                              return (
+                                <span dir={ar ? 'rtl' : 'ltr'} className={ar ? 'font-sans' : ''}>
+                                  {lines.map((l, j) => <span key={j} className={lines.length > 1 ? 'block' : ''}>{l}</span>)}
+                                  {unit && <span className="font-sans text-xs font-semibold text-slate-600 dark:text-slate-400 ms-1">{unit}</span>}
+                                  {coolerWhat && <span className="font-sans text-xs font-semibold text-slate-600 dark:text-slate-400 ms-1">{coolerWhat}</span>}
+                                </span>
+                              );
+                            })()
                           ) : (v ?? <span className="text-slate-600 dark:text-slate-400">—</span>)}
                           {winnerIdx.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
                           {/* فارق النسبة عن الأفضل — يجعل "★" رقماً ملموساً */}
@@ -1006,7 +1135,7 @@ export default function CompareClient({
                   const allEqual = best != null && valid.every((n) => n === best);
                   return (
                     <tr key={r.label} className="bg-cyan-500/[0.03]">
-                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                         {r.label}
                         <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400">{r.note}</span>
                       </th>
@@ -1014,7 +1143,7 @@ export default function CompareClient({
                         const win = n != null && n === best && !allEqual;
                         return (
                           <td key={selected[i].id} dir="ltr" className={`py-3.5 px-3 text-center text-xs md:text-sm font-black font-mono border-b border-r border-slate-200 dark:border-slate-800 ${
-                            i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
+                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
                           }${win ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
                             {n != null ? r.fmt(n) : <span className="text-slate-600 dark:text-slate-400">—</span>}
                             {win && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
@@ -1026,19 +1155,20 @@ export default function CompareClient({
                   );
                 })}
 
-                {/* صف الاستهلاك */}
-                {selected.some((c) => c.tdpWattage > 0) && (() => {
+                {/* صف الاستهلاك — للمعالج والكرت وحدهما: رقم الرام واللوحة والتخزين
+                    (٥–١٥ واط) يغذّي تقدير المزوّد في الباني، ولا يفرّق قطعةً عن أخرى هنا */}
+                {TDP_JUDGED.includes(categoryName) && selected.some((c) => c.tdpWattage > 0) && (() => {
                   const { values, winnerIdx } = tdpRow();
                   return (
                     <tr className={specRows.length % 2 === 0 ? 'bg-cyan-500/[0.03]' : ''}>
-                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                        الاستهلاك
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        {categoryName === 'CPU' ? 'أقصى استهلاك' : 'الاستهلاك'}
                       </th>
                       {values.map((v, i) => (
                         <td
                           key={i}
                           className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 font-mono ${
-                            i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
+                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
                           }${
                             winnerIdx.includes(i) ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'
                           }`}
@@ -1046,6 +1176,14 @@ export default function CompareClient({
                         >
                           {v ?? <span className="text-slate-600 dark:text-slate-400">—</span>}
                           {winnerIdx.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
+                          {(() => {
+                            /* المعالج: TDP الرسميّ حين يختلف عن أقصى سحب (9800X3D: 120 و162) */
+                            const sp = typeof selected[i].specs === 'string' ? JSON.parse(selected[i].specs) : selected[i].specs || {};
+                            const t = categoryName === 'CPU' ? parseFloat(String(sp.tdpW ?? '')) : NaN;
+                            return t > 0 && t !== selected[i].tdpWattage ? (
+                              <span className="block mt-0.5 text-xs font-semibold text-slate-600 dark:text-slate-400 font-sans" dir="rtl">TDP الرسمي {t} واط</span>
+                            ) : null;
+                          })()}
                         </td>
                       ))}
                       {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
@@ -1053,8 +1191,8 @@ export default function CompareClient({
                   );
                 })()}
 
-                {/* صف مستوى الأداء */}
-                {selected.some((c) => c.performanceTier) && (() => {
+                {/* صف مستوى الأداء — لا للّوحة والكيس: لا يغيّران الأداء، والحكم لا يقرؤه فيهما */}
+                {!['Motherboard', 'Case'].includes(categoryName) && selected.some((c) => c.performanceTier) && (() => {
                   // الأعلى مستوىً هو الفائز — نُخفي النجمة عند تساوي الجميع
                   const tierNums = selected.map((c) => c.performanceTier ?? null);
                   const validTiers = tierNums.filter((n): n is number => n != null);
@@ -1066,11 +1204,11 @@ export default function CompareClient({
                   }
                   return (
                     <tr className="bg-cyan-500/[0.03]">
-                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                         مستوى الأداء
                       </th>
                       {selected.map((c, i) => (
-                        <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
+                        <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
                           <span className="text-sm tracking-widest inline-flex items-center gap-1" dir="ltr">
                             {tierWinners.includes(i) && <span className="text-amber-600 dark:text-amber-400">★</span>}
                             <span>
@@ -1093,7 +1231,7 @@ export default function CompareClient({
                   const best = Math.max(...ps.map((x) => x?.f1440 ?? 0));
                   return (
                     <tr>
-                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
                         الأداء في الألعاب
                         <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
                           متوسّط الإطارات ·{' '}
@@ -1102,7 +1240,7 @@ export default function CompareClient({
                       </th>
                       {ps.map((x, i) => (
                         <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
-                          i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
                         }`}>
                           {x ? (
                             <div className="flex flex-col items-center gap-0.5">
@@ -1126,17 +1264,69 @@ export default function CompareClient({
                   );
                 })()}
 
+                {/* ===== أداء المعالج — نِسَبٌ مقيسة (lib/cpu-perf) =====
+                    نسبةً للأسرع في هذه المقارنة (100%) — أوضح للزائر من نسبة
+                    Tom's للأسرع في السوق. الألعاب عليها يُحكم، والتعدّد للمونتاج والتصميم. */}
+                {cols.some((c) => c.cpu) && (() => {
+                  const cs = cols.map((c) => c.cpu);
+                  /* معالجٌ واحد بأرقام لا «أسرع هنا» له — فالنسبة لأسرع معالجٍ في الجدول كلّه (= 100) */
+                  const nG = cs.filter((x) => x?.gaming != null).length;
+                  const nM = cs.filter((x) => x?.multi != null).length;
+                  const local = nG >= 2;
+                  const bestG = local ? Math.max(...cs.map((x) => x?.gaming ?? 0)) : 100;
+                  const bestM = nM >= 2 ? Math.max(...cs.map((x) => x?.multi ?? 0)) : 100;
+                  const rel = (v: number | null | undefined, b: number) => (v != null && b > 0 ? (v === b ? 100 : Math.min(99, Math.round((v / b) * 100))) : null);
+                  return (
+                    <tr>
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                        الأداء المقيس
+                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
+                          {local ? 'نسبةً للأسرع هنا' : 'نسبةً لأسرع معالج اليوم'} ·{' '}
+                          <a href={CPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{CPU_PERF_SOURCE.name}</a>
+                        </span>
+                      </th>
+                      {cs.map((x, i) => {
+                        const g = rel(x?.gaming, bestG);
+                        const m = rel(x?.multi, bestM);
+                        return (
+                          <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
+                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                          }`}>
+                            {x && (g != null || m != null) ? (
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">الألعاب</span>
+                                {g != null ? (
+                                  <span className={`font-black text-base ${g === 100 ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+                                    <span className="font-mono">{g}%</span>
+                                    {g === 100 && local && <span className="text-amber-600 dark:text-amber-400 text-xs mr-1">★</span>}
+                                  </span>
+                                ) : <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">لم يُختبر</span>}
+                                <span className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                  التعدّد: {m != null ? <span className={`font-mono font-bold ${m === 100 && nM >= 2 ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-800 dark:text-slate-200'}`}>{m}%</span> : 'لم يُختبر'}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">ليس في جدول المصدر</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
                 {/* ===== الرفع بالذكاء الاصطناعي (الكروت) — lib/gpu-upscaling =====
                     التقنية وتوليد الإطارات وعدد الألعاب بمصدره. معلومةٌ لا نجمة:
                     «أفضل» لا تُقال إلّا من الاختبار الأعمى، وفي سطر الحكم. */}
                 {cols.some((c) => c.upscaler) && (
                   <tr className="bg-cyan-500/[0.03]">
-                    <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                    <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
                       الرفع بالذكاء الاصطناعي
                     </th>
                     {cols.map((c, i) => (
                       <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
-                        i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                        i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
                       }`}>
                         {c.upscaler ? (
                           <div className="flex flex-col items-center gap-0.5">
@@ -1171,12 +1361,12 @@ export default function CompareClient({
                     ? years.map((y, i) => (y === best ? i : -1)).filter((i) => i >= 0) : [];
                   return (
                     <tr>
-                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                         ضمان الشركة
                       </th>
                       {cols.map((c, i) => (
                         <td key={selected[i].id} className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 ${
-                          i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
+                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
                         }${wins.includes(i) ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
                           {c.series?.warranty ? (
                             <>
@@ -1198,7 +1388,7 @@ export default function CompareClient({
                     بالنقر على أيّ خليّة، فتنفتح نصوص القطع كلّها متقابلة. */}
                 {cols.some((c) => c.issues || c.variantNotes || c.series?.cleanTest) && (
                   <tr className="bg-cyan-500/[0.03]">
-                    <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                       ملاحظات معروفة
                     </th>
                     {cols.map((c, i) => {
@@ -1207,7 +1397,7 @@ export default function CompareClient({
                       const levelText = levels.map((l) => (l === 'official' ? 'رسميّة' : l === 'tested' ? 'من اختبار مستقلّ' : 'متداولة')).join(' و');
                       return (
                         <td key={id} className={`py-3.5 px-3 text-center text-xs font-bold border-b border-r border-slate-200 dark:border-slate-800 ${
-                          i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
                         }`}>
                           {c.issues > 0 ? (
                             <button type="button" onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-controls="compare-notes"
@@ -1241,7 +1431,7 @@ export default function CompareClient({
                     المصدَّرة تحمل العدد في الصفّ أعلاه، لا فقراتٍ تطيلها */}
                 {notesOpen && (
                   <tr id="compare-notes" data-noexport>
-                    <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-4 px-4 align-top border-b border-slate-200 dark:border-slate-800">
+                    <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-4 px-4 align-top border-b border-slate-200 dark:border-slate-800">
                       <span className="block text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400">نصّ الملاحظات</span>
                       <span className="block mt-1 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
                         راجعنا المصادر في <span dir="ltr" className="whitespace-nowrap">{ISSUES_CHECKED}</span>
@@ -1252,7 +1442,7 @@ export default function CompareClient({
                     </th>
                     {cols.map((c, i) => (
                       <td key={selected[i].id} className={`py-4 px-3 align-top border-b border-r border-slate-200 dark:border-slate-800 ${
-                        i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                        i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
                       }`}>
                         {c.category && (c.issues || c.variantNotes || c.series?.cleanTest)
                           ? <SeriesNotes part={selected[i]} category={c.category} offers={c.offers} />
@@ -1268,12 +1458,12 @@ export default function CompareClient({
                   const { nums, winnerIdx } = priceRow();
                   return (
                     <tr>
-                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-4 px-4 text-sm font-black text-slate-900 dark:text-white">السعر</th>
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-4 px-4 text-sm font-black text-slate-900 dark:text-white">السعر</th>
                       {nums.map((p, i) => {
                         const delta = p && analysis.minPrice && p > analysis.minPrice ? p - analysis.minPrice : 0;
                         const cheapestName = analysis.cheapestIdx >= 0 ? selected[analysis.cheapestIdx]?.name : '';
                         return (
-                        <td key={i} className={`py-4 px-3 text-center border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
+                        <td key={i} className={`py-4 px-3 text-center border-r border-slate-200 dark:border-slate-800 ${i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
                           {p ? (
                             <div className="flex flex-col items-center gap-1">
                               {/* النافدة: السعر رماديّ وتحته «آخر سعرٍ سُجّل» — لا يُقرأ سعرَ اليوم */}
@@ -1331,7 +1521,7 @@ export default function CompareClient({
                     كما في صفحة القطعة)، وإلّا فالنسبة والرقم. */}
                 {priceStats.some(Boolean) && (
                   <tr>
-                    <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                       وضع السعر
                       <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400">من أدنى ما رصدناه</span>
                     </th>
@@ -1340,7 +1530,7 @@ export default function CompareClient({
                       const pct = st && c.price > 0 ? pctAboveMin(c.price, st.min) : null;
                       return (
                         <td key={c.id} className={`py-3.5 px-3 text-center text-xs font-bold border-b border-r border-slate-200 dark:border-slate-800 ${
-                          i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
                         }`}>
                           {!cols[i]?.avail ? (
                             <span className="text-slate-600 dark:text-slate-400">—</span>
@@ -1368,50 +1558,106 @@ export default function CompareClient({
                     تخالف نجمة السعر: معالجٌ أرخص بلوحةٍ أغلى. والتنبيهات تحت الرقم
                     لا في هامشٍ بعيد (lib/platform-cost). */}
                 {platform.some(Boolean) && (() => {
-                  const totals = platform.map((p) => p?.total ?? null);
+                  const totals = plat.map((p) => p?.total ?? null);
                   const valid = totals.filter((n): n is number => n != null);
                   const best = valid.length > 1 ? Math.min(...valid) : null;
                   const allEqual = best != null && valid.every((n) => n === best);
                   return (
                     <tr>
-                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
                         تكلفة المنصّة
-                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400">المعالج + أرخص لوحة متوفّرة تقبله</span>
+                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400">المعالج + لوحةٌ تقبله + مبرّدٌ إن لم يكن في علبته</span>
                       </th>
                       {selected.map((c, i) => {
-                        const p = platform[i];
+                        const p = plat[i];
                         const win = p != null && p.total === best && !allEqual;
                         return (
                           <td key={c.id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
-                            i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
                           }`}>
                             {!p ? (
                               <span className="text-xs font-bold text-slate-600 dark:text-slate-400">لا لوحة متوفّرة تقبله عندنا الآن</span>
                             ) : (
                               <div className="flex flex-col items-center gap-1">
                                 <span className={`inline-flex items-center gap-1 whitespace-nowrap font-mono font-black text-sm md:text-lg ${win ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
-                                  {formatPrice(p.total)}
+                                  {formatPrice(Math.round(p.total))}
                                   <RiyalIcon size="h-3.5 w-3.5" colorClass={win ? 'bg-cyan-700 dark:bg-cyan-400' : 'bg-slate-900 dark:bg-white'} />
                                   {win && <span className="text-amber-600 dark:text-amber-400 text-xs">★</span>}
                                 </span>
-                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
-                                  + <Link href={`/components/${p.board.id}`} className="text-cyan-700 dark:text-cyan-400 hover:underline" dir="ltr">{p.board.brand} {p.board.name}</Link>
-                                  {' '}(<span className="font-mono" dir="ltr">{formatPrice(p.board.price)}</span>)
-                                </span>
-                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                                  {[p.board.chipset, p.board.ramType && `ذاكرة ${p.board.ramType}`].filter(Boolean).join(' · ')}
-                                  {p.options > 1
-                                    ? ` · الأرخص من ${p.options === 2 ? 'لوحتين' : `${p.options} ${p.options <= 10 ? 'لوحات' : 'لوحة'}`}`
-                                    : ' · اللوحة الوحيدة المتوفّرة'}
-                                </span>
-                                {p.biosNote && (
-                                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 leading-relaxed">⚠️ لوحة 600: قد تحتاج تحديث BIOS لهذا المعالج — اسأل المتجر</span>
+                                {p.own ? (
+                                  /* لوحة جهاز الزائر تقبله: ثمنها لا يُدفع — هذا ما سيدفعه فعلاً */
+                                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                                    ✓ لوحتك الحالية تقبله (<span dir="ltr">{rigBoard?.name}</span>) — ثمن اللوحة غير محسوب
+                                  </span>
+                                ) : (
+                                  <>
+                                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
+                                      + <Link href={`/components/${p.board.id}`} className="text-cyan-700 dark:text-cyan-400 hover:underline" dir="ltr">{p.board.brand} {p.board.name}</Link>
+                                      {' '}(<span className="font-mono" dir="ltr">{formatPrice(Math.round(p.board.price))}</span> ريال)
+                                    </span>
+                                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                      {[p.board.chipset, p.board.ramType && `ذاكرة ${p.board.ramType}`].filter(Boolean).join(' · ')}
+                                      {p.options > 1 ? (
+                                        <>
+                                          {' · '}
+                                          <button
+                                            data-noexport
+                                            type="button"
+                                            onClick={() => setBoardsOpen(boardsOpen === c.id ? null : c.id)}
+                                            aria-expanded={boardsOpen === c.id}
+                                            className="font-bold text-cyan-700 dark:text-cyan-400 underline underline-offset-2 hover:no-underline"
+                                          >
+                                            {p.picked ? 'اخترتها' : 'الأرخص'} من {p.options === 2 ? 'لوحتين' : `${p.options} ${p.options <= 10 ? 'لوحات' : 'لوحة'}`} {boardsOpen === c.id ? '▴' : '▾'}
+                                          </button>
+                                        </>
+                                      ) : ' · اللوحة الوحيدة المتوفّرة'}
+                                    </span>
+                                    {/* قائمة اللوحات التي تقبله — اختيارُ غيرها يغيّر المجموع والحكم معاً */}
+                                    {boardsOpen === c.id && (
+                                      <ul data-noexport className="mt-1 w-full max-h-64 overflow-y-auto text-right border border-slate-200 dark:border-slate-700 rounded-sm divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                                        {p.boards.map((b) => {
+                                          const on = b.id === p.board.id;
+                                          return (
+                                            <li key={b.id}>
+                                              <button
+                                                type="button"
+                                                onClick={() => { setBoardChoice({ ...boardChoice, [c.id]: b.id }); setBoardsOpen(null); }}
+                                                className={`w-full flex flex-col items-start md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2 px-2.5 py-2 text-xs transition-colors ${on ? 'bg-cyan-500/10 text-cyan-800 dark:text-cyan-300 font-black' : 'text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                                              >
+                                                <span className="min-w-0 break-words text-left md:truncate" dir="ltr" title={`${b.brand} ${b.name}`}>{on ? '✓ ' : ''}{b.brand} {b.name}</span>
+                                                <span className="shrink-0 font-mono" dir="ltr">
+                                                  {b.chipset} · {formatPrice(Math.round(b.price))}
+                                                  {(b.biosNote || b.entryHeavy) && <span className="font-sans text-amber-700 dark:text-amber-400" title={b.biosNote ? 'لوحة 600: تأكّد من تحديث BIOS' : 'اقتصاديّة: قد تحدّ أداءه'}> •</span>}
+                                                </span>
+                                              </button>
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    )}
+                                    {p.board.entryHeavy && (
+                                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">لوحة اقتصاديّة: تدعمه رسمياً، وقد تحدّ أداءه تحت الحمل الطويل</span>
+                                    )}
+                                    {p.board.powerUnverified && (
+                                      <span className="text-xs font-bold text-amber-700 dark:text-amber-400 leading-relaxed">⚠️ لوحة اقتصاديّة: لم نتحقّق من دعمها لقدرة هذا المعالج — راجع قائمة دعمها</span>
+                                    )}
+                                  </>
                                 )}
-                                {p.powerUnverified && (
-                                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 leading-relaxed">⚠️ لوحة اقتصاديّة: لم نتحقّق من دعمها لقدرة هذا المعالج — راجع قائمة دعمها</span>
+                                {/* الـBIOS خارج فرعَي اللوحة: لوحة جهازه من جيل 600 تحتاجه كما تحتاجه المرشَّحة */}
+                                {p.bios && (
+                                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 leading-relaxed">
+                                    {p.own
+                                      ? 'لوحتك من جيل 600: تعمل معه بعد تحديث BIOS — حدّثها قبل تركيب المعالج'
+                                      : 'لوحة 600: تعمل معه بعد تحديث BIOS، وأغلب المعروض محدَّث — تأكّد من المتجر'}
+                                  </span>
                                 )}
-                                {p.noCooler && (
-                                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">بلا مبرّد — ثمنه غير محسوب</span>
+                                {p.cooler ? (
+                                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
+                                    + مبرّد مناسب تقديراً: <Link href={`/components/${p.cooler.id}`} className="text-cyan-700 dark:text-cyan-400 hover:underline" dir="ltr">{p.cooler.brand} {p.cooler.name}</Link>
+                                    {' '}(<span className="font-mono" dir="ltr">{formatPrice(Math.round(p.cooler.price))}</span> ريال)
+                                  </span>
+                                ) : p.noCooler && (
+                                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">بلا مبرّد — ولا مناسب متوفّر عندنا الآن ليُحسب</span>
                                 )}
                               </div>
                             )}
@@ -1425,7 +1671,9 @@ export default function CompareClient({
 
                 {/* صف القيمة الرقمية: يُظهر رقم "القيمة مقابل السعر" صراحةً
                     بدل الاكتفاء بذكر "أفضل قيمة" في الخلاصة. الأعلى أفضل. */}
-                {selected.length > 1 && selected.some((c) => c.performanceTier && c.price > 0) && (() => {
+                {/* ⚠️ لا للرام والتخزين واللوحة والكيس: مؤشّرٌ بالدرجة يتوّج غير ما يرشّحه
+                    الحكم (lib/compare-verdict · kind) — ولها «ريال لكل جيجا/تيرا» أو السعر نفسه */}
+                {selected.length > 1 && !['RAM', 'Storage', 'Motherboard', 'Case'].includes(categoryName) && selected.some((c) => c.performanceTier && c.price > 0) && (() => {
                   // نقيس القيمة كمؤشر نسبي 0–100 (الأعلى = أفضل قيمة)
                   const raw = selected.map(valueScore);
                   const validRaw = raw.filter((n): n is number => n != null);
@@ -1439,14 +1687,14 @@ export default function CompareClient({
                   }
                   return (
                     <tr className="bg-cyan-500/[0.03]">
-                      <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                         القيمة مقابل السعر
                         <div className="mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-tight">
-                          {platform.some(Boolean) ? 'مع اللوحة · ' : ''}مؤشر نسبي · الأعلى أفضل
+                          {platform.some(Boolean) ? 'بتكلفة المنصّة · ' : ''}مؤشر نسبي · الأعلى أفضل
                         </div>
                       </th>
                       {idx.map((score, i) => (
-                        <td key={selected[i].id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
+                        <td key={selected[i].id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
                           {score != null ? (
                             <span className="inline-flex items-center gap-1 font-mono font-black text-base text-slate-900 dark:text-white">
                               {vWinners.includes(i) && <span className="text-amber-600 dark:text-amber-400 text-xs">★</span>}
@@ -1465,7 +1713,7 @@ export default function CompareClient({
 
                 {/* ===== صف الشراء ===== */}
                 <tr data-noexport className="bg-slate-50/60 dark:bg-slate-900/30">
-                  <th scope="row" className="sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-4 px-4 text-sm font-black text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-800 align-top">
+                  <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-4 px-4 text-sm font-black text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-800 align-top">
                     الشراء
                     <div className="mt-1 text-xs font-normal text-slate-600 dark:text-slate-400 leading-tight">
                       روابط أفلييت
@@ -1475,7 +1723,7 @@ export default function CompareClient({
                     <td
                       key={c.id}
                       className={`py-4 px-3 border-t border-r border-slate-200 dark:border-slate-800 align-top ${
-                        i === analysis.bestValueIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                        i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
                       }`}
                     >
                       <BuyCell component={c} />
@@ -1512,7 +1760,7 @@ export default function CompareClient({
                     <span className="font-black text-base md:text-lg text-slate-900 dark:text-white" dir="ltr">{verdict.pick}</span>
                     {verdict.price != null && (
                       <span className="font-bold text-slate-700 dark:text-slate-300">
-                        — <span className="font-mono">{Math.round(verdict.price).toLocaleString('en-US')}</span> ريال{verdict.priceIsPlatform ? ' مع أرخص لوحة' : ''}
+                        — <span className="font-mono">{Math.round(verdict.price).toLocaleString('en-US')}</span> ريال{verdict.priceNote && <span className="font-semibold text-slate-600 dark:text-slate-400"> ({verdict.priceNote})</span>}
                       </span>
                     )}
                   </div>
@@ -1550,9 +1798,18 @@ export default function CompareClient({
 
             <div className={`grid grid-cols-1 md:grid-cols-2 ${selected.length === 3 ? 'lg:grid-cols-3' : ''} gap-3`}>
               {verdict.cards.map((card, i) => (
-                <div key={selected[i].id} className="relative p-4 rounded-sm border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/30 overflow-hidden">
+                <div key={selected[i].id} className={`relative p-4 rounded-sm border overflow-hidden ${
+                  i === pickIdx
+                    ? 'border-cyan-600 dark:border-cyan-400 bg-cyan-500/[0.07] dark:bg-cyan-400/[0.06]'
+                    : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/30'
+                }`}>
                   {/* شريط لون العمود — يربط البطاقة بعمودها في الجدول والرسم */}
                   <span className="absolute top-0 bottom-0 right-0 w-[3px]" style={{ backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] }}></span>
+                  {i === pickIdx && (
+                    <div className="mb-2 inline-flex items-center gap-1 text-xs font-black text-cyan-900 dark:text-cyan-200 bg-cyan-500/15 border border-cyan-600/50 dark:border-cyan-400/50 rounded-sm px-2 py-0.5">
+                      ★ ترشيحنا
+                    </div>
+                  )}
                   <div className="text-[13px] font-black text-slate-900 dark:text-white leading-snug" dir="ltr" style={{ textAlign: 'right' }}>
                     {selected[i].name}
                   </div>
@@ -1581,6 +1838,20 @@ export default function CompareClient({
                     <p className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 text-xs font-bold text-cyan-800 dark:text-cyan-300">
                       اخترها إذا: {card.chooseIf}
                     </p>
+                  )}
+                  {/* زرّ الاعتماد على المرشَّح وحده — القرار اتُّخذ هنا، فلا يصعد الزائر لرأس الجدول */}
+                  {i === pickIdx && (
+                    <button
+                      type="button"
+                      data-noexport
+                      onClick={() => setBuildTarget(selected[i])}
+                      className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 px-2 border border-cyan-600/60 dark:border-cyan-400/50 text-cyan-800 dark:text-cyan-300 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 rounded-sm transition-all active:scale-[0.98] text-xs font-black"
+                    >
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      استخدم في تجميعتي
+                    </button>
                   )}
                 </div>
               ))}

@@ -128,7 +128,12 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       where: { category: { name: 'Motherboard' } },
       include: OFFER_INCLUDE,
     });
-    platform = ordered.map((c) => platformCost(c as any, boards as any));
+    /* المبرّدات: لمعالجٍ بلا مبرّد في علبته — يدخل ثمنُ أرخص مناسبٍ المجموعَ تقديراً */
+    const coolers = await prisma.component.findMany({
+      where: { category: { name: 'Cooler' } },
+      include: OFFER_INCLUDE,
+    });
+    platform = ordered.map((c) => platformCost(c as any, boards as any, coolers as any));
   }
 
   let history: { componentId: string; points: { d: string; p: number }[] }[] = [];

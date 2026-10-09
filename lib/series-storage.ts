@@ -140,7 +140,9 @@ export const STORAGE_LINES: BrandLine[] = [
   },
   {
     category: 'Storage', brand: 'Sabrent',
-    series: [{ label: 'Rocket 4 Plus', match: /\bRocket 4 Plus\b/i }],
+    series: [{ label: 'Rocket 4 Plus', match: /\bRocket 4 Plus\b/i, warranty: 5,
+      warrantyNote: 'بشرط تسجيل القرص عند Sabrent خلال ٩٠ يوماً من الشراء — وبلا تسجيل سنةٌ واحدة.',
+      source: 'https://www.sabrent.com/product/SB-RKT4P-4TB/4tb-rocket-4-plus-nvme-4-0-gen4-pcie-m-2-internal-ssd-solid-state-drive-sb-rkt4p-4tb/' }],
   },
   {
     category: 'Storage', brand: 'Corsair',

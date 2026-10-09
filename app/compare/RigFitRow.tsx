@@ -25,7 +25,9 @@ type Rig = { buildId: string; name: string; rig: BuildParts; customParts: Record
 
 export type RigFits =
   | { state: 'loading' | 'guest' | 'none' }
-  | { state: 'ready'; rigName: string; verdicts: (FitVerdict | 'mine')[] };
+  | { state: 'ready'; rigName: string; verdicts: (FitVerdict | 'mine')[];
+      /** لوحة الجهاز — لـ«تكلفة المنصّة»: إن قبلت المعالج فثمنها لا يُحسب. null لقطعةٍ مكتوبة باليد (بلا مواصفات) */
+      rigBoard: any | null };
 
 /** حكم «تناسب جهازك؟» لكلّ عمود — مرّةً للصفحة */
 export function useRigFits(parts: any[], category: string): RigFits {
@@ -41,6 +43,7 @@ export function useRigFits(parts: any[], category: string): RigFits {
     rigName: rig.name,
     /* قطعتُه نفسها: «تناسب» عنها صحيحٌ وفارغ — يُقال إنّها عنده */
     verdicts: parts.map((p) => ((rig.rig[cat] as any)?.id === p.id ? 'mine' : fitsRig(rig.rig, cat, p, custom))),
+    rigBoard: custom.includes('Motherboard' as RigCategory) ? null : (rig.rig as any).Motherboard ?? null,
   };
 }
 
@@ -50,7 +53,7 @@ const HEAD: Record<FitVerdict['state'], { icon: string; text: string; cls: strin
   block: { icon: '⛔', text: 'لا تناسب جهازك', cls: 'text-rose-700 dark:text-rose-400' },
 };
 
-const TH = 'sticky right-0 z-10 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top';
+const TH = 'sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top';
 
 export default function RigFitRow({ parts, fits, bestIdx, addCol }: {
   parts: any[];
