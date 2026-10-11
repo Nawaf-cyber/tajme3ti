@@ -4,6 +4,7 @@ import { getToken } from 'next-auth/jwt';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { normalizePartName, isValidPartName } from '../../../lib/part-request';
+import { getPartRequestMode } from '../../../lib/part-request-mode';
 
 // حماية من السبام: 5 طلبات في الساعة لكل مستخدم/عنوان
 let ratelimit: Ratelimit | null = null;
@@ -18,18 +19,23 @@ try {
 }
 
 /* ============ إرسال طلب قطعة ============
-   متاح للجميع (يُحتسب للطلب)؛ المسجّل يُربط طلبه بحسابه ليتابع الحالة. */
+   المسجّل يُربط طلبه بحسابه ليتابع الحالة؛ والزائر بحسب وضع اللوحة. */
 export async function POST(req: NextRequest) {
   try {
     const token = await getToken({ req });
     const userId = (token?.id as string) || null;
 
-    /* ============ الزائر يقترح أيضاً ============
-       جُرّب اشتراط الحساب ثم أُلغي: ٦٠٪ من الاقتراجات جاءت من زوّار، وهم
-       من يصطدم بالنقص وقت التصفّح. والعدّاد نفسه هو المنتج — عشرة طلبوا
-       قطعة إشارةٌ كافية لإضافتها ولو لم نعرف أسماءهم. وغموض النوع (سبب
-       الاشتراط الأصلي) حلّته قائمة الفئة الإلزامية.
-       المسجّل يكسب المتابعة والمحادثة — مكافأة لا بوّابة. */
+    /* ============ هل يقترح الزائر؟ — مفتاحٌ في لوحة الطلبات ============
+       التاريخ: اشتُرط الحساب ثم أُلغي (٦٠٪ من الاقتراحات جاءت من زوّار)،
+       ثم أُعيد 2026-10-11 لأنّ كثيراً منها قطعٌ موجودة أصلاً. فصار مفتاحاً
+       (lib/part-request · PART_REQUEST_MODE_KEY) والافتراضيّ المسجّلون فقط.
+       والحارس هنا لا في الواجهة وحدها — الواجهة تُتجاوز بطلبٍ مباشر. */
+    if (!userId && (await getPartRequestMode()) === 'account') {
+      return NextResponse.json(
+        { message: 'اقتراح القطع للمسجّلين فقط — سجّل دخولك أولاً.', requireAccount: true },
+        { status: 401 },
+      );
+    }
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     if (ratelimit) {
       const { success } = await ratelimit.limit(userId ? `partreq_${userId}` : `partreq_ip_${ip}`);

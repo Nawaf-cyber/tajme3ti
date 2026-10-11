@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import AdminPartRequests from './AdminPartRequests';
 import MarkSeenOnOpen from './MarkSeenOnOpen';
+import PartRequestModeToggle from './PartRequestModeToggle';
+import { getPartRequestMode } from '../../../lib/part-request-mode';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +37,8 @@ export default async function PartRequestsAdminPage() {
     const bDead = liveVotes(b) === 0 ? 1 : 0;
     return aDead - bDead || liveVotes(b) - liveVotes(a) || b.createdAt.getTime() - a.createdAt.getTime();
   });
+
+  const mode = await getPartRequestMode();
 
   // قائمة القطع للربط (الأدمن يختار القطعة المضافة)
   const components = await prisma.component.findMany({
@@ -97,6 +101,8 @@ export default async function PartRequestsAdminPage() {
           مرتّبة حسب <b>عدد الطلبات</b> — أضف الأكثر طلباً أولاً. حين تربط الطلب بقطعة فعلية،
           يتحوّل تلقائياً إلى «تمت الإضافة» ويظهر لكل من طلبها زرّ «ابنِ بهذه القطعة».
         </p>
+
+        <PartRequestModeToggle initialMode={mode} />
 
         {/* فتح الصفحة = قراءة: تُطفأ نقطة «طلبات جديدة» بعد الرسم */}
         <MarkSeenOnOpen hasNew={data.some((d) => d.isNew || d.messages.some((m) => m.unread))} />

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../api/auth/[...nextauth]/route';
 import { isCazasouqTrackingUrl } from '../../lib/affiliate';
+import { PART_REQUEST_MODE_KEY, isValidPartRequestMode } from '../../lib/part-request';
 import { DEFAULT_UPDATES_PER_DAY, isValidFrequency, CRON_SOURCE_KEY, DEFAULT_CRON_SOURCE, isValidCronSource, type CronSource } from '../../lib/cron-settings';
 
 /* رابط تتبّع كازاسوق: نقبله فقط إن كان رابط idevaffiliate صالحاً.
@@ -52,6 +53,26 @@ export async function setCronSource(source: string) {
       create: { key: CRON_SOURCE_KEY, value: source },
     });
     revalidatePath('/admin');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/* من يقترح قطعة ناقصة: «account» المسجّلون فقط، «open» الجميع.
+   يُقرأ عند كلّ إرسال (getPartRequestMode) فلا يحتاج التبديل نشراً. */
+export async function setPartRequestMode(mode: string) {
+  await assertAdmin();
+  if (!isValidPartRequestMode(mode)) {
+    return { success: false, error: 'وضعٌ غير معروف.' };
+  }
+  try {
+    await prisma.setting.upsert({
+      where: { key: PART_REQUEST_MODE_KEY },
+      update: { value: mode },
+      create: { key: PART_REQUEST_MODE_KEY, value: mode },
+    });
+    revalidatePath('/admin/part-requests');
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

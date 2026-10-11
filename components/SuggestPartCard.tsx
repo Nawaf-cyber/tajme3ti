@@ -36,16 +36,30 @@ export default function SuggestPartCard({
    * ولذلك يُسأل قبل الإرسال لا بعده: بعد الإرسال يكون الأوان قد فات —
    * الصوت كُتب بلا حساب، وأي دعوةٍ للتسجيل حينها تَعِد بما لا يقع.
    *
-   * و«لا» تُرسل ولا تُلغي: الاقتراح يُقبل من الزائر على كل حال، والتسجيل
-   * مكافأةٌ لا بوّابة. */
+   * و«لا» تُرسل ولا تُلغي: الاقتراح يُقبل من الزائر، والتسجيل مكافأةٌ لا بوّابة.
+   * هذا في وضع «الجميع» فقط؛ في «المسجّلون فقط» لا يصل الزائر إلى هنا أصلاً. */
   const [asking, setAsking] = useState(false);
+
+  /* ============ وضع الاقتراح من لوحة الطلبات ============
+     «المسجّلون فقط» (الافتراضيّ) أو «الجميع». null = لم يصل بعد، فلا يُرسم
+     النموذج للزائر ثمّ يُسحب منه — ننتظر الجواب. والخادم يحرس على كلّ حال. */
+  const [requireAccount, setRequireAccount] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetch('/api/categories')
       .then((r) => r.json())
       .then((d) => setCategories(Array.isArray(d.categories) ? d.categories : []))
       .catch(() => {});
+    fetch('/api/part-requests/mode')
+      .then((r) => r.json())
+      .then((d) => setRequireAccount(d.requireAccount !== false))
+      .catch(() => setRequireAccount(true));
   }, []);
+
+  /* مقفلٌ ما لم يكن مسجّلاً أو الوضعُ «الجميع». وزرّ الدخول لا يظهر إلّا بعد
+     التيقّن من الأمرين، فالمسجّل لا يرى دعوة دخولٍ تومض لحظةَ تحميل جلسته. */
+  const locked = status !== 'authenticated' && requireAccount !== false;
+  const lockSettled = requireAccount === true && status === 'unauthenticated';
 
   /* الضغط على «إرسال»: يتحقّق من المدخلات، ثم يسأل الزائر قبل أن يرسل.
      التحقّق أوّلاً كي لا يُسأل عن اقتراحٍ ناقصٍ لن يُرسل أصلاً. */
@@ -81,6 +95,11 @@ export default function SuggestPartCard({
         setCategoryId('');
         setAsking(false);
       } else if (res.status === 401) {
+        /* أُغلق الاقتراح للزوّار بعد تحميل الصفحة — نعرض دعوة التسجيل بدل خطأٍ مبهم */
+        if (data.requireAccount) {
+          setRequireAccount(true);
+          setAsking(false);
+        }
         toast.error(data.message || 'سجّل دخولك أولاً.');
       } else {
         toast.error(data.message || 'تعذّر إرسال الاقتراح.');
@@ -136,6 +155,36 @@ export default function SuggestPartCard({
                 </a>
               )}
             </div>
+          </div>
+        ) : locked ? (
+          /* ===== للمسجّلين فقط — أو الوضع لم يصل بعد ===== */
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <div className="w-10 h-10 shrink-0 rounded-sm bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-black text-slate-900 dark:text-white leading-snug">
+                  ما لقيت قطعتك؟ اقترح إضافتها
+                </h3>
+                <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                  {!lockSettled
+                    ? '…'
+                    : 'الاقتراح للمسجّلين — سجّل دخولك لتقترح وتتابع حالة طلبك ونردّ عليك إن احتجنا تفصيلاً.'}
+                </p>
+              </div>
+            </div>
+            {lockSettled && (
+              <a
+                href="/login"
+                onClick={goToLogin}
+                className="shrink-0 text-center px-6 py-3 rounded-sm text-sm font-black bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90 transition-all active:scale-95 shadow-sm shadow-cyan-500/20"
+              >
+                سجّل دخولك للاقتراح
+              </a>
+            )}
           </div>
         ) : asking ? (
           /* ===== سؤال الزائر — مربّعٌ داخل البطاقة ===== */

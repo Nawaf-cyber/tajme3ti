@@ -10,6 +10,20 @@
 
 export type PartStatus = 'REVIEWING' | 'ADDING' | 'ADDED';
 
+/* ============ من يقترح؟ — مفتاحٌ في لوحة الطلبات ============
+ * «account» = المسجّلون فقط، «open» = الجميع (والزائر يُسأل قبل الإرسال).
+ * التاريخ: فُتح للزوّار لأنّ ٦٠٪ من الاقتراحات جاءت منهم، ثمّ أُغلق
+ * 2026-10-11 بطلب نوّاف لأنّ كثيراً منها قطعٌ موجودة أصلاً. فصار القرار
+ * مفتاحاً في اللوحة لا تعديلَ كودٍ ونشراً.
+ * والقيمة في جدول Setting (مفتاحٌ ونصّ) كمصدر الجدولة — لا تغيير مخطّط. */
+export const PART_REQUEST_MODES = ['account', 'open'] as const;
+export type PartRequestMode = (typeof PART_REQUEST_MODES)[number];
+export const PART_REQUEST_MODE_KEY = 'partRequestMode';
+export const DEFAULT_PART_REQUEST_MODE: PartRequestMode = 'account';
+
+export const isValidPartRequestMode = (s: unknown): s is PartRequestMode =>
+  (PART_REQUEST_MODES as readonly unknown[]).includes(s);
+
 /** تطبيع اسم القطعة للدمج والعدّ:
  *  حروف صغيرة · مسافات مضغوطة · إزالة الرموز عدا الحروف والأرقام والشرطة.
  *  يُبقي العربية والإنجليزية والأرقام. */
