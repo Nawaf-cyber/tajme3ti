@@ -33,17 +33,19 @@ export default function CountdownTimer() {
   if (!mounted) return <div className="h-10"></div>; // لمنع أخطاء الـ Hydration
 
   return (
-    <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-slate-900/60 border border-slate-700/50 rounded-2xl backdrop-blur-md shadow-2xl">
-      <div className="flex items-center gap-2 text-blue-400">
+    /* نهاراً بطاقة ورقٍ بحبرٍ كحليّ، وليلاً زجاجٌ داكن — كان زجاجاً داكناً في الوضعين،
+       فصار نهاراً كتلةً رماديّة نصّها الأزرق لا يكاد يُقرأ (2026-10-12) */
+    <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/95 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl backdrop-blur-md shadow-md dark:shadow-2xl">
+      <div className="flex items-center gap-2 text-cyan-700 dark:text-blue-400">
         <svg className="w-5 h-5 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         <span className="text-sm font-bold tracking-wide">تحديث الأسعار القادم:</span>
       </div>
-      <div className="flex items-center gap-1 font-mono text-lg font-black text-white" dir="ltr">
-        <span className="bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700/50">{timeLeft.hours}</span>
-        <span className="text-slate-500 animate-pulse">:</span>
-        <span className="bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700/50">{timeLeft.minutes}</span>
-        <span className="text-slate-500 animate-pulse">:</span>
-        <span className="bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700/50 text-emerald-400">{timeLeft.seconds}</span>
+      <div className="flex items-center gap-1 font-mono text-lg font-black text-slate-900 dark:text-white" dir="ltr">
+        <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700/50">{timeLeft.hours}</span>
+        <span className="text-slate-400 dark:text-slate-500 animate-pulse">:</span>
+        <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700/50">{timeLeft.minutes}</span>
+        <span className="text-slate-400 dark:text-slate-500 animate-pulse">:</span>
+        <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700/50 text-emerald-600 dark:text-emerald-400">{timeLeft.seconds}</span>
       </div>
     </div>
   );

@@ -52,13 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className="overflow-x-hidden">
       
-      <body className="bg-[#EDF1F6] dark:bg-[#0B1120] text-slate-800 dark:text-gray-100 transition-colors duration-300 overflow-x-hidden w-full relative" suppressHydrationWarning>
-        
-        {/* معاينة لوحة الوضع الساطع (globals.css · data-palette): ?palette=ice تفعّلها
-            وتحفظها في المتصفّح، و?palette=off تلغيها. قبل التفاعل كي لا يومض اللون القديم. */}
-        <Script id="palette-preview" strategy="beforeInteractive">
-          {`try{var q=new URLSearchParams(location.search).get('palette');if(q==='off'){localStorage.removeItem('palette')}else if(q){localStorage.setItem('palette',q)}var p=localStorage.getItem('palette');if(p){document.documentElement.setAttribute('data-palette',p)}else{document.documentElement.removeAttribute('data-palette')}}catch(e){}`}
-        </Script>
+      <body className="bg-(--page-bg) text-slate-800 dark:text-gray-100 transition-colors duration-300 overflow-x-hidden w-full relative" suppressHydrationWarning>
 
         {/* سكربت Google AdSense (تم نقله هنا لتجنب أخطاء الـ Hydration) */}
         <Script

@@ -65,6 +65,14 @@ export default async function HomePage() {
           {/* البرق — عنصر التوقيع */}
           <div className="relative w-20 h-20 mb-7">
             <div className="absolute inset-0 bg-cyan-400/30 blur-2xl rounded-full"></div>
+            {/* نهاراً لا توهّج: البرق مرسومٌ بالفرجار — دائرةُ إنشاءٍ متقطّعة
+                ومحوران، كأنّه على لوح الرسم */}
+            <svg viewBox="0 0 120 120" className="dark:hidden absolute -inset-5 w-[calc(100%+2.5rem)] h-[calc(100%+2.5rem)] text-cyan-700" fill="none" stroke="currentColor" aria-hidden="true">
+              <circle cx="60" cy="60" r="50" strokeOpacity="0.45" strokeDasharray="3 5" />
+              <circle cx="60" cy="60" r="36" strokeOpacity="0.18" />
+              <path d="M60 0V18M60 102V120M0 60H18M102 60H120" strokeOpacity="0.5" />
+              <path d="M57 10H63M57 110H63M10 57V63M110 57V63" strokeOpacity="0.5" />
+            </svg>
             <svg viewBox="0 0 24 24" fill="currentColor" className="relative w-full h-full text-cyan-500 dark:text-cyan-400 drop-shadow-[0_0_12px_rgba(34,211,238,0.5)]">
               <path d="M13 2L4.5 13.5H11L10 22L18.5 10.5H12L13 2Z" />
             </svg>

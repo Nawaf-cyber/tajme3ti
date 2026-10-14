@@ -29,6 +29,7 @@ import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 import { useEffect, useRef, useState } from 'react';
+import { switchTheme, originOf } from '../lib/theme-switch';
 
 /* أيقونات الروابط — مكتوبةً مرّة، فالشريط كان يكرّر مسار كل أيقونة مرّتين
    (سطح المكتب والجوّال) وتعديلُ واحدةٍ يترك الأخرى. */
@@ -57,7 +58,12 @@ const NAV = [
 
 export default function Navbar() {
   const { data: session } = useSession();
-  const { theme, setTheme } = useTheme();
+  /* resolvedTheme لا theme: الافتراضيّ «system»، فكان زائرٌ نظامه داكن يرى
+     أيقونة القمر ويضغط فيُطلب «dark» وهو داكنٌ أصلاً — الضغطة الأولى بلا
+     أثر. المحسوب هو ما على الشاشة فعلاً. */
+  const { resolvedTheme: theme, setTheme } = useTheme();
+  const toggleTheme = (e: React.MouseEvent<HTMLElement>) =>
+    switchTheme(theme === 'dark' ? 'light' : 'dark', setTheme, originOf(e.currentTarget));
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -115,7 +121,8 @@ export default function Navbar() {
   return (
     <nav className="relative w-full bg-white/80 dark:bg-[#0B1120]/60 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
       {/* خط سيان سفلي يربط الشريط بهوية الموقع */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+      {/* نهاراً خطُّ مسطرةٍ متّصل، وليلاً خيطُ ضوءٍ يتلاشى على الطرفين */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-slate-300 dark:bg-transparent dark:bg-gradient-to-r dark:from-transparent dark:via-cyan-500/30 dark:to-transparent" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -179,7 +186,7 @@ export default function Navbar() {
 
             {mounted && (
               <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                onClick={toggleTheme}
                 className="p-2 rounded-sm text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 title={theme === 'dark' ? 'تفعيل الوضع المضيء' : 'تفعيل الوضع الليلي'}
                 aria-label={theme === 'dark' ? 'تفعيل الوضع المضيء' : 'تفعيل الوضع الليلي'}
@@ -317,7 +324,7 @@ export default function Navbar() {
               <span className="text-sm font-bold text-slate-700 dark:text-slate-300">مظهر الموقع</span>
               {mounted && (
                 <button
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  onClick={toggleTheme}
                   className="p-2 px-3 rounded-sm bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-2 text-sm font-bold"
                 >
                   {theme === 'dark' ? (

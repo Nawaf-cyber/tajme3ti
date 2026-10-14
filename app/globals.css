@@ -249,63 +249,263 @@ body {
   .compare-table thead th { min-width: 0; padding-left: 0.375rem; padding-right: 0.375rem; overflow-wrap: break-word; }
 }
 
-/* ===== معاينة لوحة «ثلجي سماوي» للوضع الساطع — 2026-10-06 =====
-   قال نوّاف: «الأبيض يجهر العين». فالأبيض الصافي يصير أبيضَ مكسوراً بلمسةٍ
-   سماويّة (هويّة الموقع)، والرماديّات الفاتحة تتبعه. تُفعَّل بـ?palette=ice
-   في أيّ رابط وتبقى في متصفّحه (localStorage)، و?palette=off تُلغيها —
-   معاينةٌ قبل الاعتماد، لا تمسّ زائراً لم يطلبها. السكربت في app/layout.tsx.
-   وTailwind 4 يقرأ هذه الألوان من متغيّرات، فتغييرها هنا يغيّر الموقع كلّه. */
-:root:not(.dark)[data-palette="ice"] {
-  --color-white: #EEF6F9;
-  --color-slate-50: #E7F0F4;
-  --color-gray-50: #E7F0F4;
-  --color-slate-100: #DCE8EE;
-  --color-gray-100: #DCE8EE;
-  --color-slate-200: #C9DDE5;
-  --color-gray-200: #C9DDE5;
-  /* الأسطح أغمق قليلاً، فألوان النصّ تُغمَّق درجةً لتبقى فوق AA (قيس 2026-10-06:
-     cyan-700 كان 4.34–4.47، وred-600 ‏3.99–4.23) */
-  --color-cyan-700: #155e75;
-  --color-red-600: #b91c1c;
-  --color-lime-700: #3f6212;
-  --color-amber-700: #92400e;
-  /* والشريط العلويّ والتذييل على خلفية الصفحة نفسها: cyan-600 ‏3.04، rose-600 ‏3.90، slate-500 ‏3.92 */
-  --color-cyan-600: #155e75;
-  --color-rose-600: #be123c;
-  --color-slate-500: #475569;
-}
-:root:not(.dark)[data-palette="ice"] body { background-color: #DFEBF0 !important; }
+/* =====================================================================
+   الوضع الفاتح: «ورقة المخطّط» — 2026-10-11
+   =====================================================================
+   قال نوّاف: «ابيه بطابع مختلف … مو شرط نفس شكل الداكن». وكان الفاتح نسخةً
+   معكوسة من الداكن (المسارات نفسها والتوهّج نفسه على أبيض)، وقبلها قال
+   «الأبيض يجهر العين» ثمّ «باهت» عن اللوحة الضبابيّة.
+   فالفكرة: الداكن لوحةٌ أمّ تتوهّج ليلاً، والفاتح مخطّطُ التجميعة على ورق
+   الرسم الهندسيّ نهاراً — ورقٌ مكسور الأبيض (لا يجهر)، وشبكةُ رسمٍ زرقاء
+   باهتة، وحبرٌ كحليّ للنصّ، وسماويُّ الهويّة أعمق وأشبع (لا يبهت)، وظلالٌ
+   حادّة قصيرة بدل التوهّج — ولون الهويّة نهاراً تركوازيّ يتدرّج إلى بنفسجيّ حبريّ (أدناه). التباين مقيس:
+   النصّ الثانويّ ≥ ٥٫٦ والروابط ≥ ٥٫٥.
 
-/* ===== معاينة «ضبابيّ أزرق» (اللوحة ٩) — ?palette=mist =====
-   أغمق من «ice» بدرجتين: قال نوّاف عن ice «ما أشوف فرق». */
-:root:not(.dark)[data-palette="mist"] {
-  /* قال نوّاف بعد المعايرة الأولى: «باقي بهتان للكلام والمربّعات» — البطاقة
-     والخلفيّة كانتا متلاصقتين. فالبطاقات أفتح درجةً، والخلفيّة أغمق، والحدود
-     أقوى، والنصّ الأساسيّ كحليٌّ أغمق — عمقٌ بلا رجوعٍ للأبيض الساطع. */
-  --color-white: #E9EFF5;
-  --color-slate-50: #DFE7EF;
-  --color-gray-50: #DFE7EF;
-  --color-slate-100: #D3DDE8;
-  --color-gray-100: #D3DDE8;
-  --color-slate-200: #AEBFD0;
-  --color-gray-200: #AEBFD0;
-  --color-slate-300: #93A7BC;
-  --color-slate-700: #273450;
-  --color-slate-800: #16213A;
-  --color-slate-900: #0A1222;
-  --color-gray-900: #0A1222;
-  /* قال نوّاف: «الألوان باهتة». التغميق الأوّل كان نحو الرمادي —
-     فالدرجات هنا أغمق **وأشبع**: سماويّ مائل للأزرق، وحدود أوضح (cyan-500) */
-  --color-cyan-700: #075985;
-  --color-cyan-600: #075985;
-  --color-cyan-500: #0b7285;
-  --color-red-600: #b01212;
-  --color-rose-600: #b50f3f;
-  --color-lime-700: #3d6212;
-  --color-amber-700: #8a420a;
-  --color-slate-500: #46536b;
-  --color-slate-600: #38445c;
-  --color-emerald-700: #065f46;
-  --color-cyan-800: #0f4e63;
+   ⚠️ كلّه هنا: Tailwind 4 يقرأ الألوان من متغيّرات، فإعادة تعريفها تحت
+   :root:not(.dark) تغيّر الفاتح في الموقع كلّه ولا تمسّ الداكن. أمّا الظلال
+   فتُكتب في الأصناف نفسها لا في متغيّرات، فتُعاد كتابتها أدناه.
+   (حلّت محلّ معاينتَي ?palette=ice|mist — 2026-10-06.)
+   2026-10-12: «ورقٌ أنقى» — اختارها نوّاف من ثلاث لوحات (الحاليّة/أنقى/تقنيّ
+   بارد) بعد أن قلتُ إنّ الأولى «مغبّرة»: ورقٌ أفتح وأقلّ رماديّة، والبطاقات
+   أوضح انفصالاً، والسماويّ والأزرق وأخضر الأسعار أحيى. cyan-500 بقي #0A7896
+   كي يبقى نصّ الأزرار فوق AA (٤٫٨). */
+
+:root { --page-bg: #EAE8E2; }
+.dark { --page-bg: #0B1120; }
+
+:root:not(.dark) {
+  /* ورق: البطاقات أفتح درجة من الصفحة، والحدود خطّ قلمٍ رصاصيّ دافئ */
+  --color-white: #F8F7F3;
+  --color-slate-50: #F1EFEA;
+  --color-gray-50: #F1EFEA;
+  --color-slate-100: #E8E5DE;
+  --color-gray-100: #E8E5DE;
+  --color-slate-200: #D3CFC5;
+  --color-gray-200: #D3CFC5;
+  --color-slate-300: #B9B4A8;
+  --color-gray-300: #B9B4A8;
+  /* حبر: كحليّ بارد على ورقٍ دافئ — التضادّ هو ما يجعل الكلام واضحاً */
+  --color-slate-400: #6E7482;
+  --color-gray-400: #6E7482;
+  --color-slate-500: #4F5768;
+  --color-gray-500: #4F5768;
+  --color-slate-600: #3D4556;
+  --color-gray-600: #3D4556;
+  --color-slate-700: #2B3344;
+  --color-gray-700: #2B3344;
+  --color-slate-800: #1A2336;
+  --color-gray-800: #1A2336;
+  --color-slate-900: #0F1A2E;
+  --color-gray-900: #0F1A2E;
+
+  /* ===== لون الهويّة نهاراً: تركوازيّ ← بنفسجيّ حبريّ (2026-10-13) =====
+     كان سماويّاً عميقاً يتدرّج إلى أزرق كوبالت، وقال نوّاف إنّ الأزرق «مو ملائم».
+     جُرّبت بدائل كثيرة (نحاسيّ، قرمزيّ، كهرمانيّ، فوشي، رصاصيّ، ثمّ لونٌ واحد:
+     طوبيّ وبنفسجيّ صافٍ) فاختار: التركوازيّ أساساً كما كان، والبنفسجيّ الحبريّ
+     طرفاً ثانياً للتدرّج مكان الأزرق. تدرّجهما نظيف (يمرّ بالأزرق لا بلونٍ عكر).
+     الليل لا يُمسّ: سماويّه وأزرقه المضيئان من Tailwind كما هما.
+     التباين: نصّ الأزرار على cyan-500 ‏٤٫٧ وعلى blue-600 ‏٨٫٣. */
+  --color-cyan-50: #E3EEEF;
+  --color-cyan-100: #D0E6EA;
+  --color-cyan-200: #A6D0DB;
+  --color-cyan-300: #6FB2C5;
+  --color-cyan-400: #0E8DB0;
+  --color-cyan-500: #0A7896;
+  --color-cyan-600: #086F8D;
+  --color-cyan-700: #075A72;
+  --color-cyan-800: #0A4658;
+  --color-cyan-900: #083845;
+  /* البنفسجيّ الحبريّ — الطرف الثاني من تدرّج الهويّة مكان الأزرق */
+  --color-blue-50: #EEEAF5;
+  --color-blue-100: #E1DAF0;
+  --color-blue-400: #7A62C2;
+  --color-blue-500: #6047AC;
+  --color-blue-600: #503995;
+  --color-blue-700: #422F7B;
+
+  /* ألوان الحالة أعمق لتبقى فوق AA على الورق، وخلفيّاتها الفاتحة مصبوغةٌ
+     بالورق بدل النعناعيّ الساطع */
+  --color-emerald-50: #E3EFE6;
+  --color-emerald-100: #D1E7D9;
+  --color-emerald-200: #A8D4B9;
+  --color-emerald-500: #0F9466;
+  --color-emerald-600: #04774F;
+  --color-emerald-700: #055A40;
+  --color-emerald-800: #064A35;
+  --color-amber-50: #F3EAD6;
+  --color-amber-100: #EFE0C2;
+  --color-amber-300: #DDAE5E;
+  --color-amber-600: #96470A;
+  --color-amber-700: #7E3A0A;
+  --color-rose-50: #F3E4E4;
+  --color-rose-200: #E6B9C0;
+  --color-rose-600: #BE123C;
+  --color-rose-700: #9F1239;
+  --color-red-50: #F4E4E0;
+  --color-red-600: #B42318;
+  --color-lime-700: #3F6212;
 }
-:root:not(.dark)[data-palette="mist"] body { background-color: #C6D2DF !important; }
+
+/* ===== ظلّ الورق: قصيرٌ حادّ — حافّةُ ورقةٍ على ورقة، لا هالة ===== */
+:root:not(.dark) .shadow-sm {
+  --tw-shadow: 0 1px 0 0 var(--tw-shadow-color, rgb(15 26 46 / 0.07)), 0 1px 3px 0 var(--tw-shadow-color, rgb(15 26 46 / 0.06));
+}
+:root:not(.dark) .shadow-md {
+  --tw-shadow: 0 2px 0 -1px var(--tw-shadow-color, rgb(15 26 46 / 0.09)), 0 4px 10px -4px var(--tw-shadow-color, rgb(15 26 46 / 0.14));
+}
+:root:not(.dark) .shadow-lg {
+  --tw-shadow: 0 2px 0 -1px var(--tw-shadow-color, rgb(15 26 46 / 0.10)), 0 10px 22px -12px var(--tw-shadow-color, rgb(15 26 46 / 0.22));
+}
+:root:not(.dark) .shadow-xl,
+:root:not(.dark) .shadow-2xl {
+  --tw-shadow: 0 2px 0 -1px var(--tw-shadow-color, rgb(15 26 46 / 0.10)), 0 18px 36px -18px var(--tw-shadow-color, rgb(15 26 46 / 0.30));
+}
+/* التوهّج السماويّ هويّةُ الليل: نهاراً يصير ظلَّ حبرٍ لا هالةَ نيون */
+:root:not(.dark) [class*="shadow-cyan-"],
+:root:not(.dark) [class*="shadow-blue-"] {
+  --tw-shadow-color: rgb(8 56 69 / 0.20);
+}
+:root:not(.dark) [class*="shadow-[0_0"] { --tw-shadow: 0 0 #0000; }
+:root:not(.dark) [class*="drop-shadow-[0_0"] { filter: none; }
+/* بقع التوهّج الملوّنة (blur + لون) زخرفةٌ ليليّة بحتة — تختفي نهاراً.
+   " blur-" بمسافة قبلها كي لا يلتقط backdrop-blur */
+:root:not(.dark) [class*=" blur-"]:is([class*="bg-cyan-"], [class*="bg-blue-"], [class*="bg-emerald-"], [class*="bg-amber-"]) {
+  display: none;
+}
+
+/* صور القطع خلفيّتها أبيضُ صافٍ من المتاجر، فكانت تظهر مربّعاتٍ بيضاء على
+   الورق. الضرب (multiply) يُذيب الأبيض في لون البطاقة تحته ويُبقي القطعة.
+   object-contain = صور القطع؛ وصور الأخبار object-cover لا تُمسّ. */
+:root:not(.dark) img.object-contain {
+  mix-blend-mode: multiply;
+  /* ويُعمَّق «الأبيض الخفيف» كي لا يذوب جسم القطعة البيضاء مع خلفيّتها
+     (PCBBackground · #white-lift). ويحلّ محلّ drop-shadow على بعض الصور:
+     ظلُّ صورةٍ معتمة الخلفيّة كان يرسم حولها مستطيلاً باهتاً على الورق. */
+  filter: url(#white-lift);
+}
+
+:root:not(.dark) ::selection { background: rgb(10 120 150 / 0.22); color: #0F1A2E; }
+
+/* ===== التبديل بين الوضعين — «الموجة الناعمة» (2026-10-12) =====
+   الوضع الجديد ينتشر من زرّ المظهر بحافّةٍ عريضة ناعمة (٢٤٠px تدرّج، لا خطّ
+   دائرةٍ حادّ) — كضوءٍ يملأ الغرفة أو حبرٍ يتشرّبه الورق. كلّ نقطةٍ تنتقل
+   مرّةً واحدة حين تبلغها الموجة: لا صورة مزدوجة كالتلاشي، ولا رماديّ في
+   المنتصف كتدرّج الألوان.
+   التاريخ: عشر حركات (2026-10-11) ← «تشويش» ← «تهكير» ← الخطوط تتحوّل
+   تحت تلاشٍ ← اقترحتُ الموجة فاختارها نوّاف وقال «شيل حركة الخطوط».
+   lib/theme-switch.ts يضع data-vt على html طوال التبديل، و--vt-x/--vt-y
+   (مركز الزرّ) و--vt-rmax (حتى أبعد زاوية + الحافّة) فيرثها المشهد. */
+html[data-vt] *,
+html[data-vt] *::before,
+html[data-vt] *::after {
+  transition: none !important;
+}
+@property --vt-r {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+/* القديمة تبقى معتمة تحت، والجديدة فوقها بلا مزجٍ ضوئيّ (الافتراضيّ
+   plus-lighter يجمع الصورتين فيبيضّ ما تحت الموجة) */
+html[data-vt]::view-transition-old(root),
+html[data-vt]::view-transition-new(root) { mix-blend-mode: normal; }
+html[data-vt]::view-transition-old(root) { animation: none; }
+html[data-vt]::view-transition-new(root) {
+  -webkit-mask-image: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 calc(var(--vt-r) - 240px), transparent var(--vt-r));
+  mask-image: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 calc(var(--vt-r) - 240px), transparent var(--vt-r));
+  animation: vt-wave 1.1s cubic-bezier(0.45, 0, 0.2, 1) both;
+}
+@keyframes vt-wave {
+  from { --vt-r: 0px; }
+  to { --vt-r: var(--vt-rmax); }
+}
+
+/* بديلٌ لمتصفّحٍ بلا View Transitions: تلاشٍ لونيّ قصير للصفحة كلّها */
+html[data-theme-fading] *,
+html[data-theme-fading] *::before,
+html[data-theme-fading] *::after {
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, fill 0.4s ease, stroke 0.4s ease !important;
+}
+
+/* ===== الخلفية الحيّة — 2026-10-11 =====
+   طلب نوّاف «الخلفية … متحركة بطريقة احترافية». فالحركة هادئة لا تنافس
+   المحتوى: نهاراً رسومُ إنشاءٍ تُخطّ وحدها في الهوامش (مقاساتٌ حقيقيّة من
+   عالم القطع) ثمّ تتلاشى، ومصباحٌ يتبع المؤشّر. وليلاً تبقى نبضات المسارات
+   ويُضاف الكشّاف. الرسوم في PCBBackground.tsx والمصباح في BackgroundLamp.tsx. */
+
+/* ---- المصباح: صندوقٌ مقنّع يتحرّك، وداخله الخلفية تتحرّك بعكسه ---- */
+.bg-lamp {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--lamp);
+  height: var(--lamp);
+  transform: translate3d(calc(var(--lx, -9999px) - var(--lamp) / 2), calc(var(--ly, -9999px) - var(--lamp) / 2), 0);
+  -webkit-mask-image: radial-gradient(closest-side, #000, rgb(0 0 0 / 0.5) 50%, transparent);
+  mask-image: radial-gradient(closest-side, #000, rgb(0 0 0 / 0.5) 50%, transparent);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  will-change: transform;
+}
+.bg-lamp[data-on] { opacity: 1; }
+.bg-lamp-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--vw, 100vw);
+  height: var(--vh, 100vh);
+  transform: translate3d(calc(var(--lamp) / 2 - var(--lx, -9999px)), calc(var(--lamp) / 2 - var(--ly, -9999px)), 0);
+  will-change: transform;
+}
+
+/* ---- رسوم الإنشاء: تُخطّ (stroke-dashoffset على pathLength=1)، تثبت،
+   ثمّ تتلاشى؛ أربعةٌ بفارق ٦ ثوانٍ فيظهر اثنان على الأكثر معاً ---- */
+.draft-sketch {
+  opacity: 0;
+  animation: draft-cycle 24s ease-in-out infinite;
+}
+.draft-sketch path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draft-draw 24s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  animation-delay: inherit;
+}
+.draft-sketch text {
+  fill: #1A3D5E;
+  fill-opacity: 0.65;
+  stroke: none;
+  font: 600 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.06em;
+  animation: draft-label 24s ease infinite;
+  animation-delay: inherit;
+}
+@keyframes draft-cycle {
+  0% { opacity: 0; }
+  2% { opacity: 1; }
+  52% { opacity: 1; }
+  62%, 100% { opacity: 0; }
+}
+@keyframes draft-draw {
+  0% { stroke-dashoffset: 1; }
+  13%, 100% { stroke-dashoffset: 0; }
+}
+@keyframes draft-label {
+  0%, 11% { opacity: 0; }
+  17%, 100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draft-sketch { display: none; }
+  .bg-lamp { display: none; }
+}
+/* الرسوم في الهوامش (±٤٠٠–٦٤٠ عن المنتصف) فتقع خارج شاشة الجوّال — لا
+   نُبقيها تتحرّك هناك بلا أن تُرى */
+@media (max-width: 767px) {
+  .draft-sketch { display: none; }
+}
+/* لا تظهر إلّا في أعلى الرئيسيّة (components/SketchGate.tsx)، وتخبو حين تنزل.
+   والمخفيّة تتوقّف حركتها — لا تُحسب إطاراتٌ لا تُرى */
+.draft-sketches { opacity: 0; transition: opacity 0.6s ease; }
+html[data-sketch] .draft-sketches { opacity: 1; }
+html:not([data-sketch]) .draft-sketch,
+html:not([data-sketch]) .draft-sketch :is(path, text) { animation-play-state: paused; }

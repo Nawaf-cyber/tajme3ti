@@ -318,7 +318,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                 onClick={() => setSortBy(o.key)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-sm text-[12px] font-bold transition-all active:scale-95 border ${
                   sortBy === o.key
-                    ? 'bg-cyan-500 text-[#052e37] border-cyan-500 shadow-sm shadow-cyan-500/30'
+                    ? 'bg-cyan-500 text-white dark:text-[#052e37] border-cyan-500 shadow-sm shadow-cyan-500/30'
                     : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:border-cyan-400 dark:hover:border-cyan-600'
                 }`}
               >
@@ -454,7 +454,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                     {/* زر التفاصيل الجديد (Premium) */}
                     <Link 
                       href={`/components/${comp.id}`} 
-                      className="group/btn flex items-center gap-1.5 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-[#052e37] font-bold text-sm rounded-sm transition-all shadow-sm shadow-cyan-500/20 hover:shadow-md hover:shadow-cyan-500/40 active:scale-95"
+                      className="group/btn flex items-center gap-1.5 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white dark:text-[#052e37] font-bold text-sm rounded-sm transition-all shadow-sm shadow-cyan-500/20 hover:shadow-md hover:shadow-cyan-500/40 active:scale-95"
                     >
                       التفاصيل
                       <svg className="w-4 h-4 transition-transform group-hover/btn:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>

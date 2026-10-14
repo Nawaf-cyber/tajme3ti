@@ -53,7 +53,7 @@ export default function Footer() {
     <>
       <footer className="relative bg-transparent mt-auto transition-colors duration-300 overflow-hidden">
         {/* خط سيان علوي يربط الفوتر بهوية الموقع */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
+        <div className="absolute top-0 left-0 right-0 h-px bg-slate-300 dark:bg-transparent dark:bg-gradient-to-r dark:from-transparent dark:via-cyan-500/30 dark:to-transparent"></div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
           <div className="grid grid-cols-2 md:grid-cols-12 gap-x-6 gap-y-10">

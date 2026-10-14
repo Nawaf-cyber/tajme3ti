@@ -37,6 +37,11 @@ async function withProxiedImages<T>(node: HTMLElement, fn: () => Promise<T>): Pr
 }
 
 /* ---- ختم توقيع أسفل الصورة ---- */
+/* لون الصفحة من متغيّرها في globals.css — كان مكتوباً هنا نصّاً فبقي على
+   لون الوضع الفاتح القديم حين تغيّر. */
+const pageBg = (isDark: boolean) =>
+  getComputedStyle(document.documentElement).getPropertyValue('--page-bg').trim() || (isDark ? '#0B1120' : '#EAE8E2');
+
 function stampWatermark(dataUrl: string, isDark: boolean): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -48,7 +53,7 @@ function stampWatermark(dataUrl: string, isDark: boolean): Promise<string> {
       const ctx = canvas.getContext('2d');
       if (!ctx) return resolve(dataUrl);
 
-      ctx.fillStyle = isDark ? '#0B1120' : '#EDF1F6';
+      ctx.fillStyle = pageBg(isDark);
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
 
@@ -127,7 +132,7 @@ export default function CompareActions({
         toPng(node, {
           pixelRatio: 2,
           cacheBust: true,
-          backgroundColor: isDark ? '#0B1120' : '#EDF1F6',
+          backgroundColor: pageBg(isDark),
           // نستبعد أي عنصر تفاعلي لا معنى له في صورة ثابتة
           filter: (el) => {
             if (!(el instanceof HTMLElement)) return true;

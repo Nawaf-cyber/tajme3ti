@@ -7,7 +7,9 @@ import { ReactNode } from "react";
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      {/* بلا disableTransitionOnChange: lib/theme-switch.ts يتولّى التبديل بحركته،
+          وإطفاءُ next-themes للانتقالات كان سيقطع تلاشي المتصفّحات القديمة. */}
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         {children}
       </ThemeProvider>
     </SessionProvider>

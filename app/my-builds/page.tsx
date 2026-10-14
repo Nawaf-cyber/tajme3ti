@@ -466,11 +466,11 @@ export default function MyBuildsPage() {
                   className={"group relative overflow-hidden bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800/60 shadow-sm cursor-pointer flex flex-col transition-all hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:-translate-y-0.5 before:absolute before:inset-x-0 before:top-0 before:h-0 before:bg-gradient-to-r before:from-cyan-400 before:to-blue-500 before:transition-all hover:before:h-0.5"
                     + (highlightedId === build.id
                       /* ⚠️ لون الفاصل من خلفية الصفحة نفسها لا من تخمين: الجسم
-                         `bg-[#EDF1F6] dark:bg-[#0B1120]`، و`ring-offset-slate-50`
+                         `bg-(--page-bg)` (globals.css)، و`ring-offset-slate-50`
                          (#F8FAFC) كان يترك حلقةً أفتحَ من الصفحة تبدو خللاً.
                          و`shadow-lg` حُذف: يخسر أمام `shadow-sm` في ترتيب الأصناف
                          فلا أثر له — والتلوين وحده (`shadow-cyan-500/20`) يعمل. */
-                      ? " ring-2 ring-cyan-500 ring-offset-2 ring-offset-[#EDF1F6] dark:ring-offset-[#0B1120] shadow-cyan-500/20"
+                      ? " ring-2 ring-cyan-500 ring-offset-2 ring-offset-(--page-bg) shadow-cyan-500/20"
                       : "")}
                   onClick={() => setSelectedBuild(build)}
                 >

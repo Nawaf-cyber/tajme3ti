@@ -54,12 +54,12 @@ export default async function NewsDetails({ params }: { params: Promise<{ id: st
               className="absolute inset-0 w-full h-full object-cover" 
             />
             {/* تدرج لوني مكثف لضمان قراءة النص فوق الصورة */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#F5F7FA] via-[#F5F7FA]/80 dark:from-[#0B1120] dark:via-[#0B1120]/80 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-(--page-bg) via-(--page-bg)/80 dark:from-[#0B1120] dark:via-[#0B1120]/80 to-transparent"></div>
           </>
         ) : (
-          <div className="absolute inset-0 bg-[#F5F7FA] dark:bg-[#0F172A] flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-50 dark:bg-[#0F172A] flex items-center justify-center">
             <span className="text-9xl opacity-10">📰</span>
-            <div className="absolute inset-0 bg-gradient-to-t from-[#F5F7FA] dark:from-[#0B1120] to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-(--page-bg) dark:from-[#0B1120] to-transparent"></div>
           </div>
         )}
 
