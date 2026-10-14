@@ -1,27 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-
-export type TierPlan = {
-  key: 'value' | 'balanced' | 'strong';
-  label: string;
-  note: string;
-  total: number;
-  picks: Record<string, any>;
-};
-
-type Intent = {
-  use: string | null;
-  resolution: string | null;
-  /* ⚠️ حُذف من هنا `fpsTarget` و`budget`: كانا يُرسلان في كل نداء
-     (144 للشوتر و60 لغيره، والميزانية null دائماً) ولا يقرؤهما buildPlans
-     إطلاقاً. حقلان يوهمان قارئ الكود بأن للـFPS المستهدف أو للميزانية
-     أثراً في الاختيار — ولا أثر لهما. */
-  alsoStreams: boolean | null;
-  /* تفضيل الشركة — اختياري. null = لا يهمّه، فيبني النظام بمنطقه المعتاد. */
-  gpuBrand: string | null;
-  cpuBrand: string | null;
-};
+/* النوعان من مصدرهما — كانت هنا نسخةٌ ثانية من TierPlan تتباعد بصمت.
+   ⚠️ حُذف من Intent سابقاً `fpsTarget` و`budget`: كانا يُرسلان في كل نداء
+   (144 للشوتر و60 لغيره، والميزانية null دائماً) ولا يقرؤهما البناء إطلاقاً. */
+import type { TierPlan, Intent } from '../lib/intent-plans';
+export type { TierPlan };
 
 /* ---- الاستخدامات المعروضة ---- */
 const USES = [
@@ -156,7 +140,7 @@ export default function IntentPicker({
               {/* ⚠️ أبيضُ على `cyan-500` يعطي 2.37:1 — أسوأ تباينٍ في الصفحة.
                   وcyan-600 يعطي 3.62، وهو دون AA أيضاً. والحلّ حبرٌ داكن على
                   السيان نفسه (6.11) — وهو ما تستعمله بطاقات «تصفّح القطع». */}
-              <span className="text-[12px] font-black px-1.5 py-0.5 rounded-sm bg-cyan-500 text-[#052e37]">جديد</span>
+              <span className="text-[12px] font-black px-1.5 py-0.5 rounded-sm bg-cyan-500 text-white dark:text-[#052e37]">جديد</span>
             </div>
             <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
               قل لنا وش تسوي بالجهاز، ونبني لك تجميعة من القطع المتوفّرة.
@@ -237,8 +221,9 @@ export default function IntentPicker({
                 <span className="text-[12px] font-bold text-slate-500 dark:text-slate-300">(اختياري — اتركه ونختار لك الأفضل)</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* كرت الشاشة */}
+              <div className={`grid grid-cols-1 gap-3 ${use !== 'office' ? 'sm:grid-cols-2' : ''}`}>
+                {/* كرت الشاشة — لا يُسأل عنه في «مكتبي»: التجميعة فيه بلا كرت (lib/intent-plans) */}
+                {use !== 'office' && (
                 <div>
                   <div className="text-[12px] font-black text-slate-500 dark:text-slate-300 mb-1.5">كرت الشاشة</div>
                   <div className="flex flex-wrap gap-1.5">
@@ -258,6 +243,7 @@ export default function IntentPicker({
                     ))}
                   </div>
                 </div>
+                )}
 
                 {/* المعالج */}
                 <div>
