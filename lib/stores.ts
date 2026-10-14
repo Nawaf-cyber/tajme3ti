@@ -28,6 +28,8 @@ export type StoreInfo = {
   /** إعلان حالة (عطل/صيانة) — يُعرض عند عروض هذا المتجر */
   noticeMessage?: string | null;
   noticeUntil?: string | Date | null;
+  /** 'off' = سعره يُكتب بيدٍ لا يُسحب (نون) — يحكم شبكة الأمان في liveOffers */
+  scrapeMode?: string;
 };
 
 /** عرض متجر واحد لقطعة واحدة، ومعه بيانات متجره */
@@ -50,11 +52,23 @@ export type WithOffers = { offers?: Offer[] | null };
 
 /* ------------------------------ الاختيار ------------------------------ */
 
-/** العروض القابلة للشراء فعلاً: سعر صالح + متوفّر + رابط، الأرخص أولاً.
+/* ============ شبكة الأمان للأسعار اليدويّة (2026-10-13) ============
+   متجرٌ لا يُسحب (`scrapeMode: 'off'` — نون، خلف Akamai) سعرُه يُكتب بيدٍ أو
+   بـscripts/noon-auto-refresh.ts من جهاز نوّاف مرّتين يومياً. فإن انقطع ذلك
+   (الجهاز مطفأ أيّاماً) شاخ السعر — وقِيس أنّ ٧ من ١٩ تتغيّر في يومين. فالعرض
+   اليدويّ الذي لم يُقرأ منذ أكثر من ٣ أيّام لا يُعدّ حيّاً: لا يكون «أقلّ سعر»،
+   ويُعرض سعر متجرٍ يُحدَّث آلياً بدلاً منه. وما لا متجر غيره له يظهر غير
+   متوفّر — أصدق من سعرٍ لا نضمنه. والمتاجر الآليّة لا تُمسّ: وتيرة سحبها شأنٌ آخر. */
+export const MANUAL_STALE_DAYS = 3;
+const isStaleManual = (o: Offer): boolean =>
+  o.store?.scrapeMode === 'off' &&
+  (!o.lastCheckedAt || Date.now() - new Date(o.lastCheckedAt).getTime() > MANUAL_STALE_DAYS * 86_400_000);
+
+/** العروض القابلة للشراء فعلاً: سعر صالح + متوفّر + رابط (+ يدويٌّ غير شائخ)، الأرخص أولاً.
  *  عند تساوي السعر يفصل ترتيب المتجر (sortOrder) لا ترتيب القاعدة العشوائي. */
 export const liveOffers = (offers?: Offer[] | null): Offer[] =>
   (offers || [])
-    .filter((o) => (o.price ?? 0) > 0 && o.inStock !== false && !!o.url)
+    .filter((o) => (o.price ?? 0) > 0 && o.inStock !== false && !!o.url && !isStaleManual(o))
     .sort((a, b) => a.price! - b.price! || a.store.sortOrder - b.store.sortOrder);
 
 /** أرخص عرض متوفّر، أو null إن لم يتوفّر شيء */

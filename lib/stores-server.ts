@@ -26,6 +26,8 @@ export const STORE_SELECT = {
   // إعلان حالة المتجر — يُعرض عند عروضه في صفحات القطع والمقارنة
   noticeMessage: true,
   noticeUntil: true,
+  // وضع السحب وحده (لا محدّداته): 'off' يفعّل شبكة الأمان في liveOffers
+  scrapeMode: true,
 } as const;
 
 /** حقول المتجر التي يحتاجها السحب (لا تُرسل للعميل — تحوي إعدادات داخلية) */
