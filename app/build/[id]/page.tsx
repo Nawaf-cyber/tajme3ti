@@ -179,7 +179,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
             </p>
           </div>
           <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/10 px-4 py-2 rounded-xl border border-emerald-100 dark:border-emerald-800/30">
-            {totalPrice} <RiyalIcon size="h-6 w-6" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+            {formatTotal(totalPrice)} <RiyalIcon size="h-6 w-6" colorClass="bg-emerald-600 dark:bg-emerald-400" />
           </div>
         </div>
 

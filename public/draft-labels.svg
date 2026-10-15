@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- تسميات رسوم الإنشاء في خلفيّة الوضع الفاتح (components/PCBBackground.tsx).
+       في ملفٍّ منفصل لا في الصفحة: نصٌّ داخل SVG الصفحة يقرؤه الزاحف نصّاً، فكانت
+       «305 mm · ATX Ø140 FAN M.2 2280 PCIe 5.0 ×16» أوّلَ ما في كلّ صفحة عنده.
+       واللون والخطّ يُورَثان من عنصر use (globals.css · .draft-sketch use). -->
+  <text id="atx" text-anchor="middle" direction="ltr">305 mm · ATX</text>
+  <text id="fan" text-anchor="middle" direction="ltr">Ø140 FAN</text>
+  <text id="m2" text-anchor="middle" direction="ltr">M.2</text>
+  <text id="m2len" text-anchor="middle" direction="ltr">2280</text>
+  <text id="pcie" text-anchor="middle" direction="ltr">PCIe 5.0 ×16</text>
+</svg>

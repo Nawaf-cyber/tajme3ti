@@ -918,10 +918,6 @@ export default function CompareClient({
                           style={{ backgroundColor: seriesColor, opacity: isBest ? 1 : 0.45 }}
                         ></div>
 
-                        {/* كود القطعة — نفس بصمة بطاقات التصفّح وصفحة المنتج */}
-                        <div className="hidden md:block mt-1.5 mb-1 font-mono text-xs text-slate-600 dark:text-slate-400 tracking-wider text-center">
-                          #{c.id.slice(-4).toUpperCase()}
-                        </div>
 
                         {/* شارة أفضل قيمة */}
                         {isBest && (

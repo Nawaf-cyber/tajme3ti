@@ -14,6 +14,15 @@ export const formatPrice = (value: number | null | undefined): string => {
   return rounded.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 
+/** مجموعُ تجميعة: ريالاتٌ صحيحة بفواصل الآلاف — «3,486» لا «3486.29».
+ *  كانت المجاميع تُطبع بـ toFixed(2) خاماً في الرئيسيّة والتجميعات والباني، وأسعار
+ *  القطع بفواصل — رقمان بمظهرين في الصفحة نفسها (مراجعة أدسنس 2026-10-15).
+ *  سعر القطعة الواحدة يبقى بـ formatPrice (582.49 سعرٌ حقيقيّ). */
+export const formatTotal = (value: number | string | null | undefined): string => {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.round(n).toLocaleString('en-US') : '---';
+};
+
 /** نسبة الخصم صحيحةً، أو 0 إن لم يوجد خصم معتبر */
 /** أقصى خصم نعتبره حقيقياً — ما فوقه خطأ قراءة لا عرض */
 export const MAX_PLAUSIBLE_DISCOUNT = 50;

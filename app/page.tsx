@@ -8,6 +8,8 @@ import AutoBuildsSection from '../components/AutoBuildsSection';
 import CompareTeaser from '../components/CompareTeaser';
 import PriceDropsSection from '../components/PriceDropsSection';
 import { productImage, IMAGE_FALLBACK } from '../lib/image';
+import { formatPrice, formatTotal } from '../lib/price';
+import { GUIDE_CATEGORIES } from '../lib/content';
 
 /* ⚠️ كانت revalidate = 300 فتُخزَّن النسخة ٥ دقائق، ومع stale-while-revalidate
    يرى أول زائرٍ بعدها النسخة **القديمة** ويُطلق التجديد للتالي — فالتأخير
@@ -33,6 +35,14 @@ export default async function HomePage() {
   });
 
   const componentsCount = await prisma.component.count();
+
+  /* مقتطفٌ يُقصّ في الخادم (~١٦٠ حرفاً) — كانت البطاقة تحمل المقال كاملاً داخل الرابط
+     ويُخفيه line-clamp وحده، فيقرأ الزاحف رابطاً بـ١٨٠٠ حرف (مراجعة أدسنس 2026-10-15) */
+  const excerpt = (n: { summary: string; content: string }) => {
+    const src = n.summary && n.summary !== 'بدون ملخص' ? n.summary : n.content;
+    const plain = src.replace(/\[\/?[a-z]+\]/gi, '').replace(/[#*_>`]/g, '').replace(/\s+/g, ' ').trim();
+    return plain.length > 160 ? `${plain.slice(0, plain.lastIndexOf(' ', 160) || 160)}…` : plain;
+  };
 
   const RiyalIcon = ({ size = 'h-5 w-5', colorClass = 'bg-blue-600 dark:bg-blue-400' }: { size?: string, colorClass?: string }) => (
     <div 
@@ -167,7 +177,7 @@ export default async function HomePage() {
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight line-clamp-1 mb-4">{comp.name}</h3>
                   <div className="font-black text-lg text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
                     <div className="flex items-center justify-center gap-1 leading-none">
-                      {parseFloat(Number(comp.price).toFixed(2))} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                      {formatPrice(comp.price)} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                     </div>
                   </div>
                 </div>
@@ -206,7 +216,7 @@ export default async function HomePage() {
                 </div>
                 <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800/80">
                   <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 leading-none">
-                    {parseFloat(Number(build.price).toFixed(2))} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                    {formatTotal(build.price)} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                   </div>
                   <Link href="/prebuilds" className="text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-white px-5 py-2.5 rounded-sm transition-colors">
                     استعراض
@@ -223,11 +233,13 @@ export default async function HomePage() {
         <div className="flex justify-between items-center mb-10">
           <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
             <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
-            أحدث الأخبار التقنية
+            أحدث المقالات
           </h2>
-          <Link href="/news" className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors">
-            الأرشيف &larr;
-          </Link>
+          {/* القائمة أدلّةٌ وأخبار معاً — كانت «أحدث الأخبار التقنية» فوق أدلّة */}
+          <div className="flex items-center gap-4 text-sm font-bold">
+            <Link href="/guides" className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors">الأدلّة &larr;</Link>
+            <Link href="/news" className="text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors">الأخبار &larr;</Link>
+          </div>
         </div>
 
         {latestNews.length === 0 ? (
@@ -238,7 +250,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {latestNews.map((newsItem, index) => (
               <Link 
-                href={`/news/${newsItem.id}`} 
+                href={`${GUIDE_CATEGORIES.includes(newsItem.category) ? '/guides' : '/news'}/${newsItem.id}`} 
                 key={newsItem.id} 
                 className={`group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm p-6 flex flex-col justify-between hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300 ${
                   index === 0 ? 'lg:col-span-2 lg:row-span-2' : ''
@@ -253,7 +265,7 @@ export default async function HomePage() {
                   </h3>
                   {index === 0 && (
                     <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-3 mt-4 leading-loose font-medium">
-                      {newsItem.content}
+                      {excerpt(newsItem)}
                     </p>
                   )}
                 </div>

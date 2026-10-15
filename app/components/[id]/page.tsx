@@ -14,6 +14,7 @@ import { cheapestStoreNames, offerDeal, liveOffers, priceAsOf } from '../../../l
 import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
 import { productImage, IMAGE_FALLBACK } from '../../../lib/image';
+import JsonLd, { absUrl, plainText, breadcrumbs } from '../../../components/JsonLd';
 import RichDescription from '../../../components/RichDescription';
 import SpecSheet from '../../../components/SpecSheet';
 import { SeriesDetails, SeriesLine } from '../../../components/SeriesInfo';
@@ -143,8 +144,33 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
   const priceAgeExact = exactAr(asOf);
   const priceStale = isPriceStale(asOf);
 
+  /* بيانات منظّمة للبحث: المنتج بأسعار المتاجر المتوفّرة الآن، ومسار التنقّل */
+  const liveForLd = liveOffers(comp.offers as any);
+  const ldPrices = liveForLd.map((o) => o.price as number);
+  const productLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: `${comp.brand} ${comp.name}`,
+    brand: { '@type': 'Brand', name: comp.brand },
+    image: absUrl(productImage(comp.imageUrl, IMAGE_FALLBACK)),
+    description: plainText(comp.description) || undefined,
+    category: comp.category?.name,
+    url: absUrl(`/components/${comp.id}`),
+    ...(ldPrices.length ? {
+      offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'SAR',
+        lowPrice: Math.min(...ldPrices),
+        highPrice: Math.max(...ldPrices),
+        offerCount: ldPrices.length,
+        availability: 'https://schema.org/InStock',
+      },
+    } : {}),
+  };
+
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+      <JsonLd data={[productLd, breadcrumbs([['الرئيسية', '/'], ['القطع', '/components'], [comp.name, `/components/${comp.id}`]])]} />
       <div className="max-w-6xl mx-auto space-y-8">
         
         <nav>
@@ -170,7 +196,6 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
           <div className="w-full lg:w-1/2 flex flex-col justify-center">
             <div className="flex items-center gap-3 mb-4">
-              <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 tracking-wider">#{comp.id.slice(-4).toUpperCase()}</span>
               <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-sm text-xs font-bold uppercase tracking-widest font-mono">
                 {comp.category?.name}
               </span>

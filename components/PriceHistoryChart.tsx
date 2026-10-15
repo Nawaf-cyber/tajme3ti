@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma';
 import { Panel, SectionHeading, StatStrip, type Stat } from './Panel';
 import { liveStats } from '../lib/price-stats-core';
+import PriceChartHover from './PriceChartHover';
 
 /* ============ رسم تاريخ السعر ============
    مكوّن خادم بحت (بلا 'use client') — يرندر SVG على الخادم،
@@ -329,10 +330,6 @@ export default async function PriceHistoryChart({
              تمتدّ إلى الهامش. نثبّت الهندسة على LTR، والنصّ العربي نفسه
              يبقى صحيحاً لأن خوارزمية الاتجاه ثنائي الاتجاه تتولّى كل مقطع
              على حدة. والترتيب البصري العربي نصنعه بالإحداثيات لا بالوراثة. */
-          .ph-col .ph-tip, .ph-col .ph-guide { opacity: 0; transition: opacity .12s ease; }
-          .ph-col:hover .ph-tip, .ph-col:hover .ph-guide,
-          .ph-col:active .ph-tip, .ph-col:active .ph-guide { opacity: 1; }
-          .ph-col { cursor: crosshair; -webkit-tap-highlight-color: transparent; }
         `}</style>
 
         {/* شبكة أفقية + تسميات المحور الرأسي */}
@@ -412,99 +409,18 @@ export default async function PriceHistoryChart({
           </text>
         ))}
 
-        {/* أعمدة التأشير — آخر طبقة كي يعلو التلميح على كل ما سبق */}
-        {columns.map((col) => {
-          /* مقاسات التلميح مرفوعة درجةً: كان التاريخ عند ١٠ بكسل واسم
-             المتجر عند ١٠٫٥ — وكلاهما عربي، والعربية دون ١١ بكسل تُقرأ
-             بمشقّة لأن حروفها متّصلة وصواعدها تحتاج ارتفاعاً أكبر من
-             اللاتينية. ورفعُ الخطّ يوجب رفع الصندوق وإلا خرج النصّ منه. */
-          const rowH = 16;
-          const tipH = 24 + col.entries.length * rowH;
-          const tipW = Math.max(
-            134,
-            ...col.entries.map((e) => 42 + e.name.length * 7.2 + String(Math.round(e.price)).length * 7),
-          );
-          // ينقلب إلى اليسار قرب الحافّة اليمنى كي لا يخرج عن الإطار
-          const flip = col.cx + 10 + tipW > W - 4;
-          const tx = flip ? col.cx - 10 - tipW : col.cx + 10;
-          const ty = Math.min(PAD.top + 4, H - tipH - 4);
-
-          return (
-            <g key={col.key} className="ph-col">
-              {/* نصّ بديل: يقرؤه قارئ الشاشة، ويظهر كتلميح أصلي لو تعطّل
-                  الـCSS لأي سبب — التلميح المرسوم ليس المسار الوحيد للمعلومة */}
-              <title>
-                {`${fmtDate(col.date)}: ${col.entries.map((e) => `${e.name} ${Math.round(e.price)}`).join('، ')}`}
-              </title>
-              {/* منطقة التقاط بعرض المسافة بين يومين */}
-              <rect
-                x={col.cx - colW / 2}
-                y={PAD.top}
-                width={colW}
-                height={plotH}
-                fill="transparent"
-              />
-              <line
-                className="ph-guide stroke-slate-400 dark:stroke-slate-500"
-                x1={col.cx}
-                y1={PAD.top}
-                x2={col.cx}
-                y2={PAD.top + plotH}
-                strokeWidth="1"
-                strokeDasharray="3 3"
-              />
-              <g className="ph-tip" transform={`translate(${tx.toFixed(1)}, ${ty.toFixed(1)})`}>
-                <rect
-                  width={tipW}
-                  height={tipH}
-                  rx="8"
-                  className="fill-white dark:fill-slate-800 stroke-slate-200 dark:stroke-slate-600"
-                  strokeWidth="1"
-                />
-                {/* الترتيب عربي بالإحداثيات: التاريخ والمتجر يميناً والسعر
-                    يساراً — والهندسة LTR فـ end تعني اليمين بيقين */}
-                <text
-                  x={tipW - 10}
-                  y="16"
-                  textAnchor="end"
-                  fontSize="11"
-                  fontWeight="800"
-                  className="fill-slate-500 dark:fill-slate-400"
-                >
-                  {fmtDate(col.date)}
-                </text>
-                {col.entries.map((e, i) => {
-                  const ry = 24 + i * rowH + 10;
-                  return (
-                    <g key={e.name}>
-                      <circle cx={tipW - 14} cy={ry - 3.5} r="3.5" fill={e.color} />
-                      <text
-                        x={tipW - 24}
-                        y={ry}
-                        textAnchor="end"
-                        fontSize="11.5"
-                        fontWeight="700"
-                        className="fill-slate-600 dark:fill-slate-300"
-                      >
-                        {e.name}
-                      </text>
-                      <text
-                        x="10"
-                        y={ry}
-                        textAnchor="start"
-                        fontSize="11.5"
-                        fontWeight="900"
-                        className="fill-slate-900 dark:fill-white"
-                      >
-                        {Math.round(e.price).toLocaleString('en-US')}
-                      </text>
-                    </g>
-                  );
-                })}
-              </g>
-            </g>
-          );
-        })}
+        {/* أعمدة التأشير — آخر طبقة كي يعلو التلميح على كل ما سبق.
+            التلميح يُرسم في المتصفّح لليوم المُشار إليه وحده (components/PriceChartHover):
+            كان يُرسم هنا لكلّ يوم × كلّ متجر مخفيّاً، فصار في الصفحة ٤٨٩ عنصراً نصّياً
+            يقرؤها الزاحف (مراجعة أدسنس 2026-10-15). */}
+        <PriceChartHover
+          columns={columns.map((c) => ({ key: c.key, cx: c.cx, dateLabel: fmtDate(c.date), entries: c.entries }))}
+          colW={colW}
+          padTop={PAD.top}
+          plotH={plotH}
+          W={W}
+          H={H}
+        />
 
         {/* تسميات المحور الأفقي: البداية والنهاية */}
         <text

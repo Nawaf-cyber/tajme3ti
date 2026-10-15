@@ -9,6 +9,7 @@ import Script from 'next/script';
 import { Suspense } from 'react';
 import VisitPing from '../components/VisitPing';
 import OfferClickTracker from '../components/OfferClickTracker';
+import NavigationProgress from '../components/NavigationProgress';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -77,6 +78,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               من أجل نبضة قياس. */}
           <Suspense fallback={null}>
             <VisitPing />
+          </Suspense>
+          {/* بديل شاشات التحميل المحذوفة (انظر رأس الملف) — يقرأ معاملات الرابط فداخل Suspense */}
+          <Suspense fallback={null}>
+            <NavigationProgress />
           </Suspense>
           {/* ⚠️ خارج Suspense: لا يقرأ معاملات الرابط، فلا يُجبر شيئاً على
               التصيير في المتصفّح — ومستمعُ نقراتٍ لا يحتاجها أصلاً. */}

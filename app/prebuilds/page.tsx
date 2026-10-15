@@ -1,5 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import type { Metadata } from 'next';
+import { formatTotal } from '../../lib/price';
+import { catMeta } from '../../lib/category-meta';
 
 export const metadata: Metadata = {
   title: 'تجميعات جاهزة بميزانيات مختلفة',
@@ -41,6 +43,7 @@ export default async function PrebuildsPage() {
     select: {
       id: true,
       name: true,
+      price: true,
       ...OFFER_INCLUDE,
     }
   });
@@ -91,9 +94,15 @@ export default async function PrebuildsPage() {
                 componentId: compId,
                 componentName: compDetails?.name || 'غير متوفر',
                 isAvailable: compDetails ? isAvailable(compDetails) : false,
+                price: compDetails?.price ?? 0,
                 shortCode: cat.name.substring(0, 2).toUpperCase()
               };
-            }).filter(Boolean);
+            }).filter(Boolean) as any[];
+
+            /* السعر لحظيّ للمتوفّر وحده — كان build.price رقماً ثابتاً حُفظ يوم أُنشئت
+               التجميعة، ويجمع قطعاً صارت غير متوفّرة (مراجعة أدسنس 2026-10-15) */
+            const missingParts = buildPartsDisplay.filter((p) => !p.isAvailable);
+            const liveTotal = buildPartsDisplay.reduce((s, p) => s + (p.isAvailable ? p.price : 0), 0);
 
             return (
               <div 
@@ -125,8 +134,8 @@ export default async function PrebuildsPage() {
                           {part.shortCode}
                         </div>
                         <div className="flex flex-col overflow-hidden flex-1">
-                          <span className="text-[12px] text-slate-500 dark:text-slate-300 font-bold uppercase tracking-widest mb-0.5">
-                            {part.categoryName}
+                          <span className="text-[12px] text-slate-500 dark:text-slate-300 font-bold mb-0.5">
+                            {catMeta(part.categoryName).label}
                           </span>
                           <span className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate w-full pr-2">
                             {part.componentName}
@@ -142,6 +151,7 @@ export default async function PrebuildsPage() {
                           <Link 
                             href={`/components/${part.componentId}`} 
                             title="التفاصيل"
+                            aria-label={`تفاصيل ${part.componentName}`}
                             className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-sm transition-colors shrink-0"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,12 +178,17 @@ export default async function PrebuildsPage() {
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-emerald-500/10 dark:bg-emerald-500/5 blur-[50px] rounded-full pointer-events-none"></div>
                   
                   <div className="text-center lg:text-right relative z-10 w-full">
-                    <span className="inline-block text-[12px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-[0.2em] mb-2 px-3 py-1 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700">
-                      أفضل سعر مجمع
+                    <span className="inline-block text-[12px] font-black text-slate-500 dark:text-slate-300 mb-2 px-3 py-1 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700">
+                      أرخص سعر اليوم
                     </span>
                     <div className="font-black text-4xl text-emerald-600 dark:text-emerald-400 flex items-center justify-center lg:justify-end gap-2 mt-2 selection:bg-emerald-50 selection:text-emerald-700">
-                      {Number(build.price).toFixed(2)} <RiyalIcon size="h-8 w-8" />
+                      {formatTotal(liveTotal)} <RiyalIcon size="h-8 w-8" />
                     </div>
+                    {missingParts.length > 0 && (
+                      <p className="mt-2 text-[12px] font-bold text-amber-700 dark:text-amber-400">
+                        بدون {missingParts.map((p) => catMeta(p.categoryName).label).join('، ')} — غير متوفّر الآن، فاختر بديلاً في الباني
+                      </p>
+                    )}
                   </div>
 
                   <div className="w-full relative z-10">
@@ -194,17 +209,12 @@ export default async function PrebuildsPage() {
         
         <div className="relative mb-24 pt-16 text-right selection:bg-blue-500/20">
           <div className="flex flex-col items-start lg:flex-row-reverse lg:items-center justify-between gap-6 mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 border border-slate-700/50 shadow-[0_0_20px_-5px_#2563eb]">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-              </span>
-              <span className="text-xs font-bold text-white uppercase tracking-[0.15em]">ARCHITECTURE PREVIEW 2026</span>
+            {/* كانت هنا «ARCHITECTURE PREVIEW 2026» و«VERIFIED CONFIGURATIONS» زينةً إنجليزيّة
+                في صفحةٍ عربيّة (مراجعة أدسنس 2026-10-15) */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 border border-slate-700/50">
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+              <span className="text-xs font-bold text-white">قطعٌ مفحوصة التوافق وأسعارٌ لحظيّة</span>
             </div>
-
-            <span className="absolute bottom-20 left-0 text-[12px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] selection:text-slate-900">
-                VERIFIED CONFIGURATIONS
-            </span>
           </div>
 
           <div className="w-full">

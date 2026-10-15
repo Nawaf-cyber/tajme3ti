@@ -1,6 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getArticle } from '../../../lib/content';
+import { getArticle, AUTHOR } from '../../../lib/content';
+import JsonLd, { absUrl, plainText, breadcrumbs, SITE_URL } from '../../../components/JsonLd';
+import AuthorByline from '../../../components/AuthorByline';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -41,8 +43,22 @@ export default async function NewsDetails({ params }: { params: Promise<{ id: st
   // لو الرابط خبر لكن المحتوى دليل، حوّله لمساره الصحيح (تفادي محتوى مكرّر)
   if (news.isGuide) redirect(`/guides/${id}`);
 
+  /* بيانات منظّمة للبحث: المقال وكاتبه ومسار التنقّل */
+  const articleLd = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: news.title.slice(0, 110),
+    description: plainText(news.summary && news.summary !== 'بدون ملخص' ? news.summary : news.content, 200),
+    datePublished: new Date(news.createdAt).toISOString(),
+    author: { '@type': 'Person', name: AUTHOR.name, url: absUrl('/about') },
+    publisher: { '@type': 'Organization', name: 'تجميعتي', url: SITE_URL, logo: { '@type': 'ImageObject', url: absUrl('/icon.png') } },
+    ...(news.imageUrl ? { image: absUrl(news.imageUrl) } : {}),
+    mainEntityOfPage: absUrl(`/news/${news.id}`),
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] pb-20 transition-colors duration-300 overflow-x-hidden selection:bg-blue-500/20">
+      <JsonLd data={[articleLd, breadcrumbs([['الرئيسية', '/'], ['الأخبار', '/news'], [news.title, `/news/${news.id}`]])]} />
       
       {/* القسم العلوي (الصورة والعنوان) */}
       <div className="relative w-full h-[50vh] md:h-[65vh] bg-slate-900 border-b border-slate-200 dark:border-slate-800/80 flex items-end">
@@ -93,6 +109,10 @@ export default async function NewsDetails({ params }: { params: Promise<{ id: st
       {/* حاوية محتوى الخبر (Overlapping Card) */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 -mt-24 md:-mt-32">
         <article className="bg-white dark:bg-[#0F172A] rounded-sm p-6 md:p-12 lg:p-14 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 border border-slate-200 dark:border-slate-800/80">
+          {/* سطر الكاتب — كالأدلّة (كانت الأخبار بلا كاتب؛ مراجعة أدسنس 2026-10-15) */}
+          <div className="mb-10">
+            <AuthorByline date={news.createdAt} />
+          </div>
           <div className="text-base md:text-lg text-slate-700 dark:text-slate-300 leading-loose md:leading-[2.4] font-medium whitespace-pre-wrap break-words selection:bg-blue-50 selection:text-blue-900 dark:selection:bg-blue-900/40 dark:selection:text-blue-100">
             {news.content}
           </div>

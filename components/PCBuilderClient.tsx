@@ -18,7 +18,7 @@ import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { isAvailable, liveOffers, cheapestOffer, cheapestStoreNames, type Offer } from '../lib/stores';
-import { formatPrice } from '../lib/price';
+import { formatPrice, formatTotal } from '../lib/price';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { track, trackOnce } from '../lib/track';
 import { productImage } from '../lib/image';
@@ -1235,7 +1235,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     });
     
     const totalPrice = Object.values(selectedComponents).reduce((sum, comp) => sum + (comp ? comp.price : 0), 0);
-    text += `\n💰 التكلفة الإجمالية: ${totalPrice.toFixed(2)} ريال\n`;
+    text += `\n💰 التكلفة الإجمالية: ${formatTotal(totalPrice)} ريال\n`;
     text += `🔗 تفاصيل أكثر: ${window.location.href}`;
 
     navigator.clipboard.writeText(text);
@@ -1526,7 +1526,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     /* هيكل عظمي يطابق التخطيط الفعلي — لا دوّارة عارية.
        يُشعر بأن المحتوى قادم، ويمنع قفزة التخطيط عند الوصول. */
     return (
-      <div className="max-w-5xl mx-auto my-10 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-sm border border-slate-200 dark:border-slate-800/80">
+      <div className="max-w-5xl mx-auto mt-4 mb-10 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-sm border border-slate-200 dark:border-slate-800/80">
         <div className="p-6 md:p-10">
           <div className="flex flex-col lg:flex-row justify-between gap-4 mb-10 pb-6 border-b border-slate-200 dark:border-slate-800/60">
             <Sk className="h-8 w-48" />
@@ -1542,19 +1542,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   }
 
   return (
-    <div className="max-w-5xl mx-auto my-10 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-sm shadow-sm border border-slate-200 dark:border-slate-800/80">
+    <div className="max-w-5xl mx-auto mt-4 mb-10 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-sm shadow-sm border border-slate-200 dark:border-slate-800/80">
       
-      {/* الهيدر العلوي */}
-      <div className="bg-gradient-to-br from-slate-900 to-[#0B1120] dark:from-slate-900 dark:to-[#0B1120] p-10 text-center text-white relative overflow-hidden rounded-t-3xl border-b border-cyan-500/20">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        {/* خط سيان علوي متوهّج */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"></div>
-        <h1 className="text-3xl md:text-5xl font-black mb-3 flex items-center justify-center gap-3 relative z-10 tracking-tight">
-          منصة تجميع <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">الـ PC</span>
-        </h1>
-        <p className="text-slate-300 font-medium text-sm md:text-base relative z-10">اختر قطعك، تأكد من التوافق الذكي، وابنِ جهاز أحلامك.</p>
-      </div>
+      {/* العنوان والشرح في app/builder/layout.tsx — من الخادم، خارج حدّ التحميل */}
 
       <div className="p-6 md:p-10">
         
@@ -1755,7 +1745,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-sm px-4 py-2 flex items-center gap-2 text-slate-600 dark:text-slate-400 shadow-sm">
                       💰 التكلفة الحالية: 
                       <span className="text-emerald-600 dark:text-emerald-500 font-black flex items-center gap-1">
-                        {result.totalPrice} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-500" />
+                        {formatTotal(result.totalPrice)} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-500" />
                       </span>
                     </div>
                   </div>
@@ -1795,7 +1785,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                       <div className="bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 rounded-sm px-4 py-3">
                         <div className="text-[12px] font-black tracking-widest text-slate-500 dark:text-slate-300 mb-1">التكلفة الإجمالية</div>
                         <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                          {result.totalPrice} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                          {formatTotal(result.totalPrice)} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                         </div>
                       </div>
                       <div className="bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 rounded-sm px-4 py-3">
@@ -2194,7 +2184,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           <div className="flex flex-col">
             <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">التكلفة الإجمالية</span>
             <span className="font-black text-emerald-600 dark:text-emerald-400 text-lg flex items-center gap-1">
-              {result.totalPrice} <RiyalIcon size="h-4 w-4" />
+              {formatTotal(result.totalPrice)} <RiyalIcon size="h-4 w-4" />
             </span>
           </div>
           <div className="flex gap-2">

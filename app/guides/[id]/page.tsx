@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
-import { getArticle } from '../../../lib/content';
+import { getArticle, AUTHOR } from '../../../lib/content';
+import JsonLd, { absUrl, plainText, breadcrumbs, SITE_URL } from '../../../components/JsonLd';
 import AuthorByline from '../../../components/AuthorByline';
 
 export const dynamic = 'force-dynamic';
@@ -34,8 +35,22 @@ export default async function GuideDetails({
   // لو الرابط دليل لكن المحتوى خبر، حوّله لمساره الصحيح (تفادي محتوى مكرّر)
   if (!article.isGuide) redirect(`/news/${id}`);
 
+  /* بيانات منظّمة للبحث: المقال وكاتبه ومسار التنقّل */
+  const articleLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title.slice(0, 110),
+    description: plainText(article.summary && article.summary !== 'بدون ملخص' ? article.summary : article.content, 200),
+    datePublished: new Date(article.createdAt).toISOString(),
+    author: { '@type': 'Person', name: AUTHOR.name, url: absUrl('/about') },
+    publisher: { '@type': 'Organization', name: 'تجميعتي', url: SITE_URL, logo: { '@type': 'ImageObject', url: absUrl('/icon.png') } },
+    ...(article.imageUrl ? { image: absUrl(article.imageUrl) } : {}),
+    mainEntityOfPage: absUrl(`/guides/${article.id}`),
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] pb-20 transition-colors duration-300 overflow-x-hidden selection:bg-emerald-500/20">
+      <JsonLd data={[articleLd, breadcrumbs([['الرئيسية', '/'], ['الأدلّة', '/guides'], [article.title, `/guides/${article.id}`]])]} />
 
       <div className="relative w-full h-[50vh] md:h-[65vh] bg-slate-900 border-b border-slate-200 dark:border-slate-800/80 flex items-end">
         {article.imageUrl ? (

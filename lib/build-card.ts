@@ -130,7 +130,8 @@ export const STATE_TEXT: Record<CardState, string> = {
 };
 
 /** «22,249» — أرقامٌ لاتينيّة كما تعرضها صفحة التجميعة */
-export const formatTotal = (n: number) => n.toLocaleString('en-US');
+/* مصدرٌ واحد لتنسيق المجاميع (lib/price) — كانت هنا نسخةٌ ثانية بلا تقريب */
+export { formatTotal } from './price';
 
 /**
  * اسمٌ وضعه الباني تلقائياً — «تجميعة» + تاريخ اليوم.

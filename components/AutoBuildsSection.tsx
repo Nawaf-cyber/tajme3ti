@@ -6,6 +6,7 @@ import { OFFER_INCLUDE } from '../lib/stores-server';
 import { boardFitsCase, psuFitsCase, gpuFitsCase, shownGpuLengthMm } from '../lib/fit';
 import { buildBlocks } from '../lib/build-check';
 import { capacityGb } from '../lib/capacity';
+import { formatTotal } from '../lib/price';
 
 /* ⚠️ كان هنا `export const revalidate = 86400` — وهو **بلا أثر**: Next يقرأ
    إعدادات المقطع من page/layout/route فقط، ويتجاهلها في ملفات المكوّنات
@@ -274,7 +275,7 @@ export default async function AutoBuildsSection() {
     {
       id: 'economy',
       title: 'تجميعة اقتصادية (1080p)',
-      desc: 'مثالية لألعاب الرياضات الإلكترونية (Valorant, CS:GO) بتكلفة منخفضة.',
+      desc: 'مثالية لألعاب الرياضات الإلكترونية (Valorant وCS2) بتكلفة منخفضة.',
       bgTheme: 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/50 hover:shadow-emerald-500/10',
       textColor: 'text-emerald-700 dark:text-emerald-400',
       price: ecoBuild?.price || '0.00',
@@ -333,7 +334,7 @@ export default async function AutoBuildsSection() {
               </span>
               <div className="flex items-center justify-between">
                 <div className={`text-2xl font-black flex items-center justify-center gap-1.5 leading-none ${build.textColor}`}>
-                  {parseFloat(Number(build.price).toFixed(2))} <RiyalIcon size="h-5 w-5" />
+                  {formatTotal(build.price)} <RiyalIcon size="h-5 w-5" />
                 </div>
                 <Link
                   href={`/builder?${build.params}`}

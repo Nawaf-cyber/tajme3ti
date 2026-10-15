@@ -356,8 +356,6 @@ export default function ComponentsClient({ components, categories, dealsLocked =
               const available = isAvailable(comp);
               // أهم 3 مواصفات — المنطق مشترك مع شريط التخفيضات في lib/spec-badges
               const specBadges = getSpecBadges(comp, 3);
-              // كود القطعة المختصر من الـ id
-              const partCode = comp.id.slice(-4).toUpperCase();
 
               return (
               <div key={comp.id} className={`group relative bg-gradient-to-b from-white/80 to-white/60 dark:from-[#0F172A]/70 dark:to-[#0B1120]/50 backdrop-blur-sm border-t-2 shadow-sm hover:shadow-xl hover:shadow-cyan-500/15 hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden rounded-sm ${available ? 'border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800' : 'border-t-amber-500 border-x border-b border-amber-300 dark:border-amber-600/50'}`}>
@@ -365,9 +363,9 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                 {/* زاوية هندسية علوية */}
                 <div className={`absolute top-0 right-0 w-0 h-0 border-t-[14px] border-l-[14px] border-l-transparent z-20 ${available ? 'border-t-cyan-500/60' : 'border-t-amber-500/60'}`}></div>
 
-                {/* رأس تقني: كود القطعة + الفئة */}
-                <div className="flex justify-between items-center px-4 pt-3 pb-2">
-                  <span className="font-mono text-[12px] text-slate-500 dark:text-slate-300 tracking-wider">#{partCode}</span>
+                {/* رأس البطاقة: الفئة. ⚠️ حُذف «#0002» (آخر أربعة من المعرّف): بدا للمراجع
+                    مخرجاتِ تصحيحٍ لا معلومةً للزائر (مراجعة أدسنس 2026-10-15) */}
+                <div className="flex justify-start items-center px-4 pt-3 pb-2">
                   <span className="font-mono text-[12px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 px-2 py-0.5 rounded-sm uppercase tracking-widest">
                     {comp.category?.name}
                   </span>

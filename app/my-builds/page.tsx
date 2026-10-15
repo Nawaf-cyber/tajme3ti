@@ -1,10 +1,11 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { buildEditUrl } from '../../lib/build-compare';
 import { shortDateAr } from '../../lib/time-ago';
 import FpsEstimator from '../../components/FpsEstimator';
 import { brandColor } from '../../lib/brand';
-import { formatPrice } from '../../lib/price';
+import { formatPrice, formatTotal } from '../../lib/price';
 import StoreBuyChips from '../../components/StoreBuyChips';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -209,18 +210,8 @@ export default function MyBuildsPage() {
     toast.success('تم نسخ رابط التجميعة بنجاح');
   };
 
-  const getEditUrl = (build: any) => {
-    if (!build || !build.parts) return '#';
-
-    const params = new URLSearchParams();
-    params.set('editId', build.id);
-    if (build.name) params.set('editName', build.name);
-    
-    Object.entries(build.parts).forEach(([cat, comp]: [string, any]) => {
-      if (comp && comp.id) params.set(cat.toLowerCase(), comp.id);
-    });
-    return `/builder?${params.toString()}`;
-  };
+  /* الرابط من lib/build-compare — صفحة المقارنة تفتح التجميعة بالرابط نفسه */
+  const getEditUrl = (build: any) => (build?.parts ? buildEditUrl(build) : '#');
 
   if (status === 'loading' || loading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0B1120] font-bold text-slate-500">جاري التحميل...</div>;
@@ -558,7 +549,7 @@ export default function MyBuildsPage() {
                       تترك شقّاً رفيعاً من لون الخلفية عند الحافّة. */}
                   <div className="px-5 py-3 bg-slate-50/80 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800/60 flex justify-between items-center rounded-b-2xl">
                     <span className="font-black text-lg text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      {Number(build.totalPrice).toFixed(2)} <RiyalIcon size="h-4 w-4" />
+                      {formatTotal(build.totalPrice)} <RiyalIcon size="h-4 w-4" />
                     </span>
                     <div className="flex gap-2">
                       {/* ⚠️ نقرةٌ واحدة لا نموذجُ إدخال: ٤٣ من ١٢٩ مستخدماً
@@ -742,7 +733,7 @@ export default function MyBuildsPage() {
                 <div>
                   <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">الإجمالي الكلي</span>
                   <span className="font-black text-xl text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    {Number(selectedBuild.totalPrice).toFixed(2)} <RiyalIcon size="h-4 w-4" />
+                    {formatTotal(selectedBuild.totalPrice)} <RiyalIcon size="h-4 w-4" />
                   </span>
                 </div>
                 <div className="flex gap-2">

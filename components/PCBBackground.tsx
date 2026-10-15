@@ -46,7 +46,9 @@ export default function PCBBackground() {
           الشبكة مرساها وسط الشاشة (x=50%)، وهذه الطبقة كذلك، فالإحداثيّات
           نسبةً للمنتصف ومضاعفاتٌ لـ٢٤ — كلّ خطٍّ يقع على خطّ شبكة. والمقاسات
           من عالم القطع: عرض اللوحة الأمّ ATX، مروحة ١٤٠، أقراص M.2 2280،
-          منفذ PCIe. في الهوامش لا تحت النصّ. */}
+          منفذ PCIe. في الهوامش لا تحت النصّ.
+          ⚠️ والتسميات من ملفٍّ خارجيّ (public/draft-labels.svg عبر use): نصٌّ هنا يقرؤه
+          الزاحف أوّلَ ما في كلّ صفحة — ولو كانت الطبقة aria-hidden. */}
       <svg className="draft-sketches absolute inset-0 w-full h-full dark:hidden" aria-hidden="true">
         <svg x="50%" overflow="visible">
           <g fill="none" stroke="#1A3D5E" strokeOpacity="0.5" strokeWidth="1">
@@ -55,7 +57,7 @@ export default function PCBBackground() {
               <path pathLength={1} d="M-600 120V192M-360 120V192" />
               <path pathLength={1} d="M-600 168H-360" />
               <path pathLength={1} d="M-606 174L-594 162M-366 174L-354 162" />
-              <text x="-480" y="156" textAnchor="middle" direction="ltr">305 mm · ATX</text>
+              <use href="/draft-labels.svg#atx" x="-480" y="156" />
             </g>
             {/* مروحة ١٤٠: دائرةٌ بفرجار، ومحورٌ، وقطرٌ مائل */}
             <g className="draft-sketch" style={{ animationDelay: '7s' }}>
@@ -63,21 +65,21 @@ export default function PCBBackground() {
               <path pathLength={1} d="M504 336A24 24 0 1 1 456 336A24 24 0 1 1 504 336" />
               <path pathLength={1} d="M456 336H504M480 312V360" />
               <path pathLength={1} d="M429 387L531 285L564 252H624" />
-              <text x="594" y="244" textAnchor="middle" direction="ltr">Ø140 FAN</text>
+              <use href="/draft-labels.svg#fan" x="594" y="244" />
             </g>
             {/* M.2 2280: بصمة القرص وسطر الموصل وبُعده */}
             <g className="draft-sketch" style={{ animationDelay: '13s' }}>
               <path pathLength={1} d="M-576 432H-528V600H-576Z" />
               <path pathLength={1} d="M-576 576H-528M-560 576V600" />
               <path pathLength={1} d="M-504 432V600M-510 438L-498 426M-510 606L-498 594" />
-              <text x="-468" y="520" textAnchor="middle" direction="ltr">M.2</text>
-              <text x="-468" y="536" textAnchor="middle" direction="ltr">2280</text>
+              <use href="/draft-labels.svg#m2" x="-468" y="520" />
+              <use href="/draft-labels.svg#m2len" x="-468" y="536" />
             </g>
             {/* PCIe: دائرة إشارةٍ وخطّ استدعاءٍ إلى العنوان */}
             <g className="draft-sketch" style={{ animationDelay: '19s' }}>
               <path pathLength={1} d="M414 624A6 6 0 1 1 402 624A6 6 0 1 1 414 624" />
               <path pathLength={1} d="M412 618L480 552H624" />
-              <text x="552" y="544" textAnchor="middle" direction="ltr">PCIe 5.0 ×16</text>
+              <use href="/draft-labels.svg#pcie" x="552" y="544" />
             </g>
           </g>
         </svg>

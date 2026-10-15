@@ -470,7 +470,8 @@ html[data-theme-fading] *::after {
   animation: draft-draw 24s cubic-bezier(0.45, 0, 0.25, 1) infinite;
   animation-delay: inherit;
 }
-.draft-sketch text {
+/* التسمية use يستنسخ نصّاً من public/draft-labels.svg — يرث اللون والخطّ منه */
+.draft-sketch use {
   fill: #1A3D5E;
   fill-opacity: 0.65;
   stroke: none;
@@ -508,4 +509,5 @@ html[data-theme-fading] *::after {
 .draft-sketches { opacity: 0; transition: opacity 0.6s ease; }
 html[data-sketch] .draft-sketches { opacity: 1; }
 html:not([data-sketch]) .draft-sketch,
-html:not([data-sketch]) .draft-sketch :is(path, text) { animation-play-state: paused; }
+html:not([data-sketch]) .draft-sketch :is(path, use) { animation-play-state: paused; }
+
