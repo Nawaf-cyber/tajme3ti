@@ -825,6 +825,22 @@ export default function CompareClient({
             )}
           </h2>
 
+          {/* ===== الحكم مختصراً فوق الجدول =====
+              الحكم الكامل بعد الجدول، أي بعد ثلاث شاشاتٍ ونصف من المواصفات على المكتب — ومن جاء
+              يسأل «أيّهما آخذ؟» لا يصله (تجربة المستخدمين 2026-10-17). فسطرُه هنا ورابطٌ إليه. */}
+          {selected.length > 1 && verdict.pick && (
+            <a
+              href="#verdict"
+              data-noexport
+              className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 p-3 rounded-sm border border-cyan-500/40 bg-cyan-500/[0.06] text-sm leading-relaxed hover:border-cyan-500 transition-colors"
+            >
+              <span className="font-bold text-slate-600 dark:text-slate-400">ترشيحنا:</span>
+              <span className="font-black text-slate-900 dark:text-white" dir="ltr">{verdict.pick}</span>
+              {verdict.summary && <span className="font-semibold text-slate-700 dark:text-slate-300">— {verdict.summary}</span>}
+              <span className="font-black text-cyan-700 dark:text-cyan-400 whitespace-nowrap">الحكم كاملاً ↓</span>
+            </a>
+          )}
+
           {/* ===== أدوات الجدول: إظهار الفروقات فقط ===== */}
           {selected.length > 1 && specRows.length > 0 && (
             <div data-noexport className="flex items-center justify-between gap-3 mb-3 flex-wrap">
@@ -1738,7 +1754,7 @@ export default function CompareClient({
 
         {/* ===== الحكم — سطرٌ لأغلب الناس، وبطاقةٌ لكلّ قطعة (lib/compare-verdict) ===== */}
         {(verdict.pick || verdict.empty) && (
-          <div className="relative mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-5 md:p-6 shadow-sm animate-fade-up">
+          <div id="verdict" className="scroll-mt-24 relative mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-5 md:p-6 shadow-sm animate-fade-up">
             <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent pointer-events-none"></div>
             <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
               <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>

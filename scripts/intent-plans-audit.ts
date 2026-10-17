@@ -45,7 +45,7 @@ const vram = (c: any) => num(specs(c).vram) || num(String(c?.name || '').match(/
 const short = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
 
 async function main() {
-  const categories = await prisma.category.findMany({ where: HAS_PARTS, include: { components: { include: OFFER_INCLUDE } } });
+  const categories = await prisma.category.findMany({ where: HAS_PARTS, include: { components: { include: OFFER_INCLUDE, orderBy: [{ brand: 'asc' }, { name: 'asc' }] } } }); // ترتيب الباني نفسه (app/builder/page.tsx)
   let plansN = 0, errors = 0, notes = 0;
   const totals: number[] = [];
 

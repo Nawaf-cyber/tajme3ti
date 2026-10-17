@@ -144,7 +144,7 @@ export default function BuildTuner({
       if (cpu) {
         const a = String(parseSpecs(cpu.specs).socket || '').trim();
         const b = String(sp.socket || '').trim();
-        if (a && b && a !== b) return `تتطلب معالج ${b}`;
+        if (a && b && a !== b) return `تبي معالج ${b}`;
       }
     }
     if (catName === 'CPU') {
@@ -152,7 +152,7 @@ export default function BuildTuner({
       if (mobo) {
         const a = String(sp.socket || '').trim();
         const b = String(parseSpecs(mobo.specs).socket || '').trim();
-        if (a && b && a !== b) return `يتطلب لوحة ${a}`;
+        if (a && b && a !== b) return `يبي لوحة ${a}`;
       }
     }
     if (catName === 'RAM') {
@@ -180,7 +180,7 @@ export default function BuildTuner({
       const draw = computeDraw(effective);
       const w = parseFloat(sp.wattage || '0');
       if (w > 0 && draw > 0 && w < draw + PSU_HEADROOM) {
-        return `لا يكفي (تحتاج ${draw + PSU_HEADROOM}W)`;
+        return `ما يكفي (تحتاج ${draw + PSU_HEADROOM}W)`;
       }
     }
     return null;
@@ -322,7 +322,7 @@ export default function BuildTuner({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
           </svg>
-          هل تريد تغيير شيء؟
+          تبي تغيّر شي؟
         </button>
       )}
 
@@ -349,7 +349,7 @@ export default function BuildTuner({
                 <span className="w-6 h-6 shrink-0 rounded-sm bg-amber-900/50 text-amber-400 flex items-center justify-center text-xs font-black">!</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[12.5px] font-black text-amber-600 dark:text-amber-400">
-                    اختيارك يتطلب تغيير قطعة أخرى:
+                    اختيارك يحتاج تغيّر قطعة ثانية:
                   </p>
                   {conflicts.map((c, i) => {
                     const fixCount = countCompatible(c.fixCat);
@@ -455,7 +455,7 @@ export default function BuildTuner({
                       </div>
                       <div className="px-4 pb-4 space-y-1.5 max-h-[300px] overflow-y-auto">
                       {alts.length === 0 ? (
-                        <p className="text-[11px] text-slate-400 text-center py-3">لا توجد بدائل.</p>
+                        <p className="text-[11px] text-slate-400 text-center py-3">ما فيه بدائل.</p>
                       ) : (
                         alts.map(alt => {
                           /* التوفّر من العروض — كان يقرأ أعمدة المتاجر الثلاثة
@@ -593,7 +593,7 @@ export default function BuildTuner({
                 }`}
               >
                 {!hasChanges
-                  ? 'لم تغيّر شيئاً بعد'
+                  ? 'ما غيّرت شي للحين'
                   : conflicts.length > 0
                   ? `طبّق رغم التعارض (${Object.keys(staged).length})`
                   : `طبّق ${Object.keys(staged).length} تغيير`}
@@ -610,8 +610,8 @@ export default function BuildTuner({
 
             <p className="mt-2.5 text-[10px] text-slate-400 text-center font-medium">
               {conflicts.length > 0
-                ? '⚠ التجميعة فيها تعارض — تقدر تطبّق وتصلحه لاحقاً، أو تحلّه الآن'
-                : 'لا شيء يتغيّر حتى تضغط "طبّق" · الأسعار لحظية من كتالوجنا'}
+                ? '⚠ التجميعة فيها تعارض — تقدر تطبّق وتصلحه بعدين، أو تحلّه الحين'
+                : 'ما يتغيّر شي لين تضغط "طبّق" · الأسعار لحظية من كتالوجنا'}
             </p>
           </div>
         </div>

@@ -44,7 +44,7 @@ export default function StoreBuyChips({ offers }: { offers?: Offer[] | null }) {
             key={o.storeId}
             href={buildStoreUrl(o.store, o.url, o.affiliateUrl)}
             {...storeLinkProps(o.store)}
-            title={cheapest ? `${o.store.latinName} — الأرخص` : o.store.latinName}
+            title={cheapest ? `${o.store.name} — الأرخص` : o.store.name}
             style={storeVars(o.store.color)}
             className={
               'relative flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-bold ' +
@@ -66,7 +66,7 @@ export default function StoreBuyChips({ offers }: { offers?: Offer[] | null }) {
               />
             )}
 
-            <span>{o.store.latinName}</span>
+            <span>{o.store.name}</span>
 
             {/* dir=ltr على الرقم: العربية تقلب ترتيب «1,234.5» بدونه.
                 و tabular-nums تجعل الأرقام متساوية العرض فتصطفّ الشارات. */}

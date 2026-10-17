@@ -181,8 +181,8 @@ export function checkBuild(parts: BuildParts): Issue[] {
       out.push({
         level: 'block', fixCategory: 'Case', code: 'gpuLength',
         message: fits.length > 1
-          ? `أقصرُ نسخةٍ متوفّرة من الكرت ${shortest}مم، ومساحة الصندوق ${max}مم.`
-          : `طول الكرت ${shortest}مم أكبر من مساحة الصندوق ${max}مم.`,
+          ? `أقصر نسخة متوفّرة من الكرت طولها ${shortest}مم، ومساحة الكيس ${max}مم.`
+          : `طول الكرت ${shortest}مم أكبر من مساحة الكيس ${max}مم.`,
       });
     } else if (verdict === 'some') {
       /* يدخل — بنسخةٍ بعينها. فيُسمّى المتجرُ الذي يبيعها وسعرُه، وما لا يدخل */
@@ -197,7 +197,7 @@ export function checkBuild(parts: BuildParts): Issue[] {
       const tooLong = fits.filter((f) => f.fits === false).map((f) => `${who(f)} (${f.lengthMm}مم)`);
       out.push({
         level: 'warn', fixCategory: 'GPU', code: 'gpuLengthSome',
-        message: `ليست كلُّ نسخ الكرت تدخل الصندوق (${max}مم): تدخل نسخة ${who(ok)} بـ${ok?.offer.price} ريال (${ok?.lengthMm}مم)، ولا تدخل ${tooLong.join('، ')}.`,
+        message: `مو كل نسخ الكرت تدخل الكيس (${max}مم): نسخة ${who(ok)} بـ${ok?.offer.price} ريال (${ok?.lengthMm}مم) تدخل، وما تدخل ${tooLong.join('، ')}.`,
       });
     }
   }
@@ -240,8 +240,8 @@ export function checkBuild(parts: BuildParts): Issue[] {
       out.push({
         level: 'warn', fixCategory: 'Cooler', code: 'noCooler',
         message: verdict === 'no'
-          ? 'هذا المعالج لا يأتي بمبرّد — أضف مبرّداً أو تأكّد أنّ عندك واحداً يناسب مقبسه.'
-          : 'لم نتأكّد من وجود مبرّدٍ مرفقٍ مع هذا المعالج — أضف مبرّداً أو تأكّد أنّ عندك واحداً يناسب مقبسه.',
+          ? 'هالمعالج ما يجي معه مبرّد — أضف مبرّد أو تأكد إن عندك واحد يناسب مقبسه.'
+          : 'ما تأكدنا إن هالمعالج يجي معه مبرّد — أضف مبرّد أو تأكد إن عندك واحد يناسب مقبسه.',
       });
     }
   }
@@ -255,7 +255,7 @@ export function checkBuild(parts: BuildParts): Issue[] {
     if (kit > 0 && max > 0 && kit > max) {
       out.push({
         level: 'block', fixCategory: 'RAM', code: 'ramCapacity',
-        message: `اللوحة تقبل حتى ${mobo.maxRam} والطقم المختار ${formatCapacity(kit)}.`,
+        message: `اللوحة تقبل حتى ${mobo.maxRam}، والطقم اللي اخترته ${formatCapacity(kit)}.`,
       });
     }
   }
@@ -269,7 +269,7 @@ export function checkBuild(parts: BuildParts): Issue[] {
     if (rs && ms && rs > ms) {
       out.push({
         level: 'warn', fixCategory: 'RAM', code: 'ramSpeed',
-        message: `الطقم ${rs} MT/s واللوحة تدعم حتى ${mobo.memorySpeed} — ستعمل الذاكرة بسرعةٍ أقلّ.`,
+        message: `الطقم ${rs} MT/s واللوحة تدعم حتى ${mobo.memorySpeed} — بتشتغل الرام على سرعة أقل.`,
       });
     }
   }
@@ -285,7 +285,7 @@ export function checkBuild(parts: BuildParts): Issue[] {
     if (/^(none|no|لا يوجد)$/i.test(String(cpu.integratedGraphics ?? '').trim())) {
       out.push({
         level: 'warn', fixCategory: 'GPU', code: 'noDisplay',
-        message: 'هذا المعالج بلا رسوميّاتٍ مدمجة — بلا كرت شاشة لن تظهر صورة.',
+        message: 'هالمعالج ما فيه رسوميات مدمجة — بدون كرت شاشة ما راح تطلع صورة.',
       });
     }
   }
@@ -307,7 +307,7 @@ export function checkBuild(parts: BuildParts): Issue[] {
     if (intelBoard && /expo/i.test(profile) && !/xmp/i.test(profile)) {
       out.push({
         level: 'warn', fixCategory: 'RAM', code: 'ramProfile',
-        message: `ملفّ السرعة في هذا الطقم EXPO (من AMD) واللوحة إنتل — قد تعمل الذاكرة أبطأ من ${ram.speed ?? 'المعلن'}.`,
+        message: `ملف السرعة في هالطقم EXPO (من AMD) واللوحة إنتل — ممكن تشتغل الرام أبطأ من ${ram.speed ?? 'المعلن'}.`,
       });
     }
   }
@@ -319,7 +319,7 @@ export function checkBuild(parts: BuildParts): Issue[] {
     if (w && draw > 0 && w < draw + headroom) {
       out.push({
         level: 'block', fixCategory: 'PSU', code: 'wattage',
-        message: `الاستهلاك التقريبي مع هامش الأمان (${draw + headroom}W) يتجاوز قدرة المزوّد (${w}W).`,
+        message: `الاستهلاك التقريبي مع هامش الأمان (${draw + headroom}W) أكبر من قدرة المزوّد (${w}W).`,
       });
     }
   }

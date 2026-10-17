@@ -8,6 +8,7 @@ import { specBadges as getSpecBadges } from '../../lib/spec-badges';
 import { track } from '../../lib/track';
 import SuggestPartCard from '../../components/SuggestPartCard';
 import { productImage, IMAGE_FALLBACK } from '../../lib/image';
+import { catMeta } from '../../lib/category-meta';
 
 // إضافة colorClass للتحكم بلون الشعار حسب مكانه (أزرق للفلتر، أخضر للأسعار)
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -366,8 +367,9 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                 {/* رأس البطاقة: الفئة. ⚠️ حُذف «#0002» (آخر أربعة من المعرّف): بدا للمراجع
                     مخرجاتِ تصحيحٍ لا معلومةً للزائر (مراجعة أدسنس 2026-10-15) */}
                 <div className="flex justify-start items-center px-4 pt-3 pb-2">
-                  <span className="font-mono text-[12px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 px-2 py-0.5 rounded-sm uppercase tracking-widest">
-                    {comp.category?.name}
+                  {/* بالعربية — كانت «GPU» بخطٍّ لاتينيّ متباعد (تجربة المستخدمين 2026-10-17) */}
+                  <span className="text-[12px] font-black text-cyan-700 dark:text-cyan-400 border border-cyan-500/40 px-2 py-0.5 rounded-sm">
+                    {comp.category?.name ? catMeta(comp.category.name).label : ''}
                   </span>
                 </div>
 

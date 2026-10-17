@@ -22,6 +22,9 @@ import { seriesHeading } from '../../../lib/series';
 import { Panel, SectionHeading, MicroLabel } from '../../../components/Panel';
 import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
 import { fetchPriceStats } from '../../../lib/price-stats';
+import { pctAboveMin, daysAr } from '../../../lib/price-stats-core';
+import { catMeta } from '../../../lib/category-meta';
+import PartPerformance from '../../../components/PartPerformance';
 
 /* عنوان ووصف وcanonical خاصّان بكل قطعة.
    كانت ٢٢٤ صفحة ترث عنوان الرئيسية وcanonical يشير إليها — أي "محتوى مكرّر"
@@ -196,8 +199,9 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
 
           <div className="w-full lg:w-1/2 flex flex-col justify-center">
             <div className="flex items-center gap-3 mb-4">
-              <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-sm text-xs font-bold uppercase tracking-widest font-mono">
-                {comp.category?.name}
+              {/* اسم الفئة بالعربية — كان «GPU» بخطٍّ لاتينيّ متباعد (تجربة المستخدمين 2026-10-17) */}
+              <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-sm text-xs font-bold">
+                {comp.category?.name ? catMeta(comp.category.name).label : ''}
               </span>
               <span className="px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400 rounded-sm text-xs font-bold uppercase tracking-widest border border-cyan-500/40 font-mono">
                 {comp.brand}
@@ -247,7 +251,8 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                       {formatPrice(cheapestListPrice)}
                     </span>
                     <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-2 py-0.5 rounded-sm">
-                      وفّرت {formatPrice(savedAmount)} ﷼
+                      {/* «توفّر» لا «وفّرت»: الزائر لم يشترِ بعد */}
+                      توفّر {formatPrice(savedAmount)} ﷼
                     </span>
                   </div>
                 )}
@@ -277,6 +282,38 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               )}
             </div>
 
+            {/* «هل السعر جيّد الآن؟» عند الرقم — كان الجواب في رسمٍ أسفل الصفحة بعد ستّ شاشاتٍ
+                على الجوال (تجربة المستخدمين 2026-10-17). ومتجرٌ واحد له ملاحظته في قائمة العروض. */}
+            {priceStats && comp.price > 0 && liveForLd.length > 1 && (() => {
+              const pct = pctAboveMin(comp.price, priceStats.min);
+              return (
+                <p className={`-mt-1 mb-4 text-[13px] font-bold leading-relaxed ${pct <= 2 ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                  {pct <= 2
+                    ? <>✓ سعرها اليوم عند أدنى ما رصدناه خلال {daysAr(priceStats.days)} من المتابعة.</>
+                    : <>سعرها اليوم أعلى من أدنى ما رصدناه (<span className="font-mono">{Math.round(priceStats.min).toLocaleString('en-US')}</span> ﷼) بـ{pct}% — خلال {daysAr(priceStats.days)} من المتابعة.</>}
+                  {' '}<a href="#price-history" className="text-cyan-700 dark:text-cyan-400 underline underline-offset-2">شاهد الرسم ↓</a>
+                </p>
+              );
+            })()}
+
+            {/* ما بعد القراءة: كانت الصفحة طريقاً مسدوداً إلّا الخروج إلى متجر — لا «أضفها لتجميعتي»
+                ولا «قارنها»، والقادم من البحث يهبط هنا (تجربة المستخدمين 2026-10-17).
+                والإضافة تدمج القطعة في مسودّة الباني ولا تمحوها (PCBuilderClient · ?add=). */}
+            <div className="grid grid-cols-2 gap-2 mb-5">
+              <Link
+                href={`/builder?add=${comp.id}`}
+                className="flex items-center justify-center gap-1.5 py-2.5 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[13px] font-black hover:opacity-90 transition-opacity"
+              >
+                ＋ أضفها لتجميعتي
+              </Link>
+              <Link
+                href={`/compare?ids=${comp.id}`}
+                className="flex items-center justify-center gap-1.5 py-2.5 rounded-sm border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[13px] font-black hover:border-cyan-500 hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors"
+              >
+                ⚖ قارنها بغيرها
+              </Link>
+            </div>
+
             {/* إعلانات المتاجر السارية — تشمل الموقوف، فيعرف الزائر سبب اختفائه */}
             <StoreNotices stores={notices as any} />
             <StoreOfferList
@@ -300,6 +337,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           <div className="lg:col-span-5 flex flex-col gap-4">
+            <PartPerformance category={comp.category?.name} name={comp.name} specs={specs} />
             <SectionHeading>المواصفات التقنية</SectionHeading>
             {/* بلا h-full: اللوحة كانت تُشدّ لطول الوصف، فتترك تحت ثماني
                 مواصفات ٢٤٢ بكسل فراغاً يبدو خللاً. تحتضن محتواها الآن. */}

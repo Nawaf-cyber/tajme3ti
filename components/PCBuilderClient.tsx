@@ -19,6 +19,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { isAvailable, liveOffers, cheapestOffer, cheapestStoreNames, type Offer } from '../lib/stores';
 import { formatPrice, formatTotal } from '../lib/price';
+import { goToLogin } from '../lib/login-href';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { track, trackOnce } from '../lib/track';
 import { productImage } from '../lib/image';
@@ -125,8 +126,10 @@ const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: nu
 
   return (
     <div className="w-full mt-4 bg-slate-50 dark:bg-[#0B1120] p-5 rounded-sm border border-slate-200 dark:border-slate-800">
-      <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-1.5">
-        ⚡ استهلاك القطع مقابل سعة المزوّد
+      {/* mb-8 لا mb-4: علامة الحدّ فوق الشريط بارتفاع سطر، فكانت تلامس العنوان وتُقرأ نسبةً له
+          (تجربة المستخدمين 2026-10-17) */}
+      <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 mb-8 flex items-center gap-1.5">
+        ⚡ كم تسحب القطع من المزوّد؟
       </h4>
 
       {/* المسار: مناطق أمان خافتة + تعبئة فعلية + علامة 80% */}
@@ -151,8 +154,9 @@ const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: nu
         {/* علامة حدّ الأمان 80% */}
         {psuWattage > 0 && (
           <div className="absolute -top-1.5 -bottom-1.5 w-0.5 bg-amber-500" style={{ left: '80%' }}>
-            <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[12px] font-black text-amber-500 whitespace-nowrap">
-              80%
+            {/* dir=rtl: الشريط ltr، فكانت «حدّ الأمان 80%» تُعرض «%حدّ الأمان 80» */}
+            <span dir="rtl" className="absolute -top-5 left-1/2 -translate-x-1/2 text-[11.5px] font-black text-amber-600 dark:text-amber-500 whitespace-nowrap">
+              حدّ الأمان 80%
             </span>
           </div>
         )}
@@ -160,8 +164,14 @@ const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: nu
 
       <div className="flex justify-between items-center mt-4 text-[12px] font-bold text-slate-500 dark:text-slate-400">
         <span>{totalTdp}W مستهلكة</span>
-        <span>{psuWattage ? `سعة المزوّد ${psuWattage}W` : 'لم يُحدَّد مزوّد'}</span>
+        <span>{psuWattage ? `سعة المزوّد ${psuWattage}W` : 'ما اخترت مزوّد'}</span>
       </div>
+      {/* النسبة في سطرها: داخل سطر الواطات كانت تلتفّ وتنقلب أقواسها على الجوال */}
+      {psuWattage > 0 && (
+        <p className="mt-1.5 text-[12px] font-bold text-slate-600 dark:text-slate-300">
+          القطع تسحب تقريباً <span dir="ltr" className="font-mono">{Math.round((totalTdp / psuWattage) * 100)}%</span> من قدرة المزوّد
+        </p>
+      )}
 
       {/* تحذير الهامش الضيّق — التجميعة تمرّ لكن بلا احتياط كافٍ */}
       {tightMargin && (
@@ -169,10 +179,10 @@ const PowerMeter = ({ totalTdp, psuWattage }: { totalTdp: number, psuWattage: nu
           <span className="w-7 h-7 shrink-0 rounded-sm bg-amber-900/60 text-amber-400 flex items-center justify-center text-sm font-black">!</span>
           <div className="min-w-0">
             <p className="text-[13px] font-black text-amber-600 dark:text-amber-400">
-              هامش الطاقة ضيّق: {headroom}W فقط ({headroomPct}%).
+              هامش الطاقة ضيّق: باقي {headroom}W بس ({headroomPct}%).
             </p>
             <p className="text-[11.5px] text-amber-700/80 dark:text-amber-500/70 font-semibold mt-1 leading-relaxed">
-              التجميعة تعمل، لكن مزوّداً أعلى سعةً يمنحك أماناً أطول عمراً ومساحةً للترقية. لا نوصي بهامش أقل من 20%.
+              التجميعة بتشتغل، بس مزوّد أعلى يعطيك أمان أكثر وعمر أطول ومجال للترقية. ما ننصح بهامش أقل من 20%.
             </p>
           </div>
         </div>
@@ -236,6 +246,10 @@ const SearchableSelect = ({
   } else if (sortBy === 'price-desc') {
     processed.sort((a, b) => b.price - a.price);
   }
+  /* المتوفّر أولاً في كلّ ترتيب (والفرز ثابت فيبقى ترتيبه داخل المجموعتين):
+     كان أوّل صندوقٍ في القائمة HYTE Y70 النافد، فاختاره المجرّب ودخل سعرُه القديم
+     في المجموع (تجربة المستخدمين 2026-10-17) */
+  processed.sort((a, b) => Number(isAvailable(b)) - Number(isAvailable(a)));
 
   const displayedComponents = showIncompatible 
     ? [...processed].sort((a, b) => Number(b.isCompatible) - Number(a.isCompatible))
@@ -270,7 +284,9 @@ const SearchableSelect = ({
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-sm bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[13px]">{meta.icon}</span>
-                <span className="text-[12px] font-black tracking-[2px] text-slate-500 dark:text-slate-300">{categoryName}</span>
+                {/* الاسم العربيّ — كان `CPU` و`PSU` بتباعد حروف، والمبتدئ لا يعرف أنّ PSU مزوّد الطاقة
+                    (تجربة المستخدمين 2026-10-17). والتباعد يقطّع الحروف العربية فأُزيل */}
+                <span className="text-[12.5px] font-black text-slate-600 dark:text-slate-300">{meta.label}</span>
               </div>
               {selectedComponent ? (
                 avail ? (
@@ -283,8 +299,16 @@ const SearchableSelect = ({
               )}
             </div>
 
-            {/* الجسم */}
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+            {/* الجسم — زرٌّ فعليّ للوحة المفاتيح وقارئ الشاشة: كانت خانةً تُنقر بالفأرة وحدها */}
+            <div
+              className="flex items-center gap-3 cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+              onClick={() => setIsOpen(!isOpen)}
+              role="button"
+              tabIndex={0}
+              aria-expanded={isOpen}
+              aria-label={selectedComponent ? `غيّر ${meta.label}: ${selectedComponent.brand} ${selectedComponent.name}` : `اختر ${meta.label}`}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsOpen(!isOpen); } }}
+            >
               {/* الصورة داخل البطاقة */}
               {selectedComponent?.imageUrl ? (
                 <div className="w-14 h-14 rounded-sm bg-white border border-slate-200 dark:border-slate-800 p-1 flex items-center justify-center shrink-0">
@@ -324,7 +348,7 @@ const SearchableSelect = ({
                   </>
                 ) : (
                   <>
-                    <div className="text-[13px] font-bold text-slate-500 dark:text-slate-400">اختر {categoryName}</div>
+                    <div className="text-[13px] font-bold text-slate-500 dark:text-slate-400">اختر {meta.label}</div>
                     {compatCount > 0 && (
                       <div className="mt-1.5">
                         <span className="text-[12px] font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/40 px-2 py-0.5 rounded">
@@ -336,11 +360,13 @@ const SearchableSelect = ({
                 )}
               </div>
 
-              {/* الإجراءات — على الجوال شبكة ٢×٢ لا صفّ: أربعة أزرارٍ في صفٍّ
-                  تركت للاسم ٣٧ بكسلاً على عرض ٣٧٥ («Co…»)، والشبكة تعيد له ~١١٠ */}
-              <div className="grid grid-cols-2 sm:flex gap-1.5 shrink-0">
+              {/* الإجراءات — على الجوال تنتقل أزرار القطعة المختارة إلى صفٍّ بنصوصٍ تحت البطاقة
+                  (أدناه): أربعة أزرارٍ في صفٍّ كانت تترك للاسم ٣٧ بكسلاً على عرض ٣٧٥، وشبكةُ ٢×٢
+                  بعدها أيقوناتٌ بلا كلمات لم يعرف المجرّب ما تفعله، ولا تلميح للّمس
+                  (تجربة المستخدمين 2026-10-17). فيبقى هنا سهم الفتح وحده */}
+              <div className="flex gap-1.5 shrink-0">
                 {selectedComponent && (
-                  <>
+                  <div className="hidden sm:flex gap-1.5">
                     {/* التفاصيل ثابتةٌ هنا: «المزيد» في سطر السلسلة يغيب مع غيابه
                         (كرت شاشةٍ عامّ بلا ملاحظات) — فتغيب التفاصيل معه */}
                     <button
@@ -354,7 +380,8 @@ const SearchableSelect = ({
                     <a
                       href={`/compare?ids=${selectedComponent.id}`}
                       onClick={(e) => e.stopPropagation()}
-                      title="قارن هذه القطعة"
+                      title="قارن هالقطعة"
+                      aria-label="قارن هالقطعة"
                       className="w-8 h-8 rounded-sm bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
@@ -362,20 +389,47 @@ const SearchableSelect = ({
                     <button
                       onClick={(e) => { e.stopPropagation(); onRemove(); }}
                       title="إزالة القطعة"
+                      aria-label="إزالة القطعة"
                       className="w-8 h-8 rounded-sm bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
-                  </>
+                  </div>
                 )}
                 <button
                   onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+                  title={selectedComponent ? `غيّر ${meta.label}` : `اختر ${meta.label}`}
+                  aria-label={selectedComponent ? `غيّر ${meta.label}` : `اختر ${meta.label}`}
+                  aria-expanded={isOpen}
                   className="w-8 h-8 rounded-sm bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                 >
                   <svg className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180 text-cyan-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
                 </button>
               </div>
             </div>
+
+            {/* أزرار القطعة على الجوال: بكلماتها لا أيقونات وحدها */}
+            {selectedComponent && (
+              <div className="sm:hidden mt-3 grid grid-cols-4 gap-1.5">
+                {[
+                  { label: 'التفاصيل', onClick: () => onShowDetails(selectedComponent), danger: false },
+                  { label: 'قارنها', href: `/compare?ids=${selectedComponent.id}`, danger: false },
+                  { label: 'غيّرها', onClick: () => setIsOpen(!isOpen), danger: false },
+                  { label: 'إزالة', onClick: onRemove, danger: true },
+                ].map((a) => {
+                  const cls = `h-9 rounded-sm border text-[12px] font-black flex items-center justify-center transition-colors ${
+                    a.danger
+                      ? 'border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 bg-rose-50/60 dark:bg-rose-950/20'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60'
+                  }`;
+                  return a.href ? (
+                    <a key={a.label} href={a.href} className={cls}>{a.label}</a>
+                  ) : (
+                    <button key={a.label} type="button" onClick={(e) => { e.stopPropagation(); a.onClick!(); }} className={cls}>{a.label}</button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* السلسلة وضمان الشركة — بعرض البطاقة كلّه، لا في العمود الأوسط الضيّق على الجوال */}
             {selectedComponent && (
@@ -386,7 +440,7 @@ const SearchableSelect = ({
             {selectedComponent && !avail && (
               <div className="mt-3 px-3 py-2 rounded-sm bg-amber-500/[0.08] border border-amber-500/40 text-[10.5px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2">
                 <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                نفدت من كل المتاجر — السعر قد يكون قديماً
+                خلصت من كل المتاجر — السعر يمكن قديم
               </div>
             )}
           </div>
@@ -401,7 +455,7 @@ const SearchableSelect = ({
               <input
                 type="text"
                 className="w-full pl-3 pr-9 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm outline-none focus:ring-2 focus:ring-cyan-500/50 text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400"
-                placeholder={`ابحث في ${categoryName}...`}
+                placeholder={`ابحث في ${getCatMeta(categoryName).label}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
@@ -464,7 +518,7 @@ const SearchableSelect = ({
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
                         <span className={`text-sm font-black flex items-center gap-1 ${comp.isCompatible ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
-                          {comp.price} <RiyalIcon size="h-3 w-3" colorClass={comp.isCompatible ? 'bg-emerald-700 dark:bg-emerald-400' : 'bg-slate-500'} />
+                          {formatPrice(comp.price)} <RiyalIcon size="h-3 w-3" colorClass={comp.isCompatible ? 'bg-emerald-700 dark:bg-emerald-400' : 'bg-slate-500'} />
                         </span>
                         <button 
                           onClick={(e) => { e.stopPropagation(); onShowDetails(comp); }}
@@ -477,7 +531,7 @@ const SearchableSelect = ({
                     {!comp.isCompatible && (
                       <span className="text-[12px] mt-1 text-rose-700 dark:text-rose-400 font-extrabold bg-rose-100 dark:bg-rose-900/40 px-2.5 py-1 rounded-sm w-fit inline-flex items-center gap-1 border border-rose-200 dark:border-rose-800/50">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        {comp.reason} (سيتم إلغاء المتعارض)
+                        {comp.reason} (ونشيل القطعة اللي تتعارض معها)
                       </span>
                     )}
                     {!isAvailable(comp) && (
@@ -490,7 +544,7 @@ const SearchableSelect = ({
                 </li>
               ))
             ) : (
-              <li className="p-6 text-slate-500 text-center text-sm font-bold">لا توجد قطع مطابقة للبحث</li>
+              <li className="p-6 text-slate-500 text-center text-sm font-bold">ما لقينا قطع تطابق بحثك</li>
             )}
           </ul>
         </div>
@@ -777,7 +831,7 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
               <button
                 key={res}
                 onClick={() => setActiveRes(res)}
-                title={isRecommended ? "الدقة المثالية لقوة جهازك" : `عرض الأداء على دقة ${res}`}
+                title={isRecommended ? "الدقة المثالية لقوة جهازك" : `شوف الأداء على دقة ${res}`}
                 className={`px-4 py-1.5 text-xs font-bold rounded-sm transition-all ${
                   activeRes === res
                     ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm'
@@ -830,11 +884,11 @@ const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }
       <div className="bg-slate-50 dark:bg-slate-800/40 p-3 border-t border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
         <span className="text-[12px] text-slate-500 dark:text-slate-300 font-bold flex items-center gap-1.5">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          الأرقام تقريبية وتعتمد على إعدادات الجودة وتقنيات (DLSS/FSR).
+          الأرقام تقريبية وتختلف حسب إعدادات الجودة وتقنيات (DLSS/FSR).
         </span>
         <span className="hidden sm:block text-slate-300 dark:text-slate-700">|</span>
         <span className="text-[12px] text-cyan-500 dark:text-cyan-400 font-bold flex items-center gap-1">
-          <span className="text-sm leading-none">★</span> تشير إلى دقة الشاشة المثالية لجهازك.
+          <span className="text-sm leading-none">★</span> يعني هذي الدقة الأنسب لجهازك.
         </span>
       </div>
     </div>
@@ -894,6 +948,28 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         }
       }
 
+      /* «أضفها لتجميعتي» من صفحة القطعة (?add=<id>): تُدمج في المسودّة ولا تمحوها —
+         معاملات الفئات تستبدل التجميعة كلّها، وهذا زائرٌ في منتصف تجميعته غالباً.
+         وتحلّ محلّ قطعة فئتها إن وُجدت، ويُقال له ذلك صراحةً. وفحص التوافق يجري كعادته. */
+      const addId = params.get('add');
+      if (addId && !hasUrlParams && !hasImported) {
+        const cat = categories.find(c => c.components.some(x => x.id === addId));
+        const part = cat?.components.find(x => x.id === addId);
+        if (cat && part) {
+          const prev = freshSelections[cat.name];
+          freshSelections[cat.name] = part;
+          const label = catMeta(cat.name).label;
+          setTimeout(() => {
+            toast.success(
+              prev && prev.id !== part.id
+                ? `وضعنا ${part.name} مكان ${prev.name} في خانة ${label}`
+                : `أضفنا ${part.name} إلى تجميعتك (${label})`,
+              { duration: 5000 },
+            );
+          }, 300);
+        }
+      }
+
       setSelectedComponents(freshSelections);
       setIsLoaded(true);
     };
@@ -937,6 +1013,23 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   const [aiPlans, setAiPlans] = useState<TierPlan[] | null>(null);
   
   const resultRef = useRef<HTMLDivElement>(null);
+  const plansRef = useRef<HTMLDivElement>(null);
+
+  /* ⚠️ الخطط تُرسم تحت المساعد، وبعد اختيار الدقّة كانت تبدأ تحت حدّ الشاشة
+     (١٢٩٥ بكسل والشاشة تنتهي عند ١٠٦٢ على الجوال، و٩٥١ مقابل ٧٦٨ على المكتب)،
+     والظاهر سؤال الشركة الاختياريّ — فظنّ المجرّب أنّ شيئاً لم يحدث (تجربة
+     المستخدمين 2026-10-17). فننزل إليها — إلّا إن كان أعلاها ظاهراً أصلاً، كي لا
+     تقفز الصفحة مع كلّ تغيير شركةٍ والخطط أمام العين. */
+  const showPlans = (plans: TierPlan[]) => {
+    setAiPlans(plans);
+    setTimeout(() => {
+      const el = plansRef.current;
+      if (!el) return;
+      if (el.getBoundingClientRect().top > window.innerHeight - 140) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
+  };
 
   useEffect(() => {
     if (isLoaded) checkCompatibility();
@@ -966,7 +1059,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       const moboSpecs = parseSpecs(selectedComponents['Motherboard']!.specs);
       if (specs.socket && moboSpecs.socket && String(specs.socket) !== String(moboSpecs.socket)) {
         newSelections['Motherboard'] = null;
-        toastMessage = 'تم إزالة اللوحة الأم السابقة لتغيير مقبس المعالج';
+        toastMessage = 'شلنا اللوحة الأم السابقة لأن مقبس المعالج تغيّر';
       }
     }
     else if (categoryName === 'Motherboard') {
@@ -974,7 +1067,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const cpuSpecs = parseSpecs(selectedComponents['CPU']!.specs);
         if (specs.socket && cpuSpecs.socket && String(specs.socket) !== String(cpuSpecs.socket)) {
           newSelections['CPU'] = null;
-          toastMessage = 'تم إزالة المعالج السابق لعدم توافقه مع اللوحة الجديدة';
+          toastMessage = 'شلنا المعالج السابق لأنه ما يتوافق مع اللوحة الجديدة';
         }
       }
       if (selectedComponents['RAM']) {
@@ -982,8 +1075,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         if (specs.ramType && ramSpecs.type && String(specs.ramType) !== String(ramSpecs.type)) {
           newSelections['RAM'] = null;
           toastMessage = toastMessage 
-            ? toastMessage + ' والرام أيضاً' 
-            : 'تم إزالة الرام السابق لعدم التوافق مع اللوحة الجديدة';
+            ? toastMessage + ' والرام بعد' 
+            : 'شلنا الرام السابق لأنه ما يتوافق مع اللوحة الجديدة';
         }
       }
     }
@@ -991,21 +1084,21 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       const moboSpecs = parseSpecs(selectedComponents['Motherboard']!.specs);
       if (specs.type && moboSpecs.ramType && String(specs.type) !== String(moboSpecs.ramType)) {
         newSelections['Motherboard'] = null;
-        toastMessage = 'تم إزالة اللوحة الأم لتغيير نوع الرام';
+        toastMessage = 'شلنا اللوحة الأم لأن نوع الرام تغيّر';
       }
     }
     else if (categoryName === 'GPU' && selectedComponents['Case']) {
       const caseSpecs = parseSpecs(selectedComponents['Case']!.specs);
       if (gpuFitVerdict(component, caseSpecs) === false) {
         newSelections['Case'] = null;
-        toastMessage = 'تم إزالة الكيس لأن الكرت الجديد أطول من المساحة المتاحة';
+        toastMessage = 'شلنا الكيس لأن الكرت الجديد أطول من مساحته';
       }
     }
     else if (categoryName === 'Case' && selectedComponents['GPU']) {
       const gpuSpecs = parseSpecs(selectedComponents['GPU']!.specs);
       if (gpuFitVerdict(selectedComponents['GPU']!, specs) === false) {
         newSelections['GPU'] = null;
-        toastMessage = 'تم إزالة الكرت لأن الكيس الجديد مساحته أصغر';
+        toastMessage = 'شلنا الكرت لأن الكيس الجديد مساحته أصغر';
       }
     }
 
@@ -1015,14 +1108,14 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       const moboSpecs = parseSpecs(selectedComponents['Motherboard']!.specs);
       if (!boardFitsCase(moboSpecs.formFactor, specs.formFactor)) {
         newSelections['Motherboard'] = null;
-        toastMessage = `تم إزالة اللوحة (${moboSpecs.formFactor}) لأنها لا تدخل كيساً من نوع ${specs.formFactor}`;
+        toastMessage = `شلنا اللوحة (${moboSpecs.formFactor}) لأنها ما تدخل كيس ${specs.formFactor}`;
       }
     }
     if (categoryName === 'Motherboard' && selectedComponents['Case']) {
       const caseSpecs = parseSpecs(selectedComponents['Case']!.specs);
       if (!boardFitsCase(specs.formFactor, caseSpecs.formFactor)) {
         newSelections['Case'] = null;
-        toastMessage = `تم إزالة الكيس (${caseSpecs.formFactor}) لأنه لا يتّسع للوحة ${specs.formFactor}`;
+        toastMessage = `شلنا الكيس (${caseSpecs.formFactor}) لأنه ما يساع لوحة ${specs.formFactor}`;
       }
     }
 
@@ -1037,15 +1130,15 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       if (categoryName === 'Case' && !coolerFitsCase(k.type, k.sizeMm, specs.maxCoolerHeight, specs.radiatorSupport)) {
         newSelections['Cooler'] = null;
         toastMessage = toastMessage
-          ? toastMessage + ' والمبرّد أيضاً'
-          : `تم إزالة المبرّد (${k.sizeMm}مم) لأنه لا يدخل الكيس الجديد`;
+          ? toastMessage + ' والمبرّد بعد'
+          : `شلنا المبرّد (${k.sizeMm}مم) لأنه ما يدخل الكيس الجديد`;
       }
 
       if (categoryName === 'CPU' && !coolerFitsCpu(k.sockets, specs.socket)) {
         newSelections['Cooler'] = null;
         toastMessage = toastMessage
-          ? toastMessage + ' والمبرّد أيضاً'
-          : `تم إزالة المبرّد لأنه لا يدعم مقبس ${specs.socket}`;
+          ? toastMessage + ' والمبرّد بعد'
+          : `شلنا المبرّد لأنه ما يدعم مقبس ${specs.socket}`;
       }
     }
 
@@ -1077,7 +1170,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           const cpuSpecs = parseSpecs(cpu.specs);
           if (specs.socket && cpuSpecs.socket && String(specs.socket) !== String(cpuSpecs.socket)) {
             isCompatible = false;
-            reason = `المعالج المختار يتطلب مقبس ${cpuSpecs.socket}`;
+            reason = `المعالج اللي اخترته يبي مقبس ${cpuSpecs.socket}`;
           }
           /* حدّ قدرة اللوحة — القاعدة في lib/fit لا هنا، والفحص الموحّد يقرؤها نفسها */
           const power = isCompatible ? cpuPowerFitsBoard(cpuSpecs, specs) : null;
@@ -1087,7 +1180,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           const ramSpecs = parseSpecs(ram.specs);
           if (specs.ramType && ramSpecs.type && String(specs.ramType) !== String(ramSpecs.type)) {
             isCompatible = false;
-            reason = `الرام المختار من نوع ${ramSpecs.type} واللوحة تدعم ${specs.ramType}`;
+            reason = `الرام اللي اخترته ${ramSpecs.type} واللوحة تدعم ${specs.ramType}`;
           }
         }
       }
@@ -1096,7 +1189,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const moboSpecs = parseSpecs(mobo.specs);
         if (specs.socket && moboSpecs.socket && String(specs.socket) !== String(moboSpecs.socket)) {
           isCompatible = false;
-          reason = `اللوحة الأم الحالية بمقبس ${moboSpecs.socket} فقط`;
+          reason = `اللوحة الأم اللي اخترتها مقبسها ${moboSpecs.socket} بس`;
         }
         const power = isCompatible ? cpuPowerFitsBoard(specs, moboSpecs) : null;
         if (power) { isCompatible = false; reason = power; }
@@ -1106,7 +1199,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const moboSpecs = parseSpecs(mobo.specs);
         if (specs.type && moboSpecs.ramType && String(specs.type) !== String(moboSpecs.ramType)) {
           isCompatible = false;
-          reason = `اللوحة الأم تدعم رامات ${moboSpecs.ramType} فقط`;
+          reason = `اللوحة الأم تدعم رامات ${moboSpecs.ramType} بس`;
         }
       }
       
@@ -1114,7 +1207,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         /* بعروض الكرت: «لا يدخل» حين لا تدخل أيُّ نسخةٍ متوفّرة منه (lib/fit) */
         if (gpuFitVerdict(gpu, specs) === false) {
           isCompatible = false;
-          reason = `طول الكرت الحالي (${shortestGpuMm(gpu)}mm) يتجاوز مساحة الكيس (${caseGpuMaxMm(specs)}mm)`;
+          reason = `طول الكرت اللي اخترته (${shortestGpuMm(gpu)}mm) أكبر من مساحة الكيس (${caseGpuMaxMm(specs)}mm)`;
         }
       }
 
@@ -1125,7 +1218,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const moboSpecs = parseSpecs(mobo.specs);
         if (!boardFitsCase(moboSpecs.formFactor, specs.formFactor)) {
           isCompatible = false;
-          reason = `اللوحة المختارة من مقاس ${moboSpecs.formFactor} ولا تدخل كيساً من نوع ${specs.formFactor}`;
+          reason = `اللوحة اللي اخترتها مقاسها ${moboSpecs.formFactor} وما تدخل كيس ${specs.formFactor}`;
         }
       }
 
@@ -1133,7 +1226,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const caseSpecs = parseSpecs(pcCase.specs);
         if (!boardFitsCase(specs.formFactor, caseSpecs.formFactor)) {
           isCompatible = false;
-          reason = `الكيس المختار (${caseSpecs.formFactor}) لا يتّسع للوحة من مقاس ${specs.formFactor}`;
+          reason = `الكيس اللي اخترته (${caseSpecs.formFactor}) ما يساع لوحة مقاسها ${specs.formFactor}`;
         }
       }
 
@@ -1142,7 +1235,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const caseSpecs = parseSpecs(pcCase.specs);
         if (!psuFitsCase(specs.formFactor, caseSpecs.psuFormFactor)) {
           isCompatible = false;
-          reason = `الكيس يقبل مزوّدات ${caseSpecs.psuFormFactor} فقط`;
+          reason = `الكيس يقبل مزوّدات ${caseSpecs.psuFormFactor} بس`;
         }
       }
 
@@ -1150,7 +1243,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const psuSpecs = parseSpecs(selectedComponents['PSU']!.specs);
         if (!psuFitsCase(psuSpecs.formFactor, specs.psuFormFactor)) {
           isCompatible = false;
-          reason = `يقبل مزوّدات ${specs.psuFormFactor} والمزوّد المختار ${psuSpecs.formFactor}`;
+          reason = `يقبل مزوّدات ${specs.psuFormFactor} والمزوّد اللي اخترته ${psuSpecs.formFactor}`;
         }
       }
 
@@ -1158,7 +1251,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const caseSpecs = parseSpecs(pcCase.specs);
         if (gpuFitVerdict(comp, caseSpecs) === false) {
           isCompatible = false;
-          reason = `طول الكرت (${shortestGpuMm(comp)}mm) لا يتسع داخل الكيس (${caseGpuMaxMm(caseSpecs)}mm)`;
+          reason = `طول الكرت (${shortestGpuMm(comp)}mm) ما يدخل الكيس (${caseGpuMaxMm(caseSpecs)}mm)`;
         }
       }
 
@@ -1189,7 +1282,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const cSpecs = parseSpecs(cooler.specs);
         if (!coolerFitsCase(cSpecs.type, cSpecs.sizeMm, specs.maxCoolerHeight, specs.radiatorSupport)) {
           isCompatible = false;
-          reason = `المبرّد المختار (${cSpecs.sizeMm}مم) لا يدخل هذا الكيس`;
+          reason = `المبرّد اللي اخترته (${cSpecs.sizeMm}مم) ما يدخل هالكيس`;
         }
       }
 
@@ -1197,7 +1290,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         const cSpecs = parseSpecs(cooler.specs);
         if (!coolerFitsCpu(cSpecs.sockets, specs.socket)) {
           isCompatible = false;
-          reason = `المبرّد المختار لا يدعم مقبس ${specs.socket}`;
+          reason = `المبرّد اللي اخترته ما يدعم مقبس ${specs.socket}`;
         }
       }
 
@@ -1215,7 +1308,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     trackOnce('build_start', 'build_start', { label: 'assistant' });
     setSelectedComponents(plan.picks as any);
     setAiPlans(null);
-    toast.success(`تم بناء تجميعة ${plan.label} — ${Math.round(plan.total)} ﷼`, { icon: '✨' });
+    toast.success(`جهّزنا لك تجميعة ${plan.label} — ${formatTotal(plan.total)} ريال`, { icon: '✨' });
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
 
@@ -1239,12 +1332,12 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     text += `🔗 تفاصيل أكثر: ${window.location.href}`;
 
     navigator.clipboard.writeText(text);
-    toast.success('تم نسخ مواصفات التجميعة!', { icon: '📋' });
+    toast.success('نسخنا مواصفات التجميعة!', { icon: '📋' });
   };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
-    toast.success('تم نسخ رابط التجميعة للمشاركة!', { icon: '🔗' });
+    toast.success('نسخنا رابط التجميعة — شاركه!', { icon: '🔗' });
   };
 
   const checkCompatibility = () => {
@@ -1277,7 +1370,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     if (missingCategories.length > 0) {
       setResult({ 
         status: 'incomplete', 
-        message: 'أكمل اختيار القطع التالية لفتح تقرير التوافق:', 
+        message: 'باقي تختار هالقطع عشان يطلع لك تقرير التوافق:', 
         missingCategories,
         totalTdp, 
         totalPrice 
@@ -1304,7 +1397,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
     const blocking = issues.find((i) => i.level === 'block');
     if (blocking) {
-      setResult({ status: 'error', message: `عدم توافق: ${blocking.message}`, totalTdp, totalPrice });
+      setResult({ status: 'error', message: `فيه مشكلة توافق: ${blocking.message}`, totalTdp, totalPrice });
       return;
     }
 
@@ -1328,8 +1421,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         }
 
         bottleneck = {
-          title: "⚠️ المعالج قد يحد من أداء الكرت في بعض الألعاب، خصوصًا على 1080p و1440p.",
-          desc: "يُنصح بترقية المعالج، أو اللعب بدقة 4K لنقل ثقل المعالجة إلى الكرت وتخفيف الضغط عن المعالج.",
+          title: "⚠️ المعالج ممكن يحدّ من أداء الكرت في بعض الألعاب، خصوصاً على 1080p و1440p.",
+          desc: "ننصحك ترقّي المعالج، أو تلعب على 4K عشان الحمل يروح على الكرت ويخف الضغط عن المعالج.",
           color: "text-amber-900 dark:text-amber-400",
           bg: "bg-amber-100 dark:bg-amber-900/20 border-amber-300 dark:border-amber-800/50",
           suggestions
@@ -1348,16 +1441,16 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         }
 
         bottleneck = {
-          title: "💡 كرت الشاشة سيحد من قوة الجهاز.",
-          desc: "الأداء سيكون ممتازاً وسلساً في ألعاب الشوتر والتنافسية، لكن الكرت سيقلل الفريمات في ألعاب القصة الثقيلة والدقات العالية.",
+          title: "💡 كرت الشاشة بيحدّ من قوة الجهاز.",
+          desc: "الأداء بيكون ممتاز وسلس في ألعاب الشوتر والتنافسية، بس الكرت بينزّل الفريمات في ألعاب القصة الثقيلة والدقات العالية.",
           color: "text-cyan-900 dark:text-cyan-400",
           bg: "bg-cyan-100 dark:bg-cyan-900/20 border-cyan-300 dark:border-cyan-800/50",
           suggestions
         };
       } else {
         bottleneck = {
-          title: "🚀 توازن أداء مثالي.",
-          desc: "المعالج والكرت من نفس الفئة تقريباً. ستحصل على أداء مستقر وتستغل كامل قوة الجهاز بدون اختناق.",
+          title: "🚀 توازن ممتاز بين المعالج والكرت.",
+          desc: "المعالج والكرت من نفس الفئة تقريباً، يعني أداء مستقر وتستفيد من قوة الجهاز كاملة بدون اختناق.",
           color: "text-emerald-900 dark:text-emerald-400",
           bg: "bg-emerald-100 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-800/50"
         };
@@ -1372,8 +1465,8 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     setResult({
       status: 'success',
       message: warnings.length
-        ? 'القطع متوافقة — مع ملاحظات.'
-        : 'توافق تام! جميع القطع تعمل معاً بانسجام.',
+        ? 'القطع متوافقة — بس فيه ملاحظات.'
+        : 'توافق تام! كل القطع تركب وتشتغل مع بعض.',
       warnings,
       bottleneck,
       totalTdp,
@@ -1382,7 +1475,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   };
 
   const handleClearBuild = () => {
-    if (!confirm('هل أنت متأكد من تفريغ جميع القطع؟ سيتم مسح اختياراتك والبدء من جديد.')) return;
+    if (!confirm('متأكد تبي تفرّغ كل القطع؟ بتنمسح اختياراتك وتبدأ من جديد.')) return;
     
     const emptyState: Record<string, Component | null> = {};
     categories.forEach(cat => emptyState[cat.name] = null);
@@ -1394,12 +1487,27 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     localStorage.removeItem('draft_pc_build');
     window.history.replaceState({}, '', window.location.pathname);
     
-    toast.success('تم تفريغ لوحة البناء');
+    toast.success('فرّغنا التجميعة');
   };
 
   const handleSaveBuildClick = () => {
     if (!session || !session.user) {
-      toast.error('يجب تسجيل الدخول أولاً لحفظ التجميعة');
+      /* كانت رسالةً حمراء تختفي بعد ثوانٍ بلا زرّ دخول، والزائر لا يدري أنّ تجميعته باقية
+         (تجربة المستخدمين 2026-10-17). والمسودّة في المتصفّح ومعاملات الرابط، و`goToLogin`
+         يعود به إلى الرابط نفسه بعد الدخول. */
+      toast(
+        (tt) => (
+          <div className="text-right">
+            <p className="text-[13px] font-black">سجّل دخولك عشان تحفظ التجميعة في حسابك</p>
+            <p className="text-[12px] font-semibold opacity-80 mt-0.5">تجميعتك باقية هنا وما راح تضيع — نرجّعك لها بعد الدخول.</p>
+            <div className="flex gap-2 mt-2">
+              <a href="/login" onClick={goToLogin} className="px-3 py-1.5 rounded-sm bg-cyan-600 text-white text-[12px] font-black">تسجيل الدخول</a>
+              <button type="button" onClick={() => toast.dismiss(tt.id)} className="px-3 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 text-[12px] font-bold">لاحقاً</button>
+            </div>
+          </div>
+        ),
+        { duration: 10000, icon: '💾' },
+      );
       return;
     }
     if (!buildName && !editModeId) {
@@ -1440,7 +1548,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       });
 
       if (!res.ok) {
-        let errorMessage = 'فشل الحفظ بسبب خطأ داخلي في السيرفر.';
+        let errorMessage = 'ما قدرنا نحفظ — صار خطأ عندنا في السيرفر.';
         try {
           const errorData = await res.json();
           if (errorData.message) errorMessage = errorData.message;
@@ -1450,7 +1558,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         throw new Error(errorMessage);
       }
       
-      toast.success(editModeId ? 'تم تحديث التجميعة بنجاح!' : 'تم حفظ التجميعة بنجاح!');
+      toast.success(editModeId ? 'حدّثنا تجميعتك!' : 'انحفظت تجميعتك!');
       setSaveModalOpen(false);
 
       localStorage.removeItem('draft_pc_build');
@@ -1468,7 +1576,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       
     } catch (error: any) {
       console.error("Save error:", error);
-      toast.error(error.message || 'حدث خطأ أثناء حفظ التجميعة');
+      toast.error(error.message || 'صار خطأ وإحنا نحفظ التجميعة');
     } finally {
       setIsSaving(false);
     }
@@ -1476,7 +1584,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
 
   const exportBuildAsImage = async () => {
     if (!resultRef.current) return;
-    const loadingToast = toast.loading('جاري تجهيز الصورة...');
+    const loadingToast = toast.loading('نجهّز الصورة...');
     
     try {
       const filter = (node: HTMLElement | any) => {
@@ -1499,17 +1607,17 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       link.download = `PC-Build-${new Date().getTime()}.png`;
       link.click();
       
-      toast.success('تم تصدير الصورة بنجاح!', { id: loadingToast });
+      toast.success('الصورة جاهزة!', { id: loadingToast });
     } catch (error) {
       console.error("خطأ في تصدير الصورة:", error);
-      toast.error('تعذر تصدير الصورة بسبب حماية السيرفرات للصور.', { id: loadingToast });
+      toast.error('ما قدرنا نطلّع الصورة — بعض المتاجر تحمي صورها.', { id: loadingToast });
     }
   };
 
   /* الفئة تُمرَّر للترتيب: jsonb يعيد ترتيب المفاتيح بطول الاسم، فالترتيب
      المفيد يُفرض هنا لا عند الحفظ — انظر التعليق في lib/spec-labels */
   const renderSpecs = (specsStr: any, categoryName?: string) => {
-    if (!specsStr) return <p className="text-sm text-slate-500 font-medium">لا توجد مواصفات فنية مسجلة.</p>;
+    if (!specsStr) return <p className="text-sm text-slate-500 font-medium">ما عندنا مواصفات مسجّلة لهالقطعة.</p>;
     try {
       const parsed = parseSpecs(specsStr);
       return (
@@ -1555,7 +1663,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             المنصة وأردت إعلان ميزة قادمة. */}
 
         {/* ===== ١) المساعد: يسأل وش تلعب، ويبني ثلاث خطط من الكتالوج ===== */}
-        <IntentPicker onPlans={(plans) => setAiPlans(plans)} buildPlans={buildPlans} />
+        <IntentPicker onPlans={showPlans} buildPlans={buildPlans} />
 
         {/* ===== خيارات المساعد ===== */}
         {aiPlans && aiPlans.length > 0 && (() => {
@@ -1563,11 +1671,15 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
              كان مثبّتاً على الفهرس ١، فيوصي بـ"قوي" حين تبقى خطتان. */
           const recIdx = aiPlans.length >= 3 ? 1 : 0;
           return (
-          <div className="mb-8 p-5 rounded-sm border border-cyan-500/30 bg-white dark:bg-[#0F172A]">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-black text-slate-900 dark:text-white">اختر المستوى الذي يناسبك:</h3>
+          <div ref={plansRef} className="mb-8 p-5 rounded-sm border border-cyan-500/30 bg-white dark:bg-[#0F172A] scroll-mt-20">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">اختر المستوى اللي يناسبك:</h3>
               <button onClick={() => setAiPlans(null)} className="text-[12px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">إخفاء</button>
             </div>
+            {/* ننزل إلى الخطط تلقائياً، فيُقال أين صار السؤال الاختياريّ */}
+            <p className="mb-4 text-[12px] font-semibold text-slate-500 dark:text-slate-400">
+              تبي شركة معيّنة أو تصوّر وتبث؟ غيّرها من الأسئلة فوق وتتحدّث الخطط على طول.
+            </p>
             <div className={`grid grid-cols-1 gap-3 ${aiPlans.length >= 3 ? 'md:grid-cols-3' : aiPlans.length === 2 ? 'md:grid-cols-2' : ''}`}>
               {aiPlans.map((plan, i) => (
                 <button
@@ -1624,10 +1736,10 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 </button>
               ))}
             </div>
-            <p className="mt-4 text-[12px] text-slate-400 font-medium text-center">كل القطع متوفّرة فعلاً بأسعارها اللحظية · يمكنك تعديل أي قطعة بعد الاختيار</p>
+            <p className="mt-4 text-[12px] text-slate-400 font-medium text-center">كل القطع متوفّرة فعلاً بأسعارها الحين · وتقدر تغيّر أي قطعة بعد ما تختار</p>
             {aiPlans.some((p) => p.perf) && (
               <p className="mt-1 text-[12px] text-slate-400 font-medium text-center">
-                الإطارات: متوسّط ألعاب حديثة بإعدادات Ultra بلا DLSS/FSR ·{' '}
+                الإطارات: متوسّط ألعاب حديثة على Ultra بدون DLSS/FSR ·{' '}
                 <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-600 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a>
               </p>
             )}
@@ -1643,7 +1755,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             onApply={(next) => {
               setSelectedComponents(next);
               setResult({ status: 'idle', message: '', totalTdp: 0, totalPrice: 0 });
-              toast.success('تم تطبيق التغييرات — افحص التوافق مجدداً.', { icon: '✅' });
+              toast.success('طبّقنا التغييرات — شيّك على التوافق مرة ثانية.', { icon: '✅' });
             }}
           />
         )}
@@ -1666,7 +1778,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
             <button 
               onClick={handleClearBuild}
               className="flex items-center gap-2 px-3 py-2.5 text-sm font-bold text-rose-500 bg-white hover:bg-rose-50 dark:text-rose-400 dark:bg-slate-800/40 dark:hover:bg-rose-950/40 rounded-sm transition-all border border-slate-200 hover:border-rose-200 dark:border-slate-700/50 dark:hover:border-rose-900/50 shadow-sm"
-              title="مسح جميع القطع والبدء من جديد"
+              title="امسح كل القطع وابدأ من جديد"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               تفريغ التجميعة
@@ -1684,7 +1796,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4 shadow-sm"></div>
               </div>
               <span className="text-sm font-bold text-slate-700 dark:text-slate-300 select-none group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                عرض القطع غير المتوافقة (لتفسير السبب)
+                اعرض القطع اللي ما تتوافق (عشان تعرف السبب)
               </span>
             </label>
           </div>
@@ -1783,13 +1895,21 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 rounded-sm px-4 py-3">
-                        <div className="text-[12px] font-black tracking-widest text-slate-500 dark:text-slate-300 mb-1">التكلفة الإجمالية</div>
+                        <div className="text-[12px] font-black text-slate-500 dark:text-slate-300 mb-1">التكلفة الإجمالية</div>
                         <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                           {formatTotal(result.totalPrice)} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                         </div>
+                        {(() => {
+                          const n = Object.values(selectedComponents).filter((c) => c && !isAvailable(c)).length;
+                          return n > 0 ? (
+                            <div className="mt-1 text-[11.5px] font-black text-amber-600 dark:text-amber-400">
+                              ⚠ يشمل {n === 1 ? 'قطعةً غير متوفّرة' : `${n} قطع غير متوفّرة`} بآخر سعر رصدناه
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                       <div className="bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 rounded-sm px-4 py-3">
-                        <div className="text-[12px] font-black tracking-widest text-slate-500 dark:text-slate-300 mb-1">الطاقة التقريبية</div>
+                        <div className="text-[12px] font-black text-slate-500 dark:text-slate-300 mb-1">الطاقة التقريبية</div>
                         <div className="text-xl font-black text-amber-600 dark:text-amber-400">{result.totalTdp}W</div>
                       </div>
                     </div>
@@ -1830,7 +1950,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                           <div className="mt-6 pt-5 border-t border-current/15 w-full">
                             <span className={`text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2 ${result.bottleneck.color} opacity-90`}>
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                              خيارات الترقية المقترحة:
+                              ترقيات نقترحها:
                             </span>
                             
                             {/* حاوية التمرير */}
@@ -1861,7 +1981,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                     <div>
                                       <span className="block text-[12px] font-bold text-slate-500 dark:text-slate-300 mb-0.5">السعر</span>
                                       <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm flex items-center gap-1">
-                                        {sug.item.price} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                                        {formatPrice(sug.item.price)} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                                       </span>
                                     </div>
                                     
@@ -1888,7 +2008,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                     {result.status === 'success' && (
                       <div className="mt-8 pt-8 border-t border-emerald-200/50 dark:border-emerald-800/30">
                         <h4 className="font-extrabold text-emerald-900 dark:text-emerald-500 mb-2 text-sm uppercase tracking-widest">
-                          اشترِ قطعك الآن:
+                          اشترِ قطعك الحين:
                         </h4>
 
                         {/* سطر التوفير الجماعي (div لا p — RiyalIcon بداخله div) */}
@@ -1903,11 +2023,11 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                           return (
                             <div className="mb-5 text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
                               <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                              اختيار أرخص متجر لكل قطعة يوفّر لك
+                              لو أخذت كل قطعة من أرخص متجر توفّر
                               <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1">
-                                {savings.toFixed(0)} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                                {formatTotal(savings)} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                               </span>
-                              مقارنةً بأغلى العروض المتاحة — رتّبناها لك.
+                              مقارنةً بأغلى العروض — ورتّبناها لك.
                             </div>
                           );
                         })()}
@@ -1927,7 +2047,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                 )}
                                 <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                   <div className="text-sm leading-tight">
-                                    <span className="font-bold text-slate-500 dark:text-slate-300 text-[12px] uppercase tracking-widest block mb-1">{catName}</span>
+                                    <span className="font-bold text-slate-500 dark:text-slate-300 text-[12px] block mb-1">{getCatMeta(catName).label}</span>
                                     <span className={getBrandColor(comp, catName) + " ml-1"}>{comp.brand}</span>
                                     <span className="text-slate-900 dark:text-white font-bold line-clamp-1">{comp.name}</span>
                                   </div>
@@ -1939,7 +2059,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                       كاملةً خارج الحدّ. فيُترك الانكماش ويُحفظ السعر وحده. */}
                                   <div className="flex items-center gap-3 min-w-0 flex-wrap">
                                     <span className="font-black text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1.5 rounded-sm border border-emerald-100 dark:border-emerald-800/30 shrink-0">
-                                      {comp.price} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-700 dark:bg-emerald-400" />
+                                      {formatPrice(comp.price)} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-700 dark:bg-emerald-400" />
                                     </span>
                                     <div className="flex flex-wrap gap-1.5 export-ignore">
                                       {/* ⚠️ `data-cid` لا مُعالِج نقرة: المستمع العامّ في
@@ -1958,9 +2078,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                                               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500'
                                           }`}
                                         >
-                                          <span>{offer.store.latinName}</span>
+                                          <span>{offer.store.name}</span>
                                           <span className="font-black flex items-center gap-0.5">
-                                            {(offer.price ?? 0).toLocaleString('en-US')}
+                                            {formatPrice(offer.price)}
                                             <RiyalIcon size="h-2.5 w-2.5" colorClass={i === 0 ? 'bg-white' : 'bg-slate-500 dark:bg-slate-400'} />
                                           </span>
                                           {i === 0 && getStoreOffers(comp).length > 1 && (
@@ -2023,7 +2143,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                   className="flex-1 min-w-[220px] justify-center px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-sm transition-all flex items-center gap-2 shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/40 hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                  {editModeId ? 'حفظ التعديلات' : 'حفظ التجميعة لحسابي'}
+                  {editModeId ? 'حفظ التعديلات' : 'احفظها في حسابي'}
                 </button>
               </div>
             )}
@@ -2083,7 +2203,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                           <span className="font-black text-xl text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                             {formatPrice(comp.price)} <RiyalIcon size="h-5 w-5" colorClass="bg-slate-500 dark:bg-slate-400" />
                           </span>
-                          <span className="block text-[12px] font-bold text-amber-600 dark:text-amber-400 mt-1">نافدةٌ من كلّ المتاجر — هذا آخر سعرٍ سُجّل</span>
+                          <span className="block text-[12px] font-bold text-amber-600 dark:text-amber-400 mt-1">خلصت من كل المتاجر — هذا آخر سعر سجّلناه</span>
                         </>
                       ) : (
                         <span className="block font-black text-base text-slate-500 dark:text-slate-400">غير متوفر — لا سعر مسجّل</span>
@@ -2110,11 +2230,11 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 const [c] = getComponentsWithCompatibility(cat, [detailsModal.comp]);
                 return c.isCompatible ? (
                   <div className="mb-6 px-3.5 py-2.5 rounded-sm border border-emerald-500/40 bg-emerald-500/[0.07] text-[13px] font-bold text-emerald-800 dark:text-emerald-300">
-                    ✓ تركب مع القطع التي اخترتها
+                    ✓ تركب مع القطع اللي اخترتها
                   </div>
                 ) : (
                   <div className="mb-6 px-3.5 py-2.5 rounded-sm border border-rose-300 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-900/20 text-[13px] font-bold text-rose-800 dark:text-rose-300 leading-relaxed">
-                    ✗ لا تركب مع قطعك: {c.reason}. واختيارها يُلغي القطعة المتعارضة.
+                    ✗ ما تركب مع قطعك: {c.reason}. ولو اخترتها نشيل القطعة اللي تتعارض معها.
                   </div>
                 );
               })()}
@@ -2144,7 +2264,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 <div className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed font-medium bg-slate-50 dark:bg-slate-800/30 p-4 rounded-sm border border-slate-200 dark:border-slate-700/30">
                   {detailsModal.comp.description
                     ? <RichDescription text={detailsModal.comp.description} />
-                    : "لا يوجد وصف إضافي متوفر لهذه القطعة حالياً."}
+                    : "ما عندنا وصف إضافي لهالقطعة حالياً."}
                 </div>
               </div>
             </div>
@@ -2182,16 +2302,27 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
       {result.status === 'success' && createPortal((
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] lg:hidden flex justify-between items-center animate-in slide-in-from-bottom-full duration-300">
           <div className="flex flex-col">
-            <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">التكلفة الإجمالية</span>
+            <span className="text-[12px] font-black text-slate-500">التكلفة الإجمالية</span>
             <span className="font-black text-emerald-600 dark:text-emerald-400 text-lg flex items-center gap-1">
               {formatTotal(result.totalPrice)} <RiyalIcon size="h-4 w-4" />
             </span>
+            {/* المجموع يحسب سعر القطعة النافدة كما هو — فيُقال ذلك تحته، لا في بطاقتها وحدها
+                (تجربة المستخدمين 2026-10-17: صندوقٌ نافد دخل المجموع بلا تنبيه في الشريط) */}
+            {(() => {
+              const n = Object.values(selectedComponents).filter((c) => c && !isAvailable(c)).length;
+              return n > 0 ? (
+                <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">
+                  ⚠ يشمل {n === 1 ? 'قطعةً غير متوفّرة' : `${n} قطع غير متوفّرة`} بآخر سعر
+                </span>
+              ) : null;
+            })()}
           </div>
           <div className="flex gap-2">
             <button 
               onClick={handleCopyLink}
               className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-sm font-bold border border-slate-200 dark:border-slate-700 shadow-sm"
               title="نسخ الرابط"
+              aria-label="نسخ رابط التجميعة"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
             </button>
@@ -2232,7 +2363,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 autoFocus
               />
               <p className="text-xs text-slate-500 mt-3 font-medium">
-                ستتمكن من الرجوع لهذه التجميعة لاحقاً وتعديلها من صفحة حسابك.
+                تقدر ترجع لها بعدين وتعدّلها من صفحة حسابك.
               </p>
             </div>
 
@@ -2251,10 +2382,10 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 {isSaving ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    جاري الحفظ...
+                    لحظة، نحفظ...
                   </>
                 ) : (
-                  'تأكيد الحفظ'
+                  'احفظ'
                 )}
               </button>
             </div>

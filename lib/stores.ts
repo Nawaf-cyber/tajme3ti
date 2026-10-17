@@ -18,7 +18,7 @@ export type StoreInfo = {
   id: string;
   slug: string;
   name: string;       // العربي المعروض
-  latinName: string;  // اللاتيني (بطاقات الشراء وصفحة القطعة)
+  latinName: string;  // اللاتيني — للوحة الإدارة؛ الزائر يرى العربيّ في كلّ الصفحات (تجربة المستخدمين 2026-10-17)
   color: string;      // hex يختاره الأدمن
   domain: string | null;
   affiliateParam: string | null;

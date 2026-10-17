@@ -11,6 +11,7 @@ import { productImage, IMAGE_FALLBACK } from '../../../lib/image';
 import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
 import { priceAsOf, liveOffers } from '../../../lib/stores';
 import { buildCard, formatTotal, STATE_TEXT } from '../../../lib/build-card';
+import { formatPrice } from '../../../lib/price';
 import { bottleneck as computeBottleneck } from '../../../lib/bottleneck';
 import { upgradeOptions } from '../../../lib/rig-upgrade';
 import type { BuildParts } from '../../../lib/build-check';
@@ -232,7 +233,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                         <div>
                           <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-0.5">السعر</span>
                           <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm flex items-center gap-1">
-                            {sug.item.price} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                            {formatPrice(sug.item.price)} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
                           </span>
                         </div>
                         <span className="text-[11px] font-black flex items-center gap-1.5 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 group-hover:bg-blue-600 group-hover:text-white px-3 py-2 rounded-xl transition-all">
@@ -288,7 +289,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
                   <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 pt-3 sm:pt-0">
                     <div className="flex flex-col items-start sm:items-end gap-0.5">
                       <div className="font-black text-base text-slate-900 dark:text-white flex items-center gap-1.5 tabular-nums">
-                        {part.price} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-slate-900 dark:bg-white" />
+                        {formatPrice(part.price)} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-slate-900 dark:bg-white" />
                       </div>
                       {/* عمر السعر: التجميعة المشتركة تُفتح بعد أيام من إرسالها،
                           فالرقم بلا تاريخه وعدٌ لا يُوفى عند المتجر. */}

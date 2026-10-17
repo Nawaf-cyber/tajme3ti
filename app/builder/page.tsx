@@ -4,6 +4,7 @@ import { HAS_PARTS } from '../../lib/categories';
 import PCBuilderClient from '../../components/PCBuilderClient';
 import { OFFER_INCLUDE, getStoreNotices } from '../../lib/stores-server';
 import StoreNotices from '../../components/StoreNotice';
+import { BUILD_ORDER } from '../../lib/category-meta';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,8 +59,16 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
   // جلب الفئات والقطع
   const categories = await prisma.category.findMany({
     where: HAS_PARTS,
-    include: { components: { include: OFFER_INCLUDE } },
+    /* ترتيبٌ ثابت للقطع (الشركة ثمّ الاسم) — كان بلا ترتيب، فتأتي بترتيب القاعدة الفيزيائيّ
+       الذي يتبدّل مع كلّ تحديث سعر، وأوّلُ اللوحات ProArt بـ2,317 (تجربة المستخدمين 2026-10-17) */
+    include: { components: { include: OFFER_INCLUDE, orderBy: [{ brand: 'asc' }, { name: 'asc' }] } },
   });
+  /* ترتيب العرض: المعالج فالمبرّد فاللوحة… (lib/category-meta) — كان مزوّد الطاقة ثالثاً قبل الرام والكرت */
+  const rank = (name: string) => {
+    const i = (BUILD_ORDER as readonly string[]).indexOf(name);
+    return i === -1 ? BUILD_ORDER.length : i;
+  };
+  categories.sort((a, b) => rank(a.name) - rank(b.name));
 
   /* إعلانات المتاجر (عطل/صيانة) — تُقرأ من جدول Store.
      معرّفات العمولة لم تعد تُجلب هنا: صارت داخل صفّ كل متجر ويبنيها

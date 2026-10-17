@@ -20,11 +20,16 @@ const USES = [
   { key: 'streaming',           icon: '📡', title: 'بث مباشر',      desc: 'تويتش · يوتيوب' },
 ];
 
+/* «ما أعرف» خيارٌ لا سؤالٌ معلّق: المبتدئ لا يعرف دقّة شاشته فيتوقّف هنا
+   (تجربة المستخدمين 2026-10-17). وتُبنى له على 1080p — دقّة أغلب الشاشات —
+   ويُقال له ذلك تحت الزرّ. `value` هي ما يصل البناء، و`key` ما يُظلَّل. */
 const RESOLUTIONS = [
-  { key: '1080p', label: '1080p', desc: 'الأكثر شيوعاً' },
-  { key: '1440p', label: '1440p', desc: 'التوازن الأمثل' },
-  { key: '4K',    label: '4K',    desc: 'أعلى دقة' },
+  { key: '1080p',  value: '1080p', label: '1080p',   desc: 'الأكثر شيوعاً' },
+  { key: '1440p',  value: '1440p', label: '1440p',   desc: 'التوازن الأمثل' },
+  { key: '4K',     value: '4K',    label: '4K',      desc: 'أعلى دقة' },
+  { key: 'unsure', value: '1080p', label: 'ما أعرف', desc: 'نبني على 1080p' },
 ];
+const resValue = (key: string | null) => RESOLUTIONS.find((r) => r.key === key)?.value ?? key;
 
 /* ---- تفضيل الشركة (اختياري) ----
    القيم تطابق حقل brand في الكتالوج حرفياً. "لا يهمّني" = null فيختار
@@ -64,7 +69,7 @@ export default function IntentPicker({
   /* بانٍ واحد لكل المسارات — يمنع تباعد الوسائط بين الأزرار */
   const run = (over: Partial<Intent> = {}) => {
     if (!use) return;
-    const res = over.resolution !== undefined ? over.resolution : resolution;
+    const res = resValue(over.resolution !== undefined ? over.resolution : resolution);
     if (needsResolution && !res) return;
 
     const plans = buildPlans({
@@ -76,7 +81,7 @@ export default function IntentPicker({
     });
 
     if (!plans || plans.length === 0) {
-      setError('تعذّر بناء تجميعة من القطع المتوفّرة حالياً. جرّب لاحقاً.');
+      setError('ما قدرنا نبني تجميعة من القطع المتوفّرة الحين. جرّب بعدين.');
       return;
     }
     setError(null);
@@ -98,7 +103,7 @@ export default function IntentPicker({
           alsoStreams, gpuBrand, cpuBrand,
         });
         if (plans?.length) onPlans(plans);
-        else setError('تعذّر بناء تجميعة من القطع المتوفّرة حالياً.');
+        else setError('ما قدرنا نبني تجميعة من القطع المتوفّرة الحين.');
       }, 0);
     }
   };
@@ -142,8 +147,9 @@ export default function IntentPicker({
                   السيان نفسه (6.11) — وهو ما تستعمله بطاقات «تصفّح القطع». */}
               <span className="text-[12px] font-black px-1.5 py-0.5 rounded-sm bg-cyan-500 text-white dark:text-[#052e37]">جديد</span>
             </div>
-            <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
-              قل لنا وش تسوي بالجهاز، ونبني لك تجميعة من القطع المتوفّرة.
+            {/* بلا truncate: كانت الجملة تُقصّ على الجوال */}
+            <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-snug">
+              علّمنا وش تسوي بالجهاز، ونبني لك تجميعة من القطع المتوفّرة.
             </p>
           </div>
         </div>
@@ -176,7 +182,8 @@ export default function IntentPicker({
                   <div className={`text-[12px] font-black ${use === u.key ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-800 dark:text-slate-200'}`}>
                     {u.title}
                   </div>
-                  <div className="text-[12px] font-medium text-slate-500 dark:text-slate-300 mt-0.5 truncate">
+                  {/* بلا truncate: «ماين كرافت · فورتن…» كانت تُقصّ على الجوال (تجربة المستخدمين 2026-10-17) */}
+                  <div className="text-[12px] font-medium text-slate-500 dark:text-slate-300 mt-0.5 leading-snug">
                     {u.desc}
                   </div>
                 </button>
@@ -191,7 +198,7 @@ export default function IntentPicker({
                 <span className="w-5 h-5 rounded-sm bg-cyan-500 text-white text-[12px] font-black flex items-center justify-center">٢</span>
                 <span className="text-[12px] font-black text-slate-600 dark:text-slate-300">على أي دقة تلعب؟</span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {RESOLUTIONS.map(r => (
                   <button
                     key={r.key}
@@ -267,10 +274,18 @@ export default function IntentPicker({
                 </div>
               </div>
 
+              {/* المونتاج: أغلب برامجه أنضج دعماً لكروت NVIDIA (CUDA وNVENC) — ومن لا يعرف ذلك
+                  يترك «لا يهمّني» فيُبنى له على Radeon أو Arc (تجربة المستخدمين 2026-10-17) */}
+              {use === 'editing' && gpuBrand !== 'NVIDIA' && (
+                <p className="mt-2 text-[12px] font-bold text-cyan-700 dark:text-cyan-400 leading-relaxed">
+                  تشتغل على بريمير أو دافنشي أو بلندر؟ هالبرامج دعمها لكروت NVIDIA أقوى — اخترها فوق إذا هي أداتك.
+                </p>
+              )}
+
               {/* تنبيه صادق: كروت Intel لا تصل الفئات العليا في كتالوجنا */}
-              {gpuBrand === 'Intel' && (resolution === '4K' || resolution === '1440p') && (
+              {gpuBrand === 'Intel' && (resValue(resolution) === '4K' || resValue(resolution) === '1440p') && (
                 <p className="mt-2 text-[12px] font-bold text-amber-600 dark:text-amber-400">
-                  كروت Intel Arc في كتالوجنا لا تتجاوز الفئة المتوسطة — على {resolution} ستحصل على أقوى ما تملكه Intel، لا أقوى كرت متاح.
+                  كروت Intel Arc عندنا ما تتعدّى الفئة المتوسطة — على {resValue(resolution)} بتاخذ أقوى كرت عند Intel، مو أقوى كرت متاح.
                 </p>
               )}
             </div>
@@ -315,7 +330,7 @@ export default function IntentPicker({
           )}
 
           <p className="mt-3 text-[12px] text-slate-500 dark:text-slate-300 font-medium text-center">
-            كل القطع والأسعار من كتالوجنا الحقيقي المتوفّر — لا تقديرات.
+            كل القطع والأسعار من كتالوجنا الحقيقي المتوفّر — بدون تقديرات.
           </p>
         </div>
       )}

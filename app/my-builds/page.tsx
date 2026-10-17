@@ -702,7 +702,7 @@ export default function MyBuildsPage() {
                         {comp && (
                           <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 pl-12 sm:pl-0 sm:border-r border-t sm:border-t-0 border-slate-200 dark:border-slate-700 pt-2 sm:pt-0 sm:pr-3 sm:justify-end">
                             <span className="font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1 text-sm bg-emerald-50 dark:bg-emerald-900/10 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-800/20 w-full sm:w-auto justify-center mb-1 sm:mb-0">
-                              {comp.price} <RiyalIcon size="h-3 w-3" />
+                              {formatPrice(comp.price)} <RiyalIcon size="h-3 w-3" />
                             </span>
 
                             {/* عمر السعر: التجميعة تُفتح بعد أسابيع، والرقم

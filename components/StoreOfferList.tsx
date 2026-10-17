@@ -133,15 +133,23 @@ export default function StoreOfferList({
                 : 'bg-white/60 dark:bg-slate-800/40 border-r-[color:var(--store-color)] hover:bg-white dark:hover:bg-slate-800/70 hover:shadow-md hover:-translate-x-0.5'
             }`}
           >
-            <div className="flex items-center gap-4">
-              <div className="w-9 h-9 rounded-sm bg-[var(--store-tint)] flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span
-                  className={`w-3 h-3 rounded-full ${live ? 'bg-[color:var(--store-color)]' : 'bg-rose-500'}`}
-                  style={live ? { boxShadow: '0 0 8px var(--store-glow)' } : undefined}
-                />
+            {/* ⚠️ min-w-0 هنا وshrink-0 على السعر: شارةُ نسخةٍ طويلة («TUF Gaming · الدرجة 2 من 4»)
+                كانت تدفع السعر خارج البطاقة على الجوال — قيس: البطاقة تبدأ عند ٤١ بكسل والسعر عند −٤
+                (تجربة المستخدمين 2026-10-17). */}
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+              {/* أيقونة «إلى المتجر» بلون المتجر — كانت نقطةً ملوّنة، ومايكرولس لونه أحمر
+                  فبدت نقطتُه تحذيراً في صفٍّ متوفّر */}
+              <div className="w-9 h-9 shrink-0 rounded-sm bg-[var(--store-tint)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg
+                  className={`w-4 h-4 ${live ? 'text-[color:var(--store-color)]' : 'text-slate-400'}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
               </div>
-              <span className="font-mono font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-[color:var(--store-color)] transition-colors flex flex-col">
-                {o.store.latinName}
+              <span className="min-w-0 font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-[color:var(--store-color)] transition-colors flex flex-col">
+                {/* الاسم العربيّ — كانت صفحة القطعة تعرض Amazon وCazaSouq والمقارنةُ أمازون وكازاسوق */}
+                {o.store.name}
                 {!live && <span className="text-[11.5px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>}
                 {lengthsVary && measured(o) !== null && (
                   <OfferLengthTag lengthMm={measured(o)!} variant={(o as any).variant} />
@@ -155,24 +163,31 @@ export default function StoreOfferList({
               </span>
             </div>
 
-            <span
-              className={`font-mono font-black text-xl flex items-center gap-1.5 transition-colors ${
-                live ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'
-              }`}
-            >
-              {o.price ? (
-                <>
-                  {/* السعر المشطوب يظهر فقط عند وجود خصم معلن على هذا المتجر */}
-                  {pct > 0 && (
-                    <span className="text-sm font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
-                      {formatPrice(o.listPrice)}
-                    </span>
-                  )}
-                  {formatPrice(o.price)} <RiyalIcon />
-                </>
-              ) : (
-                '---'
-              )}
+            <span className="shrink-0 flex flex-col items-end gap-1 ps-2">
+              <span
+                className={`font-mono font-black text-lg sm:text-xl flex items-center gap-1.5 whitespace-nowrap transition-colors ${
+                  live ? 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500' : 'text-slate-500'
+                }`}
+              >
+                {o.price ? (
+                  <>
+                    {/* السعر المشطوب يظهر فقط عند وجود خصم معلن على هذا المتجر */}
+                    {pct > 0 && (
+                      <span className="text-sm font-bold text-slate-400 dark:text-slate-500 line-through" dir="ltr">
+                        {formatPrice(o.listPrice)}
+                      </span>
+                    )}
+                    {formatPrice(o.price)} <RiyalIcon />
+                  </>
+                ) : (
+                  '---'
+                )}
+              </span>
+              {/* ما يفعله الضغط، مكتوباً: الصفّ كان يبدو بطاقةً للقراءة لا رابطاً للشراء.
+                  والنافد سعرُه آخرُ ما رصدناه — لا عرضٌ قائم أرخص من المتوفّر */}
+              <span className={`text-[11px] font-bold ${live ? 'text-slate-500 dark:text-slate-400 group-hover:text-[color:var(--store-color)]' : 'text-slate-400 dark:text-slate-500'}`}>
+                {live ? 'اذهب للمتجر ←' : o.price ? 'آخر سعر رصدناه' : ''}
+              </span>
             </span>
           </a>
         );

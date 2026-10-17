@@ -6,6 +6,7 @@ import { dropPercent, formatPrice, MIN_DROP_PERCENT } from '../lib/price';
 import { productImage, IMAGE_FALLBACK } from '../lib/image';
 import { specBadges } from '../lib/spec-badges';
 import MarqueeRail from './MarqueeRail';
+import { catMeta } from '../lib/category-meta';
 
 /**
  * ============ انخفضت أسعارها ============
@@ -204,8 +205,9 @@ export default async function PriceDropsSection() {
                         {/* ارتفاع ثابت للصفّ: الشارة تظهر على بطاقة واحدة،
                             وبلا تثبيت يصير ارتفاعها مختلفاً عن جاراتها */}
                         <div className="flex items-center gap-1.5 h-[1.15rem]">
-                          <span className="text-[12px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest">
-                            {c.category?.name}
+                          {/* بالعربية — كانت «GPU» و«PSU» بحروفٍ متباعدة (تجربة المستخدمين 2026-10-17) */}
+                          <span className="text-[12px] font-black text-slate-500 dark:text-slate-300">
+                            {c.category?.name ? catMeta(c.category.name).label : ''}
                           </span>
                           {c.id === topPctId && (
                             <span className="text-[12px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/15 border border-amber-400/50 dark:border-amber-500/30 px-1.5 rounded-full whitespace-nowrap leading-[1.1rem]">
@@ -256,7 +258,7 @@ export default async function PriceDropsSection() {
 
                         <p className="text-[12px] font-bold text-slate-500 dark:text-slate-400 mt-1 truncate">
                           <span className="text-rose-600 dark:text-rose-400 font-black">
-                            وفّرت {formatPrice(saved)}
+                            توفّر {formatPrice(saved)}
                           </span>
                           {best && <span> · {best.store.name}</span>}
                         </p>

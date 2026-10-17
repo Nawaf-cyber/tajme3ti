@@ -10,6 +10,7 @@ import PriceDropsSection from '../components/PriceDropsSection';
 import { productImage, IMAGE_FALLBACK } from '../lib/image';
 import { formatPrice, formatTotal } from '../lib/price';
 import { GUIDE_CATEGORIES } from '../lib/content';
+import { catMeta } from '../lib/category-meta';
 
 /* ⚠️ كانت revalidate = 300 فتُخزَّن النسخة ٥ دقائق، ومع stale-while-revalidate
    يرى أول زائرٍ بعدها النسخة **القديمة** ويُطلق التجديد للتالي — فالتأخير
@@ -68,7 +69,9 @@ export default async function HomePage() {
       
       
       {/* 1. القسم العلوي (Gaming/Tech Hero — مسارات اللوحة) */}
-      <section className="relative overflow-hidden py-24 md:py-36 flex flex-col items-center text-center px-4">
+      {/* py-14 على الجوال لا py-24: كان القسم العلويّ وحده شاشةً ونصفاً، والصفحة عشر شاشات
+          والتجميعات بالميزانية في السابعة (تجربة المستخدمين 2026-10-17) */}
+      <section className="relative overflow-hidden py-14 md:py-36 flex flex-col items-center text-center px-4">
 
         <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center animate-fade-up">
           
@@ -105,14 +108,15 @@ export default async function HomePage() {
             نظام يفحص توافق كل قطعة برمجياً، ويقارن أسعار المتاجر. تبني بثقة، بدون أخطاء ولا ندم.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 mb-16 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-4 mb-10 md:mb-16 w-full sm:w-auto">
             <Link href="/builder" className="group relative bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-10 rounded-sm transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-0.5 text-base flex items-center justify-center gap-2 w-full sm:w-auto overflow-hidden">
               <span className="relative z-10">ابدأ التجميع الذكي</span>
               <svg className="w-5 h-5 transform rotate-180 relative z-10 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
               <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700"></span>
             </Link>
             <Link href="/components" className="bg-white dark:bg-[#0F172A]/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 dark:hover:text-cyan-300 font-bold py-4 px-10 rounded-sm transition-all duration-300 text-base shadow-sm hover:-translate-y-0.5 w-full sm:w-auto">
-              استعراض المكونات
+              {/* باسم الصفحة التي يفتحها («تصفّح القطع») — كان «استعراض المكونات» والموقع كلّه يقول «القطع» */}
+              تصفّح القطع
             </Link>
           </div>
 
@@ -134,6 +138,10 @@ export default async function HomePage() {
 
         </div>
       </section>
+
+      {/* التجميعات بالميزانية أوّلاً — أقرب ما يبحث عنه المبتدئ، وكانت في الشاشة السابعة على الجوال
+          بعد التخفيضات والمقارنة وأحدث القطع (تجربة المستخدمين 2026-10-17) */}
+      <AutoBuildsSection />
 
         {/* قسم أداة المقارنة */}
       <PriceDropsSection />
@@ -158,8 +166,10 @@ export default async function HomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {latestComponents.map((comp) => (
-              <Link href={`/components/${comp.id}`} key={comp.id} className="group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300">
+            {/* ثلاثٌ على الجوال لا ستّ: كانت البطاقات الستّ وحدها شاشتين ونصفاً (تجربة المستخدمين
+                2026-10-17)، و«عرض الكل» فوقها. والستّ كلّها في HTML وعلى الشاشات الأعرض. */}
+            {latestComponents.map((comp, i) => (
+              <Link href={`/components/${comp.id}`} key={comp.id} className={`${i >= 3 ? 'max-md:hidden ' : ''}group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300`}>
                 <div className="h-40 bg-slate-50 dark:bg-white p-6 flex items-center justify-center border-b border-slate-100 dark:border-slate-200 relative">
                   <img 
                     src={productImage(comp.imageUrl, IMAGE_FALLBACK)} 
@@ -167,8 +177,8 @@ export default async function HomePage() {
                     className="max-w-full max-h-full object-contain filter drop-shadow-sm mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-4 left-4">
-                    <span className="px-2.5 py-1 bg-white dark:bg-slate-100 border border-slate-200 text-[12px] font-black text-slate-600 uppercase tracking-widest rounded-sm shadow-sm">
-                      {comp.category?.name}
+                    <span className="px-2.5 py-1 bg-white dark:bg-slate-100 border border-slate-200 text-[12px] font-black text-slate-600 rounded-sm shadow-sm">
+                      {comp.category?.name ? catMeta(comp.category.name).label : ''}
                     </span>
                   </div>
                 </div>
@@ -187,8 +197,6 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 2. قسم التجميعات المقترحة (الآلي الجديد بدلاً من القديم اليدوي) */}
-      <AutoBuildsSection />
 
       {/* 3. قسم التجميعات الجاهزة */}
       <section className="max-w-7xl mx-auto px-4 pb-20">
