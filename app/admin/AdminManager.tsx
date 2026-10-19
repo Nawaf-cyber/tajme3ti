@@ -12,10 +12,12 @@ import UpdateSingleButton from './components/UpdateSingleButton';
 import CronControlToggle from './components/CronControlToggle';
 import type { CronSource } from '../../lib/cron-settings';
 import ManualUpdateButton from "./components/ManualUpdateButton";
+import UpdateStaleButton from "./components/UpdateStaleButton";
 import AdminNav from './AdminNav';
 import BackToMenuButton from './BackToMenuButton';
 import StoreFieldsGroup from './StoreFieldsGroup';
 import ScrapeStatusBadge, { isStale } from './ScrapeStatusBadge';
+import { fixableByScrape } from '../../lib/price-staleness';
 import { storeVars, type StoreInfo } from '../../lib/stores';
 import { specLabel } from '../../lib/spec-labels';
 import { SPEC_SCHEMA, FEATURES_KEY, NOTES_KEY, readFeatures, readNotes } from '../../lib/spec-schema';
@@ -206,6 +208,8 @@ export default function AdminManager({ categories, components, news, cronStatus,
 
   /* مؤشّرات صحّة التحديث — تجيب سؤال «هل كل القطع تتحدّث؟» بنظرة واحدة */
   const staleCount = components.filter((c) => isStale(c)).length;
+  /* ما يصلحه السحب منها — عدّاد زرّ «حدّث المتأخّرة فقط» (والباقي سعرُه يدويّ) */
+  const staleFixable = components.filter((c) => isStale(c) && fixableByScrape(c)).length;
   const failingCount = components.filter((c) =>
     (c.offers || []).some((o: any) => o.url && o.lastError),
   ).length;
@@ -272,9 +276,10 @@ export default function AdminManager({ categories, components, news, cronStatus,
             <div>
               <span className="block font-bold text-sm text-slate-900 dark:text-white">تشغيلٌ يدويّ الآن</span>
               <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                الشامل يمرّ على الكتالوج كلّه دفعةً بعد دفعة، والسريع على أقدم القطع تحديثاً.
+                «المتأخّرة فقط» يحدّث ما تعدّه اللوحة متأخّراً وحده، والشامل يمرّ على الكتالوج كلّه دفعةً بعد دفعة، والسريع على أقدم ١٠ قطع.
               </span>
             </div>
+            <UpdateStaleButton fixable={staleFixable} manual={staleCount - staleFixable} />
             <UpdatePricesButton />
             <ManualUpdateButton />
           </div>

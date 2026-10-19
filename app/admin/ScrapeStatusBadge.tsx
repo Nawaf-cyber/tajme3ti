@@ -29,6 +29,10 @@
  */
 
 import { priceAsOf } from '../../lib/stores';
+/* التعريف في lib/price-staleness — يحتاجه زرّ «حدّث المتأخّرة فقط» في الخادم أيضاً،
+   وهذا ملفّ عميل لا تُستدعى دوالّه من الخادم. ويُعاد تصديره هنا لمن يستورده من الشارة. */
+import { isStale, shownPriceAge } from '../../lib/price-staleness';
+export { isStale, shownPriceAge };
 
 type OfferLike = {
   lastCheckedAt?: string | Date | null;
@@ -42,41 +46,12 @@ type OfferLike = {
 const hoursSince = (d?: string | Date | null): number | null =>
   d ? (Date.now() - new Date(d).getTime()) / 3600000 : null;
 
-/**
- * عمرُ السعر المعروض للزائر — لا عمرُ آخر محاولة.
- *
- * ⚠️ ويقبل شكل القطعة كما تأتي من `OFFER_INCLUDE`، فلا يحتاج المستدعي
- * أن يتذكّر تمرير شيءٍ ثانٍ — ونسيانُه كان سيُعيد العطل صامتاً.
- */
-export const shownPriceAge = (comp: {
-  lastScrapedAt?: string | Date | null;
-  offers?: any[] | null;
-}): number | null => hoursSince(priceAsOf(comp as any));
-
 export const since = (d?: string | Date | null): string => {
   if (!d) return 'لم تُفحص';
   const h = (Date.now() - new Date(d).getTime()) / 3600000;
   if (h < 1) return 'قبل دقائق';
   if (h < 24) return `قبل ${Math.round(h)} ساعة`;
   return `قبل ${Math.round(h / 24)} يوم`;
-};
-
-/**
- * متأخّرة = لم تُفحص إطلاقاً، أو مضى على فحصها أكثر من يوم، أو **السعر
- * المعروض** أقدم من يوم.
- *
- * ⚠️ والثالثة هي المضافة: مرشّح «المتأخّرة» كان يُخفي القطع الثماني
- * المعلّقة على سعرٍ يدويٍّ عمرُه ٢٨ يوماً — لأنّ الكرون يمرّ عليها كلَّ
- * يوم فتبدو سليمة. وهي أحوج ما في اللوحة إلى مراجعة.
- */
-export const isStale = (comp: {
-  lastScrapedAt?: string | Date | null;
-  offers?: any[] | null;
-}): boolean => {
-  if (!comp.lastScrapedAt) return true;
-  if (Date.now() - new Date(comp.lastScrapedAt).getTime() > 24 * 3600000) return true;
-  const shown = shownPriceAge(comp);
-  return shown != null && shown > 24;
 };
 
 export default function ScrapeStatusBadge({

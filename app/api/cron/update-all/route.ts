@@ -6,7 +6,8 @@ import { dropPercent, MIN_DROP_PERCENT } from '../../../../lib/price';
 import { recordPriceHistory, setScrapeDeadline } from '../../../../lib/scrape-prices';
 import { recordPriceHolds } from '../../../../lib/price-review';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrape-offers';
-import { SCRAPE_STORE_SELECT } from '../../../../lib/stores-server';
+import { SCRAPE_STORE_SELECT, OFFER_INCLUDE } from '../../../../lib/stores-server';
+import { isStale, fixableByScrape } from '../../../../lib/price-staleness';
 import { BATCH_SIZE, CRON_SOURCE_KEY, DEFAULT_CRON_SOURCE, cronCaller, isValidCronSource } from '../../../../lib/cron-settings';
 
 export const maxDuration = 60;
@@ -177,10 +178,45 @@ export async function GET(req: Request) {
        فتكتمل الدورة يومياً بهامش.
        ?limit=N يقلّص الدفعة (للطلبات المصرَّح لها فقط) — لاختبار السحب بعد إضافة متجر
        أو تغيير محدّد، بلا إحراق رصيد دفعة كاملة. */
-    const limitParam = parseInt(new URL(req.url).searchParams.get('limit') || '', 10);
+    const params = new URL(req.url).searchParams;
+    const limitParam = parseInt(params.get('limit') || '', 10);
     const batchSize = limitParam > 0 ? Math.min(limitParam, BATCH_SIZE) : BATCH_SIZE;
+
+    /* ============ «حدّث المتأخّرة فقط» — زرّ اللوحة (?stale=1&since=…) ============
+       الدورات المجدولة تمرّ على ~٩٣٪ من الكتالوج يومياً، فيتخلّف كلّ يومٍ عشراتٌ
+       بعد حدّ اليوم بساعة أو ثلاث (قيس 2026-10-17: ٦٧ قطعة آخر سحبها قبل ٢٥–٢٧ ساعة).
+       والشامل يكنس الكتالوج كلّه (٧٢٢ قطعة ≈ ١١٬٦٠٠ وحدة سحب) ليصل إليها.
+       فهنا تُختار المتأخّرة وحدها — **بتعريف اللوحة نفسه** (lib/price-staleness)،
+       فما تعدّه اللوحة هو ما يُحدَّث.
+
+       ويُستثنى ما لا يصلحه السحب (lib/price-staleness · fixableByScrape — ويعدّ به
+       الزرّ أيضاً): قطعةٌ لا يبيعها متجرٌ يُسحب، أو سُحبت خلال يوم وتأخّرُها من سعرٍ يدويّ.
+       و`since` بداية التشغيلة من الزرّ: ما سُحب بعدها لا يُعاد ولو بقي متأخّراً
+       (متجرٌ فشلت قراءته مثلاً) — وإلّا عادت القطعة نفسها في كلّ دفعة ولم تنتهِ الحلقة.
+
+       للأدمن وحده: نداء الجدولة لا يحمل هذا المسار إلى غير دورته. */
+    const staleMode = !isValidCron && params.get('stale') === '1';
+    const sinceRaw = params.get('since');
+    const staleSince = sinceRaw && !Number.isNaN(Date.parse(sinceRaw)) ? new Date(sinceRaw) : null;
+    let staleQueue: string[] | null = null;
+    let staleTotal = 0;
+    let staleUnfixable = 0;
+    if (staleMode) {
+      const all = await prisma.component.findMany({
+        select: { id: true, lastScrapedAt: true, ...OFFER_INCLUDE },
+        orderBy: { lastScrapedAt: { sort: 'asc', nulls: 'first' } },
+      });
+      const stale = all.filter((c) => isStale(c as any));
+      staleTotal = stale.length;
+      const fixable = stale.filter((c) => fixableByScrape(c as any));
+      staleUnfixable = staleTotal - fixable.length;
+      staleQueue = fixable
+        .filter((c) => !(staleSince && c.lastScrapedAt && c.lastScrapedAt >= staleSince))
+        .map((c) => c.id);
+    }
+
     const components = await prisma.component.findMany({
-      where: searchConditions,
+      where: staleQueue ? { id: { in: staleQueue.slice(0, batchSize) } } : searchConditions,
       /* الأقدم سحباً أولاً، والتي لم تُسحب قط في المقدّمة تماماً.
          (كان الترتيب بـ updatedAt فتقفز أي قطعة تعدّلها لآخر الطابور.) */
       orderBy: { lastScrapedAt: { sort: 'asc', nulls: 'first' } },
@@ -372,6 +408,13 @@ export async function GET(req: Request) {
       totalMatchingCount,
       // معلومات تشغيلية للمراقبة
       batchSize,
+      /* وضع «المتأخّرة فقط»: كم بقي في الطابور بعد هذه الدفعة، وكم متأخّرة لا يصلحها السحب */
+      ...(staleQueue ? {
+        staleMode: true,
+        staleTotal,
+        staleRemaining: Math.max(0, staleQueue.length - updatedCount),
+        staleUnfixable,
+      } : {}),
       /* العدد المُنجَز فعلاً لا حجم الدفعة المجلوبة: مع التوقّف المبكر كان
          السجلّ يقول «35/225 قطعة» وقد فُحصت 25، ويحسب الرصيد على 35. */
       processed: updatedCount,
