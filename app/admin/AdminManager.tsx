@@ -13,6 +13,8 @@ import CronControlToggle from './components/CronControlToggle';
 import type { CronSource } from '../../lib/cron-settings';
 import ManualUpdateButton from "./components/ManualUpdateButton";
 import UpdateStaleButton from "./components/UpdateStaleButton";
+import ProxyHealthPanel from "./components/ProxyHealthPanel";
+import type { ProxyStatus } from "../../lib/proxy-stats";
 import AdminNav from './AdminNav';
 import BackToMenuButton from './BackToMenuButton';
 import StoreFieldsGroup from './StoreFieldsGroup';
@@ -35,7 +37,7 @@ import { fieldMeta } from '../../lib/spec-fields';
 /** حالة التحديث الآلي كما تعيدها getCronStatus */
 type CronStatus = { enabled: boolean; updatesPerDay: number; lastRunAt: Date | string | null; source?: CronSource };
 
-export default function AdminManager({ categories, components, news, cronStatus, settings = {}, stores = [], newRequests = 0, newStoreApps = 0, children }: { categories: any[], components: any[], news: any[], cronStatus: CronStatus, settings?: Record<string, string>, stores?: StoreInfo[], newRequests?: number, newStoreApps?: number, /** الرأس ولوحات التنبيه — تُعرض أعلى عمود المحتوى بجانب الشريط */ children?: ReactNode }) {
+export default function AdminManager({ categories, components, news, cronStatus, proxyStatus, settings = {}, stores = [], newRequests = 0, newStoreApps = 0, children }: { categories: any[], components: any[], news: any[], cronStatus: CronStatus, proxyStatus?: ProxyStatus, settings?: Record<string, string>, stores?: StoreInfo[], newRequests?: number, newStoreApps?: number, /** الرأس ولوحات التنبيه — تُعرض أعلى عمود المحتوى بجانب الشريط */ children?: ReactNode }) {
   const [activeTab, setActiveTab] = useState<'components' | 'news' | 'affiliates'>('components');
   
   const [editingComponent, setEditingComponent] = useState<any>(null);
@@ -284,6 +286,11 @@ export default function AdminManager({ categories, components, news, cronStatus,
             <ManualUpdateButton />
           </div>
         </div>
+        {proxyStatus && (
+          <div className="mt-4">
+            <ProxyHealthPanel status={proxyStatus} />
+          </div>
+        )}
       </section>
       </div>
 

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { getCronStatus } from "./actions"; // 1. استيراد دالة جلب الحالة من الـ actions
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import { getStores, OFFER_INCLUDE } from "../../lib/stores-server";
+import { readProxyStatus, type ProxyStatus } from "../../lib/proxy-stats";
 import PriceReviewPanel from "./PriceReviewPanel";
 import PriceReportsPanel from "./PriceReportsPanel";
 
@@ -49,6 +50,8 @@ export default async function AdminDashboard() {
 
   // 2. جلب حالة التحديث التلقائي من قاعدة البيانات (سيرفر سايد)
   const cronStatus = await getCronStatus();
+  /* صحّة البروكسي العاديّ لأمازون ومايكرولس — آخر ٢٤ ساعة (lib/proxy-stats) */
+  const proxyStatus: ProxyStatus = await readProxyStatus(prisma).catch(() => ({ mode: 'auto' as const, stores: {}, diffs: [] }));
 
   /* 3. جلب إعدادات الأفلييت من جدول Setting.
      كانت مفقودة: updateSettings يحفظ بنجاح، لكن الصفحة لا تقرأ —
@@ -138,7 +141,7 @@ export default async function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-7xl mx-auto">
-        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} settings={settings} stores={stores} newRequests={newRequests} newStoreApps={newStoreApps}>
+        <AdminManager categories={categories} components={components} news={news} cronStatus={cronStatus} proxyStatus={proxyStatus} settings={settings} stores={stores} newRequests={newRequests} newStoreApps={newStoreApps}>
         {/* ============ الرأس: ما يحتاج انتباهك، قبل أن تبحث عنه ============
             الرقمُ الملوّن وحده يستدعي فعلاً؛ والرماديّ معلومةٌ للاطمئنان. */}
         <header>

@@ -14,6 +14,7 @@
 import * as cheerio from 'cheerio';
 import { isBhdText, bhdToSar } from './currency';
 import { classifyPriceChange } from './price';
+import { withProxyFallback } from './proxy-fallback';
 
 /* ---- تدوير لمنزلتين ----
    يمنع نواتج الفاصلة العائمة مثل 409.09*10 = 4090.8999999999996
@@ -287,6 +288,8 @@ export type StoreOutcome = {
   skipped?: boolean;
   /** المتجر قال إنّ المنتج غير موجود (404، أو تحويلٌ إلى الرئيسيّة) — انظر GONE_MARK */
   gone?: boolean;
+  /** عُرفت الصفحة صفحةَ منتج (عنوانه أو بياناته المنظّمة) — شرطُ قبول البروكسي العادي (lib/proxy-fallback) */
+  pageRecognized?: boolean;
 };
 
 const emptyOutcome = (inStock: boolean): StoreOutcome => ({
@@ -339,12 +342,16 @@ const scrapeUrl = (token: string, target: string, premium: boolean) =>
   `https://api.scrape.do/?token=${token}&url=${encodeURIComponent(target)}${premium ? '&super=true' : ''}`;
 
 /* ============================ أمازون ============================ */
-export async function scrapeAmazon(t: OfferTarget, token: string): Promise<StoreOutcome> {
+/* البروكسي العاديّ أولاً والمتقدّم احتياطاً — انظر lib/proxy-fallback */
+export const scrapeAmazon = (t: OfferTarget, token: string): Promise<StoreOutcome> =>
+  withProxyFallback('amazon', t, (premium) => scrapeAmazonVia(t, token, premium));
+
+async function scrapeAmazonVia(t: OfferTarget, token: string, premium: boolean): Promise<StoreOutcome> {
   const out = emptyOutcome(t.inStock ?? true);
   if (!t.url || t.url.length <= 12) return out;
 
   try {
-    const res = await scrapeFetch(scrapeUrl(token, t.url, true));
+    const res = await scrapeFetch(scrapeUrl(token, t.url, premium));
     if (!res.ok) {
       httpFailure(out, `أمازون (${t.name})`, res.status);
       return out;
@@ -377,6 +384,7 @@ export async function scrapeAmazon(t: OfferTarget, token: string): Promise<Store
     const hasPriceBlock =
       $('#corePriceDisplay_desktop_feature_div').length > 0 || $('#corePrice_feature_div').length > 0;
     const isProductPage = $('#productTitle').length > 0;
+    out.pageRecognized = isProductPage;
 
     if (saysUnavailable) out.inStock = false;
     else if (canBuy) out.inStock = true;
@@ -512,12 +520,16 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
 }
 
 /* =========================== مايكرولس =========================== */
-export async function scrapeMicroless(t: OfferTarget, token: string): Promise<StoreOutcome> {
+/* البروكسي العاديّ أولاً والمتقدّم احتياطاً — انظر lib/proxy-fallback */
+export const scrapeMicroless = (t: OfferTarget, token: string): Promise<StoreOutcome> =>
+  withProxyFallback('microless', t, (premium) => scrapeMicrolessVia(t, token, premium));
+
+async function scrapeMicrolessVia(t: OfferTarget, token: string, premium: boolean): Promise<StoreOutcome> {
   const out = emptyOutcome(t.inStock ?? true);
   if (!t.url || t.url.length <= 12) return out;
 
   try {
-    const res = await scrapeFetch(scrapeUrl(token, t.url, true));
+    const res = await scrapeFetch(scrapeUrl(token, t.url, premium));
     if (!res.ok) {
       httpFailure(out, `مايكروليس (${t.name})`, res.status);
       return out;
@@ -541,6 +553,9 @@ export async function scrapeMicroless(t: OfferTarget, token: string): Promise<St
        فكانت ٥ أقراص نافدة تُحسب متوفّرة وتُسجَّل خطأ "لم نجد سعراً". */
     const ld = jsonLdOffer($);
     const metaAvailability = $('meta[property="product:availability"]').attr('content') || '';
+    out.pageRecognized =
+      !!metaAvailability || ld.inStock != null || ld.price != null ||
+      !!$('meta[property="product:price:amount"]').attr('content');
     if (metaAvailability.includes('out of stock') || metaAvailability.includes('oos')) {
       out.inStock = false;
     } else if (ld.inStock != null) {

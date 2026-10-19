@@ -8,6 +8,7 @@ import { recordPriceHolds } from '../../../../lib/price-review';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT, OFFER_INCLUDE } from '../../../../lib/stores-server';
 import { isStale, fixableByScrape } from '../../../../lib/price-staleness';
+import { loadProxyMode, flushProxyStats, alertProxy } from '../../../../lib/proxy-stats';
 import { BATCH_SIZE, CRON_SOURCE_KEY, DEFAULT_CRON_SOURCE, cronCaller, isValidCronSource } from '../../../../lib/cron-settings';
 
 export const maxDuration = 60;
@@ -251,6 +252,9 @@ export async function GET(req: Request) {
        والفحص صار كل ٥ قطع لا كل ١٠: الفحص بين الدفعات يترك تجاوزاً بمقدار
        زمن الدفعة كاملة، وتنصيفها ينصّف التجاوز. (التزامن لا يتأثّر — يحكمه
        بوّابة SCRAPE_CONCURRENCY لا حجم الدفعة.) */
+    /* البروكسي العاديّ أولاً لأمازون ومايكرولس، أو المتقدّم دائماً — من مفتاح اللوحة (lib/proxy-fallback) */
+    await loadProxyMode(prisma);
+
     const startTime = Date.now();
     const TIME_BUDGET_MS = 42000;
     setScrapeDeadline(52000); // آخر لحظة يُسمح فيها لطلب شبكة أن يتنفّس
@@ -344,6 +348,11 @@ export async function GET(req: Request) {
         });
       }));
     }
+
+    /* عدّادات البروكسي العاديّ إلى القاعدة، وتنبيه ديسكورد إن ظهر فرقٌ أو كثر الاحتياط.
+       ⚠️ بعد الحلقة لا داخلها: كتابةٌ واحدة لكلّ تشغيلة، والفشل هنا لا يُفشلها. */
+    const proxySnap = await flushProxyStats(prisma);
+    await alertProxy(proxySnap);
 
     /* يبقى شاملاً كل ما فُحص: زرّ اللوحة يقرأ طوله ليعرف هل بقيت قطع
        (updatedNames.length === 0 → توقّف). تصفيته للإشعار كانت ستوقف

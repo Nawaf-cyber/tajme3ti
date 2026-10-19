@@ -7,6 +7,7 @@ import { recordPriceHistory, setScrapeDeadline } from '../../../lib/scrape-price
 import { recordPriceHolds } from '../../../lib/price-review';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../lib/scrape-offers';
 import { SCRAPE_STORE_SELECT } from '../../../lib/stores-server';
+import { loadProxyMode, flushProxyStats, alertProxy } from '../../../lib/proxy-stats';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -68,8 +69,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "لا يوجد رابط متجر واحد لهذه القطعة" }, { status: 400 });
     }
 
-    // ---- السحب والحساب: نفس منطق الكرون ----
+    // ---- السحب والحساب: نفس منطق الكرون (والبروكسي بوضع اللوحة نفسه) ----
+    await loadProxyMode(prisma);
     const scraped = await scrapeComponentOffers(comp as any, SCRAPER_API_KEY);
+    await alertProxy(await flushProxyStats(prisma));
     const resolved = resolveOfferPrices(comp as any, scraped.results);
 
     for (const u of resolved.offerUpdates) {

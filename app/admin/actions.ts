@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../api/auth/[...nextauth]/route';
 import { isCazasouqTrackingUrl } from '../../lib/affiliate';
 import { PART_REQUEST_MODE_KEY, isValidPartRequestMode } from '../../lib/part-request';
+import { PROXY_MODE_KEY } from '../../lib/proxy-stats';
 import { DEFAULT_UPDATES_PER_DAY, isValidFrequency, CRON_SOURCE_KEY, DEFAULT_CRON_SOURCE, isValidCronSource, type CronSource } from '../../lib/cron-settings';
 
 /* رابط تتبّع كازاسوق: نقبله فقط إن كان رابط idevaffiliate صالحاً.
@@ -391,5 +392,24 @@ export async function updateSettings(formData: FormData) {
   } catch (error: any) {
     console.error("خطأ قاعدة البيانات أثناء حفظ العمولات:", error);
     throw new Error("فشل الحفظ في قاعدة البيانات");
+  }
+}
+/* البروكسي لأمازون ومايكرولس: «auto» العاديّ أولاً والمتقدّم احتياطاً، «premium» المتقدّم
+   دائماً (الوضع القديم). يُقرأ أوّلَ كلّ تشغيلة سحب (lib/proxy-stats) فلا يحتاج نشراً. */
+export async function setProxyModeAction(mode: string) {
+  await assertAdmin();
+  if (mode !== 'auto' && mode !== 'premium') {
+    return { success: false, error: 'وضعٌ غير معروف.' };
+  }
+  try {
+    await prisma.setting.upsert({
+      where: { key: PROXY_MODE_KEY },
+      update: { value: mode },
+      create: { key: PROXY_MODE_KEY, value: mode },
+    });
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }
