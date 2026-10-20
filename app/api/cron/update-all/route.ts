@@ -250,9 +250,8 @@ export async function GET(req: Request) {
        محاولة 429) يتجاوز السقف مهما ضيّقنا الميزانية — وهو ما حدث في أوّل
        تشغيلة جدولة عملت فعلاً: الدفعة الأولى ٣٦ث ✓ والثانية 504.
 
-       والفحص صار كل ٥ قطع لا كل ١٠: الفحص بين الدفعات يترك تجاوزاً بمقدار
-       زمن الدفعة كاملة، وتنصيفها ينصّف التجاوز. (التزامن لا يتأثّر — يحكمه
-       بوّابة SCRAPE_CONCURRENCY لا حجم الدفعة.) */
+       والفحص قبل كلّ قطعة تبدأ (انظر «طابورٌ لا مجموعات» أدناه)، فالتجاوز بعد
+       الميزانية بزمن قطعةٍ واحدة لا مجموعة. (التزامن يحكمه بوّابة SCRAPE_CONCURRENCY.) */
     /* البروكسي العاديّ أولاً لأمازون ومايكرولس، أو المتقدّم دائماً — من مفتاح اللوحة (lib/proxy-fallback) */
     await loadProxyMode(prisma);
 
@@ -261,18 +260,18 @@ export async function GET(req: Request) {
     setScrapeDeadline(52000); // آخر لحظة يُسمح فيها لطلب شبكة أن يتنفّس
     let stoppedEarly = false;
 
-    const chunkSize = 5;
-    for (let i = 0; i < components.length; i += chunkSize) {
-      // إن اقترب الوقت من الحد، نتوقف بأمان بدل أن تُقطع العملية فجأة
-      if (Date.now() - startTime > TIME_BUDGET_MS) {
-        stoppedEarly = true;
-        allErrors.push(`توقّف مبكر: بقيت ${components.length - i} قطعة لتشغيلة قادمة.`);
-        break;
-      }
+    /* ============ طابورٌ لا مجموعات ============
+       ⚠️ كانت القطع تُسحب خمساً خمساً (Promise.all لكلّ خمس)، والمجموعة تنتظر أبطأ صفحاتها
+       قبل أن تبدأ التالية — وصفحةُ أمازون تبلغ ٢٠ث أحياناً. فكانت الدفعة تقف عند الميزانية
+       (٤٢ث) بعد ١٥–٣٠ قطعة من ٣٥، بأعدادٍ من مضاعفات الخمسة دائماً (قيس 2026-10-20 على ٣٢ دفعة).
+       فالدورة تغطّي ~٨٥ قطعة لا ١٠٥، والكتالوج ٧٢٢ لا يكتمل يومياً — وهذا أصل «المتأخّرة».
 
-      const chunk = components.slice(i, i + chunkSize);
+       الآن عمّالٌ ثابتون يأخذ كلٌّ القطعة التالية حين يفرغ: الصفحة البطيئة تؤخّر قطعتها
+       وحدها. والعدد يملأ بوّابة الطلبات (٨) بلا زحام: القطعة ~١٫٦ طلب سحب. */
+    const PARTS_IN_FLIGHT = 6;
+    let nextIndex = 0;
 
-      await Promise.all(chunk.map(async (comp) => {
+    const processComp = async (comp: (typeof components)[number]) => {
         // ---- السحب والحساب: منطق مشترك مع «تحديث قطعة واحدة» ----
         const scraped = await scrapeComponentOffers(comp as any, SCRAPER_API_KEY);
         const resolved = resolveOfferPrices(comp as any, scraped.results);
@@ -347,7 +346,20 @@ export async function GET(req: Request) {
           storeLinks: stores,
           notable,
         });
-      }));
+    };
+
+    const worker = async () => {
+      while (true) {
+        // إن اقترب الوقت من الحد، لا تبدأ قطعةً جديدة — التي بدأت تُكمل بمهلتها
+        if (Date.now() - startTime > TIME_BUDGET_MS) { stoppedEarly = true; return; }
+        const i = nextIndex++;
+        if (i >= components.length) return;
+        await processComp(components[i]);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(PARTS_IN_FLIGHT, components.length) }, worker));
+    if (stoppedEarly && updatedCount < components.length) {
+      allErrors.push(`توقّف مبكر: بقيت ${components.length - updatedCount} قطعة لتشغيلة قادمة.`);
     }
 
     /* عدّادات البروكسي العاديّ إلى القاعدة، وتنبيه ديسكورد إن ظهر فرقٌ أو كثر الاحتياط.

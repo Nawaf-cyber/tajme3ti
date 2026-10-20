@@ -25,8 +25,10 @@ export const DEFAULT_UPDATES_PER_DAY = 6;
 /** سقف الدفعة الواحدة في مسار الكرون */
 export const BATCH_SIZE = 35;
 
-/** ما تُنجزه الدفعة فعلاً: الميزانية الزمنية (٤٢ث) توقفها قبل السقف */
-export const BATCH_EFFECTIVE = 28;
+/** ما تُنجزه الدفعة فعلاً. كان ٢٨ والقطع تُسحب خمساً خمساً (والواقع ١٥–٣٠)؛ وبالطابور
+ *  (cron/update-all — 2026-10-20) أنجزت الدفعة ٣٥/٣٥ في ٣٧ث مقابل ٢٠/٣٥ في ٥٢ث على قطعٍ حقيقيّة.
+ *  والرقم الفعليّ يُعرض بجانبه في اللوحة (CronControlToggle · scrapedLast24h). */
+export const BATCH_EFFECTIVE = 35;
 
 /** دفعات التشغيلة الواحدة — يطابق BATCHES في .github/workflows/update-prices.yml */
 export const BATCHES_PER_RUN = 3;
