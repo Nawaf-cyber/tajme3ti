@@ -20,6 +20,7 @@ export default function CronControlToggle({
   initialPerDay,
   lastRunAt,
   catalogCount = 0,
+  scrapedLast24h,
   initialSource = 'vercel',
 }: {
   initialStatus: boolean;
@@ -27,6 +28,8 @@ export default function CronControlToggle({
   lastRunAt?: Date | string | null;
   /** حجم الكتالوج الحقيقي — كان مكتوباً في النصّ «٢٢٥» وقد صار ٢٥٦ */
   catalogCount?: number;
+  /** ما سُحب فعلاً خلال ٢٤ ساعة — بجانب الحساب النظريّ، لا بدلاً منه */
+  scrapedLast24h?: number;
   /** مصدر الجدولة المُنفَّذ — والآخر مربوطٌ ويُهمَل نداؤه */
   initialSource?: CronSource;
 }) {
@@ -184,7 +187,19 @@ export default function CronControlToggle({
           كل دورة تفحص {BATCHES_PER_RUN} دفعات (~{PER_RUN} قطعة) وتستهلك رصيد السحب.
           {catalogCount > 0 && <> الكتالوج {catalogCount} قطعة، فـ
             <span className="font-bold text-slate-700 dark:text-slate-200"> {perDay} {perDay === 1 ? 'مرّة' : 'مرّات'} </span>
-            تفحص {coverageLabel}.</>}
+            تفحص {coverageLabel} نظرياً.</>}
+          {/* ⚠️ والفعليّ بجانبه: النظريّ قال «~٩٣٪» يوم كانت الدورة تغطّي النصف (أبطأ صفحات
+              مايكرولس بالبروكسي العاديّ — 2026-10-20)، فبدت اللوحة تكذّب عدّادَ المتأخّرة فوقها */}
+          {catalogCount > 0 && scrapedLast24h != null && (() => {
+            const actual = scrapedLast24h / catalogCount;
+            const short = actual < Math.min(1, coverage) * 0.85;
+            return (
+              <span className={`block mt-1 font-bold ${short ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
+                فعلياً آخر 24 ساعة: {scrapedLast24h} قطعة ({Math.round(actual * 100)}٪)
+                {short && ' — أقلّ من المتوقّع: الدفعات أبطأ من حسابها، فشيّك على مفتاح البروكسي تحت'}
+              </span>
+            );
+          })()}
         </p>
       </div>
     </div>

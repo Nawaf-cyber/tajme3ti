@@ -6,7 +6,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../api/auth/[...nextauth]/route';
 import { isCazasouqTrackingUrl } from '../../lib/affiliate';
 import { PART_REQUEST_MODE_KEY, isValidPartRequestMode } from '../../lib/part-request';
-import { PROXY_MODE_KEY } from '../../lib/proxy-stats';
+import { proxyModeKey } from '../../lib/proxy-stats';
+import { PROXY_STORES } from '../../lib/proxy-fallback';
 import { DEFAULT_UPDATES_PER_DAY, isValidFrequency, CRON_SOURCE_KEY, DEFAULT_CRON_SOURCE, isValidCronSource, type CronSource } from '../../lib/cron-settings';
 
 /* رابط تتبّع كازاسوق: نقبله فقط إن كان رابط idevaffiliate صالحاً.
@@ -394,18 +395,19 @@ export async function updateSettings(formData: FormData) {
     throw new Error("فشل الحفظ في قاعدة البيانات");
   }
 }
-/* البروكسي لأمازون ومايكرولس: «auto» العاديّ أولاً والمتقدّم احتياطاً، «premium» المتقدّم
-   دائماً (الوضع القديم). يُقرأ أوّلَ كلّ تشغيلة سحب (lib/proxy-stats) فلا يحتاج نشراً. */
-export async function setProxyModeAction(mode: string) {
+/* البروكسي لكلّ متجر: «auto» العاديّ أولاً والمتقدّم احتياطاً، «premium» المتقدّم دائماً.
+   يُقرأ أوّلَ كلّ تشغيلة سحب (lib/proxy-stats) فلا يحتاج نشراً. */
+export async function setProxyModeAction(store: string, mode: string) {
   await assertAdmin();
-  if (mode !== 'auto' && mode !== 'premium') {
-    return { success: false, error: 'وضعٌ غير معروف.' };
+  if (!(PROXY_STORES as readonly string[]).includes(store) || (mode !== 'auto' && mode !== 'premium')) {
+    return { success: false, error: 'متجرٌ أو وضعٌ غير معروف.' };
   }
   try {
+    const key = proxyModeKey(store);
     await prisma.setting.upsert({
-      where: { key: PROXY_MODE_KEY },
+      where: { key },
       update: { value: mode },
-      create: { key: PROXY_MODE_KEY, value: mode },
+      create: { key, value: mode },
     });
     revalidatePath('/admin');
     return { success: true };

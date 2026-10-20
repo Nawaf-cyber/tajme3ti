@@ -273,6 +273,7 @@ export default function AdminManager({ categories, components, news, cronStatus,
             lastRunAt={cronStatus.lastRunAt}
             initialSource={cronStatus.source}
             catalogCount={components.length}
+            scrapedLast24h={components.filter((c) => c.lastScrapedAt && Date.now() - new Date(c.lastScrapedAt).getTime() < 24 * 3600000).length}
           />
           <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/50 p-4 flex flex-col gap-3">
             <div>

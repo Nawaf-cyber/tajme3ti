@@ -17,8 +17,8 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
-/* مقيسٌ من عدّاد Scrape.do (2026-08-11) — وهو معامل الكرون نفسه في estimatedCredits */
-const CREDITS_PER_PART = 16.1;
+/* تقدير وحدات السحب للقطعة — مصدرٌ واحد مع ردّ الكرون (lib/proxy-fallback) */
+import { CREDITS_PER_PART } from '../../../lib/proxy-fallback';
 
 /* `fixable` ما يصلحه السحب من المتأخّرة، و`manual` الباقي (سعرُه يدويّ — يُصحَّح يداً).
    والعدّان بالتعريف نفسه الذي يختار به الخادم (lib/price-staleness). */

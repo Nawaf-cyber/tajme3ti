@@ -35,9 +35,23 @@ export type ProxyDiff = {
 /** نحو ٢٠ صفحة يومياً من ~١١٥٠ — كافيةٌ لرصد فرقٍ منهجيّ، وكلفتها <٢٪ من الاستهلاك */
 export const SAMPLE_RATE = 0.02;
 
-let mode: ProxyMode = 'auto';
-export const setProxyMode = (m: ProxyMode) => { mode = m; };
-export const getProxyMode = () => mode;
+/* ============ الوضع لكلّ متجر ============
+   ⚠️ قيس بعد أوّل يومٍ في الإنتاج (2026-10-20): الدورة صارت تغطّي ٤٠–٥٥ قطعة بدل ٨٠–١٠٠،
+   فارتفعت المتأخّرة من ٥ إلى ٢٩١. والسبب مايكرولس: صفحتُه بالعاديّ ٦٫٩ث وسطياً وبالمتقدّم
+   ١٫٦ث (خمس صفحات بالطريقتين)، والدفعة تنتظر أبطأ صفحاتها. وأمازون بالعاديّ ٤٫٠ث وبالمتقدّم
+   ٤٫٠ث — لا فرق في السرعة وعُشر الرصيد. فالوضع لكلّ متجر، والافتراضيّ ما قِيس. */
+export const PROXY_STORES = ['amazon', 'microless'] as const;
+
+/* متوسّط وحدات السحب للقطعة بالأوضاع الافتراضيّة — تقديرٌ محسوب لا مقيس: مرور الكتالوج
+   (2026-10-20) أمازون ٦٢٧ عرضاً بالعاديّ (~١٬٠٠٠ مع الاحتياط والعيّنة) + مايكرولس ٥٢٤ بالمتقدّم
+   (٥٬٢٤٠) + الباقي (٣٠٩) ≈ ٦٬٥٥٠ ÷ ٧١٧ قطعة. وكان ١٦٫١ مقيساً من عدّاد Scrape.do قبل
+   البروكسي العاديّ (2026-08-11). يقرؤه زرّ «المتأخّرة» وردّ الكرون. */
+export const CREDITS_PER_PART = 9.1;
+export const DEFAULT_PROXY_MODES: Record<string, ProxyMode> = { amazon: 'auto', microless: 'premium' };
+
+let modes: Record<string, ProxyMode> = { ...DEFAULT_PROXY_MODES };
+export const setProxyModes = (m: Record<string, ProxyMode>) => { modes = { ...DEFAULT_PROXY_MODES, ...m }; };
+export const getProxyModes = () => modes;
 
 const emptyCounts = (): ProxyCounts => ({ normalOk: 0, fallback: 0, bothFail: 0, sampleSame: 0, sampleDiff: 0 });
 let tally: Record<string, ProxyCounts> = {};
@@ -75,7 +89,7 @@ export async function withProxyFallback(
   target: { name: string; url: string | null },
   run: (premium: boolean) => Promise<StoreOutcome>,
 ): Promise<StoreOutcome> {
-  if (mode === 'premium' || !target.url) return run(true);
+  if (modes[store] !== 'auto' || !target.url) return run(true);
 
   const normal = await run(false);
   if (!cleanNormal(normal)) {

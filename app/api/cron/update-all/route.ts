@@ -9,6 +9,7 @@ import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrap
 import { SCRAPE_STORE_SELECT, OFFER_INCLUDE } from '../../../../lib/stores-server';
 import { isStale, fixableByScrape } from '../../../../lib/price-staleness';
 import { loadProxyMode, flushProxyStats, alertProxy } from '../../../../lib/proxy-stats';
+import { CREDITS_PER_PART } from '../../../../lib/proxy-fallback';
 import { BATCH_SIZE, CRON_SOURCE_KEY, DEFAULT_CRON_SOURCE, cronCaller, isValidCronSource } from '../../../../lib/cron-settings';
 
 export const maxDuration = 60;
@@ -430,10 +431,10 @@ export async function GET(req: Request) {
       elapsedSeconds: elapsedSec,
       stoppedEarly,
       heldForReview: heldCount, // يظهر في سجلّ الـworkflow فتعرف أن ثمّة ما يُراجَع
-      /* على المُنجَز لا على حجم الدفعة، وبالمعامل المقيس لا المقدَّر:
-         قِيس فعلياً من عدّاد Scrape.do (٢٠٢٦-٠٨-١١) أن الطلب العادي = ١
-         والمتقدّم super=true = ١٠، وأن القطعة تكلّف ١٦٫١ طلباً وسطياً. */
-      estimatedCredits: Math.round(updatedCount * 16.1),
+      /* على المُنجَز لا على حجم الدفعة. الطلب العادي = ١ والمتقدّم super=true = ١٠
+         (مقيس من عدّاد Scrape.do ٢٠٢٦-٠٨-١١)، ومتوسّط القطعة بعد البروكسي العاديّ لأمازون
+         في lib/proxy-fallback (CREDITS_PER_PART) — كان ١٦٫١ قبله. */
+      estimatedCredits: Math.round(updatedCount * CREDITS_PER_PART),
       errors: allErrors.length > 0 ? allErrors : null
     });
 

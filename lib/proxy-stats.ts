@@ -12,9 +12,13 @@
  */
 
 import type { PrismaClient } from '@prisma/client';
-import { setProxyMode, takeProxyTally, type ProxyCounts, type ProxyDiff, type ProxyMode } from './proxy-fallback';
+import { setProxyModes, takeProxyTally, DEFAULT_PROXY_MODES, PROXY_STORES, type ProxyCounts, type ProxyDiff, type ProxyMode } from './proxy-fallback';
 
-export const PROXY_MODE_KEY = 'proxy.mode';
+/** وضع كلّ متجر: `proxy.mode.amazon` = auto | premium. وغيابُه = DEFAULT_PROXY_MODES */
+export const proxyModeKey = (store: string) => `proxy.mode.${store}`;
+/* المفتاح العامّ القديم (يومٌ واحد في الإنتاج): «premium» فيه يُبقي المتجرين متقدّمَين احتراماً
+   لاختيارٍ صريح، وغيرُه يُهمَل لصالح مفتاح كلّ متجر */
+const LEGACY_MODE_KEY = 'proxy.mode';
 const HOUR_PREFIX = 'proxy.h.';
 const DIFFS_KEY = 'proxy.diffs';
 const KEEP_DIFFS = 40;
@@ -25,16 +29,29 @@ const parse = <T,>(s: string | null | undefined, fallback: T): T => {
   try { return s ? (JSON.parse(s) as T) : fallback; } catch { return fallback; }
 };
 
-/** يُستدعى قبل السحب: الوضع من اللوحة (`auto` افتراضاً) */
-export async function loadProxyMode(prisma: PrismaClient): Promise<ProxyMode> {
+/** أوضاع المتاجر من الإعدادات — للسحب وللوحة معاً */
+async function readModes(prisma: PrismaClient): Promise<Record<string, ProxyMode>> {
+  const rows = await prisma.setting.findMany({
+    where: { key: { in: [LEGACY_MODE_KEY, ...PROXY_STORES.map(proxyModeKey)] } },
+  });
+  const legacyPremium = rows.find((r) => r.key === LEGACY_MODE_KEY)?.value === 'premium';
+  const out: Record<string, ProxyMode> = { ...DEFAULT_PROXY_MODES };
+  for (const s of PROXY_STORES) {
+    const v = rows.find((r) => r.key === proxyModeKey(s))?.value;
+    out[s] = isMode(v) ? v : legacyPremium ? 'premium' : DEFAULT_PROXY_MODES[s];
+  }
+  return out;
+}
+
+/** يُستدعى قبل السحب. وإن تعذّرت القراءة فالافتراضيّ المقيس */
+export async function loadProxyMode(prisma: PrismaClient): Promise<Record<string, ProxyMode>> {
   try {
-    const row = await prisma.setting.findUnique({ where: { key: PROXY_MODE_KEY } });
-    const m = isMode(row?.value) ? row!.value : 'auto';
-    setProxyMode(m);
+    const m = await readModes(prisma);
+    setProxyModes(m);
     return m;
   } catch {
-    setProxyMode('auto');
-    return 'auto';
+    setProxyModes(DEFAULT_PROXY_MODES);
+    return DEFAULT_PROXY_MODES;
   }
 }
 
@@ -119,15 +136,15 @@ export async function alertProxy(snap: ProxySnapshot): Promise<void> {
 
 /* ============ للوحة: آخر ٢٤ ساعة ============ */
 export type ProxyStatus = {
-  mode: ProxyMode;
+  modes: Record<string, ProxyMode>;
   stores: Record<string, ProxyCounts>;
   diffs: ProxyDiff[];
 };
 
 export async function readProxyStatus(prisma: PrismaClient): Promise<ProxyStatus> {
   const since = hourKey(new Date(Date.now() - 24 * 3600_000));
-  const [modeRow, rows, diffsRow] = await Promise.all([
-    prisma.setting.findUnique({ where: { key: PROXY_MODE_KEY } }),
+  const [modes, rows, diffsRow] = await Promise.all([
+    readModes(prisma),
     prisma.setting.findMany({ where: { key: { startsWith: HOUR_PREFIX, gt: since } } }),
     prisma.setting.findUnique({ where: { key: DIFFS_KEY } }),
   ]);
@@ -140,7 +157,7 @@ export async function readProxyStatus(prisma: PrismaClient): Promise<ProxyStatus
   }
   const dayAgo = Date.now() - 24 * 3600_000;
   return {
-    mode: isMode(modeRow?.value) ? modeRow!.value : 'auto',
+    modes,
     stores,
     diffs: parse<ProxyDiff[]>(diffsRow?.value, []).filter((d) => Date.parse(d.at) >= dayAgo),
   };

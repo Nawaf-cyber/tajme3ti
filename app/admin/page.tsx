@@ -51,7 +51,7 @@ export default async function AdminDashboard() {
   // 2. جلب حالة التحديث التلقائي من قاعدة البيانات (سيرفر سايد)
   const cronStatus = await getCronStatus();
   /* صحّة البروكسي العاديّ لأمازون ومايكرولس — آخر ٢٤ ساعة (lib/proxy-stats) */
-  const proxyStatus: ProxyStatus = await readProxyStatus(prisma).catch(() => ({ mode: 'auto' as const, stores: {}, diffs: [] }));
+  const proxyStatus: ProxyStatus = await readProxyStatus(prisma).catch(() => ({ modes: {}, stores: {}, diffs: [] }));
 
   /* 3. جلب إعدادات الأفلييت من جدول Setting.
      كانت مفقودة: updateSettings يحفظ بنجاح، لكن الصفحة لا تقرأ —
