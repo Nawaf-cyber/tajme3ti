@@ -36,6 +36,8 @@ import { isAvailable } from './stores';
 import { boardFitsCase, psuFitsCase, gpuFitsCase, shownGpuLengthMm, coolerFitsCase, coolerFitsCpu, cpuPowerFitsBoard } from './fit';
 import { bundledCooler } from './build-check';
 import { gpuPerf, feel, type FeelLevel } from './gpu-perf';
+import { cpuPerf } from './cpu-perf';
+import { cpuTierFromMulti } from './perf-tier';
 
 export type TierPlan = {
   key: 'value' | 'balanced' | 'strong';
@@ -189,8 +191,24 @@ export function buildIntentPlans(categories: Category[], intent: Intent): TierPl
   /* السقوف تُطبّق أولاً: "ألعاب خفيفة" لا تتجاوز كرت مستوى 2 مهما كان المستوى.
      المستوى المجهول (null) يُستبعد — لا يخترق السقف بصمت. */
   const gpusAll = profile.noGpu ? [] : pool('GPU').filter((c) => c.performanceTier != null && c.performanceTier <= gpuCapEff);
+  /* ============ المونتاج: المعالج بتعدّد الأنوية لا بالألعاب ============
+     ⚠️ performanceTier في القاعدة مستوى **الألعاب** المقيس (lib/perf-tier — 2026-10-21)،
+     وبه وحده صار مستوى ٥ معالجاتِ X3D الثمانية الأنوية؛ فاختار المونتاج 7800X3D بدل
+     i9-14900KF ذي الأربعة والعشرين نواة. فلهذا الاستخدام وحده يُقرأ مستوى «العمل» من
+     تعدّد الأنوية المقيس، على نسخٍ من القطع — والمختار يُعاد إلى أصله قبل الخطّة، كي لا
+     يحمل الباني مستوىً غير مستوى القاعدة. ما لا قياس له يبقى بمستواه. */
+  const workCpu = intent.use === 'editing';
+  const cpuOriginal = new Map<string, any>();
+  const forUse = (c: any) => {
+    if (!workCpu) return c;
+    const m = cpuPerf(String(c.name || ''))?.multi;
+    if (m == null) return c;
+    cpuOriginal.set(c.id, c);
+    return { ...c, performanceTier: cpuTierFromMulti(m) };
+  };
+
   /* مكتبي: المعالج وحده يرسم الشاشة — فلا يُقبل معالجٌ بلا رسوميّات مدمجة */
-  const cpuBase = pool('CPU').filter((c) => !profile.noGpu || !/^\s*(none)?\s*$/i.test(String(parseSpecs(c.specs).integratedGraphics || '')));
+  const cpuBase = pool('CPU').map(forUse).filter((c) => !profile.noGpu || !/^\s*(none)?\s*$/i.test(String(parseSpecs(c.specs).integratedGraphics || '')));
   const cpuInRange = cpuBase.filter((c) => c.performanceTier != null && c.performanceTier >= profile.cpuFloor && c.performanceTier <= profile.cpuCap);
   let cpusAll = cpuInRange.length ? cpuInRange : cpuBase.filter((c) => c.performanceTier != null && c.performanceTier <= profile.cpuCap);
 
@@ -529,6 +547,7 @@ export function buildIntentPlans(categories: Category[], intent: Intent): TierPl
       ? { fps: Math.round(fps), res, feel: feel(fps), note: intent.use === 'competitive-shooter' ? 'وألعاب الشوتر أعلى بكثير' : undefined }
       : null;
 
+    if (picks['CPU'] && cpuOriginal.has(picks['CPU'].id)) picks['CPU'] = cpuOriginal.get(picks['CPU'].id);
     plans.push({ key: L.key, label: L.label, note: reasonFull, total, picks, perf, vramNeed: picks['GPU'] ? gpuVramNeed(intent, L.key) : undefined });
   }
 
