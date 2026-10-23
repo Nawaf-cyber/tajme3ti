@@ -17,7 +17,8 @@ export const revalidate = 86400;
 const EDITED: Record<string, string> = {
   '/builder': '2026-10-15',   // العنوان والشرح من الخادم
   '/prebuilds': '2026-10-15', // سعر لحظيّ للمتوفّر
-  '/about': '2026-10-15',     // كيف نجمع الأسعار ونتموّل
+  '/about': '2026-10-15',     // كيف نجمع الأسعار ونتموّل
+  '/how-we-rate': '2026-10-22', // تقييم الأداء: المصدر والحدود
   '/privacy': '2026-10-15',   // DoubleClick وشركاء أمازون والبريد
   '/compare': '2026-08-20',
   '/contact': '2026-08-20',
@@ -79,7 +80,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/news`,       lastModified: latestNews,  changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${BASE_URL}/guides`,     lastModified: latestGuide, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${BASE_URL}/compare`,    lastModified: edited('/compare'),    changeFrequency: 'weekly',  priority: 0.7 },
-    { url: `${BASE_URL}/about`,      lastModified: edited('/about'),      changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE_URL}/about`,      lastModified: edited('/about'),      changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE_URL}/how-we-rate`, lastModified: edited('/how-we-rate'), changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE_URL}/for-stores`, lastModified: edited('/for-stores'), changeFrequency: 'monthly', priority: 0.4 },
     { url: `${BASE_URL}/contact`,    lastModified: edited('/contact'),    changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE_URL}/privacy`,    lastModified: edited('/privacy'),    changeFrequency: 'yearly',  priority: 0.3 },

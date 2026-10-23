@@ -20,6 +20,8 @@ import RigFitRow, { useRigFits } from './RigFitRow';
 import { buildVerdict, type VerdictInput } from '../../lib/compare-verdict';
 import { gpuPerf, feelLine, GPU_PERF_SOURCE } from '../../lib/gpu-perf';
 import { cpuPerf, CPU_PERF_SOURCE } from '../../lib/cpu-perf';
+import { partRatings } from '../../lib/perf-rating';
+import RatingMeter from '../../components/RatingMeter';
 import { gpuUpscaler, UPSCALING_SOURCES } from '../../lib/gpu-upscaling';
 import ComparePriceHistory, { SERIES_COLORS, type HistorySeries } from './ComparePriceHistory';
 import SuggestPartCard from '../../components/SuggestPartCard';
@@ -1206,6 +1208,7 @@ export default function CompareClient({
                 {/* صف مستوى الأداء — لا للّوحة والكيس: لا يغيّران الأداء، والحكم لا يقرؤه فيهما */}
                 {!['Motherboard', 'Case'].includes(categoryName) && selected.some((c) => c.performanceTier) && (() => {
                   // الأعلى مستوىً هو الفائز — نُخفي النجمة عند تساوي الجميع
+                  const rated = categoryName === 'CPU' || categoryName === 'GPU';
                   const tierNums = selected.map((c) => c.performanceTier ?? null);
                   const validTiers = tierNums.filter((n): n is number => n != null);
                   let tierWinners: number[] = [];
@@ -1217,9 +1220,20 @@ export default function CompareClient({
                   return (
                     <tr className="bg-cyan-500/[0.03]">
                       <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                        مستوى الأداء
+                        {rated ? 'تقييم الأداء' : 'مستوى الأداء'}
+                        {rated && <a href="/how-we-rate" className="block mt-0.5 text-xs font-normal underline">كيف نقيّم؟</a>}
                       </th>
-                      {selected.map((c, i) => (
+                      {selected.map((c, i) => rated ? (
+                        /* المعالج والكرت: «أداء الألعاب: قوي» بشريط (lib/perf-rating) — للمعالج تقييمان */
+                        <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
+                          <span className="inline-flex flex-col items-center gap-1">
+                            {tierWinners.includes(i) && <span className="text-amber-600 dark:text-amber-400 text-xs">★</span>}
+                            {partRatings(categoryName, c.name, typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {}).map((r) => (
+                              <RatingMeter key={r.label} r={r} />
+                            ))}
+                          </span>
+                        </td>
+                      ) : (
                         <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
                           <span className="text-sm tracking-widest inline-flex items-center gap-1" dir="ltr">
                             {tierWinners.includes(i) && <span className="text-amber-600 dark:text-amber-400">★</span>}

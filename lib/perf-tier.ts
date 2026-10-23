@@ -11,8 +11,10 @@
  * وما لا قياس له ولا نظير يبقى بمستواه المكتوب — لا تقدير.
  */
 
+/** [الحدّ الأدنى، المستوى] — تقرؤها صفحة «كيف نقيّم؟» جدولاً، فلا يفترق الشرح عن الحساب */
+export const CPU_GAMING_LEVELS: [number, number][] = [[80, 5], [74, 4], [64, 3], [50, 2], [0, 1]];
 export const cpuTierFromGaming = (gaming: number): number =>
-  gaming >= 80 ? 5 : gaming >= 74 ? 4 : gaming >= 64 ? 3 : gaming >= 50 ? 2 : 1;
+  CPU_GAMING_LEVELS.find(([min]) => gaming >= min)![1];
 
 /** الطراز بلا لاحقة النسخة: «Core i5-14600KF» و«Core i5-14600K» ← «Core i5-14600»؛ و«X3D» لا يُمسّ */
 export const cpuStem = (name: string): string =>
@@ -22,5 +24,6 @@ export const cpuStem = (name: string): string =>
  *  الحدود عند الفجوات: ٧٧٫٩ ← ٧٥٫٩، و٦٤٫٥ ← ٥٤٫٨ (أكبرها: ٩٫٧)، و٤٥ ← ٤٢٫٨.
  *  يقرؤه مخطّط المساعد (lib/intent-plans) لاستخدام «مونتاج وتصميم» وحده — والمستوى المخزَّن
  *  في القاعدة يبقى مستوى الألعاب الذي يحكم به الباني على الاختناق. */
+export const CPU_MULTI_LEVELS: [number, number][] = [[77, 5], [60, 4], [45, 3], [30, 2], [0, 1]];
 export const cpuTierFromMulti = (multi: number): number =>
-  multi >= 77 ? 5 : multi >= 60 ? 4 : multi >= 45 ? 3 : multi >= 30 ? 2 : 1;
+  CPU_MULTI_LEVELS.find(([min]) => multi >= min)![1];

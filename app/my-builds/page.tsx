@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { buildEditUrl } from '../../lib/build-compare';
 import { shortDateAr } from '../../lib/time-ago';
-import FpsEstimator from '../../components/FpsEstimator';
+import GamePerformance from '../../components/GamePerformance';
 import { brandColor } from '../../lib/brand';
 import { formatPrice, formatTotal } from '../../lib/price';
 import StoreBuyChips from '../../components/StoreBuyChips';
@@ -88,7 +88,7 @@ const CoolerNotice = ({ parts }: { parts: any }) => {
 
 const getBottleneckMessage = (parts: any) => computeBottleneck(parts?.['CPU'], parts?.['GPU']);
 
-/* FpsEstimator صار مكوّناً مشتركاً — components/FpsEstimator */
+/* إطارات الكرت المقيسة — components/GamePerformance (كانت FpsEstimator المقدِّرة) */
 
 
 export default function MyBuildsPage() {
@@ -624,12 +624,9 @@ export default function MyBuildsPage() {
                   return null;
                 })()}
 
-                {/* حاسبة الإطارات المتقدمة التفاعلية */}
-                {selectedBuild.parts['CPU']?.performanceTier && selectedBuild.parts['GPU']?.performanceTier && (
-                  <FpsEstimator 
-                    cpuTier={selectedBuild.parts['CPU'].performanceTier} 
-                    gpuTier={selectedBuild.parts['GPU'].performanceTier} 
-                  />
+                {/* إطارات الكرت المقيسة */}
+                {selectedBuild.parts['GPU'] && (
+                  <GamePerformance gpu={selectedBuild.parts['GPU']} cpu={selectedBuild.parts['CPU']} />
                 )}
 
                 <CoolerNotice parts={selectedBuild.parts} />

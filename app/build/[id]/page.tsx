@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { shortDateAr } from '../../../lib/time-ago';
-import FpsEstimator from '../../../components/FpsEstimator';
+import GamePerformance from '../../../components/GamePerformance';
 import { brandColor } from '../../../lib/brand';
 import { prisma } from '../../../lib/prisma';
 import StoreBuyChips from '../../../components/StoreBuyChips';
@@ -35,7 +35,7 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-600 dark:bg-emer
 /* لون العلامة صار من lib/brand — كانت أربع نسخ بأربع لوحات */
 
 // حاسبة الفريمات مجهزة للعمل بشكل كامل على السيرفر باستخدام Tailwind CSS
-/* FpsEstimator صار مكوّناً مشتركاً — components/FpsEstimator */
+/* إطارات الكرت المقيسة — components/GamePerformance (كانت FpsEstimator المقدِّرة) */
 
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -249,9 +249,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
           </div>
         )}
 
-        {parts.CPU?.performanceTier && parts.GPU?.performanceTier && (
-          <FpsEstimator cpuTier={parts.CPU.performanceTier} gpuTier={parts.GPU.performanceTier} />
-        )}
+        {parts.GPU && <GamePerformance gpu={parts.GPU} cpu={parts.CPU} />}
 
         <div className="flex flex-col gap-3">
           {Object.entries(parts).map(([category, part]: [string, any]) => {

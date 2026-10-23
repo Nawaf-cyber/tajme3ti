@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { brandColor } from '../lib/brand';
 import { catMeta } from '../lib/category-meta';
-import type { FC } from 'react';
 import WorkInProgress from './WorkInProgress';
 import IntentPicker from './IntentPicker';
 import BuildTuner from './BuildTuner';
@@ -20,6 +19,9 @@ import { useRouter } from 'next/navigation';
 import { isAvailable, liveOffers, cheapestOffer, cheapestStoreNames, type Offer } from '../lib/stores';
 import { formatPrice, formatTotal } from '../lib/price';
 import { goToLogin } from '../lib/login-href';
+import { partRatings, type Rating } from '../lib/perf-rating';
+import RatingMeter from './RatingMeter';
+import GamePerformance from './GamePerformance';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { track, trackOnce } from '../lib/track';
 import { productImage } from '../lib/image';
@@ -224,7 +226,14 @@ const SearchableSelect = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc'>('default');
+  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'power'>('default');
+  /* تقييم الألعاب لكلّ قطعة — للمعالج والكرت وحدهما (lib/perf-rating). يُحسب مرّةً للقائمة */
+  const rated = categoryName === 'CPU' || categoryName === 'GPU';
+  const ratingOf = (c: Component): Rating | null => {
+    if (!rated) return null;
+    const sp = typeof c.specs === 'string' ? (() => { try { return JSON.parse(c.specs as any); } catch { return {}; } })() : c.specs || {};
+    return partRatings(categoryName, c.name, sp)[0] ?? null;
+  };
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -245,6 +254,10 @@ const SearchableSelect = ({
     processed.sort((a, b) => a.price - b.price);
   } else if (sortBy === 'price-desc') {
     processed.sort((a, b) => b.price - a.price);
+  } else if (sortBy === 'power') {
+    /* «الأقوى أولاً»: المستوى ثمّ الرقم المقيس داخله، وغير المقيس آخراً بترتيبه */
+    const key = (c: Component) => { const r = ratingOf(c); return r?.level != null ? r.level * 1000 + (r.value ?? 0) : -1; };
+    processed.sort((a, b) => key(b) - key(a));
   }
   /* المتوفّر أولاً في كلّ ترتيب (والفرز ثابت فيبقى ترتيبه داخل المجموعتين):
      كان أوّل صندوقٍ في القائمة HYTE Y70 النافد، فاختاره المجرّب ودخل سعرُه القديم
@@ -484,6 +497,14 @@ const SearchableSelect = ({
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
                 الأغلى
               </button>
+              {rated && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSortBy('power'); }}
+                  className={`px-3 py-1.5 text-[12px] font-bold rounded-sm whitespace-nowrap transition-colors ${sortBy === 'power' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+                >
+                  الأقوى أولاً
+                </button>
+              )}
             </div>
           </div>
           <ul className="flex-1 overflow-y-auto p-2 custom-scrollbar">
@@ -511,9 +532,13 @@ const SearchableSelect = ({
                             <img src={productImage(comp.imageUrl)} alt="" className="w-full h-full object-contain" />
                           </div>
                         )}
-                        <span className={`text-sm font-bold leading-tight ${comp.isCompatible ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
-                          <span className={`${getBrandColor(comp, categoryName)} mr-1`}>{comp.brand}</span>
-                          {comp.name}
+                        <span className="flex flex-col gap-1 min-w-0">
+                          <span className={`text-sm font-bold leading-tight ${comp.isCompatible ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                            <span className={`${getBrandColor(comp, categoryName)} mr-1`}>{comp.brand}</span>
+                            {comp.name}
+                          </span>
+                          {/* «أداء الألعاب: قوي» بشريط — لا «٤/٥» الذي يُقرأ عدد ألعاب */}
+                          {(() => { const r = ratingOf(comp); return r ? <RatingMeter r={r} /> : null; })()}
                         </span>
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -549,348 +574,6 @@ const SearchableSelect = ({
           </ul>
         </div>
       )}
-    </div>
-  );
-};
-
-/* ============ خلفيات الألعاب: رسومات أصلية (ظلال + أجواء) ============
-   مرسومة من الصفر — لا لقطات ولا شخصيات محمية. ملكيتها للموقع. */
-
-const CyberpunkArt = () => (
-  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-    <defs>
-      <linearGradient id="ga-cyb-sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#2a1650"/><stop offset="0.55" stopColor="#180d33"/><stop offset="1" stopColor="#0d0720"/>
-      </linearGradient>
-      <linearGradient id="ga-cyb-fade" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0.45" stopColor="#0d0720" stopOpacity="0"/><stop offset="1" stopColor="#0d0720" stopOpacity="0.92"/>
-      </linearGradient>
-      <radialGradient id="ga-cyb-glow" cx="0.5" cy="0.35" r="0.6">
-        <stop offset="0" stopColor="#e879f9" stopOpacity="0.35"/><stop offset="1" stopColor="#e879f9" stopOpacity="0"/>
-      </radialGradient>
-    </defs>
-    <rect width="260" height="300" fill="url(#ga-cyb-sky)"/>
-    <ellipse cx="130" cy="100" rx="120" ry="80" fill="url(#ga-cyb-glow)"/>
-    <g opacity="0.85">
-      <rect x="0" y="150" width="30" height="150" fill="#1c1040"/>
-      <rect x="34" y="110" width="36" height="190" fill="#241455"/>
-      <rect x="74" y="135" width="26" height="165" fill="#180d38"/>
-      <rect x="104" y="88" width="40" height="212" fill="#2a1863"/>
-      <rect x="148" y="120" width="30" height="180" fill="#1c1040"/>
-      <rect x="182" y="142" width="26" height="158" fill="#241455"/>
-      <rect x="212" y="105" width="32" height="195" fill="#1f1248"/>
-      <rect x="248" y="130" width="12" height="170" fill="#180d38"/>
-    </g>
-    <rect x="104" y="84" width="40" height="3.5" fill="#e879f9"/>
-    <rect x="34" y="106" width="36" height="3" fill="#fde047"/>
-    <rect x="212" y="101" width="32" height="3" fill="#22d3ee"/>
-    <g fill="#fde047" opacity="0.9">
-      <rect x="8" y="162" width="4" height="5"/><rect x="18" y="180" width="4" height="5"/><rect x="8" y="204" width="4" height="5"/>
-      <rect x="42" y="122" width="4" height="5"/><rect x="56" y="140" width="4" height="5"/><rect x="42" y="164" width="4" height="5"/><rect x="56" y="192" width="4" height="5"/>
-      <rect x="112" y="100" width="5" height="6"/><rect x="128" y="118" width="5" height="6"/><rect x="112" y="146" width="5" height="6"/><rect x="128" y="176" width="5" height="6"/>
-      <rect x="156" y="132" width="4" height="5"/><rect x="166" y="156" width="4" height="5"/>
-      <rect x="220" y="118" width="4" height="5"/><rect x="232" y="142" width="4" height="5"/><rect x="220" y="170" width="4" height="5"/>
-    </g>
-    <g fill="#22d3ee" opacity="0.7">
-      <rect x="88" y="150" width="4" height="5"/><rect x="80" y="176" width="4" height="5"/>
-      <rect x="190" y="154" width="4" height="5"/><rect x="198" y="180" width="4" height="5"/>
-    </g>
-    <rect x="0" y="252" width="260" height="2.5" fill="#e879f9" opacity="0.75"/>
-    <g transform="translate(130,0)">
-      <path d="M-46 300 L-46 262 Q-44 236 -26 228 L-14 223 Q-20 216 -20 205 Q-20 196 -14 190 L-15 181 L-9 186 L-6 176 L-2 185 L4 175 L7 186 L13 180 L12 190 Q18 196 18 205 Q18 216 12 223 L24 228 Q42 236 44 262 L44 300 Z"
-        fill="none" stroke="#e879f9" strokeWidth="3" opacity="0.55" transform="translate(2,-2)"/>
-      <path d="M-46 300 L-46 262 Q-44 236 -26 228 L-14 223 Q-20 216 -20 205 Q-20 196 -14 190 L-15 181 L-9 186 L-6 176 L-2 185 L4 175 L7 186 L13 180 L12 190 Q18 196 18 205 Q18 216 12 223 L24 228 Q42 236 44 262 L44 300 Z"
-        fill="#08040f"/>
-      <path d="M-26 232 Q0 244 26 232" stroke="#fde047" strokeWidth="2" fill="none" opacity="0.8"/>
-    </g>
-    <rect width="260" height="300" fill="url(#ga-cyb-fade)"/>
-  </svg>
-);
-
-const WarzoneArt = () => (
-  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-    <defs>
-      <linearGradient id="ga-wz-sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#20351f"/><stop offset="0.55" stopColor="#12210f"/><stop offset="1" stopColor="#0a1408"/>
-      </linearGradient>
-      <linearGradient id="ga-wz-fade" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0.45" stopColor="#0a1408" stopOpacity="0"/><stop offset="1" stopColor="#0a1408" stopOpacity="0.92"/>
-      </linearGradient>
-      <radialGradient id="ga-wz-sun" cx="0.72" cy="0.22" r="0.35">
-        <stop offset="0" stopColor="#facc15" stopOpacity="0.4"/><stop offset="1" stopColor="#facc15" stopOpacity="0"/>
-      </radialGradient>
-    </defs>
-    <rect width="260" height="300" fill="url(#ga-wz-sky)"/>
-    <circle cx="188" cy="66" r="70" fill="url(#ga-wz-sun)"/>
-    <circle cx="188" cy="66" r="17" fill="#facc15" opacity="0.55"/>
-    <g fill="#0d1a0b" opacity="0.9">
-      <path d="M36 40 L74 40 L82 45 L74 50 L36 50 L30 45 Z"/>
-      <rect x="48" y="34" width="5" height="7"/>
-      <rect x="60" y="34" width="5" height="7"/>
-    </g>
-    <g opacity="0.95">
-      <path d="M96 66 Q112 50 128 66 L123 70 Q112 60 101 70 Z" fill="#facc15"/>
-      <line x1="101" y1="70" x2="110" y2="88" stroke="#facc15" strokeWidth="1.2"/>
-      <line x1="123" y1="70" x2="114" y2="88" stroke="#facc15" strokeWidth="1.2"/>
-      <circle cx="112" cy="91" r="3.6" fill="#0d1a0b" stroke="#facc15" strokeWidth="1"/>
-    </g>
-    <g opacity="0.75" transform="translate(46,28) scale(0.72)">
-      <path d="M96 66 Q112 50 128 66 L123 70 Q112 60 101 70 Z" fill="#4ade80"/>
-      <line x1="101" y1="70" x2="110" y2="88" stroke="#4ade80" strokeWidth="1.2"/>
-      <line x1="123" y1="70" x2="114" y2="88" stroke="#4ade80" strokeWidth="1.2"/>
-      <circle cx="112" cy="91" r="3.4" fill="#0d1a0b" stroke="#4ade80" strokeWidth="1"/>
-    </g>
-    <polygon points="0,300 60,150 130,300" fill="#173d1c" opacity="0.55"/>
-    <polygon points="150,300 215,120 300,300" fill="#123317" opacity="0.6"/>
-    <path d="M0 218 Q 130 196 260 222" stroke="#4ade80" strokeWidth="1" fill="none" opacity="0.28"/>
-    <path d="M0 246 Q 130 228 260 248" stroke="#4ade80" strokeWidth="1" fill="none" opacity="0.18"/>
-    <path d="M0 300 L0 270 Q 70 254 140 264 Q 205 272 260 260 L260 300 Z" fill="#061007"/>
-    <g transform="translate(150,0)" fill="#04120a">
-      <path d="M-8 172 Q-8 162 0 160 Q9 162 9 172 L9 178 L-8 178 Z"/>
-      <path d="M-13 178 L11 178 Q17 182 17 196 L15 232 L11 232 L11 264 L4 264 L3 236 L-4 236 L-5 264 L-12 264 L-12 232 L-16 232 L-18 196 Q-18 182 -13 178 Z"/>
-      <path d="M-16 190 L-34 200 L-32 208 L-14 200 Z"/>
-      <path d="M15 192 L30 186 L31 192 L17 199 Z"/>
-      <path d="M-38 197 L34 183 L35 189 L20 193 L20 199 L14 199 L14 194 L-36 204 Z"/>
-      <rect x="-30" y="202" width="4" height="9" transform="rotate(-10 -28 206)"/>
-      <path d="M11 184 L22 186 L22 214 L13 214 Z"/>
-    </g>
-    <ellipse cx="150" cy="262" rx="42" ry="9" fill="#4ade80" opacity="0.14"/>
-    <rect width="260" height="300" fill="url(#ga-wz-fade)"/>
-  </svg>
-);
-
-const ValorantArt = () => (
-  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 260 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-    <defs>
-      <linearGradient id="ga-val-sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#33121f"/><stop offset="0.55" stopColor="#1e0b14"/><stop offset="1" stopColor="#12070c"/>
-      </linearGradient>
-      <linearGradient id="ga-val-fade" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0.45" stopColor="#12070c" stopOpacity="0"/><stop offset="1" stopColor="#12070c" stopOpacity="0.92"/>
-      </linearGradient>
-    </defs>
-    <rect width="260" height="300" fill="url(#ga-val-sky)"/>
-    <polygon points="0,300 78,54 150,300" fill="#ff4655" opacity="0.16"/>
-    <polygon points="104,300 186,26 274,300" fill="#0ee6c3" opacity="0.11"/>
-    <polygon points="-44,300 34,116 96,300" fill="#ff4655" opacity="0.11"/>
-    <line x1="14" y1="20" x2="246" y2="196" stroke="#ff4655" strokeWidth="1.4" opacity="0.32"/>
-    <line x1="60" y1="6" x2="260" y2="160" stroke="#0ee6c3" strokeWidth="1" opacity="0.28"/>
-    <line x1="-10" y1="60" x2="200" y2="220" stroke="#ff4655" strokeWidth="0.8" opacity="0.22"/>
-    <g opacity="0.5" stroke="#ff4655" transform="translate(64,84)">
-      <circle r="24" fill="none" strokeWidth="1.5"/>
-      <circle r="3.5" fill="#ff4655" stroke="none"/>
-      <line x1="0" y1="-34" x2="0" y2="-14" strokeWidth="1.5"/>
-      <line x1="0" y1="14" x2="0" y2="34" strokeWidth="1.5"/>
-      <line x1="-34" y1="0" x2="-14" y2="0" strokeWidth="1.5"/>
-      <line x1="14" y1="0" x2="34" y2="0" strokeWidth="1.5"/>
-    </g>
-    <g transform="translate(158,0)">
-      <g fill="none" stroke="#0ee6c3" strokeWidth="2.5" opacity="0.5" transform="translate(-2,-2)">
-        <path d="M-30 300 L-30 262 Q-28 238 -12 230 L-4 226 Q-10 218 -10 208 Q-10 197 0 194 Q10 197 10 208 Q10 218 4 226 L12 230 Q26 236 28 258 L28 300"/>
-      </g>
-      <g fill="#0a0508">
-        <path d="M-10 208 Q-10 196 0 193 Q10 196 10 208 Q10 219 3 226 L-4 226 Q-10 219 -10 208 Z"/>
-        <path d="M8 199 Q30 188 46 196 Q34 200 26 210 Q20 218 10 216 Z"/>
-        <path d="M-12 230 L12 230 Q22 236 24 256 L22 300 L-22 300 L-26 258 Q-24 238 -12 230 Z"/>
-        <path d="M-12 236 L-30 214 L-25 209 L-8 230 Z"/>
-        <path d="M-30 214 L-46 186 Q-40 190 -35 190 L-27 208 Z"/>
-      </g>
-      <path d="M-31 212 L-48 184 Q-42 188 -37 188 L-28 207 Z" fill="#1a1013" stroke="#ff4655" strokeWidth="1.4" opacity="0.9"/>
-      <line x1="-33" y1="207" x2="-44" y2="189" stroke="#ff8a94" strokeWidth="1" opacity="0.7"/>
-      <path d="M12 232 Q20 237 23 250" stroke="#ff4655" strokeWidth="2" fill="none" opacity="0.7"/>
-    </g>
-    <ellipse cx="158" cy="296" rx="44" ry="8" fill="#ff4655" opacity="0.12"/>
-    <rect width="260" height="300" fill="url(#ga-val-fade)"/>
-  </svg>
-);
-
-const GAME_ART: Record<string, FC> = {
-  cyb: CyberpunkArt,
-  wz: WarzoneArt,
-  val: ValorantArt,
-};
-
-const FpsEstimator = ({ cpuTier, gpuTier }: { cpuTier: number, gpuTier: number }) => {
-  const gpuBasePower: Record<number, number> = {
-    1: 120, 
-    2: 180, 
-    3: 270, 
-    4: 380, 
-    5: 550  
-  };
-
-  const baseScore = gpuBasePower[gpuTier] || 120;
-
-  const resMultipliers: Record<string, number> = {
-    '1080p': 1.0,
-    '1440p': 0.70,
-    '4K': 0.45
-  };
-
-  /* ---- هوية بصرية لكل لعبة ----
-     تدرّجات لونية تحاكي هوية كل لعبة بلا صور محمية بحقوق نشر.
-     لو أردت صوراً حقيقية لاحقاً: ضع صورة مرخّصة في public/images/games/
-     واكتب مسارها في bgImage — الكود يعرضها تلقائياً بدل التدرّج.
-     ⚠️ لا تستخدم صوراً من الويب: لقطات الألعاب محمية، وAdSense يفحص ذلك. */
-  const gameMultipliers: Record<string, any> = {
-    esports: {
-      name: 'Valorant',
-      mult: 3.0,
-      icon: '🎯',
-      bgImage: '',
-      artKind: 'val',
-      cardBorder: 'border-[#ff4655]/40 hover:shadow-[#ff4655]/25',
-      accent: 'text-[#ff6b7d]',
-    },
-    competitive: {
-      name: 'Warzone',
-      mult: 0.9,
-      icon: '🪂',
-      bgImage: '',
-      artKind: 'wz',
-      cardBorder: 'border-green-500/40 hover:shadow-green-500/25',
-      accent: 'text-green-400',
-    },
-    aaa: {
-      name: 'Cyberpunk',
-      mult: 0.45,
-      icon: '🌃',
-      bgImage: '',
-      artKind: 'cyb',
-      cardBorder: 'border-yellow-400/40 hover:shadow-yellow-400/25',
-      accent: 'text-yellow-300',
-    }
-  };
-
-  const generateDynamicData = () => {
-    const result: any = { data: {} };
-    
-    if (gpuTier >= 5) result.recommended = '4K';
-    else if (gpuTier >= 3) result.recommended = '1440p';
-    else result.recommended = '1080p';
-
-    ['1080p', '1440p', '4K'].forEach(res => {
-      result.data[res] = {};
-      
-      let cpuPenalty = 0;
-      const tierDiff = gpuTier - cpuTier;
-      if (tierDiff > 0) {
-        if (res === '1080p') cpuPenalty = tierDiff * 0.15;
-        if (res === '1440p') cpuPenalty = tierDiff * 0.08;
-        if (res === '4K') cpuPenalty = tierDiff * 0.02;
-      }
-
-      Object.entries(gameMultipliers).forEach(([type, game]) => {
-        const rawFps = baseScore * resMultipliers[res] * game.mult;
-        let finalFps = rawFps * (1 - cpuPenalty);
-
-        finalFps = Math.round(finalFps / 5) * 5;
-        if (finalFps > 500) finalFps = 500;
-
-        let quality = '';
-        if (type === 'aaa') {
-          if (res === '1080p') quality = gpuTier > 3 ? ' (Ultra RT)' : ' (High)';
-          else if (res === '1440p') quality = gpuTier > 3 ? ' (Ultra)' : ' (Med)';
-          else quality = gpuTier >= 4 ? ' (High)' : ' (Low)';
-        }
-
-        result.data[res][type] = {
-          name: game.name + quality,
-          fps: `${finalFps}+`,
-          icon: game.icon,
-          bgImage: game.bgImage,
-          artKind: game.artKind,
-          cardBorder: game.cardBorder,
-          accent: game.accent
-        };
-      });
-    });
-
-    return result;
-  };
-
-  const tierData = generateDynamicData();
-  const [activeRes, setActiveRes] = useState<string>(tierData.recommended);
-
-  useEffect(() => {
-    setActiveRes(tierData.recommended);
-  }, [cpuTier, gpuTier]);
-
-  return (
-    <div className="mt-6 border border-slate-200 dark:border-slate-700/50 rounded-sm overflow-hidden bg-white dark:bg-slate-800/30 shadow-sm relative">
-      <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-slate-200 dark:border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-          الأداء المتوقع في الألعاب
-        </h4>
-        
-        <div className="flex bg-slate-200 dark:bg-slate-900 p-1 rounded-sm">
-          {['1080p', '1440p', '4K'].map(res => {
-            const isRecommended = tierData.recommended === res;
-            return (
-              <button
-                key={res}
-                onClick={() => setActiveRes(res)}
-                title={isRecommended ? "الدقة المثالية لقوة جهازك" : `شوف الأداء على دقة ${res}`}
-                className={`px-4 py-1.5 text-xs font-bold rounded-sm transition-all ${
-                  activeRes === res
-                    ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-              >
-                {res} {isRecommended && '★'}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3">
-        {Object.entries(tierData.data[activeRes]).map(([type, data]: any) => {
-          const Art = data.artKind ? GAME_ART[data.artKind] : null;
-          return (
-            <div
-              key={type}
-              className={`relative overflow-hidden text-center flex flex-col justify-end group rounded-sm border min-h-[190px] pb-4 px-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${data.cardBorder}`}
-            >
-              {/* الخلفية: صورة مرخّصة إن وُفّرت، وإلا الرسم الأصلي */}
-              {data.bgImage ? (
-                <>
-                  <img
-                    src={data.bgImage}
-                    alt=""
-                    aria-hidden="true"
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-                </>
-              ) : Art ? (
-                <div className="absolute inset-0 group-hover:scale-[1.03] transition-transform duration-500 origin-bottom">
-                  <Art />
-                </div>
-              ) : null}
-
-              {/* المحتوى */}
-              <div className="relative z-10 flex flex-col items-center">
-                <span className={`text-[12px] font-black uppercase tracking-[0.2em] ${data.accent}`} style={{ textShadow: '0 0 12px currentColor' }}>{data.name}</span>
-                <span className="text-3xl font-black text-white tabular-nums mt-1" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>{data.fps}</span>
-                <span className="text-[12px] font-bold tracking-[0.3em] text-slate-300/80">FPS</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="bg-slate-50 dark:bg-slate-800/40 p-3 border-t border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
-        <span className="text-[12px] text-slate-500 dark:text-slate-300 font-bold flex items-center gap-1.5">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          الأرقام تقريبية وتختلف حسب إعدادات الجودة وتقنيات (DLSS/FSR).
-        </span>
-        <span className="hidden sm:block text-slate-300 dark:text-slate-700">|</span>
-        <span className="text-[12px] text-cyan-500 dark:text-cyan-400 font-bold flex items-center gap-1">
-          <span className="text-sm leading-none">★</span> يعني هذي الدقة الأنسب لجهازك.
-        </span>
-      </div>
     </div>
   );
 };
@@ -1405,6 +1088,11 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     if (cpu!.performanceTier && gpu?.performanceTier) { // بلا كرت (رسوميّات مدمجة): لا حكم اختناق
       const diff = cpu!.performanceTier - gpu!.performanceTier;
       let suggestions: { category: string, item: Component }[] = [];
+      /* الحكم بالكلمات حين يُقاس الطرفان (lib/perf-rating): «المعالج متوسّط والكرت قمّة» يشرح
+         نفسه، وجملةٌ عامّة كانت تترك الزائر يسأل «ليش؟». وما لا قياس له يبقى بالجملة العامّة. */
+      const cpuWord = partRatings('CPU', cpu!.name, parseSpecs(cpu!.specs))[0]?.word;
+      const gpuWord = partRatings('GPU', gpu!.name, parseSpecs(gpu!.specs))[0]?.word;
+      const named = !!(cpuWord && gpuWord);
 
       if (diff < -1) {
         const cpuCategory = categories.find(c => c.name === 'CPU');
@@ -1421,7 +1109,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         }
 
         bottleneck = {
-          title: "⚠️ المعالج ممكن يحدّ من أداء الكرت في بعض الألعاب، خصوصاً على 1080p و1440p.",
+          title: named
+            ? `⚠️ أداء المعالج في الألعاب «${cpuWord}» والكرت «${gpuWord}» — المعالج ممكن يحدّ من الكرت في بعض الألعاب، خصوصاً على 1080p و1440p.`
+            : "⚠️ المعالج ممكن يحدّ من أداء الكرت في بعض الألعاب، خصوصاً على 1080p و1440p.",
           desc: "ننصحك ترقّي المعالج، أو تلعب على 4K عشان الحمل يروح على الكرت ويخف الضغط عن المعالج.",
           color: "text-amber-900 dark:text-amber-400",
           bg: "bg-amber-100 dark:bg-amber-900/20 border-amber-300 dark:border-amber-800/50",
@@ -1441,7 +1131,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         }
 
         bottleneck = {
-          title: "💡 كرت الشاشة بيحدّ من قوة الجهاز.",
+          title: named
+            ? `💡 الكرت «${gpuWord}» والمعالج «${cpuWord}» في الألعاب — كرت الشاشة بيحدّ من قوة الجهاز.`
+            : "💡 كرت الشاشة بيحدّ من قوة الجهاز.",
           desc: "الأداء بيكون ممتاز وسلس في ألعاب الشوتر والتنافسية، بس الكرت بينزّل الفريمات في ألعاب القصة الثقيلة والدقات العالية.",
           color: "text-cyan-900 dark:text-cyan-400",
           bg: "bg-cyan-100 dark:bg-cyan-900/20 border-cyan-300 dark:border-cyan-800/50",
@@ -1449,7 +1141,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         };
       } else {
         bottleneck = {
-          title: "🚀 توازن ممتاز بين المعالج والكرت.",
+          title: named
+            ? `🚀 توازن ممتاز: المعالج «${cpuWord}» في الألعاب والكرت «${gpuWord}».`
+            : "🚀 توازن ممتاز بين المعالج والكرت.",
           desc: "المعالج والكرت من نفس الفئة تقريباً، يعني أداء مستقر وتستفيد من قوة الجهاز كاملة بدون اختناق.",
           color: "text-emerald-900 dark:text-emerald-400",
           bg: "bg-emerald-100 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-800/50"
@@ -1941,6 +1635,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                             </h4>
                             <p className={`text-sm font-medium opacity-90 ${result.bottleneck.color}`}>
                               {result.bottleneck.desc}
+                              {' '}<a href="/how-we-rate" target="_blank" className="underline underline-offset-2 opacity-90 hover:opacity-100 whitespace-nowrap">كيف نقيّم؟</a>
                             </p>
                           </div>
                         </div>
@@ -1998,11 +1693,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                       </div>
                     )}
 
-                    {result.status === 'success' && selectedComponents['CPU']?.performanceTier && selectedComponents['GPU']?.performanceTier && (
-                      <FpsEstimator 
-                        cpuTier={selectedComponents['CPU'].performanceTier} 
-                        gpuTier={selectedComponents['GPU'].performanceTier} 
-                      />
+                    {/* إطاراتٌ مقيسة للكرت (components/GamePerformance) — كانت بطاقاتٍ مقدَّرة من المستويات */}
+                    {result.status === 'success' && selectedComponents['GPU'] && (
+                      <GamePerformance gpu={selectedComponents['GPU']} cpu={selectedComponents['CPU']} />
                     )}
 
                     {result.status === 'success' && (

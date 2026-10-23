@@ -32,6 +32,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
     title: 'المنصّة',
     links: [
       { label: 'عن المنصّة', href: '/about' },
+      { label: 'كيف نقيّم الأداء', href: '/how-we-rate' },
       { label: 'اتصل بنا', href: '/contact' },
       { label: 'أرسل اقتراحاً', action: 'suggest' },
       { label: 'انضم كمتجر', href: '/for-stores' },

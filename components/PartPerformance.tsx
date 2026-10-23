@@ -7,10 +7,10 @@
  *
  * والأرقام نفسها من الجدولين نفسيهما (lib/gpu-perf · lib/cpu-perf) — لا
  * تقدير: ما ليس في جدول المصدر لا يُعرض له شيء، فيغيب القسم كلّه.
+ * (2026-10-22: للكرت وحده — إطاراته بكلّ دقّة. والمستوى للقطعتين في components/PartRating.)
  */
 
 import { gpuPerf, feelLine, feel, GPU_PERF_SOURCE } from '../lib/gpu-perf';
-import { cpuPerf, CPU_PERF_SOURCE, CPU_GAMING_TOP } from '../lib/cpu-perf';
 import { Panel, SectionHeading } from './Panel';
 
 const num = (v: unknown): number | null => {
@@ -53,35 +53,7 @@ export default function PartPerformance({ category, name, specs }: { category?: 
     );
   }
 
-  if (category === 'CPU') {
-    const p = cpuPerf(name);
-    if (!p || (p.gaming == null && p.multi == null)) return null;
-    const bar = (label: string, v: number | null, hint: string) => (
-      <div>
-        <div className="flex items-baseline justify-between gap-2 mb-1">
-          <span className="text-[13px] font-black text-slate-700 dark:text-slate-300">{label}</span>
-          <span className="text-[13px] font-black text-slate-900 dark:text-white font-mono">{v != null ? `${Math.round(v)}%` : 'لم يُختبر'}</span>
-        </div>
-        <div className="h-2 rounded-sm bg-slate-200 dark:bg-slate-800 overflow-hidden" dir="ltr">
-          {v != null && <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-600" style={{ width: `${Math.min(100, v)}%` }} />}
-        </div>
-        <p className="mt-1 text-[11.5px] font-semibold text-slate-500 dark:text-slate-400">{hint}</p>
-      </div>
-    );
-    return (
-      <div className="flex flex-col gap-4">
-        <SectionHeading>الأداء المقيس</SectionHeading>
-        <Panel className="px-6 py-5 flex flex-col gap-4">
-          {bar('الألعاب', p.gaming, `نسبةً لأسرع معالج ألعاب اليوم (${CPU_GAMING_TOP})`)}
-          {bar('تعدّد الأنوية', p.multi, 'للمونتاج والرندر والبرامج الثقيلة — نسبةً للأسرع في الجدول')}
-          <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-            من جداول{' '}
-            <a href={CPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{CPU_PERF_SOURCE.name}</a>.
-          </p>
-        </Panel>
-      </div>
-    );
-  }
-
+  /* المعالج: تقييماه (الألعاب والمونتاج) في بطاقة «تقييم الأداء» قرب السعر (components/PartRating) —
+     كانت هنا أشرطةٌ بالنِّسب نفسها، فتكرّر الرقم مرّتين في الصفحة */
   return null;
 }

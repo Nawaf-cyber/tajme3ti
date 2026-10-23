@@ -25,6 +25,7 @@ import { fetchPriceStats } from '../../../lib/price-stats';
 import { pctAboveMin, daysAr } from '../../../lib/price-stats-core';
 import { catMeta } from '../../../lib/category-meta';
 import PartPerformance from '../../../components/PartPerformance';
+import PartRating from '../../../components/PartRating';
 
 /* عنوان ووصف وcanonical خاصّان بكل قطعة.
    كانت ٢٢٤ صفحة ترث عنوان الرئيسية وcanonical يشير إليها — أي "محتوى مكرّر"
@@ -295,6 +296,9 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                 </p>
               );
             })()}
+
+            {/* تقييم الأداء بكلمةٍ وشريط ورقمٍ مقيس — قرب السعر لا أسفل الصفحة (lib/perf-rating) */}
+            <PartRating category={comp.category?.name} name={comp.name} specs={specs} />
 
             {/* ما بعد القراءة: كانت الصفحة طريقاً مسدوداً إلّا الخروج إلى متجر — لا «أضفها لتجميعتي»
                 ولا «قارنها»، والقادم من البحث يهبط هنا (تجربة المستخدمين 2026-10-17).

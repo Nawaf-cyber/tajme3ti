@@ -293,6 +293,8 @@ export function buildIntentPlans(categories: Category[], intent: Intent): TierPl
 
   const plans: TierPlan[] = [];
   let lastGpuTier = -Infinity, lastGpuStrength = -Infinity, lastCpuTier = -Infinity;
+  /** إطارات كرت المستوى السابق — «قوي» يُقاس عليها (انظر اختيار الكرت) */
+  let lastGpuFps: number | null = null;
 
   for (const L of LEVELS) {
     const picks: Record<string, any> = {};
@@ -345,8 +347,19 @@ export function buildIntentPlans(categories: Category[], intent: Intent): TierPl
         if (L.key === 'balanced') {
           picks['GPU'] = [...measured].sort((a, b) => (fpsOf(b)! / b.price - fpsOf(a)! / a.price) || (a.price - b.price))[0];
         } else {
-          const top = Math.max(...measured.map((c) => fpsOf(c)!));
-          picks['GPU'] = measured.filter((c) => fpsOf(c)! >= top * 0.97).sort((a, b) => a.price - b.price)[0];
+          /* قوي: أفضل قيمةٍ بين الكروت التي هي **خطوةٌ حقيقيّة** فوق «متوازن» — لا الأسرع.
+             ⚠️ «الأسرع ضمن السقف» يشدّ دائماً إلى أغلى ما يسمح به السقف: اختار RTX 4090 بـ١٤٬٣٠٢
+             لـ1440p (2026-10-22) — ١٥ إطاراً فوق 5080 بـ٧٬٠٠٣ ريال، أي ٤٦٤ ريالاً للإطار الزائد
+             و5080 نفسه بـ٥٧. وسقفٌ بالريال يتقادم مع الأسعار. فالقاعدة بلا ريال: «خطوة» = ٨٪
+             إطاراتٍ فوق «متوازن» (حدّ مرشّح السلّم نفسه أدناه)، ومنها الأقلّ ريالاً للإطار. فإن
+             رخص 4090 يوماً إلى قرب 5080 اختير وحده. وإن لم يبلغ الخطوةَ كرتٌ، فالسلوك السابق. */
+          const step = lastGpuFps != null ? measured.filter((c) => fpsOf(c)! >= lastGpuFps! * 1.08) : [];
+          if (step.length) {
+            picks['GPU'] = [...step].sort((a, b) => (a.price / fpsOf(a)! - b.price / fpsOf(b)!) || (a.price - b.price))[0];
+          } else {
+            const top = Math.max(...measured.map((c) => fpsOf(c)!));
+            picks['GPU'] = measured.filter((c) => fpsOf(c)! >= top * 0.97).sort((a, b) => a.price - b.price)[0];
+          }
         }
       } else {
         picks['GPU'] = [...gList].sort((a, b) => (gpuGen(b) - gpuGen(a)) || (a.price - b.price))[0];
@@ -385,6 +398,7 @@ export function buildIntentPlans(categories: Category[], intent: Intent): TierPl
     if (picks['GPU']) {
       lastGpuTier = picks['GPU'].performanceTier ?? lastGpuTier;
       lastGpuStrength = gStrength(picks['GPU']);
+      lastGpuFps = fpsOf(picks['GPU']);
     }
     lastCpuTier = picks['CPU'].performanceTier ?? lastCpuTier;
 
