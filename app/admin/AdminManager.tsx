@@ -20,6 +20,7 @@ import BackToMenuButton from './BackToMenuButton';
 import StoreFieldsGroup from './StoreFieldsGroup';
 import ScrapeStatusBadge, { isStale } from './ScrapeStatusBadge';
 import { fixableByScrape } from '../../lib/price-staleness';
+import { levelWord } from '../../lib/perf-rating';
 import { storeVars, type StoreInfo } from '../../lib/stores';
 import { specLabel } from '../../lib/spec-labels';
 import { SPEC_SCHEMA, FEATURES_KEY, NOTES_KEY, readFeatures, readNotes } from '../../lib/spec-schema';
@@ -364,14 +365,19 @@ export default function AdminManager({ categories, components, news, cronStatus,
               <input type="number" step="0.01" name="price" defaultValue={editingComponent?.price} placeholder="السعر (Price)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               <input type="number" name="tdpWattage" defaultValue={editingComponent?.tdpWattage} placeholder="استهلاك الطاقة بالواط (TDP)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               
-              <select name="performanceTier" defaultValue={editingComponent?.performanceTier || ''} className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">مستوى الأداء (خاص بالمعالج والكرت لتقييم عنق الزجاجة)</option>
-                <option value="1">1 - اقتصادي (Entry Level)</option>
-                <option value="2">2 - متوسط (Mid-Range)</option>
-                <option value="3">3 - فوق المتوسط (High-Mid)</option>
-                <option value="4">4 - عالي (High-End)</option>
-                <option value="5">5 - فئة عليا (Enthusiast)</option>
-              </select>
+              {/* الكلمات نفسها التي يراها الزائر (lib/perf-rating · LEVEL_WORDS). وللمعالج والكرت
+                  المقيسَين يُحسب المستوى عند الحفظ ويُتجاهل هذا الاختيار (actions · measuredTier) */}
+              <div className="flex flex-col gap-1">
+                <select name="performanceTier" defaultValue={editingComponent?.performanceTier || ''} className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">مستوى الأداء</option>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>{n} — {levelWord(n)}</option>
+                  ))}
+                </select>
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 leading-snug">
+                  المعالج والكرت: إذا لهما قياس منشور، المستوى يُحسب منه تلقائياً عند الحفظ ويُتجاهل اختيارك.
+                </span>
+              </div>
 
               {/* ⚠️ `type="text"` لا `type="url"`: المتصفّح يرفض المسار المحليّ
                   «/images/parts/…» بـ«Please enter a URL» فيمنع حفظ النموذج

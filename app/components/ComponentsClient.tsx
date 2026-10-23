@@ -9,6 +9,8 @@ import { track } from '../../lib/track';
 import SuggestPartCard from '../../components/SuggestPartCard';
 import { productImage, IMAGE_FALLBACK } from '../../lib/image';
 import { catMeta } from '../../lib/category-meta';
+import { partRatings, levelWord } from '../../lib/perf-rating';
+import RatingMeter from '../../components/RatingMeter';
 
 // إضافة colorClass للتحكم بلون الشعار حسب مكانه (أزرق للفلتر، أخضر للأسعار)
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -26,6 +28,9 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?:
     }} 
   />
 );
+
+/* درجات فلتر الأداء: [أدنى مستوى، التسمية]. والكلمات من lib/perf-rating — هي نفسها على البطاقات */
+const PERF_STEPS = [[0, 'الكل'], [3, `${levelWord(3)} فأعلى`], [4, `${levelWord(4)} فأعلى`], [5, levelWord(5)]] as const;
 
 // دالة تلوين أسماء الماركات
 /* لون العلامة صار من lib/brand — كانت أربع نسخ بأربع لوحات */
@@ -80,18 +85,35 @@ export default function ComponentsClient({ components, categories, dealsLocked =
   }, [components]);
 
   const [maxPrice, setMaxPrice] = useState(priceCeiling);
-  const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc' | 'discount'>(
+  const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc' | 'discount' | 'power'>(
     dealsLocked ? 'discount' : 'newest',
   );
   const [onlyDeals, setOnlyDeals] = useState(dealsLocked);
 
-  /* نحسب الخصم مرّة واحدة لكل قطعة — الدالة مشتركة مع صفحة المنتج */
+  /* ============ فلتر الأداء — للمعالج والكرت وحدهما ============
+   *
+   * يظهر حين تُختار فئة المعالجات أو الكروت: «قوي فأعلى» و«قمّة»، و«الأقوى أولاً» في الترتيب.
+   * والمستوى من lib/perf-rating نفسه الذي تعرضه بطاقة القطعة ويحكم به الباني — لا حساب ثانٍ.
+   * وللمعالج تقييمان، فيختار الزائر على أيّهما يُفلتر: الألعاب أو المونتاج.
+   * وغير المقيس لا يمرّ من فلتر «فأعلى»: لا نعرف مستواه، فلا ندّعي أنه يبلغه. */
+  const [minLevel, setMinLevel] = useState(0);
+  const [cpuUse, setCpuUse] = useState<0 | 1>(0);
+  const perfCat = useMemo(() => {
+    const name = categories.find((cat) => cat.id === selectedCat)?.name;
+    return name === 'CPU' || name === 'GPU' ? (name as 'CPU' | 'GPU') : null;
+  }, [categories, selectedCat]);
+  const useIdx = perfCat === 'CPU' ? cpuUse : 0;
+
+  /* نحسب الخصم والتقييم مرّة واحدة لكل قطعة — الدالتان مشتركتان مع صفحة المنتج */
   const withDeals = useMemo(
-    () => components.map(c => ({ ...c, _deal: offerDeal(c), _live: isAvailable(c) })),
+    () => components.map(c => {
+      const specs = typeof c.specs === 'string' ? (() => { try { return JSON.parse(c.specs); } catch { return {}; } })() : c.specs || {};
+      return { ...c, _deal: offerDeal(c), _live: isAvailable(c), _ratings: partRatings(c.category?.name, c.name, specs) };
+    }),
     [components]
   );
 
-  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== priceCeiling || sortBy !== (dealsLocked ? 'discount' : 'newest') || (onlyDeals && !dealsLocked);
+  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== priceCeiling || sortBy !== (dealsLocked ? 'discount' : 'newest') || (onlyDeals && !dealsLocked) || (perfCat != null && minLevel > 0);
 
   /* «مسح الفلاتر» يعود بالصفحة إلى حالتها الابتدائية — وهي في الوضع
      المقفول ليست «كل القطع» بل «كل التخفيضات مرتّبةً بالانخفاض». */
@@ -101,16 +123,40 @@ export default function ComponentsClient({ components, categories, dealsLocked =
     setMaxPrice(priceCeiling);
     setSortBy(dealsLocked ? 'discount' : 'newest');
     setOnlyDeals(dealsLocked);
+    setMinLevel(0);
+    setCpuUse(0);
   };
 
-  // الفلاتر الأساسية (بلا فلتر التخفيضات) — نحتاجها لحساب عدّاد الصفقات
-  const baseFiltered = useMemo(() => withDeals.filter((c) => {
+  /* تغيير الفئة يُسقط فلتر الأداء وترتيبه إن لم تعد الفئة معالجاً أو كرتاً — وإلّا بقي «قمّة»
+     مفعّلاً بلا زرٍّ ظاهر يُطفئه */
+  const handleCatChange = (id: string) => {
+    setSelectedCat(id);
+    const name = categories.find((cat) => cat.id === id)?.name;
+    if (name !== 'CPU' && name !== 'GPU') {
+      setMinLevel(0);
+      if (sortBy === 'power') setSortBy(dealsLocked ? 'discount' : 'newest');
+    }
+  };
+
+  // الفلاتر الأساسية (بلا فلتر التخفيضات ولا الأداء) — نحتاجها لعدّاد الصفقات وعدّادات الأداء
+  const prePerf = useMemo(() => withDeals.filter((c) => {
     const q = search.toLowerCase();
     const matchSearch = c.name.toLowerCase().includes(q) || c.brand.toLowerCase().includes(q);
     const matchCat = selectedCat === 'all' || c.categoryId === selectedCat;
     const matchPrice = c.price <= maxPrice;
     return matchSearch && matchCat && matchPrice;
   }), [withDeals, search, selectedCat, maxPrice]);
+
+  const baseFiltered = useMemo(
+    () => (!perfCat || minLevel === 0 ? prePerf : prePerf.filter((c) => (c._ratings[useIdx]?.level ?? 0) >= minLevel)),
+    [prePerf, perfCat, minLevel, useIdx],
+  );
+
+  /* عدّادات أزرار الأداء — كعدّاد التخفيضات: ما ستراه لو ضغطت، ضمن الفلاتر الحالية */
+  const perfCounts = useMemo(
+    () => PERF_STEPS.map(([min]) => (min === 0 ? prePerf.length : prePerf.filter((c) => (c._ratings[useIdx]?.level ?? 0) >= min).length)),
+    [prePerf, useIdx],
+  );
 
   /* العدّاد يعكس ما ستراه لو فعّلت الزر — أي ضمن الفلاتر الحالية،
      لا إجمالي الموقع. رقم لا يطابق النتيجة يُفقد الثقة. */
@@ -127,6 +173,11 @@ export default function ComponentsClient({ components, categories, dealsLocked =
         ((b._deal.listPrice ?? b.price) - b.price) - ((a._deal.listPrice ?? a.price) - a.price),
       );
     }
+    /* «الأقوى أولاً»: المستوى ثمّ الرقم المقيس داخله، وغير المقيس آخراً — كما في الباني */
+    else if (sortBy === 'power') {
+      const key = (c: any) => { const r = c._ratings[useIdx]; return r?.level != null ? r.level * 1000 + (r.value ?? 0) : -1; };
+      list.sort((a, b) => key(b) - key(a));
+    }
     /* ============ النافد إلى الذيل ============
      *
      * ⚠️ والترتيب الافتراضي «الأحدث»، والنافد لا يشيخ — فكانت قطعةٌ
@@ -140,7 +191,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
      * ولا حاجة لتقسيمٍ يدويّ يُفسد ترتيب ما قبله. */
     list.sort((a, b) => Number(b._live) - Number(a._live));
     return list;
-  }, [baseFiltered, onlyDeals, sortBy, dealsLocked]);
+  }, [baseFiltered, onlyDeals, sortBy, dealsLocked, useIdx]);
 
   /* ============ عرض تدريجي ============
      كانت الصفحة ترسم كل القطع دفعةً واحدة: مئات البطاقات ومئات طلبات
@@ -154,7 +205,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
   // أي تغيير في الفلاتر يعيد العرض للبداية — وإلا بقيت على صفحة 5 لنتيجة من 3
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [search, selectedCat, maxPrice, sortBy, onlyDeals]);
+  }, [search, selectedCat, maxPrice, sortBy, onlyDeals, minLevel, cpuUse]);
 
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visible.length;
@@ -215,12 +266,12 @@ export default function ComponentsClient({ components, categories, dealsLocked =
             <div className="relative group">
               <select 
                 value={selectedCat}
-                onChange={(e) => setSelectedCat(e.target.value)}
+                onChange={(e) => handleCatChange(e.target.value)}
                 className="w-full appearance-none bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-700/60 rounded-sm px-4 py-3.5 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500/30 hover:border-cyan-300 dark:hover:border-cyan-700 outline-none transition-all cursor-pointer"
               >
                 <option value="all">جميع الفئات</option>
                 {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <option key={cat.id} value={cat.id}>{catMeta(cat.name).label}</option>
                 ))}
               </select>
               <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
@@ -228,6 +279,49 @@ export default function ComponentsClient({ components, categories, dealsLocked =
               </div>
             </div>
           </div>
+
+          {perfCat && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-300">الأداء</label>
+                <Link href="/how-we-rate" className="text-[11.5px] font-bold text-cyan-700 dark:text-cyan-400 underline">كيف نقيّم؟</Link>
+              </div>
+              {perfCat === 'CPU' && (
+                <div className="grid grid-cols-2 gap-1 mb-2 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-sm">
+                  {(['للألعاب', 'للمونتاج'] as const).map((t, i) => (
+                    <button
+                      key={t}
+                      onClick={() => setCpuUse(i as 0 | 1)}
+                      className={`py-1.5 rounded-sm text-[12px] font-black transition-all ${
+                        cpuUse === i ? 'bg-white dark:bg-[#0B1120] text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-1.5">
+                {PERF_STEPS.map(([min, label], i) => (
+                  <button
+                    key={min}
+                    onClick={() => setMinLevel(min)}
+                    className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-sm text-[12px] font-bold border transition-all active:scale-95 ${
+                      minLevel === min
+                        ? 'bg-cyan-500 text-white dark:text-[#052e37] border-cyan-500 shadow-sm shadow-cyan-500/30'
+                        : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:border-cyan-400 dark:hover:border-cyan-600'
+                    }`}
+                  >
+                    {label}
+                    <span className="tabular-nums opacity-80">{perfCounts[i]}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[11.5px] font-semibold text-slate-400 dark:text-slate-500 leading-relaxed">
+                من اختبارات منشورة. اللي ما له قياس ما يطلع في «فأعلى».
+              </p>
+            </div>
+          )}
 
           <div className="bg-slate-50 dark:bg-[#0B1120] p-4 rounded-sm border border-slate-200 dark:border-slate-700/60">
             <div className="flex justify-between items-center mb-5">
@@ -302,7 +396,8 @@ export default function ComponentsClient({ components, categories, dealsLocked =
           {!dealsLocked && <div className="w-px h-8 bg-slate-200 dark:bg-slate-700/60"></div>}
 
           {/* الفرز */}
-          <div className="flex items-center gap-1.5">
+          {/* flex-wrap: مع «الأقوى أولاً» صارت خمسة أزرار، فخرج آخرها عن شاشة الجوال (٣٧٥) بـ١١ بكسل */}
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[12px] font-bold text-slate-500 dark:text-slate-300 ml-1">الترتيب</span>
             {([
               /* «الأكثر انخفاضاً» يُعرض حين يكون له معنى: في `/deals`
@@ -313,6 +408,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
               { key: 'newest', label: 'الأحدث', icon: null },
               { key: 'price-asc', label: 'الأرخص', icon: 'M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12' },
               { key: 'price-desc', label: 'الأغلى', icon: 'M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4' },
+              ...(perfCat ? [{ key: 'power', label: 'الأقوى أولاً', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }] as const : []),
             ] as const).map(o => (
               <button
                 key={o.key}
@@ -407,6 +503,13 @@ export default function ComponentsClient({ components, categories, dealsLocked =
                   <h3 className="text-base font-black text-slate-900 dark:text-white leading-snug line-clamp-2 h-11 mb-3" title={comp.name}>
                     {comp.name}
                   </h3>
+
+                  {/* تقييم الأداء — للمعالج والكرت، بالشكل نفسه الذي في الباني والمقارنة */}
+                  {comp._ratings.length > 0 && (
+                    <div className="flex flex-col gap-1 mb-3">
+                      {comp._ratings.map((r: any) => <RatingMeter key={r.label} r={r} />)}
+                    </div>
+                  )}
 
                   {/* شارات المواصفات السريعة */}
                   {specBadges.length > 0 && (

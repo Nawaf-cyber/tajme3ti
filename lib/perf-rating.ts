@@ -79,3 +79,15 @@ export function partRatings(category: string | null | undefined, name: string, s
 }
 
 export const RATING_SOURCES = { cpu: CPU_PERF_SOURCE, gpu: GPU_PERF_SOURCE };
+
+/**
+ * المستوى المقيس للحفظ في القاعدة — للمعالج والكرت وحدهما. null = لا قياس، فيبقى المكتوب يدوياً.
+ *
+ * ⚠️ لوحة الإدارة والاستيراد يقرآنه قبل الحفظ ويقدّمانه على اختيار الأدمن: المستوى المكتوب
+ * باليد هو ما قلب حكم 9600 و9600X (2026-10-21). فما له قياسٌ لا يُكتب مستواه باليد أبداً،
+ * وما لا قياس له يبقى على اختيار الأدمن (ويظهر «غير مقيس» للزائر).
+ */
+export function measuredTier(category: string | null | undefined, name: string, specs: any): number | null {
+  if (category !== 'CPU' && category !== 'GPU') return null;
+  return partRatings(category, name, specs)[0]?.level ?? null;
+}

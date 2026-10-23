@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { measuredTier } from '../../../../lib/perf-rating';
 import { prisma } from "../../../../lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getToken } from 'next-auth/jwt';
@@ -211,7 +212,12 @@ export async function POST(req: NextRequest) {
               specs: effectiveSpecs !== null ? effectiveSpecs : existingComponent.specs,
               imageUrl: item.imageUrl !== undefined ? item.imageUrl : existingComponent.imageUrl,
               description: item.description !== undefined ? item.description : existingComponent.description,
-              performanceTier: item.performanceTier !== undefined ? item.performanceTier : existingComponent.performanceTier,
+              /* المقيس أوّلاً للمعالج والكرت (lib/perf-rating) — المكتوب في الملفّ لما لا قياس له */
+              performanceTier: measuredTier(
+                catName(item.categoryId ?? existingComponent.categoryId),
+                item.name ?? existingComponent.name,
+                effectiveSpecs !== null ? effectiveSpecs : existingComponent.specs,
+              ) ?? (item.performanceTier !== undefined ? item.performanceTier : existingComponent.performanceTier),
             }
           });
           await applyOffersFromRow(existingComponent.id, item);
@@ -234,7 +240,8 @@ export async function POST(req: NextRequest) {
 
           // منع القطعة الجديدة الحسّاسة بلا مستوى — لا null صامت يخترق السقوف لاحقاً
           if (TIER_REQUIRED.has(catName(item.categoryId)) &&
-              (item.performanceTier === undefined || item.performanceTier === null)) {
+              (item.performanceTier === undefined || item.performanceTier === null) &&
+              measuredTier(catName(item.categoryId), item.name, effectiveSpecs || {}) == null) {
             failedCount++;
             errors.push(`رُفضت "${item.name}": قطعة جديدة في فئة ${catName(item.categoryId)} بلا performanceTier (لازم 1-5).`);
             continue;
@@ -251,7 +258,7 @@ export async function POST(req: NextRequest) {
               specs: effectiveSpecs || {},
               imageUrl: item.imageUrl || null,
               description: item.description || null,
-              performanceTier: item.performanceTier || null,
+              performanceTier: measuredTier(catName(item.categoryId), item.name, effectiveSpecs || {}) ?? (item.performanceTier || null),
             }
           });
           await applyOffersFromRow(createdComp.id, item);

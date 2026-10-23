@@ -7,6 +7,7 @@ import { authOptions } from '../api/auth/[...nextauth]/route';
 import { isCazasouqTrackingUrl } from '../../lib/affiliate';
 import { PART_REQUEST_MODE_KEY, isValidPartRequestMode } from '../../lib/part-request';
 import { proxyModeKey } from '../../lib/proxy-stats';
+import { measuredTier } from '../../lib/perf-rating';
 import { PROXY_STORES } from '../../lib/proxy-fallback';
 import { DEFAULT_UPDATES_PER_DAY, isValidFrequency, CRON_SOURCE_KEY, DEFAULT_CRON_SOURCE, isValidCronSource, type CronSource } from '../../lib/cron-settings';
 
@@ -173,7 +174,10 @@ export async function addComponent(formData: FormData) {
   const imageUrl = formData.get('imageUrl') as string || null;
 
   const ptRaw = formData.get('performanceTier') as string;
-  const performanceTier = (ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null;
+  /* المقيس أوّلاً للمعالج والكرت (lib/perf-rating · measuredTier) — واليدويّ لما لا قياس له */
+  const catRow = await prisma.category.findUnique({ where: { id: categoryId }, select: { name: true } });
+  const performanceTier = measuredTier(catRow?.name, name, specs)
+    ?? ((ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null);
 
   const created = await prisma.component.create({
     data: { categoryId, brand, name, price, tdpWattage, specs, description, imageUrl, performanceTier },
@@ -197,7 +201,10 @@ export async function updateComponent(formData: FormData) {
   const imageUrl = formData.get('imageUrl') as string || null;
 
   const ptRaw = formData.get('performanceTier') as string;
-  const performanceTier = (ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null;
+  /* المقيس أوّلاً للمعالج والكرت (lib/perf-rating · measuredTier) — واليدويّ لما لا قياس له */
+  const catRow = await prisma.category.findUnique({ where: { id: categoryId }, select: { name: true } });
+  const performanceTier = measuredTier(catRow?.name, name, specs)
+    ?? ((ptRaw && ptRaw.trim() !== '') ? parseInt(ptRaw, 10) : null);
 
   await prisma.component.update({
     where: { id },

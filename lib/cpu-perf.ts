@@ -90,6 +90,7 @@ export function cpuPerf(name: string): CpuPerf | null {
     n,
     n.replace(/(\d)KF$/, '$1K'),          // 14600KF → 14600K
     n.replace(/(\d)F$/, '$1'),            // 14400F → 14400، 225F → 225
+    /\d$/.test(n) ? `${n}F` : n,          // 14100 → 14100F: والعكس — الجدول قد لا يذكر إلّا نسخة F
     `${n} PLUS`,                          // 250K → 250K Plus
   ];
   for (const t of tries) {
