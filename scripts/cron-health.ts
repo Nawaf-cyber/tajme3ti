@@ -13,6 +13,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { BATCHES_PER_RUN, PER_RUN } from '../lib/cron-settings';
+import { readProxyStatus } from '../lib/proxy-stats';
 import 'dotenv/config';
 
 const hoursAgo = (d: Date | null) => (d ? (Date.now() - d.getTime()) / 3600_000 : Infinity);
@@ -57,7 +58,17 @@ async function main() {
   const cov = cand > 0 ? daily / cand : 0;
   console.log(`  الدورة الواحدة    : ${BATCHES_PER_RUN} دفعات ≈ ${PER_RUN} قطعة`);
   console.log(`  يومياً            : ${daily} فحصاً = ${cov >= 1 ? `كل قطعة ~${cov.toFixed(1)} مرّة` : `~${Math.round(cov * 100)}٪ من الكتالوج`}`);
-  console.log(`  رصيد السحب       : ~${Math.round(daily * 16.1).toLocaleString('en')} وحدة يومياً · ~${Math.round(daily * 16.1 * 30).toLocaleString('en')} شهرياً من 250,000`);
+  /* ⚠️ كان هنا «فحوص × 16.1»: متوسّطٌ من أيّام البروكسي المتقدّم وحده، فقال ~١٫٢ مليون شهرياً
+     والعدّادات الفعليّة نحو ٦٠ ألفاً (2026-10-27). الآن من عدّادات آخر ٢٤ ساعة (lib/proxy-stats):
+     العاديّ وحدة والمتقدّم عشر. والعدّادات للمتاجر بوضع auto وحدها — كازاسوق (عاديّ دائماً)
+     ومتجرٌ بوضع premium لا عدّاد لهما، فيُقال ذلك لا يُقدَّر. */
+  const ps = await readProxyStatus(prisma);
+  const counted = Object.entries(ps.stores).map(([store, c]) =>
+    [store, c.normalOk + (c.fallback + c.bothFail) * 11 + (c.sampleSame + c.sampleDiff) * 10] as const);
+  const credits = counted.reduce((n, [, v]) => n + v, 0);
+  const uncounted = Object.entries(ps.modes).filter(([, m]) => m !== 'auto').map(([s]) => s);
+  console.log(`  رصيد السحب       : ${credits.toLocaleString('en')} وحدة في آخر ٢٤ ساعة (${counted.map(([s, v]) => `${s} ${v}`).join(' · ')}) ≈ ${(credits * 30).toLocaleString('en')} شهرياً من 250,000`);
+  console.log(`                      وفوقه كازاسوق (وحدة لكلّ فحص)${uncounted.length ? ` و${uncounted.join('، ')} بوضع premium (عشر لكلّ فحص)` : ''} — بلا عدّاد`);
 
   const rows = await prisma.component.findMany({
     where: scrapable,

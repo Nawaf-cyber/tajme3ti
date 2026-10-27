@@ -1532,12 +1532,13 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                 
                 {/* عرض القطع الناقصة.
                     ⚠️ `rose-400` على `rose-900/30` كان يعطي 3.06:1 — دون AA.
-                    و`rose-200` يعطي 6.22، قِيسا على العنصر نفسه. */}
+                    و`rose-200` يعطي 6.22، قِيسا على العنصر نفسه.
+                    والاسم بالعربي بلا uppercase ولا tracking: كانت «MOTHERBOARD RAM CASE» بعد جملةٍ عربيّة */}
                 {result.missingCategories && result.missingCategories.length > 0 && (
                   <div className="flex flex-wrap justify-center gap-2 mt-1">
                     {result.missingCategories.map(cat => (
-                      <span key={cat} className="px-3 py-1.5 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-200 text-[12px] font-black uppercase tracking-widest rounded-sm border border-rose-200 dark:border-rose-800/50">
-                        {cat}
+                      <span key={cat} className="px-3 py-1.5 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-200 text-[12px] font-black rounded-sm border border-rose-200 dark:border-rose-800/50">
+                        {catMeta(cat).label}
                       </span>
                     ))}
                   </div>
