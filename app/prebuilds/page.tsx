@@ -33,8 +33,9 @@ const RiyalIcon = ({ size = 'h-5 w-5', colorClass = 'bg-emerald-600 dark:bg-emer
 );
 
 export default async function PrebuildsPage() {
+  /* من الأرخص داخل كلّ فئة — `price` يُكتب يوم تُنشأ (scripts/add-prebuilds-*)، والمعروض لحظيّ */
   const prebuilds = await prisma.prebuild.findMany({
-    orderBy: { createdAt: 'desc' },
+    orderBy: { price: 'asc' },
   });
   
   const categories = await prisma.category.findMany();
@@ -81,8 +82,17 @@ export default async function PrebuildsPage() {
               gpuId: getCompId('GPU'),
               caseId: getCompId('Case'),
               psuId: getCompId('PSU'),
-              storageId: getCompId('Storage')
+              storageId: getCompId('Storage'),
+              /* كان غائباً: «حفظ في حسابي» يُسقط المبرّد، فتصل التجميعة إلى «تجميعاتي» بلا تبريد */
+              coolerId: getCompId('Cooler'),
             };
+
+            /* «افتحها في الباني»: معاملات الفئات تستبدل مسودّة الباني بالتجميعة كاملة
+               (components/PCBuilderClient · hasUrlParams) — فيعدّلها بلا حساب */
+            const builderHref = '/builder?' + categories
+              .filter((cat) => compObj[cat.id])
+              .map((cat) => `${cat.name.toLowerCase()}=${encodeURIComponent(compObj[cat.id])}`)
+              .join('&');
 
             const buildPartsDisplay = categories.map(cat => {
               const compId = compObj[cat.id];
@@ -95,7 +105,6 @@ export default async function PrebuildsPage() {
                 componentName: compDetails?.name || 'غير متوفر',
                 isAvailable: compDetails ? isAvailable(compDetails) : false,
                 price: compDetails?.price ?? 0,
-                shortCode: cat.name.substring(0, 2).toUpperCase()
               };
             }).filter(Boolean) as any[];
 
@@ -130,14 +139,16 @@ export default async function PrebuildsPage() {
                         key={idx} 
                         className={`bg-slate-50 dark:bg-[#151E32]/50 border p-3 rounded-sm flex items-center gap-3.5 hover:bg-white dark:hover:bg-[#1A233A] hover:shadow-md transition-all duration-300 ${part.isAvailable ? 'border-slate-100 dark:border-slate-800/60' : 'border-amber-300 dark:border-amber-600/50'}`}
                       >
-                        <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[12px] font-black text-slate-500 dark:text-slate-400 border border-slate-300/50 dark:border-slate-700/50">
-                          {part.shortCode}
+                        {/* أيقونة الفئة — كانت «CP» و«MO» و«PS»: حرفان إنجليزيّان يبدوان رمزاً داخلياً */}
+                        <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-lg border border-slate-300/50 dark:border-slate-700/50" aria-hidden="true">
+                          {catMeta(part.categoryName).icon}
                         </div>
                         <div className="flex flex-col overflow-hidden flex-1">
                           <span className="text-[12px] text-slate-500 dark:text-slate-300 font-bold mb-0.5">
                             {catMeta(part.categoryName).label}
                           </span>
-                          <span className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate w-full pr-2">
+                          {/* dir="auto": الاسم الإنجليزيّ في صفحةٍ RTL كان يُقصّ من أوّله («…efined SE ARGB White») */}
+                          <span dir="auto" className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate w-full pr-2 text-right">
                             {part.componentName}
                           </span>
                           {!part.isAvailable && (
@@ -191,7 +202,13 @@ export default async function PrebuildsPage() {
                     )}
                   </div>
 
-                  <div className="w-full relative z-10">
+                  <div className="w-full relative z-10 flex flex-col gap-3">
+                    <Link
+                      href={builderHref}
+                      className="w-full flex justify-center items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-white dark:text-[#052e37] font-bold py-3 rounded-xl transition-colors text-sm"
+                    >
+                      افتحها في الباني وعدّل عليها
+                    </Link>
                     <SavePrebuildButton payload={payload} />
                   </div>
                 </div>
@@ -222,7 +239,7 @@ export default async function PrebuildsPage() {
               تكوينات <span className="text-transparent bg-clip-text bg-gradient-to-l from-blue-600 to-emerald-400">مثالية</span> جاهزة.
             </h1>
             <p className="text-lg md:text-xl font-medium text-slate-600 dark:text-slate-400 max-w-2xl ml-auto leading-relaxed">
-              أنظمة تم اختبار توافقها برمجياً لضمان أعلى مستويات الأداء. اختر تجميعتك وابدأ في تخصيصها داخل حسابك الشخصي بلمسة واحدة.
+              كل تجميعة مفحوصة بنفس فحص الباني، وأسعارها لحظية من المتاجر. افتحها في الباني وعدّل عليها، أو احفظها في حسابك.
             </p>
           </div>
         </div>
