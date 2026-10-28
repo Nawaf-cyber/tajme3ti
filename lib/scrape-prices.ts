@@ -56,11 +56,16 @@ export const isPlausible = (next: number, previous: number | null | undefined): 
    الحارس وبقي الموقع يعرض السعر القديم — أسوأ من الخطأ الذي يحمينا منه).
    الحلّ: إن أكّد مصدر ثانٍ في الصفحة (JSON-LD) الرقمَ نفسه، فالقراءة سليمة
    والقفزة واقع سوق. لا نتجاوز الحارس إلا بهذا التطابق. */
-/** `currency`: ‏priceCurrency كما يكتبها المتجر («BHD» عند كازاسوق) — null إن لم تُذكر */
-export type LdOffer = { price: number | null; inStock: boolean | null; currency?: string | null };
+/** والحقول الخام لمن يريد ألّا يُخمَّن له (قارئ كازاسوق): `currency` ‏priceCurrency كما كُتبت،
+ *  و`availability` آخر مقطعٍ من الرابط («InStock»)، و`offerType` («Offer» أو «AggregateOffer»)،
+ *  و`offerUrl` رابط العرض. null = لم يُذكر. وقراءة `price`/`inStock` كما كانت لا تتغيّر. */
+export type LdOffer = {
+  price: number | null; inStock: boolean | null;
+  currency?: string | null; availability?: string | null; offerType?: string | null; offerUrl?: string | null;
+};
 
 export const jsonLdOffer = ($: cheerio.CheerioAPI): LdOffer => {
-  const found: LdOffer = { price: null, inStock: null, currency: null };
+  const found: LdOffer = { price: null, inStock: null, currency: null, availability: null, offerType: null, offerUrl: null };
   $('script[type="application/ld+json"]').each((_, el) => {
     if (found.price != null || found.inStock != null) return;
     try {
@@ -69,6 +74,9 @@ export const jsonLdOffer = ($: cheerio.CheerioAPI): LdOffer => {
       for (const node of nodes) {
         if (node?.['@type'] !== 'Product' || !node.offers) continue;
         const offer = Array.isArray(node.offers) ? node.offers[0] : node.offers;
+        found.offerType = offer?.['@type'] ? String(offer['@type']) : null;
+        found.availability = offer?.availability ? String(offer.availability).split('/').pop() || null : null;
+        found.offerUrl = offer?.url ? String(offer.url) : null;
         const p = parseFloat(String(offer?.price ?? '').replace(/,/g, ''));
         if (p > 0) { found.price = p; found.currency = offer?.priceCurrency ? String(offer.priceCurrency) : null; }
         const av = String(offer?.availability ?? '').toLowerCase();
@@ -123,14 +131,34 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * كل طلب إلى Scrape.do يمرّ من هنا: يحترم حدّ التزامن، ويعيد المحاولة مرّة
  * واحدة عند 429 بعد مهلة قصيرة (الحدّ لحظي، فالانتظار وحده يكفي غالباً).
  */
+/* ============ الرصيد الفعليّ لكلّ متجر — من Scrape.do نفسه ============
+ *
+ * كلّ ردٍّ من Scrape.do يحمل كلفته (`Scrape.do-Request-Cost`، توثيقهم) — وقد تزيد على كلفة الطلب
+ * الأساسيّة لأنهم يفرضون super أو render افتراضيّاً على بعض النطاقات. والتقدير السابق كان يضرب
+ * عدد الفحوص في ثابت، ولا عدّاد لمتجرٍ خارج lib/proxy-fallback (كازاسوق) — فلو فُرض على نطاقٍ
+ * عشرُ وحداتٍ لما عُرف إلّا من الفاتورة. هنا يُعدّ لكلّ نطاقٍ مستهدف، ويكتبه lib/proxy-stats كلّ ساعة. */
+let creditTally: Record<string, { requests: number; credits: number }> = {};
+const noteCost = (url: string, res: Response) => {
+  if (!url.startsWith('https://api.scrape.do/')) return;
+  let host = '?';
+  try { host = new URL(new URL(url).searchParams.get('url') || '').hostname.replace(/^www\./, ''); } catch { /* يبقى «?» */ }
+  const cost = Number(res.headers.get('scrape.do-request-cost'));
+  const t = (creditTally[host] ??= { requests: 0, credits: 0 });
+  t.requests++;
+  if (Number.isFinite(cost)) t.credits += cost;
+};
+export const takeCreditTally = () => { const s = creditTally; creditTally = {}; return s; };
+
 export async function scrapeFetch(url: string, timeout = 20000): Promise<Response> {
   await acquireSlot();
   try {
     let res = await fetchWithTimeout(url, { cache: 'no-store' }, budgetedTimeout(timeout));
+    noteCost(url, res);
     // لا نُعيد المحاولة إن لم يبقَ وقتٌ يكفيها — الردّ الذي يصل بعد موت الدالة لا ينفع أحداً
     if (res.status === 429 && remainingBudget() > 6000) {
       await sleep(2000 + Math.floor(Math.random() * 1000)); // تشتيت لتفادي الارتطام
       res = await fetchWithTimeout(url, { cache: 'no-store' }, budgetedTimeout(timeout));
+      noteCost(url, res);
     }
     return res;
   } finally {
@@ -425,56 +453,97 @@ async function scrapeAmazonVia(t: OfferTarget, token: string, premium: boolean):
  * الـ٢٥٤ كلّها نافدةً بلا خطأٍ واحد ولا تنبيه، يومين حتى بلّغ نوّاف (scripts/pause-cazasouq-2026-10-28).
  *
  * لكنّ الخادم يُرسل مع كلّ صفحة منتجٍ بياناتها المنظّمة لمحرّكات البحث (`data-seo-prerender`):
- *   <script type="application/ld+json">{"@type":"Product", "offers":{"price":275,
- *     "priceCurrency":"BHD", "availability":"https://schema.org/OutOfStock"}}</script>
- * فهي المصدر الآن — والرقم نفسه الذي يعرضونه («SR 2744.59» = 275 دينار). وقِيس 2026-10-28 أنّها
- * تأتي من أوّل طلبٍ حتى لصفحةٍ لم يزرها أحد (ست صفحات)، والروابط القديمة `/<slug>-<id>` تُحوَّل إليها.
+ *   <script type="application/ld+json">{"@type":"Product", "offers":{"@type":"Offer", "price":275,
+ *     "priceCurrency":"BHD", "availability":"https://schema.org/OutOfStock", "url":"…/product/<slug>"}}</script>
+ * وقِيس 2026-10-28 على العروض الـ٢٥٤ (الخام مقابل الصفحة الحيّة المرسومة من الـAPI):
+ *   ٢٥٢ فيها بيانات المنتج (والاثنان الباقيان منتجان حُذفا فحُوِّل رابطهما إلى صفحة فئة)، و٢٥٢ من
+ *   ٢٥٢ يطابق سعرُها وتوفّرها الصفحةَ الحيّة؛ والردّ غير مخزّن (`max-age=0`، وعمرُه ٠–٤ ثوانٍ)،
+ *   ويأتي من أوّل طلبٍ لصفحةٍ لم يزرها أحد؛ و`offers.url` يطابق og:url في الـ٢٥٢.
  *
- * والقاعدة التي خرقها القديم: **النفاد لا يُستنتج من غياب شيء** — يُقرأ من `availability` وحدها.
- * وما لا بيانات منتجٍ فيه:
- *   · صفحةٌ بلا بيانات منظّمة أصلاً (منتجٌ حُذف فحُوِّل رابطُه إلى صفحة فئة — رُصد لـ 7900X) ← `gone`،
- *     ولا يسقط العرض إلّا بإشارتين متتاليتين (lib/scrape-offers · goneTwice).
- *   · صفحة منتجٍ تعرّفنا عليها بلا سعرٍ ولا توفّر ← خطأٌ معلن، والحالة السابقة كما هي.
+ * والقاعدة التي خرقها القديم: **لا حكم من غياب شيء**. فكلّ ما لا نعرفه خطأٌ معلن والحالة كما هي،
+ * والأحكام الثلاثة وحدها من إشاراتٍ صريحة — بالترتيب:
+ *   ١) ليست صفحة متجرهم أصلاً (تحقّق Cloudflare، صفحة خطأ من الوسيط) ← خطأ، لا «أُزيل».
+ *   ٢) انتهى الرابط خارج /product/ (‏Scrape.do-Resolved-Url: منتجٌ حُذف فحُوِّل إلى فئة) ← `gone`،
+ *      ولا يسقط العرض إلّا بإشارتين متتاليتين (lib/scrape-offers · goneTwice).
+ *   ٣) صفحة منتجٍ بلا بياناته ← خطأ (ويُعاد الطلب مرّةً في scrapeCazasouq) — لا «أُزيل»: صفحةٌ لم تُجهَّز
+ *      بياناتها والمنتجُ المحذوف يبدوان واحداً من الداخل، والفرق في (٢) وحده.
+ *   ٤) بيانات منتجٍ آخر (offers.url ≠ og:url) أو عرضٌ غير «Offer» (‏AggregateOffer لنسخٍ متعدّدة) ← خطأ.
+ *   ٥) التوفّر من `availability`: InStock/LimitedAvailability/OnlineOnly متوفّر، وOutOfStock/SoldOut/
+ *      Discontinued/PreOrder/BackOrder غير متوفّرٍ الآن، وما سواها خطأ.
+ *   ٦) العملة من priceCurrency: BHD تُحوَّل (lib/currency)، وSAR كما هي، وغيابها أو غيرهما خطأ —
+ *      دينارٌ يُقرأ ريالاً سعرٌ يبدو معقولاً وهو عُشر الحقيقة.
+ * ⚠️ لم يُختبر: الخصم. لا عرضَ مخفّضاً في موقعهم يوم الكتابة، فلا يُعرف أيذكر JSON-LD السعر بعد الخصم.
  */
-export function readCazasouqPage(html: string, t: OfferTarget): StoreOutcome {
+const CAZ_NO_DATA = 'صفحة المنتج بلا بيانات منظّمة (JSON-LD)';
+const CAZ_IN = new Set(['InStock', 'LimitedAvailability', 'OnlineOnly']);
+const CAZ_OUT = new Set(['OutOfStock', 'SoldOut', 'Discontinued', 'PreOrder', 'BackOrder']);
+const pathOf = (u: string | null | undefined): string | null => {
+  try { return u ? new URL(u, 'https://www.cazasouq.com').pathname.replace(/\/+$/, '') || '/' : null; } catch { return null; }
+};
+
+export function readCazasouqPage(html: string, t: OfferTarget, finalUrl?: string | null): StoreOutcome {
   const out = emptyOutcome(t.inStock ?? true);
   const label = `كازاسوق (${t.name})`;
+  const keep = 'أُبقيت الحالة السابقة.';
 
   /* صفحة معطّلة/صيانة ليست دليل نفاد — نخرج بلا أن نمسّ حالة التوفّر */
   if (isBrokenPage(html)) {
-    out.errors.push(`${label}: صفحة المتجر معطّلة أو تحت الصيانة — أُبقيت الحالة السابقة.`);
+    out.errors.push(`${label}: صفحة المتجر معطّلة أو تحت الصيانة — ${keep}`);
     return out;
   }
-  if (markIfRedirectedHome(out, label, html, t.url!)) return out;
+  /* ١ — كلّ صفحةٍ من تطبيقهم تحمل هذا الوسم في رأسها؛ ما خلا منه ليس من المتجر */
+  if (!html.includes('cazasouq-supabase-url')) {
+    out.errors.push(`${label}: الردّ ليس صفحةً من المتجر (تحقّق حماية أو خطأ وسيط؟) — ${keep}`);
+    return out;
+  }
+  /* ٢ — أين انتهى الرابط؟ */
+  const landed = pathOf(finalUrl);
+  if (landed != null && !landed.startsWith('/product/')) {
+    out.gone = true;
+    out.errors.push(`${label}: ${GONE_MARK} — الرابط يُحوَّل إلى ${landed} لا إلى صفحة منتج`);
+    return out;
+  }
+  if (markIfRedirectedHome(out, label, html, finalUrl || t.url!)) return out;
 
   const $ = cheerio.load(html);
-  const ogType = String($('meta[property="og:type"]').attr('content') || '');
   const ld = jsonLdOffer($);
 
-  if (ld.price == null && ld.inStock == null) {
-    if (ogType !== 'product') {
-      out.gone = true;
-      out.errors.push(`${label}: ${GONE_MARK} — الرابط لا يفتح صفحة منتج (حُوِّل إلى فئة أو صفحة عامّة)`);
-    } else {
-      out.errors.push(`${label}: صفحة المنتج بلا بيانات منظّمة (JSON-LD) — تغيّرت بنية الموقع؟ أُبقيت الحالة السابقة.`);
-    }
+  /* ٣ */
+  if (ld.offerType == null && ld.price == null && ld.inStock == null) {
+    out.errors.push(`${label}: ${CAZ_NO_DATA} — ${keep}`);
+    return out;
+  }
+  /* ٤ */
+  const ogPath = pathOf($('meta[property="og:url"]').attr('content'));
+  const offerPath = pathOf(ld.offerUrl);
+  if (ogPath && offerPath && ogPath !== offerPath) {
+    out.errors.push(`${label}: بيانات الصفحة لمنتجٍ آخر (${offerPath} لا ${ogPath}) — ${keep}`);
+    return out;
+  }
+  if (ld.offerType && ld.offerType !== 'Offer') {
+    out.errors.push(`${label}: نوع عرضٍ غير معتاد (${ld.offerType}) — ${keep}`);
+    return out;
+  }
+  /* ٥ */
+  const av = ld.availability || '';
+  if (!CAZ_IN.has(av) && !CAZ_OUT.has(av)) {
+    out.errors.push(`${label}: توفّرٌ غير معروف (${av || 'غير مذكور'}) — ${keep}`);
     return out;
   }
   out.pageRecognized = true;
-  if (ld.inStock != null) out.inStock = ld.inStock;
+  out.inStock = CAZ_IN.has(av);
 
-  /* ---- العملة: من priceCurrency نفسها، لا من الصفحة كلّها ----
-     المتجر متعدّد العملات، ودينارٌ يُقرأ ريالاً سعرٌ يبدو معقولاً وهو عُشر الحقيقة (lib/currency). */
+  /* ٦ */
   const cur = String(ld.currency || '').toUpperCase();
   let price = ld.price ?? 0;
-  if (price > 0 && cur && cur !== 'SAR' && !isBhdText(cur)) {
-    out.errors.push(`${label}: عملةٌ غير متوقّعة (${cur}) — لم يُعتمد السعر.`);
+  if (price > 0 && cur !== 'SAR' && !isBhdText(cur)) {
+    out.errors.push(`${label}: عملة السعر ${cur ? `غير متوقّعة (${cur})` : 'غير مذكورة'} — لم يُعتمد السعر.`);
     return out;
   }
   if (isBhdText(cur)) price = bhdToSar(price);
   price = round2(price);
 
-  /* لا «سعر قبل الخصم» في بياناتهم المنظّمة: null = قرأنا الصفحة ولا خصمَ معلن — لا خصماً قديماً
+  /* لا «سعر قبل الخصم» في بياناتهم المنظّمة: 0 ← null = قرأنا الصفحة ولا خصمَ معلن — لا خصماً قديماً
      من الموقع السابق يبقى معلّقاً على سعرٍ جديد */
   if (price > 0) {
     applyPriceVerdict(out, 'كازاسوق', t.name, price, 0, t.price, null);
@@ -490,12 +559,24 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
 
   try {
     // بروكسي عادي (بلا super) — كازاسوق لا يحتاج حماية متقدمة، فيوفّر الرصيد
-    const res = await scrapeFetch(scrapeUrl(token, t.url, false));
-    if (!res.ok) {
-      httpFailure(out, `كازاسوق (${t.name})`, res.status);
+    const get = async () => {
+      const res = await scrapeFetch(scrapeUrl(token, t.url!, false));
+      /* الرابط النهائيّ بعد التحويل (توثيق Scrape.do) — به يُعرف المنتج المحذوف المحوَّل إلى فئة */
+      return { res, html: res.ok ? await res.text() : '', final: res.headers.get('scrape.do-resolved-url') };
+    };
+    let r = await get();
+    if (!r.res.ok) {
+      httpFailure(out, `كازاسوق (${t.name})`, r.res.status);
       return out;
     }
-    return readCazasouqPage(await res.text(), t);
+    let o = readCazasouqPage(r.html, t, r.final);
+    /* صفحة منتجٍ بلا بياناتها: طلبٌ ثانٍ واحد (وحدة رصيد) قبل الحكم بالخطأ — إن بقي وقتٌ يكفيه */
+    if (o.errors.some((e) => e.includes(CAZ_NO_DATA)) && remainingBudget() > 8000) {
+      await sleep(1500);
+      r = await get();
+      if (r.res.ok) o = readCazasouqPage(r.html, t, r.final);
+    }
+    return o;
   } catch {
     out.errors.push(`كازاسوق (${t.name}): تجاوز الوقت المسموح (Timeout) أو خطأ اتصال.`);
   }
