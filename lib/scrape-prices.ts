@@ -56,10 +56,11 @@ export const isPlausible = (next: number, previous: number | null | undefined): 
    الحارس وبقي الموقع يعرض السعر القديم — أسوأ من الخطأ الذي يحمينا منه).
    الحلّ: إن أكّد مصدر ثانٍ في الصفحة (JSON-LD) الرقمَ نفسه، فالقراءة سليمة
    والقفزة واقع سوق. لا نتجاوز الحارس إلا بهذا التطابق. */
-export type LdOffer = { price: number | null; inStock: boolean | null };
+/** `currency`: ‏priceCurrency كما يكتبها المتجر («BHD» عند كازاسوق) — null إن لم تُذكر */
+export type LdOffer = { price: number | null; inStock: boolean | null; currency?: string | null };
 
 export const jsonLdOffer = ($: cheerio.CheerioAPI): LdOffer => {
-  const found: LdOffer = { price: null, inStock: null };
+  const found: LdOffer = { price: null, inStock: null, currency: null };
   $('script[type="application/ld+json"]').each((_, el) => {
     if (found.price != null || found.inStock != null) return;
     try {
@@ -69,7 +70,7 @@ export const jsonLdOffer = ($: cheerio.CheerioAPI): LdOffer => {
         if (node?.['@type'] !== 'Product' || !node.offers) continue;
         const offer = Array.isArray(node.offers) ? node.offers[0] : node.offers;
         const p = parseFloat(String(offer?.price ?? '').replace(/,/g, ''));
-        if (p > 0) found.price = p;
+        if (p > 0) { found.price = p; found.currency = offer?.priceCurrency ? String(offer.priceCurrency) : null; }
         const av = String(offer?.availability ?? '').toLowerCase();
         if (av.includes('outofstock') || av.includes('soldout') || av.includes('discontinued')) found.inStock = false;
         else if (av.includes('instock') || av.includes('limitedavailability') || av.includes('preorder')) found.inStock = true;
@@ -418,6 +419,71 @@ async function scrapeAmazonVia(t: OfferTarget, token: string, premium: boolean):
 }
 
 /* ============================ كازاسوق ============================ */
+/*
+ * ⚠️ موقعهم الجديد (~2026-10-25) واجهة جافاسكربت: لا صفّ توفّر ولا زرّ سلّة ولا `.product-price`
+ * في الـHTML الخام. والقارئ القديم كان يستنتج «نافد» من **غياب** زرّ السلّة — فانقلبت العروض
+ * الـ٢٥٤ كلّها نافدةً بلا خطأٍ واحد ولا تنبيه، يومين حتى بلّغ نوّاف (scripts/pause-cazasouq-2026-10-28).
+ *
+ * لكنّ الخادم يُرسل مع كلّ صفحة منتجٍ بياناتها المنظّمة لمحرّكات البحث (`data-seo-prerender`):
+ *   <script type="application/ld+json">{"@type":"Product", "offers":{"price":275,
+ *     "priceCurrency":"BHD", "availability":"https://schema.org/OutOfStock"}}</script>
+ * فهي المصدر الآن — والرقم نفسه الذي يعرضونه («SR 2744.59» = 275 دينار). وقِيس 2026-10-28 أنّها
+ * تأتي من أوّل طلبٍ حتى لصفحةٍ لم يزرها أحد (ست صفحات)، والروابط القديمة `/<slug>-<id>` تُحوَّل إليها.
+ *
+ * والقاعدة التي خرقها القديم: **النفاد لا يُستنتج من غياب شيء** — يُقرأ من `availability` وحدها.
+ * وما لا بيانات منتجٍ فيه:
+ *   · صفحةٌ بلا بيانات منظّمة أصلاً (منتجٌ حُذف فحُوِّل رابطُه إلى صفحة فئة — رُصد لـ 7900X) ← `gone`،
+ *     ولا يسقط العرض إلّا بإشارتين متتاليتين (lib/scrape-offers · goneTwice).
+ *   · صفحة منتجٍ تعرّفنا عليها بلا سعرٍ ولا توفّر ← خطأٌ معلن، والحالة السابقة كما هي.
+ */
+export function readCazasouqPage(html: string, t: OfferTarget): StoreOutcome {
+  const out = emptyOutcome(t.inStock ?? true);
+  const label = `كازاسوق (${t.name})`;
+
+  /* صفحة معطّلة/صيانة ليست دليل نفاد — نخرج بلا أن نمسّ حالة التوفّر */
+  if (isBrokenPage(html)) {
+    out.errors.push(`${label}: صفحة المتجر معطّلة أو تحت الصيانة — أُبقيت الحالة السابقة.`);
+    return out;
+  }
+  if (markIfRedirectedHome(out, label, html, t.url!)) return out;
+
+  const $ = cheerio.load(html);
+  const ogType = String($('meta[property="og:type"]').attr('content') || '');
+  const ld = jsonLdOffer($);
+
+  if (ld.price == null && ld.inStock == null) {
+    if (ogType !== 'product') {
+      out.gone = true;
+      out.errors.push(`${label}: ${GONE_MARK} — الرابط لا يفتح صفحة منتج (حُوِّل إلى فئة أو صفحة عامّة)`);
+    } else {
+      out.errors.push(`${label}: صفحة المنتج بلا بيانات منظّمة (JSON-LD) — تغيّرت بنية الموقع؟ أُبقيت الحالة السابقة.`);
+    }
+    return out;
+  }
+  out.pageRecognized = true;
+  if (ld.inStock != null) out.inStock = ld.inStock;
+
+  /* ---- العملة: من priceCurrency نفسها، لا من الصفحة كلّها ----
+     المتجر متعدّد العملات، ودينارٌ يُقرأ ريالاً سعرٌ يبدو معقولاً وهو عُشر الحقيقة (lib/currency). */
+  const cur = String(ld.currency || '').toUpperCase();
+  let price = ld.price ?? 0;
+  if (price > 0 && cur && cur !== 'SAR' && !isBhdText(cur)) {
+    out.errors.push(`${label}: عملةٌ غير متوقّعة (${cur}) — لم يُعتمد السعر.`);
+    return out;
+  }
+  if (isBhdText(cur)) price = bhdToSar(price);
+  price = round2(price);
+
+  /* لا «سعر قبل الخصم» في بياناتهم المنظّمة: null = قرأنا الصفحة ولا خصمَ معلن — لا خصماً قديماً
+     من الموقع السابق يبقى معلّقاً على سعرٍ جديد */
+  if (price > 0) {
+    applyPriceVerdict(out, 'كازاسوق', t.name, price, 0, t.price, null);
+  } else if (out.inStock) {
+    out.errors.push(`${label}: متوفّر بلا سعر في بياناته المنظّمة.`);
+  }
+  return out;
+}
+
 export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<StoreOutcome> {
   const out = emptyOutcome(t.inStock ?? true);
   if (!t.url || t.url.length <= 12) return out;
@@ -429,90 +495,7 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
       httpFailure(out, `كازاسوق (${t.name})`, res.status);
       return out;
     }
-    const html = await res.text();
-
-    /* صفحة معطّلة/صيانة ليست دليل نفاد — نخرج بلا أن نمسّ حالة التوفّر */
-    if (isBrokenPage(html)) {
-      out.errors.push(`كازاسوق (${t.name}): صفحة المتجر معطّلة أو تحت الصيانة — أُبقيت الحالة السابقة.`);
-      return out;
-    }
-    if (markIfRedirectedHome(out, `كازاسوق (${t.name})`, html, t.url)) return out;
-    const $ = cheerio.load(html);
-
-    /* ---- التوفّر — من كتلة المنتج نفسه فقط ----
-       الصفحة تحتوي كاروسيل "منتجات ذات صلة" فيه أزرار "تنبيه بالتوافر"
-       لمنتجات نافدة أخرى (رصدناها مرّتين في HTML الخام لمنتج متوفّر).
-       الفحص القديم كان يبحث في نص الصفحة كلها فيعلّم المتوفّر نافداً.
-       المصدر الموثوق صف التوفّر الخاص بالمنتج:
-         <li class="product-stock in-stock">التوفر: <span>1</span></li> */
-    const stockRow = $('li.product-stock').first();
-    const stockClass = String(stockRow.attr('class') || '');
-    const stockText = stockRow.find('span').first().text().trim();
-    const stockQty = parseMoney(stockText);
-
-    if (stockClass.includes('out-of-stock')) {
-      out.inStock = false;
-    } else if (stockClass.includes('in-stock')) {
-      out.inStock = stockQty > 0 || !stockText;
-    } else if (stockRow.length) {
-      out.inStock = stockQty > 0;
-    } else {
-      // احتياط: زر السلة داخل كتلة المنتج، لا في الكاروسيل
-      const cartBtn = $('#button-cart').first();
-      out.inStock = cartBtn.length > 0 && !cartBtn.is('[disabled]');
-    }
-
-    /* ---- السعر — من كتلة سعر المنتج حصراً ----
-       ⚠️ الدرس المكلّف: المحدّدات القديمة (.price-new / .price /
-       .product-price) تطابق **المنتجات المجاورة** في الكاروسيل، لا المنتج
-       المعروض. فكان السعر المخزَّن سعر منتج آخر، ويتغيّر بتغيّر ترتيب
-       الكاروسيل. بنية سعر المنتج المؤكّدة:
-         div.product-price-group > div.price-wrapper > div.price-group >
-           div.product-price-new  (الحالي)
-           div.product-price-old  (قبل الخصم — يظهر عند وجود عرض) */
-    const priceScope = $('.price-wrapper, .product-price-group').first();
-    const newText = priceScope.find('.product-price-new').first().text();
-    const oldText = priceScope.find('.product-price-old').first().text();
-
-    /* بنيتان لا واحدة (رُصدت ٢٠٢٦-٠٨-٠٨):
-         عليه خصم  → .product-price-old + .product-price-new
-         بلا خصم   → .product-price وحده، ولا وجود لـ new إطلاقاً
-       قراءة new فقط كانت تُسقط كل منتج بلا خصم — ٢٥ عرضاً بخطأ معلن،
-       وأخرى صامتة أبقت سعراً قديماً بلا تنبيه. الاحتياط داخل النطاق نفسه
-       كي لا يعود خطأ الكاروسيل. */
-    const plainText = priceScope.find('.product-price').first().text();
-    const curText = parseMoney(newText) > 0 ? newText : plainText;
-
-    let price = parseMoney(curText);
-    let listPrice = parseMoney(oldText);
-
-    /* ---- العملة ----
-       المتجر متعدّد العملات (BHD/SAR/AED...). نحدّدها من نصّ السعر نفسه لا
-       من الصفحة كلها. وأُزيلت حيلة "اضرب ×10 إذا كان السعر أقل من ٢٠٪ من
-       سعر أمازون" — هي التي حوّلت سعر منتج مجاور (409.09) إلى 4090.9
-       فبدا رقماً معقولاً ومرّ. */
-    const currencyText = `${curText} ${oldText}`;
-    const isBHD = isBhdText(currencyText);
-    /* الشاهد يُقرأ بالعملة نفسها، فيخضع للتحويل نفسه — وإلا قارنّا ديناراً بريال */
-    let witness = jsonLdPrice($);
-    if (isBHD) {
-      /* القاعدة في `lib/currency.ts` — يستعملها محرّك البحث أيضاً */
-      price = bhdToSar(price);
-      listPrice = bhdToSar(listPrice);
-      if (witness != null) witness = bhdToSar(witness);
-    }
-
-    price = round2(price);
-    listPrice = round2(listPrice);
-
-    if (price > 0) {
-      applyPriceVerdict(out, 'كازاسوق', t.name, price, listPrice, t.price, witness);
-    } else if (out.inStock) {
-      /* غياب السعر مع كون المنتج **متوفّراً** = عطل حقيقي (محدّد مكسور).
-         أمّا النافد فلا يعرض سعراً أصلاً — والإبلاغ عنه كخطأ يملأ لوحة
-         التنبيهات بضوضاء تُخفي الأعطال الفعلية. */
-      out.errors.push(`كازاسوق (${t.name}): لم يتم العثور على سعر في كتلة المنتج (.product-price / .product-price-new).`);
-    }
+    return readCazasouqPage(await res.text(), t);
   } catch {
     out.errors.push(`كازاسوق (${t.name}): تجاوز الوقت المسموح (Timeout) أو خطأ اتصال.`);
   }
