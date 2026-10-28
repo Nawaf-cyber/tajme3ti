@@ -23,7 +23,11 @@ export const IMAGE_HOSTS: ReadonlySet<string> = new Set([
   // كازاسوق
   'cazasouq.com',
   'www.cazasouq.com',
-  'static.cazasouq.com',   // نطاق أصول كازاسوق (صور المنتجات الفعلية)
+  'static.cazasouq.com',   // نطاق أصولهم القديم — لا يردّ منذ غيّروا موقعهم (~2026-10-25)
+  /* مخزن صورهم الجديد (og:image في صفحة المنتج). ⚠️ المشروع بعينه لا `*.supabase.co`: النطاق العامّ
+     يفتح الوسيط لكلّ مشروعٍ على supabase — وهو الـopen proxy المحذَّر منه أعلاه.
+     scripts/cazasouq-images-2026-10-28 */
+  'chqgmmjhrrcjwtnbhcpr.supabase.co',
   // مايكرولس
   'saudi.microless.com',
   'microless.com',
