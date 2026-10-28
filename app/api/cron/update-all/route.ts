@@ -9,6 +9,7 @@ import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrap
 import { SCRAPE_STORE_SELECT, OFFER_INCLUDE } from '../../../../lib/stores-server';
 import { isStale, fixableByScrape } from '../../../../lib/price-staleness';
 import { loadProxyMode, flushProxyStats, alertProxy } from '../../../../lib/proxy-stats';
+import { tallyStoreRun, alertStoreHealth, type StoreRunTally } from '../../../../lib/store-health';
 import { CREDITS_PER_PART } from '../../../../lib/proxy-fallback';
 import { BATCH_SIZE, CRON_SOURCE_KEY, DEFAULT_CRON_SOURCE, cronCaller, isValidCronSource } from '../../../../lib/cron-settings';
 
@@ -270,12 +271,14 @@ export async function GET(req: Request) {
        وحدها. والعدد يملأ بوّابة الطلبات (٨) بلا زحام: القطعة ~١٫٦ طلب سحب. */
     const PARTS_IN_FLIGHT = 6;
     let nextIndex = 0;
+    const storeRun: StoreRunTally = {};
 
     const processComp = async (comp: (typeof components)[number]) => {
         // ---- السحب والحساب: منطق مشترك مع «تحديث قطعة واحدة» ----
         const scraped = await scrapeComponentOffers(comp as any, SCRAPER_API_KEY);
         const resolved = resolveOfferPrices(comp as any, scraped.results);
         allErrors.push(...scraped.errors);
+        tallyStoreRun(storeRun, comp.name, comp.offers as any, scraped.results, resolved.offerUpdates);
 
         // كل عرض يُحدَّث في صفّه، والقطعة تحمل أقل سعر معروض
         for (const u of resolved.offerUpdates) {
@@ -366,6 +369,8 @@ export async function GET(req: Request) {
        ⚠️ بعد الحلقة لا داخلها: كتابةٌ واحدة لكلّ تشغيلة، والفشل هنا لا يُفشلها. */
     const proxySnap = await flushProxyStats(prisma);
     await alertProxy(proxySnap);
+    /* متجرٌ انقلب نافداً أو فشل كلّه في التشغيلة؟ (lib/store-health — درس كازاسوق 2026-10-25) */
+    await alertStoreHealth(prisma, storeRun);
 
     /* يبقى شاملاً كل ما فُحص: زرّ اللوحة يقرأ طوله ليعرف هل بقيت قطع
        (updatedNames.length === 0 → توقّف). تصفيته للإشعار كانت ستوقف

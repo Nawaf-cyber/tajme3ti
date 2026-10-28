@@ -13,6 +13,7 @@
 
 import type { PrismaClient } from '@prisma/client';
 import { setProxyModes, takeProxyTally, DEFAULT_PROXY_MODES, PROXY_STORES, type ProxyCounts, type ProxyDiff, type ProxyMode } from './proxy-fallback';
+import { takeCreditTally } from './scrape-prices';
 
 /** وضع كلّ متجر: `proxy.mode.amazon` = auto | premium. وغيابُه = DEFAULT_PROXY_MODES */
 export const proxyModeKey = (store: string) => `proxy.mode.${store}`;
@@ -20,10 +21,12 @@ export const proxyModeKey = (store: string) => `proxy.mode.${store}`;
    لاختيارٍ صريح، وغيرُه يُهمَل لصالح مفتاح كلّ متجر */
 const LEGACY_MODE_KEY = 'proxy.mode';
 const HOUR_PREFIX = 'proxy.h.';
+/* الرصيد الفعليّ لكلّ نطاق (lib/scrape-prices · takeCreditTally): صفٌّ لكلّ ساعة، بالمفتاح نفسه شكلاً */
+const CREDIT_PREFIX = 'proxy.c.';
 const DIFFS_KEY = 'proxy.diffs';
 const KEEP_DIFFS = 40;
 
-const hourKey = (d: Date) => `${HOUR_PREFIX}${d.toISOString().slice(0, 13)}`;
+const hourKey = (d: Date, prefix = HOUR_PREFIX) => `${prefix}${d.toISOString().slice(0, 13)}`;
 const isMode = (v: unknown): v is ProxyMode => v === 'auto' || v === 'premium';
 const parse = <T,>(s: string | null | undefined, fallback: T): T => {
   try { return s ? (JSON.parse(s) as T) : fallback; } catch { return fallback; }
@@ -61,6 +64,7 @@ export type ProxySnapshot = ReturnType<typeof takeProxyTally>;
 export async function flushProxyStats(prisma: PrismaClient): Promise<ProxySnapshot> {
   const snap = takeProxyTally();
   const stores = Object.keys(snap.counts);
+  await flushCredits(prisma);
   if (!stores.length && !snap.diffs.length) return snap;
   try {
     const key = hourKey(new Date());
@@ -88,6 +92,43 @@ export async function flushProxyStats(prisma: PrismaClient): Promise<ProxySnapsh
     console.error('[proxy] تعذّر حفظ العدّادات', e);
   }
   return snap;
+}
+
+/** يُكتب قبل عدّادات البروكسي لا داخلها: تشغيلةٌ لا متجر فيها بوضع auto (كازاسوق وحده) لها كلفةٌ أيضاً */
+async function flushCredits(prisma: PrismaClient): Promise<void> {
+  const tally = takeCreditTally();
+  if (!Object.keys(tally).length) return;
+  try {
+    const key = hourKey(new Date(), CREDIT_PREFIX);
+    const row = await prisma.setting.findUnique({ where: { key } });
+    const cur = parse<Record<string, { requests: number; credits: number }>>(row?.value, {});
+    for (const [host, t] of Object.entries(tally)) {
+      const into = (cur[host] ??= { requests: 0, credits: 0 });
+      into.requests += t.requests;
+      into.credits += t.credits;
+    }
+    const value = JSON.stringify(cur);
+    await prisma.setting.upsert({ where: { key }, update: { value }, create: { key, value } });
+    await prisma.setting.deleteMany({
+      where: { key: { startsWith: CREDIT_PREFIX, lt: hourKey(new Date(Date.now() - 48 * 3600_000), CREDIT_PREFIX) } },
+    });
+  } catch (e) {
+    console.error('[proxy] تعذّر حفظ الرصيد', e);
+  }
+}
+
+/** الرصيد الفعليّ في آخر ٢٤ ساعة لكلّ نطاق — scripts/cron-health يقرؤه */
+export async function readCredits24h(prisma: PrismaClient): Promise<Record<string, { requests: number; credits: number }>> {
+  const rows = await prisma.setting.findMany({ where: { key: { startsWith: CREDIT_PREFIX, gt: hourKey(new Date(Date.now() - 24 * 3600_000), CREDIT_PREFIX) } } });
+  const out: Record<string, { requests: number; credits: number }> = {};
+  for (const r of rows) {
+    for (const [host, t] of Object.entries(parse<Record<string, { requests: number; credits: number }>>(r.value, {}))) {
+      const into = (out[host] ??= { requests: 0, credits: 0 });
+      into.requests += Number(t.requests) || 0;
+      into.credits += Number(t.credits) || 0;
+    }
+  }
+  return out;
 }
 
 /* ============ التنبيه في ديسكورد ============

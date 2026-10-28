@@ -13,7 +13,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { BATCHES_PER_RUN, PER_RUN } from '../lib/cron-settings';
-import { readProxyStatus } from '../lib/proxy-stats';
+import { readProxyStatus, readCredits24h } from '../lib/proxy-stats';
 import 'dotenv/config';
 
 const hoursAgo = (d: Date | null) => (d ? (Date.now() - d.getTime()) / 3600_000 : Infinity);
@@ -67,8 +67,18 @@ async function main() {
     [store, c.normalOk + (c.fallback + c.bothFail) * 11 + (c.sampleSame + c.sampleDiff) * 10] as const);
   const credits = counted.reduce((n, [, v]) => n + v, 0);
   const uncounted = Object.entries(ps.modes).filter(([, m]) => m !== 'auto').map(([s]) => s);
-  console.log(`  رصيد السحب       : ${credits.toLocaleString('en')} وحدة في آخر ٢٤ ساعة (${counted.map(([s, v]) => `${s} ${v}`).join(' · ')}) ≈ ${(credits * 30).toLocaleString('en')} شهرياً من 250,000`);
-  console.log(`                      وفوقه كازاسوق (وحدة لكلّ فحص)${uncounted.length ? ` و${uncounted.join('، ')} بوضع premium (عشر لكلّ فحص)` : ''} — بلا عدّاد`);
+  /* والأصدق ما كتبته Scrape.do نفسها عن كلّ طلب (lib/proxy-stats · readCredits24h) — متى وُجد */
+  const real = await readCredits24h(prisma);
+  const realSum = Object.values(real).reduce((n, t) => n + t.credits, 0);
+  if (realSum > 0) {
+    console.log(`  رصيد السحب (فعليّ): ${realSum.toLocaleString('en')} وحدة في آخر ٢٤ ساعة ≈ ${(realSum * 30).toLocaleString('en')} شهرياً من 250,000`);
+    for (const [host, t] of Object.entries(real).sort((a, b) => b[1].credits - a[1].credits)) {
+      console.log(`      ${host.padEnd(22)} ${String(t.requests).padStart(5)} طلب · ${t.credits.toLocaleString('en')} وحدة (${(t.credits / Math.max(1, t.requests)).toFixed(1)} للطلب)`);
+    }
+  } else {
+    console.log(`  رصيد السحب       : ${credits.toLocaleString('en')} وحدة في آخر ٢٤ ساعة (${counted.map(([s, v]) => `${s} ${v}`).join(' · ')}) ≈ ${(credits * 30).toLocaleString('en')} شهرياً من 250,000`);
+    console.log(`                      وفوقه كازاسوق (وحدة لكلّ فحص)${uncounted.length ? ` و${uncounted.join('، ')} بوضع premium (عشر لكلّ فحص)` : ''} — بلا عدّاد`);
+  }
 
   const rows = await prisma.component.findMany({
     where: scrapable,
