@@ -13,19 +13,28 @@ import ComponentsClient from './ComponentsClient';
 // تحديث حي دائماً — يعرض أحدث الأسعار والصور والتوفّر بلا حاجة redeploy
 export const dynamic = 'force-dynamic';
 
-export default async function ComponentsPage() {
-  const components = await prisma.component.findMany({
-    include: { category: true, ...OFFER_INCLUDE },
-    orderBy: { createdAt: 'desc' }
-  });
-  
-  const categories = await prisma.category.findMany({ where: HAS_PARTS });
+/* ?cat=GPU من بلاطات الرئيسية: الفئة باسمها الإنجليزيّ (مفتاح Category.name)
+   لا بمعرّفها — الرابط يُقرأ ويُكتب بيد، والمعرّف cuid لا يُقرأ. */
+export default async function ComponentsPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
+  const { cat } = await searchParams;
+  const [components, categories, storesCount, newest] = await Promise.all([
+    prisma.component.findMany({ include: { category: true, ...OFFER_INCLUDE }, orderBy: { createdAt: 'desc' } }),
+    prisma.category.findMany({ where: HAS_PARTS }),
+    prisma.store.count({ where: { active: true } }),
+    prisma.component.aggregate({ _max: { lastScrapedAt: true } }),
+  ]);
+  const initialCatId = (cat && categories.find((c) => c.name === cat)?.id) || 'all';
 
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-8 md:py-10 px-4">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-8">تصفح القطع</h1>
-        <ComponentsClient components={components} categories={categories} />
+        <ComponentsClient
+          components={components}
+          categories={categories}
+          initialCatId={initialCatId}
+          storesCount={storesCount}
+          updatedAt={newest._max.lastScrapedAt?.toISOString() ?? null}
+        />
       </div>
     </div>
   );
