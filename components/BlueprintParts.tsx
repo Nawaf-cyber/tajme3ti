@@ -9,15 +9,36 @@
 // وما جاوز الشاشة الضيّقة يُقصّ من طرفها (لوحةٌ تطلّ من الحافّة). وتحت 1536px
 // تُخفى كلّها (globals.css · .bp-parts) — هامشٌ أضيق من ١٢٨ لا يُظهر إلّا شريطاً.
 //
+// الحركة (globals.css · bp-draw/bp-spin/bp-pulse): كلّ شكلٍ يأخذ pathLength=1
+// (drawable أدناه) فتُخطّ القطع مرّةً عند التحميل بتفاوت --d، ثمّ تدور حلقات
+// المراوح (bp-spin · --spin) وتجري نبضةٌ على المحيطات (bp-pulse · --pulse/--pd).
+//
 // ⚠️ التسميات من public/draft-labels.svg عبر use لا نصّاً هنا: نصٌّ داخل SVG
 // الصفحة يقرؤه الزاحف أوّلَ ما في كلّ صفحة (درس أدسنس 2026-10).
 // تُستعمل مرّتين: باهتةً في PCBBackground، ومضيئةً داخل مصباح المؤشّر (lit).
 
+import { Children, cloneElement, isValidElement, type CSSProperties, type ReactElement, type ReactNode } from 'react';
+
 const LABEL = '/draft-labels.svg#';
+const SHAPES = new Set(['rect', 'circle', 'path']);
+const vars = (v: Record<string, string>) => v as CSSProperties;
+
+/* يضيف pathLength=1 لكلّ شكلٍ لم يحدّده — فتعمل حركة الخطّ (stroke-dashoffset
+   من ١ إلى ٠) على كلّ الأشكال بقاعدة CSS واحدة بدل تكرار الخاصّيّة ٩٠ مرّة */
+function drawable(node: ReactNode): ReactNode {
+  return Children.map(node, (child) => {
+    if (!isValidElement(child)) return child;
+    const el = child as ReactElement<Record<string, unknown>>;
+    const kids = el.props.children as ReactNode | undefined;
+    const add = typeof el.type === 'string' && SHAPES.has(el.type) && el.props.pathLength === undefined;
+    if (!add && kids === undefined) return el;
+    return kids === undefined ? cloneElement(el, { pathLength: 1 }) : cloneElement(el, add ? { pathLength: 1 } : {}, drawable(kids));
+  });
+}
 
 function Motherboard() {
   return (
-    <g transform="translate(-1268 140) scale(0.9)">
+    <g transform="translate(-1268 140) scale(0.9)" style={vars({ '--d': '0s' })}>
       <g className="bp-line">
         <rect x="0" y="0" width="671" height="537" rx="4" />
         <rect x="-4" y="40" width="44" height="170" rx="2" />
@@ -61,6 +82,7 @@ function Motherboard() {
         <circle cx="335" cy="14" r="4" /><circle cx="335" cy="523" r="4" />
         <circle cx="14" cy="268" r="4" /><circle cx="657" cy="268" r="4" />
       </g>
+      <rect className="bp-pulse" x="0" y="0" width="671" height="537" rx="4" pathLength={100} style={vars({ '--pulse': '16s', '--pd': '4s' })} />
       <use href={`${LABEL}bp-atx`} x="0" y="562" />
     </g>
   );
@@ -68,14 +90,14 @@ function Motherboard() {
 
 function Gpu() {
   return (
-    <g transform="translate(680 140) scale(0.9)">
+    <g transform="translate(680 140) scale(0.9)" style={vars({ '--d': '0.3s', '--spin': '24s' })}>
       <g className="bp-line">
         <rect x="0" y="0" width="670" height="300" rx="6" />
         {[150, 335, 520].map((cx) => (
           <g key={cx}>
             <circle cx={cx} cy="150" r="62" />
             <circle cx={cx} cy="150" r="14" />
-            <circle cx={cx} cy="150" r="42" strokeDasharray="7 11" />
+            <circle className="bp-spin" cx={cx} cy="150" r="42" strokeDasharray="7 11" />
           </g>
         ))}
         <rect x="-18" y="10" width="18" height="280" rx="1" />
@@ -86,6 +108,7 @@ function Gpu() {
         <rect x="60" y="300" width="180" height="10" />
         <rect x="600" y="-12" width="48" height="12" rx="1" />
       </g>
+      <rect className="bp-pulse" x="0" y="0" width="670" height="300" rx="6" pathLength={100} style={vars({ '--pulse': '13s', '--pd': '7s' })} />
       <use href={`${LABEL}bp-gpu`} x="0" y="330" />
     </g>
   );
@@ -93,12 +116,12 @@ function Gpu() {
 
 function Psu() {
   return (
-    <g transform="translate(680 482) scale(0.9)">
+    <g transform="translate(680 482) scale(0.9)" style={vars({ '--d': '0.9s', '--spin': '32s' })}>
       <g className="bp-line">
         <rect x="0" y="0" width="330" height="190" rx="4" />
         <circle cx="130" cy="95" r="70" />
         <circle cx="130" cy="95" r="12" />
-        <circle cx="130" cy="95" r="46" strokeDasharray="7 11" />
+        <circle className="bp-spin" cx="130" cy="95" r="46" strokeDasharray="7 11" />
       </g>
       <g className="bp-fill">
         {Array.from({ length: 24 }, (_, k) => (
@@ -112,13 +135,13 @@ function Psu() {
 
 function Ram() {
   return (
-    <g transform="translate(986 482) scale(0.9)">
+    <g transform="translate(986 482) scale(0.9)" style={vars({ '--d': '1.1s' })}>
       <g className="bp-line">
         <rect x="0" y="0" width="300" height="32" rx="2" />
         {Array.from({ length: 8 }, (_, i) => (
           <rect key={i} x={10 + 36 * i} y="7" width="28" height="18" rx="1" />
         ))}
-        <path d="M8 32h284" strokeDasharray="3 3" />
+        <path className="bp-dash" d="M8 32h284" strokeDasharray="3 3" />
       </g>
       <use href={`${LABEL}bp-ram`} x="0" y="56" />
     </g>
@@ -127,7 +150,7 @@ function Ram() {
 
 function M2() {
   return (
-    <g transform="translate(986 554) scale(0.9)">
+    <g transform="translate(986 554) scale(0.9)" style={vars({ '--d': '1.3s' })}>
       <g className="bp-line">
         <rect x="0" y="0" width="176" height="22" rx="2" />
         <rect x="30" y="4" width="40" height="14" rx="1" />
@@ -142,12 +165,12 @@ function M2() {
 
 function Fan() {
   return (
-    <g transform="translate(-1228 720) scale(0.9)">
+    <g transform="translate(-1228 720) scale(0.9)" style={vars({ '--d': '0.6s', '--spin': '40s' })}>
       <g className="bp-line">
         <rect x="0" y="0" width="308" height="308" rx="20" />
         <circle cx="154" cy="154" r="150" />
         <circle cx="154" cy="154" r="28" />
-        <circle cx="154" cy="154" r="100" strokeDasharray="9 14" />
+        <circle className="bp-spin" cx="154" cy="154" r="100" strokeDasharray="9 14" />
         <circle cx="22" cy="22" r="5" /><circle cx="286" cy="22" r="5" />
         <circle cx="22" cy="286" r="5" /><circle cx="286" cy="286" r="5" />
       </g>
@@ -158,13 +181,19 @@ function Fan() {
 
 function Aio() {
   return (
-    <g transform="translate(708 720) scale(0.9)">
+    <g transform="translate(708 720) scale(0.9)" style={vars({ '--d': '1.5s', '--spin': '28s' })}>
       <g className="bp-line">
         <rect x="0" y="0" width="394" height="120" rx="4" />
-        <circle cx="65" cy="60" r="55" /><circle cx="197" cy="60" r="55" /><circle cx="329" cy="60" r="55" />
-        <circle cx="65" cy="60" r="10" /><circle cx="197" cy="60" r="10" /><circle cx="329" cy="60" r="10" />
+        {[65, 197, 329].map((cx) => (
+          <g key={cx}>
+            <circle cx={cx} cy="60" r="55" />
+            <circle cx={cx} cy="60" r="10" />
+            <circle className="bp-spin" cx={cx} cy="60" r="38" strokeDasharray="7 11" />
+          </g>
+        ))}
         <path d="M394 30h40q30 0 30 30v120M394 90h20q30 0 30 30v60" />
       </g>
+      <path className="bp-pulse" d="M394 30h40q30 0 30 30v120M394 90h20q30 0 30 30v60" pathLength={100} style={vars({ '--pulse': '9s', '--pd': '5.5s' })} />
       <use href={`${LABEL}bp-aio`} x="0" y="144" />
     </g>
   );
@@ -173,13 +202,17 @@ function Aio() {
 export default function BlueprintParts({ lit = false }: { lit?: boolean }) {
   return (
     <svg x="50%" overflow="visible" className={lit ? 'bp-parts bp-parts--lit' : 'bp-parts'} aria-hidden="true">
-      <Motherboard />
-      <Fan />
-      <Gpu />
-      <Psu />
-      <Ram />
-      <M2 />
-      <Aio />
+      {drawable(
+        <>
+          {Motherboard()}
+          {Fan()}
+          {Gpu()}
+          {Psu()}
+          {Ram()}
+          {M2()}
+          {Aio()}
+        </>,
+      )}
     </svg>
   );
 }

@@ -418,6 +418,69 @@ html[data-theme-fading] *::after {
 @media (max-width: 1535px) {
   .bp-parts { display: none; }
 }
+/* ---- حركة المخطّط: تُخطّ القطع مرّةً عند التحميل (pathLength=1 لكلّ شكل،
+   يضيفه BlueprintParts) بتفاوتٍ --d بين القطع، وتظهر التعبئة والتسميات بعدها؛
+   ثمّ تدور حلقات المراوح ببطء (--spin)، وتجري نبضةٌ سماويّة على محيط اللوحة
+   والكرت وأنابيب المبرّد (--pulse دورة، --pd بدء). نسخة المصباح (lit) ساكنة بلا
+   حلقاتٍ ولا نبضات: صندوقه مركّب (will-change) وحركةٌ داخله تُعيد رسمه كلّ إطار. ---- */
+.bp-parts:not(.bp-parts--lit) .bp-line :is(rect, circle, path):not(.bp-spin):not(.bp-dash) {
+  stroke-dasharray: 1.01 1;
+  stroke-dashoffset: 1.01;
+  animation: bp-draw 2.2s cubic-bezier(0.45, 0, 0.25, 1) forwards;
+  animation-delay: var(--d, 0s);
+}
+.bp-parts:not(.bp-parts--lit) :is(.bp-fill, .bp-dash, use) {
+  opacity: 0;
+  animation: bp-fade 0.8s ease forwards;
+  animation-delay: calc(var(--d, 0s) + 1.4s);
+}
+.bp-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: bp-spin;
+  animation-duration: var(--spin, 30s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.bp-parts:not(.bp-parts--lit) .bp-spin {
+  opacity: 0;
+  animation-name: bp-fade, bp-spin;
+  animation-duration: 0.8s, var(--spin, 30s);
+  animation-timing-function: ease, linear;
+  animation-fill-mode: forwards, none;
+  animation-iteration-count: 1, infinite;
+  animation-delay: calc(var(--d, 0s) + 1.4s), 0s;
+}
+.bp-pulse {
+  fill: none;
+  stroke: #22d3ee;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 5 95;
+  stroke-dashoffset: 100;
+  opacity: 0;
+  animation-name: bp-pulse;
+  animation-duration: var(--pulse, 14s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: var(--pd, 4s);
+}
+.bp-parts--lit :is(.bp-spin, .bp-pulse) { display: none; }
+@keyframes bp-draw { to { stroke-dashoffset: 0; } }
+@keyframes bp-fade { to { opacity: 1; } }
+@keyframes bp-spin { to { transform: rotate(360deg); } }
+@keyframes bp-pulse {
+  0% { stroke-dashoffset: 100; opacity: 0; }
+  2% { opacity: 0.9; }
+  26% { opacity: 0.9; }
+  30%, 100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bp-parts * { animation: none !important; }
+  .bp-parts .bp-line :is(rect, circle, path) { stroke-dashoffset: 0; }
+  .bp-parts :is(.bp-fill, .bp-dash, .bp-spin, use) { opacity: 1; }
+  .bp-pulse { display: none; }
+}
 
 /* ---- المصباح: صندوقٌ مقنّع يتحرّك، وداخله الخلفية تتحرّك بعكسه ---- */
 .bg-lamp {
