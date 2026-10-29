@@ -114,44 +114,6 @@ body {
   }
 }
 
-/* ===== مسارات الطاقة (PCB traces) في الهيرو ===== */
-
-@keyframes trace-flow {
-  0% {
-    stroke-dashoffset: 520;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-.trace-pulse {
-  stroke-dasharray: 80 440;
-  animation: trace-flow 3s linear infinite;
-}
-
-.trace-pulse-2 {
-  stroke-dasharray: 80 440;
-  animation: trace-flow 3.5s linear infinite;
-  animation-delay: 0.8s;
-}
-
-.trace-pulse-3 {
-  stroke-dasharray: 70 390;
-  animation: trace-flow 2.8s linear infinite;
-  animation-delay: 1.4s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .trace-pulse,
-  .trace-pulse-2,
-  .trace-pulse-3 {
-    animation: none;
-    stroke-dasharray: none;
-    opacity: 0.4;
-  }
-}
-
 /* ===== حركة شريط التحميل ===== */
 
 @keyframes loading-bar {
@@ -430,8 +392,32 @@ html[data-theme-fading] *::after {
 /* ===== الخلفية الحيّة — 2026-10-11 =====
    طلب نوّاف «الخلفية … متحركة بطريقة احترافية». فالحركة هادئة لا تنافس
    المحتوى: نهاراً رسومُ إنشاءٍ تُخطّ وحدها في الهوامش (مقاساتٌ حقيقيّة من
-   عالم القطع) ثمّ تتلاشى، ومصباحٌ يتبع المؤشّر. وليلاً تبقى نبضات المسارات
-   ويُضاف الكشّاف. الرسوم في PCBBackground.tsx والمصباح في BackgroundLamp.tsx. */
+   عالم القطع) ثمّ تتلاشى، ومصباحٌ يتبع المؤشّر. وليلاً (2026-10-29) توأمها:
+   لوحة نقاطٍ ومخطّط القطع نفسها في الهوامش، والكشّاف يُضيئها. الرسوم في
+   PCBBackground.tsx وBlueprintParts.tsx والمصباح في BackgroundLamp.tsx. */
+
+/* ---- ليلاً: الشبكة أهدأ تحت عمود المحتوى (1280 · حافّتاه ±640) ---- */
+.bg-colmask {
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(50% - 720px), rgb(0 0 0 / 0.35) calc(50% - 630px), rgb(0 0 0 / 0.35) calc(50% + 630px), #000 calc(50% + 720px), #000 100%);
+  mask-image: linear-gradient(90deg, #000 0, #000 calc(50% - 720px), rgb(0 0 0 / 0.35) calc(50% - 630px), rgb(0 0 0 / 0.35) calc(50% + 630px), #000 calc(50% + 720px), #000 100%);
+}
+/* ---- مخطّط القطع (BlueprintParts): خطوطٌ باهتة، ومضيئةٌ داخل المصباح ---- */
+.bp-line { fill: none; stroke: #9BC4DE; stroke-opacity: 0.22; stroke-width: 1.2; }
+.bp-fill { fill: #9BC4DE; fill-opacity: 0.18; }
+.bp-parts use {
+  fill: #9BC4DE;
+  fill-opacity: 0.5;
+  stroke: none;
+  font: 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+.bp-parts--lit .bp-line { stroke-opacity: 0.65; }
+.bp-parts--lit .bp-fill { fill-opacity: 0.55; }
+.bp-parts--lit use { fill-opacity: 0.9; }
+/* الهامش دون ١٢٨px لا يُظهر من القطعة إلّا شريطاً — فلا مخطّط تحت 1536 */
+@media (max-width: 1535px) {
+  .bp-parts { display: none; }
+}
 
 /* ---- المصباح: صندوقٌ مقنّع يتحرّك، وداخله الخلفية تتحرّك بعكسه ---- */
 .bg-lamp {

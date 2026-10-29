@@ -8,4 +8,12 @@
   <text id="m2" text-anchor="middle" direction="ltr">M.2</text>
   <text id="m2len" text-anchor="middle" direction="ltr">2280</text>
   <text id="pcie" text-anchor="middle" direction="ltr">PCIe 5.0 ×16</text>
+  <!-- تسميات مخطّط القطع في خلفيّة الوضع الداكن (components/BlueprintParts.tsx) -->
+  <text id="bp-atx" direction="ltr">ATX · 305 × 244 mm</text>
+  <text id="bp-gpu" direction="ltr">GPU · 304 mm · 3 × Ø90</text>
+  <text id="bp-psu" direction="ltr">PSU · ATX 150 × 86 mm</text>
+  <text id="bp-ram" direction="ltr">DDR5 · 288 pin</text>
+  <text id="bp-m2" direction="ltr">M.2 2280</text>
+  <text id="bp-fan" direction="ltr">FAN · Ø140</text>
+  <text id="bp-aio" direction="ltr">AIO · 360 mm</text>
 </svg>

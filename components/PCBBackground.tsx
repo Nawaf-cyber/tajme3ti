@@ -1,8 +1,9 @@
 // components/PCBBackground.tsx
-// خلفية الموقع: مسارات اللوحة الأم في الداكن، وورقة رسمٍ هندسيّ في الفاتح.
+// خلفية الموقع: مخطّط القطع على لوحة نقاطٍ في الداكن، وورقة رسمٍ هندسيّ في الفاتح.
 // تُوضع في الـ layout لتظهر خلف كل الصفحات (navbar + المحتوى + footer).
 
 import BackgroundLamp from './BackgroundLamp';
+import BlueprintParts from './BlueprintParts';
 import SketchGate from './SketchGate';
 
 /* منحنى «رفع الأبيض»: ٤١ نقطة على [٠،١] — مطابقٌ حتى ٠٫٨، ثمّ أعمق قليلاً، والأبيض ١ */
@@ -85,41 +86,30 @@ export default function PCBBackground() {
         </svg>
       </svg>
 
-      {/* ===== الوضع الداكن: مسارات داكنة + نبضات مضيئة ===== */}
-      <svg className="absolute inset-0 w-full h-full hidden dark:block opacity-[0.55]" aria-hidden="true">
+      {/* ===== الوضع الداكن: «مخطّط القطع» — توأم ورقة المخطّط ليلاً (2026-10-29) =====
+          كانت بلاطةَ مساراتٍ 340×280 اعتباطيّةً تتكرّر بلونٍ عكر، وثلاث بقع توهّج.
+          صارت: تدرّجٌ عموديّ خفيف، وشبكة نقاطٍ كلوحة التجارب (كلّ ٢٤، وأوضح كلّ ١٢٠)
+          أهدأ تحت عمود المحتوى (globals.css · bg-colmask)، والقطع نفسها مخطّطاً
+          أزرق باهتاً في الهوامش (BlueprintParts)، وتوهّجٌ واحد فوق العمود. */}
+      <div className="hidden dark:block absolute inset-0 bg-[linear-gradient(180deg,#0B1120_0%,#070B14_100%)]"></div>
+      <svg className="absolute inset-0 w-full h-full hidden dark:block bg-colmask" aria-hidden="true">
         <defs>
-          <pattern id="pcbPatternDark" width="340" height="280" patternUnits="userSpaceOnUse">
-            <path d="M0 0 H340 M0 0 V280" stroke="#22d3ee" strokeWidth="0.5" strokeOpacity="0.06" />
-            <g stroke="#1e3a4a" strokeWidth="1.5" fill="none">
-              <path d="M0 60 H90 L120 90 H200 M200 90 L230 60 H340" />
-              <path d="M0 210 H70 L100 180 H180" />
-              <path d="M340 230 H260 L230 200 H150" />
-              <path d="M45 0 V40 L75 70 V130" />
-              <path d="M300 280 V220 L270 190 V120" />
-              <path d="M180 90 V160 L210 190 H280" />
-            </g>
-            <g fill="#164e63">
-              <circle cx="90" cy="60" r="3.5" /><circle cx="200" cy="90" r="3.5" />
-              <circle cx="70" cy="210" r="3.5" /><circle cx="260" cy="230" r="3.5" />
-              <circle cx="75" cy="70" r="3.5" /><circle cx="180" cy="160" r="3.5" />
-              <circle cx="280" cy="190" r="3.5" />
-            </g>
-            <path className="trace-pulse" d="M0 60 H90 L120 90 H200 M200 90 L230 60 H340" stroke="url(#traceFlowDark)" strokeWidth="2" fill="none" />
-            <path className="trace-pulse-3" d="M340 230 H260 L230 200 H150" stroke="url(#traceFlowDark)" strokeWidth="2" fill="none" />
+          <pattern id="dotMinor" x="50%" width="24" height="24" patternUnits="userSpaceOnUse">
+            <circle cx="12" cy="12" r="1" fill="#94a3b8" fillOpacity="0.12" />
           </pattern>
-          <linearGradient id="traceFlowDark" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#0891b2" stopOpacity="0" />
-            <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#0891b2" stopOpacity="0" />
-          </linearGradient>
+          <pattern id="dotMajor" x="50%" width="120" height="120" patternUnits="userSpaceOnUse">
+            <circle cx="60" cy="60" r="1.8" fill="#22d3ee" fillOpacity="0.28" />
+          </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#pcbPatternDark)" />
+        <rect width="100%" height="100%" fill="url(#dotMinor)" />
+        <rect width="100%" height="100%" fill="url(#dotMajor)" />
+      </svg>
+      <svg className="absolute inset-0 w-full h-full hidden dark:block" aria-hidden="true">
+        <BlueprintParts />
       </svg>
 
-      {/* ===== التوهّجات — ليليّةٌ فقط؛ الورق لا يتوهّج ===== */}
-      <div className="hidden dark:block absolute top-0 left-1/2 -translate-x-1/2 w-[55%] h-72 bg-cyan-500/12 rounded-full blur-[120px] animate-pulse-slow"></div>
-      <div className="hidden dark:block absolute top-1/3 -left-20 w-72 h-72 bg-blue-500/8 rounded-full blur-[120px]"></div>
-      <div className="hidden dark:block absolute bottom-1/4 -right-20 w-80 h-80 bg-cyan-500/8 rounded-full blur-[130px]"></div>
+      {/* ===== التوهّج — ليليٌّ فقط؛ الورق لا يتوهّج. واحدٌ بعرض العمود فوقه ===== */}
+      <div className="hidden dark:block absolute top-10 left-1/2 -translate-x-1/2 w-[1280px] max-w-full h-[380px] bg-cyan-500/12 rounded-full blur-[120px] animate-pulse-slow"></div>
 
       {/* مصباحٌ يتبع المؤشّر — طبقةٌ أوضح من الخلفية حوله */}
       <BackgroundLamp />

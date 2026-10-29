@@ -12,6 +12,7 @@
    تقليل الحركة. */
 
 import { useEffect, useRef } from 'react';
+import BlueprintParts from './BlueprintParts';
 
 const SIZE = 560;
 
@@ -86,27 +87,20 @@ export default function BackgroundLamp() {
           </defs>
           <rect width="100%" height="100%" fill="url(#lampMajor)" />
         </svg>
-        {/* ليلاً: مسارات اللوحة نفسها (PCBBackground) مضيئة */}
+        {/* ليلاً: لوحة النقاط نفسها ومخطّط القطع (PCBBackground) مضيئةً — المرسى
+            في المنتصف مثلها فتقع نقاطها وخطوطها فوق نقاط الخلفية وخطوطها تماماً */}
         <svg className="absolute inset-0 w-full h-full hidden dark:block">
           <defs>
-            <pattern id="lampPcb" width="340" height="280" patternUnits="userSpaceOnUse">
-              <g stroke="#22d3ee" strokeOpacity="0.5" strokeWidth="1.5" fill="none">
-                <path d="M0 60 H90 L120 90 H200 M200 90 L230 60 H340" />
-                <path d="M0 210 H70 L100 180 H180" />
-                <path d="M340 230 H260 L230 200 H150" />
-                <path d="M45 0 V40 L75 70 V130" />
-                <path d="M300 280 V220 L270 190 V120" />
-                <path d="M180 90 V160 L210 190 H280" />
-              </g>
-              <g fill="#67e8f9" fillOpacity="0.85">
-                <circle cx="90" cy="60" r="3.5" /><circle cx="200" cy="90" r="3.5" />
-                <circle cx="70" cy="210" r="3.5" /><circle cx="260" cy="230" r="3.5" />
-                <circle cx="75" cy="70" r="3.5" /><circle cx="180" cy="160" r="3.5" />
-                <circle cx="280" cy="190" r="3.5" />
-              </g>
+            <pattern id="lampDotMinor" x="50%" width="24" height="24" patternUnits="userSpaceOnUse">
+              <circle cx="12" cy="12" r="1" fill="#94a3b8" fillOpacity="0.4" />
+            </pattern>
+            <pattern id="lampDotMajor" x="50%" width="120" height="120" patternUnits="userSpaceOnUse">
+              <circle cx="60" cy="60" r="1.8" fill="#22d3ee" fillOpacity="0.75" />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#lampPcb)" />
+          <rect width="100%" height="100%" fill="url(#lampDotMinor)" />
+          <rect width="100%" height="100%" fill="url(#lampDotMajor)" />
+          <BlueprintParts lit />
         </svg>
       </div>
     </div>
