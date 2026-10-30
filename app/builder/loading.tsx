@@ -10,7 +10,7 @@ import { Sk, SkSelectCard } from "../../components/loading-ui";
 export default function Loading() {
   return (
     <div className="min-h-screen py-4 px-4" role="status" aria-label="جارٍ تحميل الباني">
-      <div className="max-w-5xl mx-auto bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-3xl border border-slate-200 dark:border-slate-800/80 p-6 md:p-10">
+      <div className="max-w-6xl mx-auto bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-sm border border-slate-200 dark:border-slate-800/80 p-6 md:p-10">
 
         {/* رأس التحميل */}
         <div className="flex flex-col items-center text-center mb-10 pb-8 border-b border-slate-200 dark:border-slate-800/60">

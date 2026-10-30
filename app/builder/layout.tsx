@@ -25,23 +25,22 @@ const CATS: [string, string][] = [
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <header className="max-w-5xl mx-auto mt-10 px-4 sm:px-0">
-        <div className="bg-gradient-to-br from-slate-900 to-[#0B1120] p-8 md:p-10 text-center text-white relative overflow-hidden rounded-sm border border-cyan-500/20">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"></div>
-          <h1 className="text-3xl md:text-5xl font-black mb-3 tracking-tight">
-            منصة تجميع <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">الـ PC</span>
-          </h1>
-          <p className="text-slate-300 font-medium text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-            اختر قطعك وحدة وحدة، والباني يشيّك على توافقها أول بأول، ويوريك سعر كل قطعة في المتاجر السعودية المتوفّرة الحين.
-            وإذا ما تدري من وين تبدأ، جاوب على سؤالين في «ما تدري وش تبي؟» ونبني لك ثلاث تجميعات من القطع المتوفّرة.
-          </p>
-        </div>
+      {/* الرأس مضغوطٌ كرأس «تصفّح القطع» (شكل ي · 2026-10-30) — كان صندوقاً داكناً بعنوانٍ ٤٨ بكسل
+          في الوسط. والنصّ نفسه باقٍ: يصل في HTML الخادم للزاحف */}
+      <header className="max-w-6xl mx-auto mt-8 px-4 sm:px-0">
+        <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+          جمّع <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500 dark:from-cyan-400 dark:to-blue-400">جهازك.</span>
+        </h1>
+        <p className="mt-2 text-[14px] font-semibold text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+          اختر قطعك وحدة وحدة، والباني يشيّك على توافقها أول بأول، ويوريك سعر كل قطعة في المتاجر السعودية المتوفّرة الحين.
+          وإذا ما تدري من وين تبدأ، جاوب على سؤالين في «ما تدري وش تبي؟» ونبني لك ثلاث تجميعات من القطع المتوفّرة.
+        </p>
       </header>
 
       {children}
 
       {/* ===== ما الذي يفحصه الباني — نصٌّ من الخادم يشرح الأداة ===== */}
-      <section className="max-w-5xl mx-auto mb-14 px-4 sm:px-0" aria-labelledby="builder-how">
+      <section className="max-w-6xl mx-auto mb-14 px-4 sm:px-0" aria-labelledby="builder-how">
         <div className="bg-white/70 dark:bg-[#0F172A]/60 border border-slate-200 dark:border-slate-800 rounded-sm p-6 md:p-8">
           <h2 id="builder-how" className="text-lg md:text-xl font-black text-slate-900 dark:text-white mb-2">وش يفحص الباني؟</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-5">

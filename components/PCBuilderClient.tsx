@@ -37,7 +37,8 @@ import {
 } from '../lib/fit';
 import { checkBuild } from '../lib/build-check';
 import { buildIntentPlans, type TierPlan, type Intent } from '../lib/intent-plans';
-import { GPU_PERF_SOURCE } from '../lib/gpu-perf';
+import { GPU_PERF_SOURCE, gpuPerf, feel } from '../lib/gpu-perf';
+import RiyalSign from './RiyalSign';
 
 type Component = {
   id: string;
@@ -293,8 +294,8 @@ const SearchableSelect = ({
               <div className={`absolute top-0 right-0 bottom-0 w-[3px] ${avail ? 'bg-gradient-to-b from-emerald-500 to-emerald-400' : 'bg-amber-500'}`}></div>
             )}
 
-            {/* الرأس: الفئة + شارة الحالة */}
-            <div className="flex justify-between items-center mb-3">
+            {/* الرأس: الفئة + شارة الحالة — على الجوال وحده؛ من sm صارت عموداً في أوّل الصفّ (2026-10-30) */}
+            <div className="flex justify-between items-center mb-3 sm:hidden">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-sm bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[13px]">{meta.icon}</span>
                 {/* الاسم العربيّ — كان `CPU` و`PSU` بتباعد حروف، والمبتدئ لا يعرف أنّ PSU مزوّد الطاقة
@@ -322,6 +323,23 @@ const SearchableSelect = ({
               aria-label={selectedComponent ? `غيّر ${meta.label}: ${selectedComponent.brand} ${selectedComponent.name}` : `اختر ${meta.label}`}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsOpen(!isOpen); } }}
             >
+              {/* الفئة وحالتها في أوّل الصفّ (sm فأعلى) — البطاقة صارت صفّاً في عمودٍ واحد */}
+              <div className="hidden sm:flex flex-col items-start gap-1.5 w-[104px] shrink-0">
+                <span className="flex items-center gap-1.5 text-[12.5px] font-black text-slate-600 dark:text-slate-300">
+                  <span className="w-6 h-6 rounded-sm bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[13px]">{meta.icon}</span>
+                  {meta.label}
+                </span>
+                {selectedComponent ? (
+                  avail ? (
+                    <span className="text-[11px] font-black px-2 py-0.5 rounded-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700">✓ متوفر</span>
+                  ) : (
+                    <span className="text-[11px] font-black px-2 py-0.5 rounded-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700">⚠ غير متوفر</span>
+                  )
+                ) : (
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-sm text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 border border-dashed border-slate-300 dark:border-slate-700">لم تُختر</span>
+                )}
+              </div>
+
               {/* الصورة داخل البطاقة */}
               {selectedComponent?.imageUrl ? (
                 <div className="w-14 h-14 rounded-sm bg-white border border-slate-200 dark:border-slate-800 p-1 flex items-center justify-center shrink-0">
@@ -348,6 +366,10 @@ const SearchableSelect = ({
                       {selectedComponent.price > 0 ? (
                         <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                           {formatPrice(selectedComponent.price)} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                          {/* متجر السعر — «مايكرولس» بجانب الرقم، كما في التصفّح (2026-10-30) */}
+                          {avail && cheapestOffer(selectedComponent.offers as any) && (
+                            <span className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">· {cheapestOffer(selectedComponent.offers as any)!.store.name}</span>
+                          )}
                         </span>
                       ) : (
                         <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400">لا سعر مسجّل</span>
@@ -1324,11 +1346,33 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
     }
   };
 
+  /* توفير «أرخص متجر» مقابل أغلى العروض — يقرؤه الملخّص اللاصق وقسم «اشترِ قطعك» */
+  const buildSavings = Object.values(selectedComponents).reduce((sum, comp) => {
+    if (!comp) return sum;
+    const offers = getStoreOffers(comp);
+    return offers.length < 2 ? sum : sum + (offers[offers.length - 1].price! - offers[0].price!);
+  }, 0);
+
+  /* القطع مجمّعةً حسب أرخص متجر لكلٍّ منها — «طلبين بدل ثمانية» (شكل ي · 2026-10-30) */
+  const storeGroups = (() => {
+    const m = new Map<string, { name: string; color: string; count: number; total: number }>();
+    Object.values(selectedComponents).forEach((c) => {
+      if (!c) return;
+      const o = getStoreOffers(c)[0];
+      if (!o?.price) return;
+      const g = m.get(o.store.name) ?? { name: o.store.name, color: (o.store as any).color || '#0EA5E9', count: 0, total: 0 };
+      g.count += 1;
+      g.total += o.price;
+      m.set(o.store.name, g);
+    });
+    return [...m.values()].sort((a, b) => b.count - a.count || b.total - a.total);
+  })();
+
   if (!isLoaded) {
     /* هيكل عظمي يطابق التخطيط الفعلي — لا دوّارة عارية.
        يُشعر بأن المحتوى قادم، ويمنع قفزة التخطيط عند الوصول. */
     return (
-      <div className="max-w-5xl mx-auto mt-4 mb-10 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-sm border border-slate-200 dark:border-slate-800/80">
+      <div className="max-w-6xl mx-auto mt-4 mb-10 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-sm border border-slate-200 dark:border-slate-800/80">
         <div className="p-6 md:p-10">
           <div className="flex flex-col lg:flex-row justify-between gap-4 mb-10 pb-6 border-b border-slate-200 dark:border-slate-800/60">
             <Sk className="h-8 w-48" />
@@ -1344,7 +1388,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
   }
 
   return (
-    <div className="max-w-5xl mx-auto mt-4 mb-10 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-sm shadow-sm border border-slate-200 dark:border-slate-800/80">
+    <div className="max-w-6xl mx-auto mt-4 mb-10 bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm rounded-sm shadow-sm border border-slate-200 dark:border-slate-800/80">
       
       {/* العنوان والشرح في app/builder/layout.tsx — من الخادم، خارج حدّ التحميل */}
 
@@ -1455,7 +1499,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
         )}
 
         {/* شريط الخيارات العلوي */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 pb-6 border-b border-slate-200 dark:border-slate-800/60 gap-4">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 pb-5 border-b border-slate-200 dark:border-slate-800/60 gap-4">
           
           {/* اليمين: العنوان وأزرار الاستكمال */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -1496,32 +1540,157 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
           </div>
         </div>
 
-        {/* شبكة القطع */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6 mb-10">
-          {categories.map((category) => {
-            const compsWithComp = getComponentsWithCompatibility(category.name, category.components);
-            return (
-              <div key={category.id} className="w-full min-w-0">
-                <SearchableSelect 
-                  categoryName={category.name}
-                  components={compsWithComp}
-                  selectedComponent={selectedComponents[category.name]}
-                  onSelect={(id) => handleSelect(category.name, id)}
-                  onRemove={() => handleRemove(category.name)}
-                  onShowDetails={(comp) => setDetailsModal({ comp, categoryName: category.name })}
-                  showIncompatible={showIncompatible}
-                />
-              </div>
-            );
-          })}
-        </div>
+        {/* ===== القطع صفوفاً + ملخّصٌ يلاحقك (شكل ي · 2026-10-30) =====
+            كان الإجماليّ والتوافق في آخر الصفحة بعد القطع الثمان (الصفحة ٤٬٥٠٠ بكسل).
+            صار عموداً لاصقاً بجانب القطع: التوافق والإجماليّ والطاقة والإطارات والحفظ
+            أمام العين وأنت تبدّل. والتفاصيل كاملةً (وهي ما يُصدَّر صورةً) باقيةٌ تحت. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start mb-10">
+          <div className="min-w-0 flex flex-col gap-3">
+            {categories.map((category) => {
+              const compsWithComp = getComponentsWithCompatibility(category.name, category.components);
+              return (
+                <div key={category.id} className="w-full min-w-0">
+                  <SearchableSelect
+                    categoryName={category.name}
+                    components={compsWithComp}
+                    selectedComponent={selectedComponents[category.name]}
+                    onSelect={(id) => handleSelect(category.name, id)}
+                    onRemove={() => handleRemove(category.name)}
+                    onShowDetails={(comp) => setDetailsModal({ comp, categoryName: category.name })}
+                    showIncompatible={showIncompatible}
+                  />
+                </div>
+              );
+            })}
+            {/* ===== اقترح قطعة ناقصة — هنا يدرك المستخدم أن قطعته غير موجودة ===== */}
+            <SuggestPartCard source="builder" className="mt-3" />
+          </div>
 
-        {/* ===== اقترح قطعة ناقصة — هنا يدرك المستخدم أن قطعته غير موجودة ===== */}
-        <SuggestPartCard source="builder" className="mt-8" />
+          <aside className="lg:sticky lg:top-24" aria-label="ملخّص التجميعة">
+            {(() => {
+              const picked = Object.values(selectedComponents).filter(Boolean) as Component[];
+              const unavailable = picked.filter((c) => !isAvailable(c)).length;
+              const psuW = selectedComponents['PSU'] ? parseFloat(parseSpecs(selectedComponents['PSU'].specs).wattage || '0') : 0;
+              const load = psuW > 0 ? Math.min(100, Math.round((result.totalTdp / psuW) * 100)) : 0;
+              const gpu = selectedComponents['GPU'];
+              const fps = gpu ? gpuPerf(gpu.name, parseFloat(String(parseSpecs(gpu.specs).vram ?? '')) || null) : null;
+              const top = result.status === 'success' ? 'border-t-emerald-500' : result.status === 'error' ? 'border-t-rose-500' : 'border-t-cyan-500/70';
+              return (
+                <div className={`relative flex flex-col gap-4 rounded-sm border-x border-b border-t-2 border-slate-200 dark:border-slate-800 ${top} bg-white/85 dark:bg-[#0B1120]/75 p-4 shadow-sm`}>
+                  <h3 className="text-[15px] font-black text-slate-900 dark:text-white">ملخّص التجميعة</h3>
+
+                  {result.status === 'idle' && (
+                    <p className="text-[13px] font-bold leading-relaxed text-slate-500 dark:text-slate-400">اختر أول قطعة، ونحسب لك التوافق والإجمالي هنا أول بأول.</p>
+                  )}
+                  {result.status === 'incomplete' && (
+                    <div className="rounded-sm border border-dashed border-slate-300 dark:border-slate-700 p-3">
+                      <p className="mb-2 text-[12.5px] font-black text-slate-700 dark:text-slate-300">باقي تختار عشان يطلع تقرير التوافق:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(result.missingCategories ?? []).map((cat) => (
+                          <span key={cat} className="px-2 py-1 rounded-sm text-[11.5px] font-black bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-200 border border-rose-200 dark:border-rose-800/50">{catMeta(cat).label}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(result.status === 'success' || result.status === 'error') && (
+                    <div className={`flex items-start gap-2.5 rounded-sm border p-3 ${result.status === 'success' ? 'border-emerald-300 dark:border-emerald-800/60 bg-emerald-50/80 dark:bg-emerald-950/30' : 'border-rose-300 dark:border-rose-800/60 bg-rose-50/80 dark:bg-rose-950/30'}`}>
+                      <span className={`w-6 h-6 shrink-0 rounded-sm flex items-center justify-center text-[13px] font-black text-white ${result.status === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}>{result.status === 'success' ? '✓' : '✕'}</span>
+                      <span className={`text-[13px] font-extrabold leading-relaxed ${result.status === 'success' ? 'text-emerald-800 dark:text-emerald-300' : 'text-rose-800 dark:text-rose-300'}`}>{result.message}</span>
+                    </div>
+                  )}
+
+                  {result.totalPrice > 0 && (
+                    <div>
+                      <p className="mb-1 text-[11.5px] font-bold text-slate-500 dark:text-slate-400">التكلفة الإجمالية · <span className="tabular-nums">{picked.length}</span> {picked.length === 1 ? 'قطعة' : picked.length === 2 ? 'قطعتين' : 'قطع'}</p>
+                      <span className="block font-mono text-[34px] leading-none font-black text-emerald-600 dark:text-emerald-400 tabular-nums" dir="ltr">{formatTotal(result.totalPrice)}<RiyalSign /></span>
+                      {unavailable > 0 && (
+                        <p className="mt-1.5 text-[11.5px] font-black text-amber-600 dark:text-amber-400">⚠ يشمل {unavailable === 1 ? 'قطعةً غير متوفّرة' : `${unavailable} قطع غير متوفّرة`} بآخر سعر رصدناه</p>
+                      )}
+                      {buildSavings > 0 && (
+                        <p className="mt-1.5 text-[12px] font-bold leading-relaxed text-slate-500 dark:text-slate-400">من أرخص متجر لكل قطعة — توفّر <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">{formatTotal(buildSavings)}</span> ريال عن أغلى العروض.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {result.totalTdp > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-baseline justify-between text-[12px] font-bold text-slate-500 dark:text-slate-400">
+                        <span>سحب الطاقة{psuW > 0 ? ' من المزوّد' : ''}</span>
+                        <span><span className="font-mono font-black text-amber-600 dark:text-amber-400">{result.totalTdp}W</span>{psuW > 0 && <> من <span className="font-mono">{psuW}W</span></>}</span>
+                      </div>
+                      {psuW > 0 ? (
+                        <>
+                          <div dir="ltr" className="relative h-2 rounded-full bg-slate-200 dark:bg-slate-800">
+                            <span className={`absolute left-0 top-0 bottom-0 rounded-full ${load > 80 ? 'bg-rose-500' : 'bg-gradient-to-r from-emerald-500 to-amber-500'}`} style={{ width: `${load}%` }} />
+                            <span className="absolute top-[-4px] bottom-[-4px] w-0.5 bg-rose-500" style={{ left: '80%' }} />
+                          </div>
+                          <p className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">تسحب نحو <span className="tabular-nums">{load}%</span> من قدرته · الخط الأحمر حدّ الأمان <span className="tabular-nums">80%</span></p>
+                        </>
+                      ) : (
+                        <p className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">اختر مزوّد الطاقة ونقيس لك الهامش.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {fps && (
+                    <div>
+                      <p className="mb-1.5 text-[11.5px] font-bold text-slate-500 dark:text-slate-400">أداء الكرت في الألعاب · <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline">{GPU_PERF_SOURCE.name}</a></p>
+                      <div className="grid grid-cols-3 gap-1.5 text-center">
+                        {([['1080p', fps.f1080], ['1440p', fps.f1440], ['4K', fps.f4k]] as [string, number][]).map(([res, f]) => (
+                          <div key={res} className="rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 py-2">
+                            <b className="block font-mono text-lg font-black text-slate-900 dark:text-white">{Math.round(f)}</b>
+                            <span className="block text-[10.5px] font-bold text-slate-500 dark:text-slate-400" dir="ltr">{res}</span>
+                            <span className={`inline-block mt-1 px-1.5 rounded-sm text-[10.5px] font-black ${feel(f) === 'مريح' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : feel(f) === 'مقبول' ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400' : 'bg-rose-500/10 text-rose-700 dark:text-rose-400'}`}>{feel(f)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {result.bottleneck && (
+                    <p className={`text-[12.5px] font-bold leading-relaxed ${result.bottleneck.color}`}>{result.bottleneck.title}</p>
+                  )}
+
+                  {result.warnings && result.warnings.length > 0 && (
+                    <a href="#build-details" className="flex items-center gap-2 rounded-sm border border-amber-300 dark:border-amber-800/50 bg-amber-50/70 dark:bg-amber-900/15 px-3 py-2 text-[12.5px] font-black text-amber-800 dark:text-amber-300">
+                      ⚠ {result.warnings.length === 1 ? 'ملاحظة وحدة' : `${result.warnings.length} ملاحظات`} — اقرأها ↓
+                    </a>
+                  )}
+
+                  {result.status === 'success' && (
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={handleSaveBuildClick}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-[13.5px] font-black shadow-lg shadow-cyan-500/25 transition-all"
+                      >
+                        {editModeId ? 'حفظ التعديلات' : 'احفظها في حسابي'}
+                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={handleCopyText} className="py-2.5 rounded-sm border border-slate-300 dark:border-slate-700 text-[12.5px] font-black text-slate-700 dark:text-slate-200 hover:border-cyan-500">نسخ كنص</button>
+                        <button onClick={exportBuildAsImage} className="py-2.5 rounded-sm border border-cyan-500/40 text-[12.5px] font-black text-cyan-700 dark:text-cyan-400 hover:border-cyan-500">تصدير صورة</button>
+                      </div>
+                      {editModeId && (
+                        <button
+                          onClick={() => { localStorage.removeItem('draft_pc_build'); window.location.href = '/my-builds'; }}
+                          className="py-2.5 rounded-sm border border-rose-200 dark:border-rose-900/40 text-[12.5px] font-black text-rose-600 dark:text-rose-400"
+                        >
+                          إلغاء التعديل
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {(result.status === 'success' || result.status === 'error') && (
+                    <a href="#build-details" className="text-center text-[12px] font-extrabold text-cyan-700 dark:text-cyan-400 hover:underline">التفاصيل الكاملة وروابط الشراء ↓</a>
+                  )}
+                </div>
+              );
+            })()}
+          </aside>
+        </div>
 
         {/* صندوق النتيجة */}
         {result.status !== 'idle' && (
-          <div className="mt-10 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div id="build-details" className="scroll-mt-24 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
             
             {result.status === 'incomplete' ? (
               <div className="p-8 rounded-sm border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20 text-center flex flex-col items-center justify-center gap-4 shadow-sm">
@@ -1706,25 +1875,33 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                         </h4>
 
                         {/* سطر التوفير الجماعي (div لا p — RiyalIcon بداخله div) */}
-                        {(() => {
-                          const savings = Object.values(selectedComponents).reduce((sum, comp) => {
-                            if (!comp) return sum;
-                            const offers = getStoreOffers(comp);
-                            if (offers.length < 2) return sum;
-                            return sum + (offers[offers.length - 1].price - offers[0].price);
-                          }, 0);
-                          if (savings <= 0) return <div className="mb-5"></div>;
-                          return (
-                            <div className="mb-5 text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
-                              <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                              لو أخذت كل قطعة من أرخص متجر توفّر
-                              <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1">
-                                {formatTotal(savings)} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
-                              </span>
-                              مقارنةً بأغلى العروض — ورتّبناها لك.
+                        {buildSavings > 0 && (
+                          <div className="mb-4 text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
+                            <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                            لو أخذت كل قطعة من أرخص متجر توفّر
+                            <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1">
+                              {formatTotal(buildSavings)} <RiyalIcon size="h-3 w-3" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+                            </span>
+                            مقارنةً بأغلى العروض — ورتّبناها لك.
+                          </div>
+                        )}
+                        {/* مجمّعة حسب المتجر: كم طلباً تحتاج فعلاً (شكل ي · 2026-10-30) */}
+                        {storeGroups.length > 0 && (
+                          <div className="mb-5 flex flex-col gap-2">
+                            <p className="text-[12.5px] font-black text-slate-700 dark:text-slate-300">
+                              {storeGroups.length === 1 ? 'طلب واحد' : storeGroups.length === 2 ? 'طلبين' : `${storeGroups.length} طلبات`} من {storeGroups.length === 1 ? 'متجر واحد' : storeGroups.length === 2 ? 'متجرين' : `${storeGroups.length} متاجر`} — كل قطعة من أرخص متجر يبيعها:
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {storeGroups.map((g) => (
+                                <span key={g.name} className="inline-flex items-center gap-2.5 rounded-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/70 px-3 py-2 text-[12.5px] font-bold text-slate-700 dark:text-slate-200" style={{ borderInlineStartColor: g.color, borderInlineStartWidth: 3 }}>
+                                  <b className="text-slate-900 dark:text-white">{g.name}</b>
+                                  <span className="text-slate-500 dark:text-slate-400">{g.count === 1 ? 'قطعة' : g.count === 2 ? 'قطعتين' : `${g.count} قطع`}</span>
+                                  <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 tabular-nums" dir="ltr">{formatTotal(g.total)}<RiyalSign /></span>
+                                </span>
+                              ))}
                             </div>
-                          );
-                        })()}
+                          </div>
+                        )}
                         <div className="grid grid-cols-1 gap-3">
                           {Object.entries(selectedComponents).map(([catName, comp]) => {
                             if (!comp) return null;
@@ -1803,44 +1980,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
               </div>
             )}
 
-            {result.status === 'success' && (
-              <div className="mt-6 flex flex-wrap justify-end gap-3">
-                {editModeId && (
-                  <button 
-                    onClick={() => {
-                      localStorage.removeItem('draft_pc_build');
-                      window.location.href = '/my-builds';
-                    }}
-                    className="px-6 py-3 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold rounded-sm transition-all flex items-center gap-2 border border-rose-200 dark:border-rose-900/30"
-                  >
-                    إلغاء التعديل
-                  </button>
-                )}
-                
-                <button 
-                  onClick={handleCopyText}
-                  className="px-6 py-3.5 bg-white dark:bg-[#0F172A] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-sm transition-all flex items-center gap-2 border-[1.5px] border-slate-300 dark:border-slate-700"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
-                  نسخ كنص
-                </button>
-                <button 
-                  onClick={exportBuildAsImage}
-                  className="px-6 py-3.5 bg-white dark:bg-[#0F172A] hover:bg-cyan-50 dark:hover:bg-cyan-950/30 text-cyan-600 dark:text-cyan-400 font-bold rounded-sm transition-all flex items-center gap-2 border-[1.5px] border-cyan-500/40 hover:border-cyan-500/70"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                  تصدير صورة
-                </button>
-                
-                <button 
-                  onClick={handleSaveBuildClick}
-                  className="flex-1 min-w-[220px] justify-center px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-sm transition-all flex items-center gap-2 shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/40 hover:-translate-y-0.5"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                  {editModeId ? 'حفظ التعديلات' : 'احفظها في حسابي'}
-                </button>
-              </div>
-            )}
+            {/* أزرار الحفظ والنسخ والتصدير صارت في الملخّص اللاصق أعلاه (2026-10-30) */}
           </div>
         )}
       </div>

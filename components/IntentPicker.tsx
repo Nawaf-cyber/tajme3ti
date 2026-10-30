@@ -167,7 +167,8 @@ export default function IntentPicker({
               <span className="w-5 h-5 rounded-sm bg-cyan-500 text-white text-[12px] font-black flex items-center justify-center">١</span>
               <span className="text-[12px] font-black text-slate-600 dark:text-slate-300">وش تسوي بالجهاز؟</span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {/* صفٌّ واحد على الشاشة العريضة (شكل ي · 2026-10-30): كانت صفّين يأخذان ربع الشاشة الأولى */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               {USES.map(u => (
                 <button
                   key={u.key}
