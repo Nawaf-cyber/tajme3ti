@@ -14,12 +14,12 @@ import SuggestButton from './SuggestButton';
 const STORES = 'أمازون، ومايكرولس، وكازاسوق، ونون، وإنفيني آرك، وجرير، وريد زون';
 
 export default function AboutPage() {
-  const strong = 'text-blue-600 dark:text-blue-400';
+  const strong = 'text-cyan-700 dark:text-cyan-400';
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <div className="bg-white dark:bg-slate-900 rounded-sm shadow-sm border border-gray-100 dark:border-slate-800 p-8 md:p-12">
+      <div className="relative bg-white/80 dark:bg-[#0F172A]/75 backdrop-blur-sm rounded-sm shadow-sm border-x border-b border-t-2 border-slate-200 dark:border-slate-800 border-t-cyan-500/70 p-8 md:p-12">
 
-        <h1 className="text-4xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-l from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400">
+        <h1 className="flex items-center gap-3 text-3xl md:text-4xl font-black tracking-tight mb-3 text-slate-900 dark:text-white"><span aria-hidden="true" className="h-9 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-cyan-400 to-blue-500 shadow-[0_0_10px] shadow-cyan-500/40"></span>
           عن تجميعتي
         </h1>
         <p className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-6 border-b border-gray-100 dark:border-slate-800 pb-4">

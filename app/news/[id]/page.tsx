@@ -57,7 +57,7 @@ export default async function NewsDetails({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] pb-20 transition-colors duration-300 overflow-x-hidden selection:bg-blue-500/20">
+    <div className="min-h-screen pb-20 transition-colors duration-300 overflow-x-hidden selection:bg-blue-500/20">
       <JsonLd data={[articleLd, breadcrumbs([['الرئيسية', '/'], ['الأخبار', '/news'], [news.title, `/news/${news.id}`]])]} />
       
       {/* القسم العلوي (الصورة والعنوان) */}

@@ -59,15 +59,15 @@ const cpuExample = (name: string) => {
 };
 
 export default function HowWeRatePage() {
-  const strong = 'text-blue-600 dark:text-blue-400';
+  const strong = 'text-cyan-700 dark:text-cyan-400';
   const gpuEx = gpuPerf('RTX 5080');
   const cpuExs = ['Ryzen 7 9800X3D', 'Core i9-14900K'].map(cpuExample).filter(Boolean) as NonNullable<ReturnType<typeof cpuExample>>[];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       <JsonLd data={breadcrumbs([['الرئيسية', '/'], ['كيف نقيّم أداء القطع', '/how-we-rate']])} />
-      <div className="bg-white dark:bg-slate-900 rounded-sm shadow-sm border border-gray-100 dark:border-slate-800 p-8 md:p-12">
-        <h1 className="text-4xl font-black mb-2 text-slate-900 dark:text-white">كيف نقيّم أداء القطع؟</h1>
+      <div className="relative bg-white/80 dark:bg-[#0F172A]/75 backdrop-blur-sm rounded-sm shadow-sm border-x border-b border-t-2 border-slate-200 dark:border-slate-800 border-t-cyan-500/70 p-8 md:p-12">
+        <h1 className="flex items-center gap-3 text-3xl md:text-4xl font-black tracking-tight mb-3 text-slate-900 dark:text-white"><span aria-hidden="true" className="h-9 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-cyan-400 to-blue-500 shadow-[0_0_10px] shadow-cyan-500/40"></span>كيف نقيّم أداء القطع؟</h1>
         <p className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-6 border-b border-gray-100 dark:border-slate-800 pb-4">
           كل معالج وكرت شاشة عندنا له «تقييم أداء» بخمس درجات: أساسي، اقتصادي، متوسّط، قوي، قمّة. والتقييم ما نكتبه بإيدنا،
           نحسبه من اختبارات منشورة.

@@ -49,7 +49,7 @@ export default async function GuideDetails({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] pb-20 transition-colors duration-300 overflow-x-hidden selection:bg-emerald-500/20">
+    <div className="min-h-screen pb-20 transition-colors duration-300 overflow-x-hidden selection:bg-emerald-500/20">
       <JsonLd data={[articleLd, breadcrumbs([['الرئيسية', '/'], ['الأدلّة', '/guides'], [article.title, `/guides/${article.id}`]])]} />
 
       <div className="relative w-full h-[50vh] md:h-[65vh] bg-slate-900 border-b border-slate-200 dark:border-slate-800/80 flex items-end">

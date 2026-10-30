@@ -96,3 +96,13 @@ export function shortDateAr(date?: Date | string | null): string {
     .toLocaleDateString('ar-SA-u-ca-gregory-nu-latn')
     .replace(/[\u200e\u200f]/g, '');
 }
+
+/** «4 سبتمبر 2026» — الشهر بالاسم، للبطاقات والرؤوس. التقويم والأرقام مثبّتان كما في shortDateAr */
+export function longDateAr(date?: Date | string | null): string {
+  if (!date) return '';
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  return d
+    .toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long', year: 'numeric' })
+    .replace(/[‎‏]/g, '');
+}

@@ -10,9 +10,9 @@ export default function PrivacyPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 p-8 md:p-12">
+      <div className="relative bg-white/80 dark:bg-[#0F172A]/75 backdrop-blur-sm rounded-sm shadow-sm border-x border-b border-t-2 border-slate-200 dark:border-slate-800 border-t-cyan-500/70 p-8 md:p-12">
 
-        <h1 className="text-4xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-l from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400">
+        <h1 className="flex items-center gap-3 text-3xl md:text-4xl font-black tracking-tight mb-3 text-slate-900 dark:text-white"><span aria-hidden="true" className="h-9 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-cyan-400 to-blue-500 shadow-[0_0_10px] shadow-cyan-500/40"></span>
           سياسة الخصوصية
         </h1>
 
@@ -23,7 +23,7 @@ export default function PrivacyPage() {
         <div className="space-y-8 text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
 
           <p>
-            نحن في <strong className="text-blue-600 dark:text-blue-400">تجميعتي</strong> نحترم خصوصيتك ونلتزم بحماية بياناتك الشخصية. توضّح هذه السياسة كيف نجمع المعلومات ونستخدمها ونحميها عند استخدامك لمنصتنا. باستخدامك للموقع فإنك توافق على الممارسات الموضّحة في هذه الصفحة.
+            نحن في <strong className="text-cyan-700 dark:text-cyan-400">تجميعتي</strong> نحترم خصوصيتك ونلتزم بحماية بياناتك الشخصية. توضّح هذه السياسة كيف نجمع المعلومات ونستخدمها ونحميها عند استخدامك لمنصتنا. باستخدامك للموقع فإنك توافق على الممارسات الموضّحة في هذه الصفحة.
           </p>
 
           <section>
@@ -52,12 +52,12 @@ export default function PrivacyPage() {
             <p>
               نستخدم خدمة Google AdSense لعرض الإعلانات على موقعنا للمساهمة في تغطية تكاليف التشغيل والاستضافة. تستخدم Google، كطرف ثالث، ملفات تعريف ارتباط لعرض إعلانات مبنية على زياراتك السابقة لموقعنا أو لمواقع أخرى، ومنها ملف تعريف الارتباط DoubleClick الذي يتيح لـ Google وشركائها عرض الإعلانات بناءً على زياراتك لهذا الموقع ولمواقع أخرى على الإنترنت. يمكنك إلغاء الاشتراك في الإعلانات المخصّصة من خلال زيارة صفحة
               {' '}
-              <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 font-bold underline">
+              <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-cyan-700 dark:text-cyan-400 font-bold underline">
                 إعدادات إعلانات Google
               </a>
               ، والاطّلاع على طريقة استخدام Google للبيانات في
               {' '}
-              <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 font-bold underline">
+              <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer" className="text-cyan-700 dark:text-cyan-400 font-bold underline">
                 سياسات Google للإعلانات
               </a>.
             </p>
@@ -86,9 +86,9 @@ export default function PrivacyPage() {
             <p>
               لك الحق في الوصول إلى بياناتك الشخصية التي نحتفظ بها، وطلب تصحيحها أو حذفها. كما يمكنك حذف حسابك في أي وقت. للتواصل بشأن أي من هذه الحقوق، راسلنا على
               {' '}
-              <a href="mailto:Tajme3ti02@gmail.com" className="text-blue-600 dark:text-blue-400 font-bold underline" dir="ltr">Tajme3ti02@gmail.com</a>
+              <a href="mailto:Tajme3ti02@gmail.com" className="text-cyan-700 dark:text-cyan-400 font-bold underline" dir="ltr">Tajme3ti02@gmail.com</a>
               {' '}أو عبر صفحة{' '}
-              <a href="/contact" className="text-blue-600 dark:text-blue-400 font-bold underline">اتصل بنا</a>.
+              <a href="/contact" className="text-cyan-700 dark:text-cyan-400 font-bold underline">اتصل بنا</a>.
             </p>
           </section>
 
@@ -106,11 +106,11 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <div className="bg-blue-50 dark:bg-slate-800/50 p-6 rounded-xl border border-blue-100 dark:border-slate-700 mt-8">
+          <div className="bg-blue-50 dark:bg-slate-800/50 p-6 rounded-sm border border-blue-100 dark:border-slate-700 mt-8">
             <h3 className="font-bold text-xl text-blue-800 dark:text-blue-400 mb-2">لديك سؤال؟</h3>
             <p className="text-sm">
               إذا كان لديك أي استفسار حول سياسة الخصوصية أو طريقة تعاملنا مع بياناتك، يسعدنا تواصلك معنا عبر صفحة{' '}
-              <a href="/contact" className="text-blue-600 dark:text-blue-400 font-bold underline">اتصل بنا</a>.
+              <a href="/contact" className="text-cyan-700 dark:text-cyan-400 font-bold underline">اتصل بنا</a>.
             </p>
           </div>
 

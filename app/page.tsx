@@ -15,9 +15,7 @@ import { catMeta, CATEGORY_META } from '../lib/category-meta';
 import { HAS_PARTS } from '../lib/categories';
 import { OFFER_INCLUDE } from '../lib/stores-server';
 import { liveOffers, cheapestOffer } from '../lib/stores';
-/* «4 سبتمبر 2026» — ميلاديّ بأرقامٍ لاتينيّة؛ ar-SA وحدها تُعطي الهجريّ */
-const longDateAr = (d: Date | string) =>
-  new Date(d).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long', year: 'numeric' }).replace(/[‎‏]/g, '');
+import { longDateAr } from '../lib/time-ago';
 
 /* ⚠️ كانت revalidate = 300 فتُخزَّن النسخة ٥ دقائق، ومع stale-while-revalidate
    يرى أول زائرٍ بعدها النسخة **القديمة** ويُطلق التجديد للتالي — فالتأخير

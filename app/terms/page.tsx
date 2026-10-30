@@ -21,9 +21,9 @@ export default function TermsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 p-8 md:p-12">
+      <div className="relative bg-white/80 dark:bg-[#0F172A]/75 backdrop-blur-sm rounded-sm shadow-sm border-x border-b border-t-2 border-slate-200 dark:border-slate-800 border-t-cyan-500/70 p-8 md:p-12">
 
-        <h1 className="text-4xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-l from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400">
+        <h1 className="flex items-center gap-3 text-3xl md:text-4xl font-black tracking-tight mb-3 text-slate-900 dark:text-white"><span aria-hidden="true" className="h-9 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-cyan-400 to-blue-500 shadow-[0_0_10px] shadow-cyan-500/40"></span>
           شروط الاستخدام
         </h1>
 
@@ -34,7 +34,7 @@ export default function TermsPage() {
         <div className="space-y-8 text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
 
           <p>
-            مرحباً بك في <strong className="text-blue-600 dark:text-blue-400">تجميعتي</strong>. باستخدامك لهذا الموقع فإنك توافق على الشروط الموضّحة أدناه. وإن لم توافق على أيٍّ منها فنرجو ألّا تستخدم المنصة. نحتفظ بحق تعديل هذه الشروط، ويُعلن التاريخ أعلى الصفحة عند كل تعديل.
+            مرحباً بك في <strong className="text-cyan-700 dark:text-cyan-400">تجميعتي</strong>. باستخدامك لهذا الموقع فإنك توافق على الشروط الموضّحة أدناه. وإن لم توافق على أيٍّ منها فنرجو ألّا تستخدم المنصة. نحتفظ بحق تعديل هذه الشروط، ويُعلن التاريخ أعلى الصفحة عند كل تعديل.
           </p>
 
           <section>
@@ -79,7 +79,7 @@ export default function TermsPage() {
             <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-3">٥. الروابط الخارجية والعمولات</h2>
             <p>
               يحتوي الموقع على روابط لمتاجر خارجية، بعضها روابط تسويق بالعمولة قد نحصل منها على عمولة بسيطة عند إتمامك الشراء <strong>دون أي زيادة في السعر عليك</strong>. ولا يؤثّر ذلك على ترتيب المتاجر عندنا — نعرض الأرخص أولاً دائماً. ولسنا مسؤولين عن محتوى تلك المواقع ولا عن سياساتها. وتفصيل ذلك في{' '}
-              <Link href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline font-bold">سياسة الخصوصية</Link>.
+              <Link href="/privacy" className="text-cyan-700 dark:text-cyan-400 hover:underline font-bold">سياسة الخصوصية</Link>.
             </p>
           </section>
 
@@ -101,7 +101,7 @@ export default function TermsPage() {
             <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-3">٨. تواصل معنا</h2>
             <p>
               لأي سؤال حول هذه الشروط، أو لتصحيح معلومة أو سعر، تواصل معنا عبر{' '}
-              <Link href="/contact" className="text-blue-600 dark:text-blue-400 hover:underline font-bold">صفحة الاتصال</Link>.
+              <Link href="/contact" className="text-cyan-700 dark:text-cyan-400 hover:underline font-bold">صفحة الاتصال</Link>.
             </p>
           </section>
 
