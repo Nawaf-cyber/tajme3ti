@@ -391,7 +391,8 @@ export default function CompareClient({
   /* ---- فلتر "أظهر الفروقات فقط" (#1) ----
      يُخفي الصفوف المتطابقة في كل الأعمدة. مفيد جداً لقطعتين متقاربتين
      حيث تختفي عشرات الصفوف المكرّرة ويبقى ما يفرّق فعلاً. */
-  const [diffOnly, setDiffOnly] = useState(false);
+  /* مفعّلٌ من البداية (2026-10-30): المتطابق يُخفى ويُذكر عدده في عنوان المجموعة، والزرّ يُظهره */
+  const [diffOnly, setDiffOnly] = useState(true);
 
   /* ============ صفوفٌ محسوبة — رقمٌ يسأله المشتري لا تكتبه الشركة ============
    *
@@ -711,50 +712,45 @@ export default function CompareClient({
 
   const categoryName = selected[0]?.category?.name ?? '';
 
+  /* عنوان مجموعة صفوف في الجدول — العنوان لاصقٌ يميناً فيبقى ظاهراً حين يُمرَّر الجدول أفقياً على الجوال */
+  const groupRow = (label: string) => (
+    <tr>
+      <th colSpan={selected.length + 2} scope="colgroup" className="p-0 text-right border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-[#0B1120]/70">
+        <span className="sticky right-0 inline-block px-4 pt-3.5 pb-2 text-[12px] font-black text-cyan-700 dark:text-cyan-400">{label}</span>
+      </th>
+    </tr>
+  );
+
   /* ============ العرض ============ */
 
   return (
-    <div className="min-h-screen py-6 md:py-12 px-4">
+    <div className="min-h-screen py-6 md:py-8 px-4">
       <div className="max-w-6xl mx-auto">
 
-        {/* ===== الرأس ===== */}
-        <div className="text-center mb-6 md:mb-12">
-          <div className="relative w-16 h-16 mx-auto mb-6 hidden md:block">
-            <div className="absolute inset-0 bg-cyan-400/25 blur-2xl rounded-full"></div>
-            <svg viewBox="0 0 24 24" fill="currentColor" className="relative w-full h-full text-cyan-500 dark:text-cyan-400 drop-shadow-[0_0_12px_rgba(34,211,238,0.4)]">
-              <path d="M13 2L4.5 13.5H11L10 22L18.5 10.5H12L13 2Z" />
-            </svg>
+        {/* ===== الرأس — مضغوطٌ كرأس «تصفّح القطع» (2026-10-30): كان عنواناً ٦٠ بكسل وفوقه البرق يأخذ الشاشة الأولى ===== */}
+        <div className="flex items-end justify-between gap-4 flex-wrap mb-6">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+              قارن القطع{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500 dark:from-cyan-400 dark:to-blue-400">جنباً إلى جنب.</span>
+            </h1>
+            <p className="mt-2 text-[14px] font-semibold text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+              اختر حتى 3 قطع من نفس الفئة — الحكم أولاً، ثم الأسعار والأداء، ثم الفروقات في المواصفات.
+            </p>
           </div>
-
-          <h1 className="text-3xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter mb-4 leading-tight">
-            قارن القطع{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 dark:from-cyan-400 dark:via-blue-400 dark:to-cyan-300">
-              جنباً إلى جنب
-            </span>
-          </h1>
-
-          <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed">
-            اختر حتى 3 قطع من نفس الفئة وقارن المواصفات والأسعار والأداء دفعة واحدة، لتختار الأنسب بثقة.
-          </p>
-
-          <div className="mt-6 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             {categoryName && (
               <span className="inline-flex items-center gap-2 text-xs font-black text-cyan-700 dark:text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-sm">
                 الفئة: {catMeta(categoryName).label}
               </span>
             )}
-
-            {/* جسر لمقارنة التجميعات الكاملة — زرّ لا بطاقة (البطاقة كانت
-                تكسر إيقاع الصفحة)، لكن بحجم ووزن يجعلانه ظاهراً فعلاً. */}
+            {/* جسر لمقارنة التجميعات الكاملة */}
             <Link
               href="/compare/builds"
-              className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-sm text-[13px] font-black text-cyan-800 dark:text-cyan-300 bg-cyan-500/10 dark:bg-cyan-400/10 border border-cyan-500/50 dark:border-cyan-400/40 shadow-sm shadow-cyan-500/10 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 hover:shadow-md hover:shadow-cyan-500/30 transition-all active:scale-95"
+              className="group inline-flex items-center gap-2 px-4 py-2 rounded-sm text-[12.5px] font-black text-cyan-800 dark:text-cyan-300 bg-cyan-500/10 dark:bg-cyan-400/10 border border-cyan-500/50 dark:border-cyan-400/40 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 transition-all active:scale-95"
             >
-              <span className="text-base leading-none">⚖️</span>
-              تبي تقارن تجميعات كاملة؟
-              <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
+              ⚖️ تبي تقارن تجميعات كاملة؟
+              <span className="transition-transform group-hover:-translate-x-1" aria-hidden="true">&larr;</span>
             </Link>
           </div>
         </div>
@@ -802,7 +798,7 @@ export default function CompareClient({
             {/* مسحٌ بلا تأكيد: المقارنة كلّها في الرابط، و«رجوع» المتصفّح يعيدها.
                 ويقع داخل فرع «فيه قطع» — فلا يظهر على الشاشة الفارغة */}
             <button
-              onClick={() => { setDiffOnly(false); updateUrl([]); }}
+              onClick={() => { setDiffOnly(true); updateUrl([]); }}
               title="أزل كل القطع وابدأ مقارنة جديدة"
               className="flex items-center gap-2 px-4 py-2.5 rounded-sm text-sm font-black border-2 transition-all active:scale-95 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-500/50 hover:bg-rose-600 hover:text-white hover:border-rose-600 dark:hover:bg-rose-600 dark:hover:text-white"
             >
@@ -818,6 +814,127 @@ export default function CompareClient({
           {/* ===== منطقة التصدير ===== */}
           <div ref={exportRef}>
 
+        {/* ===== الحكم أوّلاً (2026-10-30) — كان بعد الجدول، أي بعد ثلاث شاشاتٍ ونصف من المواصفات؛ ومن جاء يسأل «أيّهما آخذ؟» يقرؤه قبل الأرقام (lib/compare-verdict) ===== */}
+        {(verdict.pick || verdict.empty) && (
+          <div id="verdict" className="scroll-mt-24 relative mb-6 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-emerald-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-5 md:p-6 shadow-sm animate-fade-up">
+            <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent pointer-events-none"></div>
+            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
+              الحكم
+            </h2>
+
+            {/* ترشيحنا — أسطرٌ قصيرة بعناوين، لا فقرةٌ واحدة (lib/compare-verdict) */}
+            <div className="mb-5 p-4 rounded-sm border border-cyan-500/40 bg-cyan-500/[0.06]">
+              {verdict.empty ? (
+                <p className="text-sm md:text-[15px] font-bold text-slate-900 dark:text-white leading-relaxed">{verdict.empty}</p>
+              ) : (
+                <div className="text-sm leading-relaxed">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="font-bold text-slate-600 dark:text-slate-400">ترشيحنا</span>
+                    <span className="font-black text-base md:text-lg text-slate-900 dark:text-white" dir="ltr">{verdict.pick}</span>
+                    {verdict.price != null && (
+                      <span className="font-bold text-slate-700 dark:text-slate-300">
+                        — <span className="font-mono">{Math.round(verdict.price).toLocaleString('en-US')}</span> ريال{verdict.priceNote && <span className="font-semibold text-slate-600 dark:text-slate-400"> ({verdict.priceNote})</span>}
+                      </span>
+                    )}
+                  </div>
+
+                  {verdict.lead && <p className="mt-2 font-bold text-slate-900 dark:text-white">{verdict.lead}</p>}
+                  {verdict.feel && <p className="mt-0.5 font-semibold text-slate-700 dark:text-slate-300">{verdict.feel}</p>}
+
+                  {verdict.options.length > 0 && (
+                    <ul className="mt-3 space-y-1.5">
+                      {verdict.options.map((o, k) => (
+                        <li key={k} className="font-semibold text-slate-800 dark:text-slate-200">{o}</li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {verdict.summary && (
+                    <p className="mt-3 pt-3 border-t border-cyan-500/20 font-black text-slate-900 dark:text-white">
+                      الخلاصة: {verdict.summary}.
+                    </p>
+                  )}
+                  {verdict.ai && (
+                    <p className="mt-2 font-semibold text-slate-800 dark:text-slate-200">
+                      الذكاء الاصطناعي: {verdict.ai}
+                      {/48% مقابل 15%/.test(verdict.ai) && (
+                        <> — <a href={UPSCALING_SOURCES.blindTest.url} target="_blank" rel="noopener noreferrer" className="underline text-cyan-700 dark:text-cyan-400">المصدر</a></>
+                      )}
+                    </p>
+                  )}
+                  {verdict.watch && <p className="mt-2 font-semibold text-amber-800 dark:text-amber-300">السعر: {verdict.watch}</p>}
+                  {verdict.outNote && <p className="mt-2 font-semibold text-slate-700 dark:text-slate-300">{verdict.outNote}</p>}
+                  {verdict.footnote && <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">{verdict.footnote}</p>}
+                </div>
+              )}
+            </div>
+
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${selected.length === 3 ? 'lg:grid-cols-3' : ''} gap-3`}>
+              {verdict.cards.map((card, i) => (
+                <div key={selected[i].id} className={`relative p-4 rounded-sm border overflow-hidden ${
+                  i === pickIdx
+                    ? 'border-cyan-600 dark:border-cyan-400 bg-cyan-500/[0.07] dark:bg-cyan-400/[0.06]'
+                    : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/30'
+                }`}>
+                  {/* شريط لون العمود — يربط البطاقة بعمودها في الجدول والرسم */}
+                  <span className="absolute top-0 bottom-0 right-0 w-[3px]" style={{ backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] }}></span>
+                  {i === pickIdx && (
+                    <div className="mb-2 inline-flex items-center gap-1 text-xs font-black text-cyan-900 dark:text-cyan-200 bg-cyan-500/15 border border-cyan-600/50 dark:border-cyan-400/50 rounded-sm px-2 py-0.5">
+                      ★ ترشيحنا
+                    </div>
+                  )}
+                  <div className="text-[13px] font-black text-slate-900 dark:text-white leading-snug" dir="ltr" style={{ textAlign: 'right' }}>
+                    {selected[i].name}
+                  </div>
+                  <ul className="mt-2.5 space-y-1.5">
+                    {card.pros.map((t) => (
+                      <li key={t} className="flex gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
+                        <span className="text-emerald-700 dark:text-emerald-400 font-black shrink-0" aria-label="ميزة">✓</span>{t}
+                      </li>
+                    ))}
+                    {card.cons.map((t) => (
+                      <li key={t} className="flex gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">
+                        <span className="text-rose-700 dark:text-rose-400 font-black shrink-0" aria-label="عيب">✗</span>{t}
+                      </li>
+                    ))}
+                  </ul>
+                  {cols[i]?.issues > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { setNotesOpen(true); setTimeout(() => [...document.querySelectorAll<HTMLElement>('#compare-notes')].find((el) => el.offsetParent)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); }}
+                      className="mt-2 text-xs font-bold text-cyan-700 dark:text-cyan-400 hover:underline"
+                    >
+                      اقرأ الملاحظات ↓
+                    </button>
+                  )}
+                  {card.chooseIf && (
+                    <p className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 text-xs font-bold text-cyan-800 dark:text-cyan-300">
+                      اخترها إذا: {card.chooseIf}
+                    </p>
+                  )}
+                  {/* زرّ الاعتماد على المرشَّح وحده — القرار اتُّخذ هنا، فلا يصعد الزائر لرأس الجدول */}
+                  {i === pickIdx && (
+                    <button
+                      type="button"
+                      data-noexport
+                      onClick={() => setBuildTarget(selected[i])}
+                      className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 px-2 border border-cyan-600/60 dark:border-cyan-400/50 text-cyan-800 dark:text-cyan-300 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 rounded-sm transition-all active:scale-[0.98] text-xs font-black"
+                    >
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      استخدم في تجميعتي
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+          </div>
+        )}
+
+
           {/* ===== عنوان الجدول — نفس نمط "الخلاصة" و"المواصفات التقنية" ===== */}
           <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4 px-1">
             <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
@@ -826,22 +943,6 @@ export default function CompareClient({
               <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{catMeta(categoryName).label}</span>
             )}
           </h2>
-
-          {/* ===== الحكم مختصراً فوق الجدول =====
-              الحكم الكامل بعد الجدول، أي بعد ثلاث شاشاتٍ ونصف من المواصفات على المكتب — ومن جاء
-              يسأل «أيّهما آخذ؟» لا يصله (تجربة المستخدمين 2026-10-17). فسطرُه هنا ورابطٌ إليه. */}
-          {selected.length > 1 && verdict.pick && (
-            <a
-              href="#verdict"
-              data-noexport
-              className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 p-3 rounded-sm border border-cyan-500/40 bg-cyan-500/[0.06] text-sm leading-relaxed hover:border-cyan-500 transition-colors"
-            >
-              <span className="font-bold text-slate-600 dark:text-slate-400">ترشيحنا:</span>
-              <span className="font-black text-slate-900 dark:text-white" dir="ltr">{verdict.pick}</span>
-              {verdict.summary && <span className="font-semibold text-slate-700 dark:text-slate-300">— {verdict.summary}</span>}
-              <span className="font-black text-cyan-700 dark:text-cyan-400 whitespace-nowrap">الحكم كاملاً ↓</span>
-            </a>
-          )}
 
           {/* ===== أدوات الجدول: إظهار الفروقات فقط ===== */}
           {selected.length > 1 && specRows.length > 0 && (
@@ -1059,425 +1160,8 @@ export default function CompareClient({
                   <RigFitRow parts={selected} fits={rigFits} bestIdx={bestIdx} addCol={selected.length < 3} />
                 )}
 
-                {/* صفوف المواصفات */}
-                {visibleSpecRows.map((label, rowIdx) => {
-                  const { keys, values, winnerIdx, deltas } = rowData(label);
-                  return (
-                    <tr
-                      key={label}
-                      /* تظليل الصف عند التمرير — يساعد على تتبّع صف عريض */
-                      className={`group/row transition-colors hover:bg-cyan-500/[0.06] ${rowIdx % 2 === 0 ? 'bg-cyan-500/[0.03]' : ''}`}
-                    >
-                      <th
-                        scope="row"
-                        className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] group-hover/row:text-cyan-600 dark:group-hover/row:text-cyan-400"
-                      >
-                        {ROW_LABEL_BY_CAT[categoryName]?.[label] ?? label}
-                      </th>
-                      {values.map((v, i) => (
-                        <td
-                          key={i}
-                          className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 font-mono ${
-                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
-                          }${
-                            winnerIdx.includes(i)
-                              ? 'text-cyan-700 dark:text-cyan-400'
-                              : 'text-slate-900 dark:text-white'
-                          }`}
-                          dir="ltr"
-                        >
-                          {label === 'مبرّد مرفق' && v != null ? (
-                            /* «None» خامٌ كان يظهر هنا. والقراءة دالّةُ الباني نفسها
-                               (bundledCooler): tray وعلبة بلا مبرّد = «يعتمد على العرض» */
-                            (() => {
-                              const b = bundledCooler(v);
-                              return (
-                                <span dir="rtl" className={`font-sans ${b === 'yes' ? 'text-emerald-700 dark:text-emerald-400' : b === 'no' ? 'text-slate-700 dark:text-slate-300' : 'text-amber-700 dark:text-amber-400'}`}>
-                                  {b === 'yes' ? <>✓ <span dir="ltr">{v}</span></> : b === 'no' ? 'لا — يحتاج مبرّداً' : <><span dir="ltr">{v}</span> · يعتمد على العرض</>}
-                                </span>
-                              );
-                            })()
-                          ) : label === 'رسوميات مدمجة' && v != null ? (
-                            /* «None» خامٌ هنا أيضاً — والسؤال الحقيقيّ: هل يعمل بلا كرت؟ */
-                            /^(none|no|لا|-)$/i.test(String(v).trim())
-                              ? <span dir="rtl" className="font-sans text-slate-700 dark:text-slate-300">لا — يحتاج كرت شاشة</span>
-                              : <span dir="rtl" className="font-sans text-emerald-700 dark:text-emerald-400">✓ <span dir="ltr">{v}</span></span>
-                          ) : v != null && keys[i] ? (
-                            /* القيمة كما تعرضها صفحة القطعة (lib/spec-labels): وحدةٌ ملاصقة
-                               («303 مم»)، وترجمة Yes/Black/Full/Air، والمنافذ أسطراً */
-                            (() => {
-                              const { lines, unit } = specValueLines(keys[i]!, v);
-                              const sp = typeof selected[i].specs === 'string' ? JSON.parse(selected[i].specs) : selected[i].specs || {};
-                              const coolerWhat = categoryName === 'Cooler' && keys[i] === 'sizeMm'
-                                ? (/aio|liquid|مائي/i.test(String(sp.type ?? '')) ? 'رادييتر' : /air|هوائي/i.test(String(sp.type ?? '')) ? 'ارتفاع' : null)
-                                : null;
-                              const ar = lines.some((l) => ARABIC.test(l));
-                              return (
-                                <span dir={ar ? 'rtl' : 'ltr'} className={ar ? 'font-sans' : ''}>
-                                  {lines.map((l, j) => <span key={j} className={lines.length > 1 ? 'block' : ''}>{l}</span>)}
-                                  {unit && <span className="font-sans text-xs font-semibold text-slate-600 dark:text-slate-400 ms-1">{unit}</span>}
-                                  {coolerWhat && <span className="font-sans text-xs font-semibold text-slate-600 dark:text-slate-400 ms-1">{coolerWhat}</span>}
-                                </span>
-                              );
-                            })()
-                          ) : (v ?? <span className="text-slate-600 dark:text-slate-400">—</span>)}
-                          {winnerIdx.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
-                          {/* فارق النسبة عن الأفضل — يجعل "★" رقماً ملموساً */}
-                          {deltas[i] && (
-                            <span className="block mt-0.5 text-xs font-bold text-slate-600 dark:text-slate-400 font-sans" dir="rtl">
-                              {deltas[i]}
-                            </span>
-                          )}
-                          {label === 'موصّلات الطاقة' && isModernConnector(v) && (
-                            <span className="block mt-1 text-xs font-black text-cyan-700 dark:text-cyan-400 font-sans">
-                              الأحدث · PCIe 5.0
-                            </span>
-                          )}
-                        </td>
-                      ))}
-                      {selected.length < 3 && (
-                        <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>
-                      )}
-                    </tr>
-                  );
-                })}
-
-                {/* ===== الصفوف المحسوبة (derivedRows) — النجمة للأقل ===== */}
-                {selected.length > 0 && derivedRows.map((r) => {
-                  const valid = r.values.filter((n): n is number => n != null);
-                  const best = valid.length > 1 ? Math.min(...valid) : null;
-                  const allEqual = best != null && valid.every((n) => n === best);
-                  return (
-                    <tr key={r.label} className="bg-cyan-500/[0.03]">
-                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                        {r.label}
-                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400">{r.note}</span>
-                      </th>
-                      {r.values.map((n, i) => {
-                        const win = n != null && n === best && !allEqual;
-                        return (
-                          <td key={selected[i].id} dir="ltr" className={`py-3.5 px-3 text-center text-xs md:text-sm font-black font-mono border-b border-r border-slate-200 dark:border-slate-800 ${
-                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
-                          }${win ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
-                            {n != null ? r.fmt(n) : <span className="text-slate-600 dark:text-slate-400">—</span>}
-                            {win && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
-                          </td>
-                        );
-                      })}
-                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
-                    </tr>
-                  );
-                })}
-
-                {/* صف الاستهلاك — للمعالج والكرت وحدهما: رقم الرام واللوحة والتخزين
-                    (٥–١٥ واط) يغذّي تقدير المزوّد في الباني، ولا يفرّق قطعةً عن أخرى هنا */}
-                {TDP_JUDGED.includes(categoryName) && selected.some((c) => c.tdpWattage > 0) && (() => {
-                  const { values, winnerIdx } = tdpRow();
-                  return (
-                    <tr className={specRows.length % 2 === 0 ? 'bg-cyan-500/[0.03]' : ''}>
-                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                        {categoryName === 'CPU' ? 'أقصى استهلاك' : 'الاستهلاك'}
-                      </th>
-                      {values.map((v, i) => (
-                        <td
-                          key={i}
-                          className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 font-mono ${
-                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
-                          }${
-                            winnerIdx.includes(i) ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'
-                          }`}
-                          dir="ltr"
-                        >
-                          {v ?? <span className="text-slate-600 dark:text-slate-400">—</span>}
-                          {winnerIdx.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
-                          {(() => {
-                            /* المعالج: TDP الرسميّ حين يختلف عن أقصى سحب (9800X3D: 120 و162) */
-                            const sp = typeof selected[i].specs === 'string' ? JSON.parse(selected[i].specs) : selected[i].specs || {};
-                            const t = categoryName === 'CPU' ? parseFloat(String(sp.tdpW ?? '')) : NaN;
-                            return t > 0 && t !== selected[i].tdpWattage ? (
-                              <span className="block mt-0.5 text-xs font-semibold text-slate-600 dark:text-slate-400 font-sans" dir="rtl">TDP الرسمي {t} واط</span>
-                            ) : null;
-                          })()}
-                        </td>
-                      ))}
-                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
-                    </tr>
-                  );
-                })()}
-
-                {/* صف مستوى الأداء — لا للّوحة والكيس: لا يغيّران الأداء، والحكم لا يقرؤه فيهما */}
-                {!['Motherboard', 'Case'].includes(categoryName) && selected.some((c) => c.performanceTier) && (() => {
-                  // الأعلى مستوىً هو الفائز — نُخفي النجمة عند تساوي الجميع
-                  const rated = categoryName === 'CPU' || categoryName === 'GPU';
-                  const tierNums = selected.map((c) => c.performanceTier ?? null);
-                  const validTiers = tierNums.filter((n): n is number => n != null);
-                  let tierWinners: number[] = [];
-                  if (validTiers.length > 1) {
-                    const bestTier = Math.max(...validTiers);
-                    tierWinners = tierNums.map((n, i) => (n === bestTier ? i : -1)).filter((i) => i >= 0);
-                    if (tierWinners.length === validTiers.length) tierWinners = [];
-                  }
-                  return (
-                    <tr className="bg-cyan-500/[0.03]">
-                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                        {rated ? 'تقييم الأداء' : 'مستوى الأداء'}
-                        {rated && <a href="/how-we-rate" className="block mt-0.5 text-xs font-normal underline">كيف نقيّم؟</a>}
-                      </th>
-                      {selected.map((c, i) => rated ? (
-                        /* المعالج والكرت: «أداء الألعاب: قوي» بشريط (lib/perf-rating) — للمعالج تقييمان */
-                        <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
-                          <span className="inline-flex flex-col items-center gap-1">
-                            {tierWinners.includes(i) && <span className="text-amber-600 dark:text-amber-400 text-xs">★</span>}
-                            {partRatings(categoryName, c.name, typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {}).map((r) => (
-                              <RatingMeter key={r.label} r={r} />
-                            ))}
-                          </span>
-                        </td>
-                      ) : (
-                        <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
-                          <span className="text-sm tracking-widest inline-flex items-center gap-1" dir="ltr">
-                            {tierWinners.includes(i) && <span className="text-amber-600 dark:text-amber-400">★</span>}
-                            <span>
-                              <span className="text-cyan-500 dark:text-cyan-400">{'●'.repeat(c.performanceTier ?? 0)}</span>
-                              <span className="text-slate-200 dark:text-slate-700">{'●'.repeat(5 - (c.performanceTier ?? 0))}</span>
-                            </span>
-                          </span>
-                        </td>
-                      ))}
-                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
-                    </tr>
-                  );
-                })()}
-
-                {/* ===== الأداء في الألعاب (الكروت) — إطاراتٌ مقيسة (lib/gpu-perf) =====
-                    الرقم الكبير 1440p وعليه يُحكم؛ و1080p و4K تحته، ثمّ «يكفيني؟»
-                    (مريح/مقبول/محدود) — فيظهر كرتٌ تضيق ذاكرته في 4K. */}
-                {cols.some((c) => c.perf) && (() => {
-                  const ps = cols.map((c) => c.perf);
-                  const best = Math.max(...ps.map((x) => x?.f1440 ?? 0));
-                  return (
-                    <tr>
-                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
-                        الأداء في الألعاب
-                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
-                          متوسّط الإطارات ·{' '}
-                          <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a>
-                        </span>
-                      </th>
-                      {ps.map((x, i) => (
-                        <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
-                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
-                        }`}>
-                          {x ? (
-                            <div className="flex flex-col items-center gap-0.5">
-                              <span className={`font-black text-base ${x.f1440 === best ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
-                                <span className="font-mono">{Math.round(x.f1440)}</span> إطار
-                                {x.f1440 === best && ps.filter(Boolean).length > 1 && <span className="text-amber-600 dark:text-amber-400 text-xs mr-1">★</span>}
-                              </span>
-                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">بدقّة 1440p</span>
-                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400" dir="ltr">
-                                1080p {Math.round(x.f1080)} · 4K {Math.round(x.f4k)}
-                              </span>
-                              <span className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{feelLine(x)}</span>
-                            </div>
-                          ) : (
-                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">ليس في جدول المصدر</span>
-                          )}
-                        </td>
-                      ))}
-                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
-                    </tr>
-                  );
-                })()}
-
-                {/* ===== أداء المعالج — نِسَبٌ مقيسة (lib/cpu-perf) =====
-                    نسبةً للأسرع في هذه المقارنة (100%) — أوضح للزائر من نسبة
-                    Tom's للأسرع في السوق. الألعاب عليها يُحكم، والتعدّد للمونتاج والتصميم. */}
-                {cols.some((c) => c.cpu) && (() => {
-                  const cs = cols.map((c) => c.cpu);
-                  /* معالجٌ واحد بأرقام لا «أسرع هنا» له — فالنسبة لأسرع معالجٍ في الجدول كلّه (= 100) */
-                  const nG = cs.filter((x) => x?.gaming != null).length;
-                  const nM = cs.filter((x) => x?.multi != null).length;
-                  const local = nG >= 2;
-                  const bestG = local ? Math.max(...cs.map((x) => x?.gaming ?? 0)) : 100;
-                  const bestM = nM >= 2 ? Math.max(...cs.map((x) => x?.multi ?? 0)) : 100;
-                  const rel = (v: number | null | undefined, b: number) => (v != null && b > 0 ? (v === b ? 100 : Math.min(99, Math.round((v / b) * 100))) : null);
-                  return (
-                    <tr>
-                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
-                        الأداء المقيس
-                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
-                          {local ? 'نسبةً للأسرع هنا' : 'نسبةً لأسرع معالج اليوم'} ·{' '}
-                          <a href={CPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{CPU_PERF_SOURCE.name}</a>
-                        </span>
-                      </th>
-                      {cs.map((x, i) => {
-                        const g = rel(x?.gaming, bestG);
-                        const m = rel(x?.multi, bestM);
-                        return (
-                          <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
-                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
-                          }`}>
-                            {x && (g != null || m != null) ? (
-                              <div className="flex flex-col items-center gap-0.5">
-                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">الألعاب</span>
-                                {g != null ? (
-                                  <span className={`font-black text-base ${g === 100 ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
-                                    <span className="font-mono">{g}%</span>
-                                    {g === 100 && local && <span className="text-amber-600 dark:text-amber-400 text-xs mr-1">★</span>}
-                                  </span>
-                                ) : <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">لم يُختبر</span>}
-                                <span className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-400">
-                                  التعدّد: {m != null ? <span className={`font-mono font-bold ${m === 100 && nM >= 2 ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-800 dark:text-slate-200'}`}>{m}%</span> : 'لم يُختبر'}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">ليس في جدول المصدر</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
-                    </tr>
-                  );
-                })()}
-
-                {/* ===== الرفع بالذكاء الاصطناعي (الكروت) — lib/gpu-upscaling =====
-                    التقنية وتوليد الإطارات وعدد الألعاب بمصدره. معلومةٌ لا نجمة:
-                    «أفضل» لا تُقال إلّا من الاختبار الأعمى، وفي سطر الحكم. */}
-                {cols.some((c) => c.upscaler) && (
-                  <tr className="bg-cyan-500/[0.03]">
-                    <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
-                      الرفع بالذكاء الاصطناعي
-                    </th>
-                    {cols.map((c, i) => (
-                      <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
-                        i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
-                      }`}>
-                        {c.upscaler ? (
-                          <div className="flex flex-col items-center gap-0.5">
-                            <span className={`font-black text-sm ${c.upscaler.ai ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`} dir="ltr">{c.upscaler.tech}</span>
-                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                              {c.upscaler.ai ? 'بالذكاء الاصطناعي' : 'بلا ذكاء اصطناعي'}
-                              {c.upscaler.frameGen ? ` · ${c.upscaler.frameGen}` : ' · بلا توليد إطارات'}
-                            </span>
-                            {c.upscaler.games && <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{c.upscaler.games}</span>}
-                            {c.upscaler.note && <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{c.upscaler.note}</span>}
-                          </div>
-                        ) : (
-                          <span className="text-slate-600 dark:text-slate-400">—</span>
-                        )}
-                      </td>
-                    ))}
-                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
-                  </tr>
-                )}
-
-                {/* ===== ضمان الشركة =====
-                    من lib/series — ممّا تنشره الشركة، كما في صفحة القطعة. النجمة
-                    للأطول: «مدى الحياة» فوق الكلّ، والمدى (٣ إلى ٦) بحدّه الأدنى. */}
-                {cols.some((c) => c.series?.warranty) && (() => {
-                  const years = cols.map((c) => {
-                    const w = c.series?.warranty;
-                    return !w ? null : w.lifetime ? Infinity : w.min;
-                  });
-                  const valid = years.filter((y): y is number => y != null);
-                  const best = valid.length > 1 ? Math.max(...valid) : null;
-                  const wins = best != null && !valid.every((y) => y === best)
-                    ? years.map((y, i) => (y === best ? i : -1)).filter((i) => i >= 0) : [];
-                  return (
-                    <tr>
-                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                        ضمان الشركة
-                      </th>
-                      {cols.map((c, i) => (
-                        <td key={selected[i].id} className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 ${
-                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
-                        }${wins.includes(i) ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
-                          {c.series?.warranty ? (
-                            <>
-                              {warrantyText(c.series.warranty)}
-                              {wins.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
-                            </>
-                          ) : (
-                            <span className="text-slate-600 dark:text-slate-400" title={c.series?.warrantyNote ?? 'لا رقم عندنا من صفحة الشركة — اسأل المتجر'}>—</span>
-                          )}
-                        </td>
-                      ))}
-                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
-                    </tr>
-                  );
-                })()}
-
-                {/* ===== ملاحظات معروفة =====
-                    عددها ودرجتها في الصفّ، ونصّها في صفٍّ يُفتح تحته (notesOpen) —
-                    بالنقر على أيّ خليّة، فتنفتح نصوص القطع كلّها متقابلة. */}
-                {cols.some((c) => c.issues || c.variantNotes || c.series?.cleanTest) && (
-                  <tr className="bg-cyan-500/[0.03]">
-                    <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                      ملاحظات معروفة
-                    </th>
-                    {cols.map((c, i) => {
-                      const id = selected[i].id;
-                      const levels = [...new Set(c.series?.issues.map((x) => x.level) ?? [])];
-                      const levelText = levels.map((l) => (l === 'official' ? 'رسميّة' : l === 'tested' ? 'من اختبار مستقلّ' : 'متداولة')).join(' و');
-                      return (
-                        <td key={id} className={`py-3.5 px-3 text-center text-xs font-bold border-b border-r border-slate-200 dark:border-slate-800 ${
-                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
-                        }`}>
-                          {c.issues > 0 ? (
-                            <button type="button" onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-controls="compare-notes"
-                              className="inline-flex flex-col items-center gap-0.5 text-amber-700 dark:text-amber-400 hover:underline">
-                              <span className="font-black">⚠️ {notesCount(c.issues)}</span>
-                              <span className="font-semibold text-slate-600 dark:text-slate-400">{levelText} · {notesOpen ? 'أخفِها ▴' : 'اقرأها ▾'}</span>
-                            </button>
-                          ) : c.variantNotes > 0 ? (
-                            <button type="button" onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-controls="compare-notes"
-                              className="text-amber-700 dark:text-amber-400 hover:underline">
-                              على نسخٍ معروضة هنا ملاحظات · {notesOpen ? 'أخفِها ▴' : 'اقرأها ▾'}
-                            </button>
-                          ) : c.series?.cleanTest ? (
-                            /* «بلا ملاحظات» لا تُقال إلا عن اختبارٍ قُرئ — كما في صفحة القطعة؛
-                               سلسلةٌ لم نجد لها اختباراً تبقى «—» لا «سليمة». والنقر يفتح مصدر الاختبار */
-                            <button type="button" onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-controls="compare-notes"
-                              className="text-emerald-700 dark:text-emerald-400 hover:underline">
-                              ✓ اختبار مستقلّ بلا ملاحظات
-                            </button>
-                          ) : (
-                            <span className="text-slate-600 dark:text-slate-400">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
-                  </tr>
-                )}
-
-                {/* نصوص الملاحظات — متقابلةً تحت أعمدتها. data-noexport: صورة المقارنة
-                    المصدَّرة تحمل العدد في الصفّ أعلاه، لا فقراتٍ تطيلها */}
-                {notesOpen && (
-                  <tr id="compare-notes" data-noexport>
-                    <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-4 px-4 align-top border-b border-slate-200 dark:border-slate-800">
-                      <span className="block text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400">نصّ الملاحظات</span>
-                      <span className="block mt-1 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
-                        راجعنا المصادر في <span dir="ltr" className="whitespace-nowrap">{ISSUES_CHECKED}</span>
-                      </span>
-                      <button type="button" onClick={() => setNotesOpen(false)} className="mt-2 text-xs font-bold text-cyan-700 dark:text-cyan-400 hover:underline">
-                        أخفِها ▴
-                      </button>
-                    </th>
-                    {cols.map((c, i) => (
-                      <td key={selected[i].id} className={`py-4 px-3 align-top border-b border-r border-slate-200 dark:border-slate-800 ${
-                        i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
-                      }`}>
-                        {c.category && (c.issues || c.variantNotes || c.series?.cleanTest)
-                          ? <SeriesNotes part={selected[i]} category={c.category} offers={c.offers} />
-                          : <span className="block text-center text-xs text-slate-600 dark:text-slate-400">لا ملاحظات عندنا عن هذه القطعة</span>}
-                      </td>
-                    ))}
-                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
-                  </tr>
-                )}
+                {/* ===== المجموعات (2026-10-30): السعر والشراء أوّلاً — هو سؤال الزائر — ثمّ الأداء، ثمّ المواصفات، ثمّ الضمان والملاحظات ===== */}
+                {groupRow('السعر والشراء')}
 
                 {/* صف السعر */}
                 {(() => {
@@ -1762,129 +1446,436 @@ export default function CompareClient({
                     ></td>
                   )}
                 </tr>
+
+                {((!['Motherboard', 'Case'].includes(categoryName) && selected.some((c) => c.performanceTier)) || cols.some((c) => c.perf || c.cpu || c.upscaler)) && groupRow('الأداء')}
+
+                {/* صف مستوى الأداء — لا للّوحة والكيس: لا يغيّران الأداء، والحكم لا يقرؤه فيهما */}
+                {!['Motherboard', 'Case'].includes(categoryName) && selected.some((c) => c.performanceTier) && (() => {
+                  // الأعلى مستوىً هو الفائز — نُخفي النجمة عند تساوي الجميع
+                  const rated = categoryName === 'CPU' || categoryName === 'GPU';
+                  const tierNums = selected.map((c) => c.performanceTier ?? null);
+                  const validTiers = tierNums.filter((n): n is number => n != null);
+                  let tierWinners: number[] = [];
+                  if (validTiers.length > 1) {
+                    const bestTier = Math.max(...validTiers);
+                    tierWinners = tierNums.map((n, i) => (n === bestTier ? i : -1)).filter((i) => i >= 0);
+                    if (tierWinners.length === validTiers.length) tierWinners = [];
+                  }
+                  return (
+                    <tr className="bg-cyan-500/[0.03]">
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        {rated ? 'تقييم الأداء' : 'مستوى الأداء'}
+                        {rated && <a href="/how-we-rate" className="block mt-0.5 text-xs font-normal underline">كيف نقيّم؟</a>}
+                      </th>
+                      {selected.map((c, i) => rated ? (
+                        /* المعالج والكرت: «أداء الألعاب: قوي» بشريط (lib/perf-rating) — للمعالج تقييمان */
+                        <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
+                          <span className="inline-flex flex-col items-center gap-1">
+                            {tierWinners.includes(i) && <span className="text-amber-600 dark:text-amber-400 text-xs">★</span>}
+                            {partRatings(categoryName, c.name, typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {}).map((r) => (
+                              <RatingMeter key={r.label} r={r} />
+                            ))}
+                          </span>
+                        </td>
+                      ) : (
+                        <td key={c.id} className={`py-3.5 px-3 text-center border-b border-r border-slate-200 dark:border-slate-800 ${i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''}`}>
+                          <span className="text-sm tracking-widest inline-flex items-center gap-1" dir="ltr">
+                            {tierWinners.includes(i) && <span className="text-amber-600 dark:text-amber-400">★</span>}
+                            <span>
+                              <span className="text-cyan-500 dark:text-cyan-400">{'●'.repeat(c.performanceTier ?? 0)}</span>
+                              <span className="text-slate-200 dark:text-slate-700">{'●'.repeat(5 - (c.performanceTier ?? 0))}</span>
+                            </span>
+                          </span>
+                        </td>
+                      ))}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
+                {/* ===== الأداء في الألعاب (الكروت) — إطاراتٌ مقيسة (lib/gpu-perf) =====
+                    الرقم الكبير 1440p وعليه يُحكم؛ و1080p و4K تحته، ثمّ «يكفيني؟»
+                    (مريح/مقبول/محدود) — فيظهر كرتٌ تضيق ذاكرته في 4K. */}
+                {cols.some((c) => c.perf) && (() => {
+                  const ps = cols.map((c) => c.perf);
+                  const best = Math.max(...ps.map((x) => x?.f1440 ?? 0));
+                  return (
+                    <tr>
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                        الأداء في الألعاب
+                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
+                          متوسّط الإطارات ·{' '}
+                          <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a>
+                        </span>
+                      </th>
+                      {ps.map((x, i) => (
+                        <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
+                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                        }`}>
+                          {x ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={`font-black text-base ${x.f1440 === best ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+                                <span className="font-mono">{Math.round(x.f1440)}</span> إطار
+                                {x.f1440 === best && ps.filter(Boolean).length > 1 && <span className="text-amber-600 dark:text-amber-400 text-xs mr-1">★</span>}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">بدقّة 1440p</span>
+                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400" dir="ltr">
+                                1080p {Math.round(x.f1080)} · 4K {Math.round(x.f4k)}
+                              </span>
+                              <span className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{feelLine(x)}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">ليس في جدول المصدر</span>
+                          )}
+                        </td>
+                      ))}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
+                {/* ===== أداء المعالج — نِسَبٌ مقيسة (lib/cpu-perf) =====
+                    نسبةً للأسرع في هذه المقارنة (100%) — أوضح للزائر من نسبة
+                    Tom's للأسرع في السوق. الألعاب عليها يُحكم، والتعدّد للمونتاج والتصميم. */}
+                {cols.some((c) => c.cpu) && (() => {
+                  const cs = cols.map((c) => c.cpu);
+                  /* معالجٌ واحد بأرقام لا «أسرع هنا» له — فالنسبة لأسرع معالجٍ في الجدول كلّه (= 100) */
+                  const nG = cs.filter((x) => x?.gaming != null).length;
+                  const nM = cs.filter((x) => x?.multi != null).length;
+                  const local = nG >= 2;
+                  const bestG = local ? Math.max(...cs.map((x) => x?.gaming ?? 0)) : 100;
+                  const bestM = nM >= 2 ? Math.max(...cs.map((x) => x?.multi ?? 0)) : 100;
+                  const rel = (v: number | null | undefined, b: number) => (v != null && b > 0 ? (v === b ? 100 : Math.min(99, Math.round((v / b) * 100))) : null);
+                  return (
+                    <tr>
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                        الأداء المقيس
+                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
+                          {local ? 'نسبةً للأسرع هنا' : 'نسبةً لأسرع معالج اليوم'} ·{' '}
+                          <a href={CPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{CPU_PERF_SOURCE.name}</a>
+                        </span>
+                      </th>
+                      {cs.map((x, i) => {
+                        const g = rel(x?.gaming, bestG);
+                        const m = rel(x?.multi, bestM);
+                        return (
+                          <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
+                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                          }`}>
+                            {x && (g != null || m != null) ? (
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">الألعاب</span>
+                                {g != null ? (
+                                  <span className={`font-black text-base ${g === 100 ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+                                    <span className="font-mono">{g}%</span>
+                                    {g === 100 && local && <span className="text-amber-600 dark:text-amber-400 text-xs mr-1">★</span>}
+                                  </span>
+                                ) : <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">لم يُختبر</span>}
+                                <span className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                  التعدّد: {m != null ? <span className={`font-mono font-bold ${m === 100 && nM >= 2 ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-800 dark:text-slate-200'}`}>{m}%</span> : 'لم يُختبر'}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">ليس في جدول المصدر</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
+                {/* ===== الرفع بالذكاء الاصطناعي (الكروت) — lib/gpu-upscaling =====
+                    التقنية وتوليد الإطارات وعدد الألعاب بمصدره. معلومةٌ لا نجمة:
+                    «أفضل» لا تُقال إلّا من الاختبار الأعمى، وفي سطر الحكم. */}
+                {cols.some((c) => c.upscaler) && (
+                  <tr className="bg-cyan-500/[0.03]">
+                    <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                      الرفع بالذكاء الاصطناعي
+                    </th>
+                    {cols.map((c, i) => (
+                      <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
+                        i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                      }`}>
+                        {c.upscaler ? (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className={`font-black text-sm ${c.upscaler.ai ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`} dir="ltr">{c.upscaler.tech}</span>
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                              {c.upscaler.ai ? 'بالذكاء الاصطناعي' : 'بلا ذكاء اصطناعي'}
+                              {c.upscaler.frameGen ? ` · ${c.upscaler.frameGen}` : ' · بلا توليد إطارات'}
+                            </span>
+                            {c.upscaler.games && <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{c.upscaler.games}</span>}
+                            {c.upscaler.note && <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{c.upscaler.note}</span>}
+                          </div>
+                        ) : (
+                          <span className="text-slate-600 dark:text-slate-400">—</span>
+                        )}
+                      </td>
+                    ))}
+                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                  </tr>
+                )}
+
+                {(visibleSpecRows.length > 0 || derivedRows.length > 0) && groupRow(diffOnly && identicalCount > 0 ? `المواصفات — الفروقات فقط · أُخفي ${identicalCount} متطابق` : 'المواصفات')}
+
+                {/* صفوف المواصفات */}
+                {visibleSpecRows.map((label, rowIdx) => {
+                  const { keys, values, winnerIdx, deltas } = rowData(label);
+                  return (
+                    <tr
+                      key={label}
+                      /* تظليل الصف عند التمرير — يساعد على تتبّع صف عريض */
+                      className={`group/row transition-colors hover:bg-cyan-500/[0.06] ${rowIdx % 2 === 0 ? 'bg-cyan-500/[0.03]' : ''}`}
+                    >
+                      <th
+                        scope="row"
+                        className="sticky right-0 z-10 py-3.5 px-4 text-right text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] group-hover/row:text-cyan-600 dark:group-hover/row:text-cyan-400"
+                      >
+                        {ROW_LABEL_BY_CAT[categoryName]?.[label] ?? label}
+                      </th>
+                      {values.map((v, i) => (
+                        <td
+                          key={i}
+                          className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 font-mono ${
+                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
+                          }${
+                            winnerIdx.includes(i)
+                              ? 'text-cyan-700 dark:text-cyan-400'
+                              : 'text-slate-900 dark:text-white'
+                          }`}
+                          dir="ltr"
+                        >
+                          {label === 'مبرّد مرفق' && v != null ? (
+                            /* «None» خامٌ كان يظهر هنا. والقراءة دالّةُ الباني نفسها
+                               (bundledCooler): tray وعلبة بلا مبرّد = «يعتمد على العرض» */
+                            (() => {
+                              const b = bundledCooler(v);
+                              return (
+                                <span dir="rtl" className={`font-sans ${b === 'yes' ? 'text-emerald-700 dark:text-emerald-400' : b === 'no' ? 'text-slate-700 dark:text-slate-300' : 'text-amber-700 dark:text-amber-400'}`}>
+                                  {b === 'yes' ? <>✓ <span dir="ltr">{v}</span></> : b === 'no' ? 'لا — يحتاج مبرّداً' : <><span dir="ltr">{v}</span> · يعتمد على العرض</>}
+                                </span>
+                              );
+                            })()
+                          ) : label === 'رسوميات مدمجة' && v != null ? (
+                            /* «None» خامٌ هنا أيضاً — والسؤال الحقيقيّ: هل يعمل بلا كرت؟ */
+                            /^(none|no|لا|-)$/i.test(String(v).trim())
+                              ? <span dir="rtl" className="font-sans text-slate-700 dark:text-slate-300">لا — يحتاج كرت شاشة</span>
+                              : <span dir="rtl" className="font-sans text-emerald-700 dark:text-emerald-400">✓ <span dir="ltr">{v}</span></span>
+                          ) : v != null && keys[i] ? (
+                            /* القيمة كما تعرضها صفحة القطعة (lib/spec-labels): وحدةٌ ملاصقة
+                               («303 مم»)، وترجمة Yes/Black/Full/Air، والمنافذ أسطراً */
+                            (() => {
+                              const { lines, unit } = specValueLines(keys[i]!, v);
+                              const sp = typeof selected[i].specs === 'string' ? JSON.parse(selected[i].specs) : selected[i].specs || {};
+                              const coolerWhat = categoryName === 'Cooler' && keys[i] === 'sizeMm'
+                                ? (/aio|liquid|مائي/i.test(String(sp.type ?? '')) ? 'رادييتر' : /air|هوائي/i.test(String(sp.type ?? '')) ? 'ارتفاع' : null)
+                                : null;
+                              const ar = lines.some((l) => ARABIC.test(l));
+                              return (
+                                <span dir={ar ? 'rtl' : 'ltr'} className={ar ? 'font-sans' : ''}>
+                                  {lines.map((l, j) => <span key={j} className={lines.length > 1 ? 'block' : ''}>{l}</span>)}
+                                  {unit && <span className="font-sans text-xs font-semibold text-slate-600 dark:text-slate-400 ms-1">{unit}</span>}
+                                  {coolerWhat && <span className="font-sans text-xs font-semibold text-slate-600 dark:text-slate-400 ms-1">{coolerWhat}</span>}
+                                </span>
+                              );
+                            })()
+                          ) : (v ?? <span className="text-slate-600 dark:text-slate-400">—</span>)}
+                          {winnerIdx.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
+                          {/* فارق النسبة عن الأفضل — يجعل "★" رقماً ملموساً */}
+                          {deltas[i] && (
+                            <span className="block mt-0.5 text-xs font-bold text-slate-600 dark:text-slate-400 font-sans" dir="rtl">
+                              {deltas[i]}
+                            </span>
+                          )}
+                          {label === 'موصّلات الطاقة' && isModernConnector(v) && (
+                            <span className="block mt-1 text-xs font-black text-cyan-700 dark:text-cyan-400 font-sans">
+                              الأحدث · PCIe 5.0
+                            </span>
+                          )}
+                        </td>
+                      ))}
+                      {selected.length < 3 && (
+                        <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>
+                      )}
+                    </tr>
+                  );
+                })}
+
+                {/* ===== الصفوف المحسوبة (derivedRows) — النجمة للأقل ===== */}
+                {selected.length > 0 && derivedRows.map((r) => {
+                  const valid = r.values.filter((n): n is number => n != null);
+                  const best = valid.length > 1 ? Math.min(...valid) : null;
+                  const allEqual = best != null && valid.every((n) => n === best);
+                  return (
+                    <tr key={r.label} className="bg-cyan-500/[0.03]">
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        {r.label}
+                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400">{r.note}</span>
+                      </th>
+                      {r.values.map((n, i) => {
+                        const win = n != null && n === best && !allEqual;
+                        return (
+                          <td key={selected[i].id} dir="ltr" className={`py-3.5 px-3 text-center text-xs md:text-sm font-black font-mono border-b border-r border-slate-200 dark:border-slate-800 ${
+                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
+                          }${win ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+                            {n != null ? r.fmt(n) : <span className="text-slate-600 dark:text-slate-400">—</span>}
+                            {win && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
+                          </td>
+                        );
+                      })}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })}
+
+                {/* صف الاستهلاك — للمعالج والكرت وحدهما: رقم الرام واللوحة والتخزين
+                    (٥–١٥ واط) يغذّي تقدير المزوّد في الباني، ولا يفرّق قطعةً عن أخرى هنا */}
+                {TDP_JUDGED.includes(categoryName) && selected.some((c) => c.tdpWattage > 0) && (() => {
+                  const { values, winnerIdx } = tdpRow();
+                  return (
+                    <tr className={specRows.length % 2 === 0 ? 'bg-cyan-500/[0.03]' : ''}>
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        {categoryName === 'CPU' ? 'أقصى استهلاك' : 'الاستهلاك'}
+                      </th>
+                      {values.map((v, i) => (
+                        <td
+                          key={i}
+                          className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 font-mono ${
+                            i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
+                          }${
+                            winnerIdx.includes(i) ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'
+                          }`}
+                          dir="ltr"
+                        >
+                          {v ?? <span className="text-slate-600 dark:text-slate-400">—</span>}
+                          {winnerIdx.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
+                          {(() => {
+                            /* المعالج: TDP الرسميّ حين يختلف عن أقصى سحب (9800X3D: 120 و162) */
+                            const sp = typeof selected[i].specs === 'string' ? JSON.parse(selected[i].specs) : selected[i].specs || {};
+                            const t = categoryName === 'CPU' ? parseFloat(String(sp.tdpW ?? '')) : NaN;
+                            return t > 0 && t !== selected[i].tdpWattage ? (
+                              <span className="block mt-0.5 text-xs font-semibold text-slate-600 dark:text-slate-400 font-sans" dir="rtl">TDP الرسمي {t} واط</span>
+                            ) : null;
+                          })()}
+                        </td>
+                      ))}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
+                {cols.some((c) => c.series?.warranty || c.issues || c.variantNotes || c.series?.cleanTest) && groupRow('الضمان والملاحظات')}
+
+                {/* ===== ضمان الشركة =====
+                    من lib/series — ممّا تنشره الشركة، كما في صفحة القطعة. النجمة
+                    للأطول: «مدى الحياة» فوق الكلّ، والمدى (٣ إلى ٦) بحدّه الأدنى. */}
+                {cols.some((c) => c.series?.warranty) && (() => {
+                  const years = cols.map((c) => {
+                    const w = c.series?.warranty;
+                    return !w ? null : w.lifetime ? Infinity : w.min;
+                  });
+                  const valid = years.filter((y): y is number => y != null);
+                  const best = valid.length > 1 ? Math.max(...valid) : null;
+                  const wins = best != null && !valid.every((y) => y === best)
+                    ? years.map((y, i) => (y === best ? i : -1)).filter((i) => i >= 0) : [];
+                  return (
+                    <tr>
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        ضمان الشركة
+                      </th>
+                      {cols.map((c, i) => (
+                        <td key={selected[i].id} className={`py-3.5 px-3 text-center text-xs md:text-sm font-black border-b border-r border-slate-200 dark:border-slate-800 ${
+                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04] ' : ''
+                        }${wins.includes(i) ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+                          {c.series?.warranty ? (
+                            <>
+                              {warrantyText(c.series.warranty)}
+                              {wins.includes(i) && <span className="text-amber-600 dark:text-amber-400 mr-1">★</span>}
+                            </>
+                          ) : (
+                            <span className="text-slate-600 dark:text-slate-400" title={c.series?.warrantyNote ?? 'لا رقم عندنا من صفحة الشركة — اسأل المتجر'}>—</span>
+                          )}
+                        </td>
+                      ))}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
+                {/* ===== ملاحظات معروفة =====
+                    عددها ودرجتها في الصفّ، ونصّها في صفٍّ يُفتح تحته (notesOpen) —
+                    بالنقر على أيّ خليّة، فتنفتح نصوص القطع كلّها متقابلة. */}
+                {cols.some((c) => c.issues || c.variantNotes || c.series?.cleanTest) && (
+                  <tr className="bg-cyan-500/[0.03]">
+                    <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      ملاحظات معروفة
+                    </th>
+                    {cols.map((c, i) => {
+                      const id = selected[i].id;
+                      const levels = [...new Set(c.series?.issues.map((x) => x.level) ?? [])];
+                      const levelText = levels.map((l) => (l === 'official' ? 'رسميّة' : l === 'tested' ? 'من اختبار مستقلّ' : 'متداولة')).join(' و');
+                      return (
+                        <td key={id} className={`py-3.5 px-3 text-center text-xs font-bold border-b border-r border-slate-200 dark:border-slate-800 ${
+                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                        }`}>
+                          {c.issues > 0 ? (
+                            <button type="button" onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-controls="compare-notes"
+                              className="inline-flex flex-col items-center gap-0.5 text-amber-700 dark:text-amber-400 hover:underline">
+                              <span className="font-black">⚠️ {notesCount(c.issues)}</span>
+                              <span className="font-semibold text-slate-600 dark:text-slate-400">{levelText} · {notesOpen ? 'أخفِها ▴' : 'اقرأها ▾'}</span>
+                            </button>
+                          ) : c.variantNotes > 0 ? (
+                            <button type="button" onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-controls="compare-notes"
+                              className="text-amber-700 dark:text-amber-400 hover:underline">
+                              على نسخٍ معروضة هنا ملاحظات · {notesOpen ? 'أخفِها ▴' : 'اقرأها ▾'}
+                            </button>
+                          ) : c.series?.cleanTest ? (
+                            /* «بلا ملاحظات» لا تُقال إلا عن اختبارٍ قُرئ — كما في صفحة القطعة؛
+                               سلسلةٌ لم نجد لها اختباراً تبقى «—» لا «سليمة». والنقر يفتح مصدر الاختبار */
+                            <button type="button" onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-controls="compare-notes"
+                              className="text-emerald-700 dark:text-emerald-400 hover:underline">
+                              ✓ اختبار مستقلّ بلا ملاحظات
+                            </button>
+                          ) : (
+                            <span className="text-slate-600 dark:text-slate-400">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                  </tr>
+                )}
+
+                {/* نصوص الملاحظات — متقابلةً تحت أعمدتها. data-noexport: صورة المقارنة
+                    المصدَّرة تحمل العدد في الصفّ أعلاه، لا فقراتٍ تطيلها */}
+                {notesOpen && (
+                  <tr id="compare-notes" data-noexport>
+                    <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-4 px-4 align-top border-b border-slate-200 dark:border-slate-800">
+                      <span className="block text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400">نصّ الملاحظات</span>
+                      <span className="block mt-1 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
+                        راجعنا المصادر في <span dir="ltr" className="whitespace-nowrap">{ISSUES_CHECKED}</span>
+                      </span>
+                      <button type="button" onClick={() => setNotesOpen(false)} className="mt-2 text-xs font-bold text-cyan-700 dark:text-cyan-400 hover:underline">
+                        أخفِها ▴
+                      </button>
+                    </th>
+                    {cols.map((c, i) => (
+                      <td key={selected[i].id} className={`py-4 px-3 align-top border-b border-r border-slate-200 dark:border-slate-800 ${
+                        i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                      }`}>
+                        {c.category && (c.issues || c.variantNotes || c.series?.cleanTest)
+                          ? <SeriesNotes part={selected[i]} category={c.category} offers={c.offers} />
+                          : <span className="block text-center text-xs text-slate-600 dark:text-slate-400">لا ملاحظات عندنا عن هذه القطعة</span>}
+                      </td>
+                    ))}
+                    {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                  </tr>
+                )}
+
               </tbody>
             </table>
           </div>
-
-        {/* ===== الحكم — سطرٌ لأغلب الناس، وبطاقةٌ لكلّ قطعة (lib/compare-verdict) ===== */}
-        {(verdict.pick || verdict.empty) && (
-          <div id="verdict" className="scroll-mt-24 relative mt-8 bg-white/70 dark:bg-[#0F172A]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-5 md:p-6 shadow-sm animate-fade-up">
-            <div className="absolute top-0 right-0 w-0 h-0 border-t-[14px] border-t-cyan-500/60 border-l-[14px] border-l-transparent pointer-events-none"></div>
-            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-              <span className="w-1.5 h-7 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
-              الحكم
-            </h2>
-
-            {/* ترشيحنا — أسطرٌ قصيرة بعناوين، لا فقرةٌ واحدة (lib/compare-verdict) */}
-            <div className="mb-5 p-4 rounded-sm border border-cyan-500/40 bg-cyan-500/[0.06]">
-              {verdict.empty ? (
-                <p className="text-sm md:text-[15px] font-bold text-slate-900 dark:text-white leading-relaxed">{verdict.empty}</p>
-              ) : (
-                <div className="text-sm leading-relaxed">
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <span className="font-bold text-slate-600 dark:text-slate-400">ترشيحنا</span>
-                    <span className="font-black text-base md:text-lg text-slate-900 dark:text-white" dir="ltr">{verdict.pick}</span>
-                    {verdict.price != null && (
-                      <span className="font-bold text-slate-700 dark:text-slate-300">
-                        — <span className="font-mono">{Math.round(verdict.price).toLocaleString('en-US')}</span> ريال{verdict.priceNote && <span className="font-semibold text-slate-600 dark:text-slate-400"> ({verdict.priceNote})</span>}
-                      </span>
-                    )}
-                  </div>
-
-                  {verdict.lead && <p className="mt-2 font-bold text-slate-900 dark:text-white">{verdict.lead}</p>}
-                  {verdict.feel && <p className="mt-0.5 font-semibold text-slate-700 dark:text-slate-300">{verdict.feel}</p>}
-
-                  {verdict.options.length > 0 && (
-                    <ul className="mt-3 space-y-1.5">
-                      {verdict.options.map((o, k) => (
-                        <li key={k} className="font-semibold text-slate-800 dark:text-slate-200">{o}</li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {verdict.summary && (
-                    <p className="mt-3 pt-3 border-t border-cyan-500/20 font-black text-slate-900 dark:text-white">
-                      الخلاصة: {verdict.summary}.
-                    </p>
-                  )}
-                  {verdict.ai && (
-                    <p className="mt-2 font-semibold text-slate-800 dark:text-slate-200">
-                      الذكاء الاصطناعي: {verdict.ai}
-                      {/48% مقابل 15%/.test(verdict.ai) && (
-                        <> — <a href={UPSCALING_SOURCES.blindTest.url} target="_blank" rel="noopener noreferrer" className="underline text-cyan-700 dark:text-cyan-400">المصدر</a></>
-                      )}
-                    </p>
-                  )}
-                  {verdict.watch && <p className="mt-2 font-semibold text-amber-800 dark:text-amber-300">السعر: {verdict.watch}</p>}
-                  {verdict.outNote && <p className="mt-2 font-semibold text-slate-700 dark:text-slate-300">{verdict.outNote}</p>}
-                  {verdict.footnote && <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">{verdict.footnote}</p>}
-                </div>
-              )}
-            </div>
-
-            <div className={`grid grid-cols-1 md:grid-cols-2 ${selected.length === 3 ? 'lg:grid-cols-3' : ''} gap-3`}>
-              {verdict.cards.map((card, i) => (
-                <div key={selected[i].id} className={`relative p-4 rounded-sm border overflow-hidden ${
-                  i === pickIdx
-                    ? 'border-cyan-600 dark:border-cyan-400 bg-cyan-500/[0.07] dark:bg-cyan-400/[0.06]'
-                    : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/30'
-                }`}>
-                  {/* شريط لون العمود — يربط البطاقة بعمودها في الجدول والرسم */}
-                  <span className="absolute top-0 bottom-0 right-0 w-[3px]" style={{ backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] }}></span>
-                  {i === pickIdx && (
-                    <div className="mb-2 inline-flex items-center gap-1 text-xs font-black text-cyan-900 dark:text-cyan-200 bg-cyan-500/15 border border-cyan-600/50 dark:border-cyan-400/50 rounded-sm px-2 py-0.5">
-                      ★ ترشيحنا
-                    </div>
-                  )}
-                  <div className="text-[13px] font-black text-slate-900 dark:text-white leading-snug" dir="ltr" style={{ textAlign: 'right' }}>
-                    {selected[i].name}
-                  </div>
-                  <ul className="mt-2.5 space-y-1.5">
-                    {card.pros.map((t) => (
-                      <li key={t} className="flex gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
-                        <span className="text-emerald-700 dark:text-emerald-400 font-black shrink-0" aria-label="ميزة">✓</span>{t}
-                      </li>
-                    ))}
-                    {card.cons.map((t) => (
-                      <li key={t} className="flex gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">
-                        <span className="text-rose-700 dark:text-rose-400 font-black shrink-0" aria-label="عيب">✗</span>{t}
-                      </li>
-                    ))}
-                  </ul>
-                  {cols[i]?.issues > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => { setNotesOpen(true); setTimeout(() => [...document.querySelectorAll<HTMLElement>('#compare-notes')].find((el) => el.offsetParent)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); }}
-                      className="mt-2 text-xs font-bold text-cyan-700 dark:text-cyan-400 hover:underline"
-                    >
-                      اقرأ الملاحظات ↑
-                    </button>
-                  )}
-                  {card.chooseIf && (
-                    <p className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 text-xs font-bold text-cyan-800 dark:text-cyan-300">
-                      اخترها إذا: {card.chooseIf}
-                    </p>
-                  )}
-                  {/* زرّ الاعتماد على المرشَّح وحده — القرار اتُّخذ هنا، فلا يصعد الزائر لرأس الجدول */}
-                  {i === pickIdx && (
-                    <button
-                      type="button"
-                      data-noexport
-                      onClick={() => setBuildTarget(selected[i])}
-                      className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 px-2 border border-cyan-600/60 dark:border-cyan-400/50 text-cyan-800 dark:text-cyan-300 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 rounded-sm transition-all active:scale-[0.98] text-xs font-black"
-                    >
-                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      استخدم في تجميعتي
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-          </div>
-        )}
 
         {/* ===== مقارنة تاريخ الأسعار ===== */}
         {selected.length >= 2 && (
