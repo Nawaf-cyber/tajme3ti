@@ -18,7 +18,7 @@ export default async function NewsPage() {
   const newsList = await getNews();
 
   return (
-    <div className="min-h-screen py-8 md:py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-300 selection:bg-cyan-500/20 overflow-x-hidden">
+    <div className="min-h-screen py-8 md:py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-300 selection:bg-cyan-500/20 overflow-x-clip">
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div>

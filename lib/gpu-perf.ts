@@ -97,6 +97,19 @@ export function gpuPerf(name: string, vramGb?: number | null): GpuPerf | null {
   return { chip, f1080, f1440, f4k };
 }
 
+/**
+ * الشرائح المذكورة في نصٍّ حرّ (مقال) — بترتيب أوّل ذكر، بلا تكرار.
+ * بالمطابِقات نفسها التي تقرأ أسماء القطع، فـ«RTX 5070 SUPER» لا تُحسب «RTX 5070».
+ */
+export function gpuChipsIn(text: string): string[] {
+  const found = new Map<string, number>();
+  for (const m of MATCHERS) {
+    const hit = m.re.exec(text);
+    if (hit && !found.has(m.row[0])) found.set(m.row[0], hit.index);
+  }
+  return [...found.entries()].sort((a, b) => a[1] - b[1]).map(([chip]) => chip);
+}
+
 /* ============ «يكفيني؟» — وصفٌ لكلّ دقّة ============
  * ⚠️ الحدود من عندنا لا من المصدر: ٦٠ إطاراً فأكثر «مريح»، و٤٥–٦٠ «مقبول»،
  * وما دونه «محدود». تُقال كذلك في الصفحة. */

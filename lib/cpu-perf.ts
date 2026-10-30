@@ -100,5 +100,24 @@ export function cpuPerf(name: string): CpuPerf | null {
   return null;
 }
 
+/* مطابِقات النصّ الحرّ: الاسم كما في الجدول، و«270K» تكفي عن «270K Plus»، وF/KF نفس الشريحة.
+   ولا يُقبل حرفٌ أو رقمٌ بعد الاسم: «14900K» لا تُحسب في «14900KS». */
+const TEXT_MATCHERS = ROWS.map((r) => {
+  const base = r[0].replace(/ Plus$/i, '');
+  const esc = base.split('').map((ch) => (/[A-Za-z0-9 ]/.test(ch) ? ch : '\\' + ch)).join('').replace(/ /g, '\\s*');
+  const tail = /Plus$/i.test(r[0]) ? '(?:\\s*Plus)?' : /[0-9K]$/i.test(base) ? '(?:K?F)?' : '';
+  return { chip: r[0], re: new RegExp('\\b' + esc + tail + '(?![A-Za-z0-9])', 'i') };
+});
+
+/** المعالجات المذكورة في نصٍّ حرّ (مقال) — بترتيب أوّل ذكر، بلا تكرار */
+export function cpuChipsIn(text: string): string[] {
+  const found = new Map<string, number>();
+  for (const m of TEXT_MATCHERS) {
+    const hit = m.re.exec(text);
+    if (hit && !found.has(m.chip)) found.set(m.chip, hit.index);
+  }
+  return [...found.entries()].sort((a, b) => a[1] - b[1]).map(([chip]) => chip);
+}
+
 /** أسرع معالج ألعاب في الجدول (= 100) — مرجع «N% من أداء …» */
 export const CPU_GAMING_TOP = ROWS.find((r) => r[1] === 100)![0];

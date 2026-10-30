@@ -1,9 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
 import { Metadata } from 'next';
 import { getArticle, AUTHOR } from '../../../lib/content';
 import JsonLd, { absUrl, plainText, breadcrumbs, SITE_URL } from '../../../components/JsonLd';
-import AuthorByline from '../../../components/AuthorByline';
+import ArticleView from '../../../components/ArticleView';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,67 +48,10 @@ export default async function GuideDetails({
   };
 
   return (
-    <div className="min-h-screen pb-20 transition-colors duration-300 overflow-x-hidden selection:bg-emerald-500/20">
+    <div className="min-h-screen overflow-x-clip selection:bg-cyan-500/20">
       <JsonLd data={[articleLd, breadcrumbs([['الرئيسية', '/'], ['الأدلّة', '/guides'], [article.title, `/guides/${article.id}`]])]} />
-
-      <div className="relative w-full h-[50vh] md:h-[65vh] bg-slate-900 border-b border-slate-200 dark:border-slate-800/80 flex items-end">
-        {article.imageUrl ? (
-          <>
-            <img src={article.imageUrl} alt={article.title} className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-(--page-bg) via-(--page-bg)/80 dark:from-[#0B1120] dark:via-[#0B1120]/80 to-transparent"></div>
-          </>
-        ) : (
-          <div className="absolute inset-0 bg-slate-50 dark:bg-[#0F172A] flex items-center justify-center">
-            <span className="text-9xl opacity-10">📘</span>
-            <div className="absolute inset-0 bg-gradient-to-t from-(--page-bg) dark:from-[#0B1120] to-transparent"></div>
-          </div>
-        )}
-
-        <div className="absolute top-6 right-4 sm:right-6 lg:right-12 z-20">
-          <Link href="/guides" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/50 transition-all shadow-lg group">
-            <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-            <span className="font-bold text-sm">كل الأدلّة</span>
-          </Link>
-        </div>
-
-        <div className="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-32 md:pb-40">
-          <div className="flex flex-wrap items-center gap-4 mb-6">
-            <span className="px-3 py-1.5 bg-emerald-700 text-white text-[12px] font-black uppercase tracking-widest rounded-sm shadow-md shadow-emerald-600/20">
-              دليل
-            </span>
-            <span className="text-sm text-slate-700 dark:text-slate-300 font-bold bg-white/50 dark:bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-sm border border-white/20 dark:border-white/10">
-              {new Date(article.createdAt).toLocaleDateString('ar-SA')}
-            </span>
-          </div>
-
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white leading-[1.3] drop-shadow-xl">
-            {article.title}
-          </h1>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 -mt-24 md:-mt-32">
-        <article className="bg-white dark:bg-[#0F172A] rounded-sm p-6 md:p-12 lg:p-14 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 border border-slate-200 dark:border-slate-800/80">
-
-          {/* سطر الكاتب أعلى المقال — إشارة E-E-A-T */}
-          <div className="mb-10">
-            <AuthorByline date={article.createdAt} />
-          </div>
-
-          <div className="text-base md:text-lg text-slate-700 dark:text-slate-300 leading-loose md:leading-[2.4] font-medium whitespace-pre-wrap break-words selection:bg-emerald-50 selection:text-emerald-900 dark:selection:bg-emerald-900/40 dark:selection:text-emerald-100">
-            {article.content}
-          </div>
-
-          <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-1"></span>
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-1"></span>
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-1"></span>
-          </div>
-        </article>
-      </div>
-
+      {/* الرأس والنصّ والعمود الجانبيّ في components/ArticleView — مشترك بين الخبر والدليل */}
+      <ArticleView article={article} kind="guide" />
     </div>
   );
 }

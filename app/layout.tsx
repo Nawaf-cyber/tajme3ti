@@ -53,7 +53,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className="overflow-x-hidden">
       
-      <body className="bg-(--page-bg) text-slate-800 dark:text-gray-100 transition-colors duration-300 overflow-x-hidden w-full relative" suppressHydrationWarning>
+      {/* ⚠️ overflow-x-clip لا hidden على body والحاوية (2026-10-30): hidden يجعل العنصر حاويةَ
+          تمرير، فيتعطّل sticky في كلّ الصفحات بصمت (عمود المقال والملخّص اللاصق لا يلتصقان).
+          clip يقصّ الشيء نفسه بلا حاوية، ومنعُ التمرير الأفقيّ للصفحة باقٍ على html. */}
+      <body className="bg-(--page-bg) text-slate-800 dark:text-gray-100 transition-colors duration-300 overflow-x-clip w-full relative" suppressHydrationWarning>
 
         {/* سكربت Google AdSense (تم نقله هنا لتجنب أخطاء الـ Hydration) */}
         <Script
@@ -65,7 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <Providers>
           <PCBBackground />
-          <div className="relative z-10 flex flex-col min-h-screen overflow-x-hidden w-full">
+          <div className="relative z-10 flex flex-col min-h-screen overflow-x-clip w-full">
             <Navbar />
             <main className="flex-grow w-full">
               {children}
