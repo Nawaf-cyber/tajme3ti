@@ -25,6 +25,7 @@ import {
   BUILD_PART_ORDER, type BuildLike, type BuildAnalysis, type Res,
 } from '../../../lib/build-compare';
 import { shortDateAr } from '../../../lib/time-ago';
+import { buildTitle, shortPartName } from '../../../lib/build-name';
 import { formatCapacity } from '../../../lib/capacity';
 import { GPU_PERF_SOURCE, feelLine } from '../../../lib/gpu-perf';
 import { CPU_PERF_SOURCE } from '../../../lib/cpu-perf';
@@ -48,8 +49,8 @@ const TONE = {
   block: 'text-red-700 dark:text-red-400 bg-red-500/10',
 } as const;
 
-/* اسمٌ قصير للبطاقة: «GeForce RTX 5070 12GB» ← «RTX 5070 12GB» */
-const shortName = (s?: string | null) => (s || '').replace(/^(GeForce|Radeon)\s+/i, '').trim();
+/* اسمٌ قصير للبطاقة: «GeForce RTX 5070 12GB» ← «RTX 5070 12GB» (lib/build-name) */
+const shortName = shortPartName;
 
 /* الأفضل في صفٍّ رقميّ — كلّ من يساويه (تجميعتان بالكرت نفسه تنالان النجمة معاً)،
    والتعادل التامّ بلا نجمة */
@@ -66,6 +67,16 @@ const TH = `${THB} py-3.5 text-[12px] md:text-sm font-bold text-slate-600 dark:t
 const TDB = 'px-2 md:px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800';
 const TD = `${TDB} py-3.5`;
 const Star = () => <span className="text-amber-500 dark:text-amber-400 text-[12px] mr-1">★</span>;
+
+/* عنوان مجموعةٍ في الجدول (شكل ق، 2026-10-31) — يقسم الصفوف الطويلة كما في مقارنة القطع.
+   والنصّ لاصقٌ يميناً كي يبقى مقروءاً حين يُسحب الجدول في الجوال */
+const GroupRow = ({ label, span }: { label: string; span: number }) => (
+  <tr>
+    <th colSpan={span} scope="colgroup" className="px-2 md:px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-800/40">
+      <span className="sticky right-2 md:right-4 text-[13px] font-black text-cyan-700 dark:text-cyan-400">{label}</span>
+    </th>
+  </tr>
+);
 
 export default function CompareBuildsClient() {
   const { status } = useSession();
@@ -118,6 +129,9 @@ export default function CompareBuildsClient() {
   const analyses = useMemo(() => selected.map((b) => allAnalyses.get(b.id)!), [selected, allAnalyses]);
   const verdicts = useMemo(() => buildVerdicts(analyses, res), [analyses, res]);
   const pc = useMemo(() => priceComparable(analyses.filter((a) => !a.blocked)), [analyses]);
+  /* «تجميعة ٢٢/٩/٢٠٢٦» لا تقول شيئاً — العنوان «المعالج + الكرت» حين يكون الاسم تلقائياً */
+  const titles = useMemo(() => new Map(builds.map((b) => [b.id, buildTitle(b as any)])), [builds]);
+  const titleOf = (b?: BuildLike) => (b ? titles.get(b.id)?.title ?? b.name : '');
 
   const toggle = (id: string) => {
     setPicked((p) =>
@@ -159,20 +173,27 @@ export default function CompareBuildsClient() {
   const closeCall = verdicts.length === 0 && !analyses.some((a) => a.blocked);
 
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-6 md:py-8 px-4">
       <div className="max-w-6xl mx-auto">
 
-        {/* ===== الرأس ===== */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter mb-3">
-            قارن{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400">تجميعاتك</span>
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed">
-            السعر الكلي، الأداء، الاستهلاك، وقطعة بقطعة — لتعرف أي جهاز تبنيه فعلاً.
-          </p>
-          <Link href="/compare" className="inline-block mt-4 text-[12px] font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-sm hover:bg-cyan-500 hover:text-white transition-all">
-            ← أو قارن قطعاً مفردة
+        {/* ===== الرأس — مضغوطٌ كرأس مقارنة القطع (شكل ق، 2026-10-31): كان عنواناً ٤٨ بكسل في الوسط ===== */}
+        <div className="flex items-end justify-between gap-4 flex-wrap mb-6">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+              قارن{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500 dark:from-cyan-400 dark:to-blue-400">تجميعاتك.</span>
+            </h1>
+            <p className="mt-2 text-[14px] font-semibold text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+              اختر حتى {MAX} تجميعات — الحكم أولاً، ثم السعر الكلي والأداء والاستهلاك، ثم قطعة بقطعة.
+            </p>
+          </div>
+          {/* جسر لمقارنة القطع المفردة */}
+          <Link
+            href="/compare"
+            className="group inline-flex items-center gap-2 px-4 py-2 rounded-sm text-[12.5px] font-black text-cyan-800 dark:text-cyan-300 bg-cyan-500/10 dark:bg-cyan-400/10 border border-cyan-500/50 dark:border-cyan-400/40 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 transition-all active:scale-95"
+          >
+            تبي تقارن قطع مفردة؟
+            <span className="transition-transform group-hover:-translate-x-1" aria-hidden="true">&larr;</span>
           </Link>
         </div>
 
@@ -187,15 +208,16 @@ export default function CompareBuildsClient() {
             {/* ===== اختيار التجميعات ===== */}
             <div className="mb-8">
               <h2 className="text-sm font-black text-slate-500 dark:text-slate-400 mb-3">
-                اختر حتى {MAX} تجميعات ({picked.length}/{MAX})
+                تجميعاتك المحفوظة · مختارة <span className="font-mono">{picked.length}/{MAX}</span>
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {builds.map((b) => {
                   const on = picked.includes(b.id);
                   const idx = picked.indexOf(b.id);
                   const a = allAnalyses.get(b.id)!;
                   const st = buildStatus(a);
                   const gpu = b.parts?.GPU ? shortName(b.parts.GPU.name) : a.igpuOnly ? 'رسوميّات مدمجة' : 'بلا كرت';
+                  const t = titles.get(b.id);
                   return (
                     <button
                       key={b.id}
@@ -212,14 +234,19 @@ export default function CompareBuildsClient() {
                       {on && (
                         <span className="absolute top-0 right-0 bottom-0 w-[3px]" style={{ backgroundColor: SERIES_COLORS[idx % SERIES_COLORS.length] }}></span>
                       )}
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-sm font-black text-slate-900 dark:text-white truncate">{b.name}</span>
-                        {on && <span className="shrink-0 text-[12px] font-black text-white bg-cyan-500 px-1.5 rounded-sm">✓</span>}
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <span className="text-sm font-black text-slate-900 dark:text-white leading-snug line-clamp-2" dir={t?.auto ? 'ltr' : undefined} style={t?.auto ? { textAlign: 'right' } : undefined}>{t?.title ?? b.name}</span>
+                        <span className={`shrink-0 w-[18px] h-[18px] mt-0.5 rounded-sm border flex items-center justify-center text-[12px] font-black ${on ? 'bg-cyan-500 border-cyan-500 text-white' : 'border-slate-300 dark:border-slate-600 text-transparent'}`} aria-hidden="true">✓</span>
                       </div>
-                      {/* المعالج والكرت يفرّقان تجميعتين بالاسم نفسه */}
-                      <div className="text-[12px] font-bold text-slate-600 dark:text-slate-300 truncate mb-1.5" dir="ltr" style={{ textAlign: 'right' }}>
-                        {b.parts?.CPU ? b.parts.CPU.name : '—'} · {gpu}
-                      </div>
+                      {/* الاسم التلقائيّ تحت العنوان (هكذا يعرفها صاحبها في «تجميعاتي»)؛
+                          والاسم المكتوب تحته المعالج والكرت — يفرّقان تجميعتين بالاسم نفسه */}
+                      {t?.auto ? (
+                        <div className="text-[12px] font-bold text-slate-500 dark:text-slate-400 truncate mb-1.5">{b.name}</div>
+                      ) : (
+                        <div className="text-[12px] font-bold text-slate-600 dark:text-slate-300 truncate mb-1.5" dir="ltr" style={{ textAlign: 'right' }}>
+                          {b.parts?.CPU ? b.parts.CPU.name : '—'} · {gpu}
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 flex-wrap text-[12px] font-bold text-slate-500 dark:text-slate-400">
                         <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-mono">
                           {formatPrice(a.totalPrice)} <RiyalIcon size="h-3 w-3" />
@@ -259,7 +286,7 @@ export default function CompareBuildsClient() {
                           <span className="text-lg leading-none mt-0.5 shrink-0">{v.icon}</span>
                           <div className="min-w-0">
                             <div className="text-[12px] font-black text-slate-500 dark:text-slate-400 mb-0.5">{v.forWhat}</div>
-                            <div className="text-[13px] font-black text-slate-900 dark:text-white leading-snug">{[v.buildIdx, ...(v.others ?? [])].map((i) => selected[i]?.name).join(' و')}</div>
+                            <div className="text-[13px] font-black text-slate-900 dark:text-white leading-snug">{[v.buildIdx, ...(v.others ?? [])].map((i) => titleOf(selected[i])).join(' و')}</div>
                             <div className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 mt-1">{v.why}</div>
                           </div>
                         </div>
@@ -276,7 +303,7 @@ export default function CompareBuildsClient() {
                           <span className="text-lg leading-none mt-0.5 shrink-0">⛔</span>
                           <div className="min-w-0">
                             <div className="text-[12px] font-black text-red-700 dark:text-red-400 mb-0.5">لا تُركَّب كما هي — استُبعدت من التوصية</div>
-                            <div className="text-[13px] font-black text-slate-900 dark:text-white leading-snug">{selected[i].name}</div>
+                            <div className="text-[13px] font-black text-slate-900 dark:text-white leading-snug">{titleOf(selected[i])}</div>
                             <div className="text-[12px] font-semibold text-slate-600 dark:text-slate-400 mt-1">{a.issues.find((x) => x.level === 'block')?.message}</div>
                           </div>
                         </div>
@@ -319,7 +346,7 @@ export default function CompareBuildsClient() {
                           return (
                             <th key={b.id} className="relative p-2 md:p-4 border-b border-r border-slate-200 dark:border-slate-800 align-top">
                               <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] }}></div>
-                              <div className="text-[13px] md:text-sm font-black text-slate-900 dark:text-white mb-1 mt-1 break-words">{b.name}</div>
+                              <div className="text-[13px] md:text-sm font-black text-slate-900 dark:text-white mb-1 mt-1 break-words" dir={titles.get(b.id)?.auto ? 'ltr' : undefined}>{titleOf(b)}</div>
                               <span className={`inline-block text-[12px] font-bold px-1.5 rounded-sm ${TONE[st.tone]}`}>{st.text}</span>
                             </th>
                           );
@@ -328,6 +355,7 @@ export default function CompareBuildsClient() {
                     </thead>
 
                     <tbody>
+                      <GroupRow label="السعر والتوافق" span={selected.length + 1} />
                       {/* السعر الكلي — المتوفّر، وللنافد آخرُ سعرٍ معروف معلَناً «تقديريّ».
                           والنجمة والفرق فقط حين تُقارَن الأسعار بعدل (priceComparable) */}
                       {(() => {
@@ -384,6 +412,7 @@ export default function CompareBuildsClient() {
                         })}
                       </tr>
 
+                      <GroupRow label="الأداء والاستهلاك" span={selected.length + 1} />
                       {/* الألعاب — إطارات الكرت المقيسة */}
                       {(() => {
                         const vals = analyses.map((a) => (a.hasGpu ? fpsAt(a, res) : null));
@@ -459,6 +488,7 @@ export default function CompareBuildsClient() {
                         );
                       })()}
 
+                      <GroupRow label="السعة والقطع" span={selected.length + 1} />
                       {/* الرام والتخزين — السعة الأكبر بنجمة.
                           ⚠️ الوحدة تُشتقّ من القيمة (formatCapacity) — كان يُلصق «GB» فيظهر 2TB «2GB» */}
                       {([
@@ -547,7 +577,7 @@ export default function CompareBuildsClient() {
                       const blocked = w.some((x) => x.level === 'block');
                       return (
                         <div key={b.id} className={`p-4 rounded-sm border ${blocked ? 'border-red-500/40 bg-red-500/[0.06]' : 'border-amber-500/40 bg-amber-500/[0.07]'}`}>
-                          <div className={`text-[13px] font-black mb-2 ${blocked ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>{blocked ? '⛔' : '⚠'} {b.name}</div>
+                          <div className={`text-[13px] font-black mb-2 ${blocked ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>{blocked ? '⛔' : '⚠'} {titleOf(b)}</div>
                           <ul className="space-y-1">
                             {w.map((x, j) => (
                               <li key={j} className={`text-[12px] font-semibold leading-relaxed ${x.level === 'block' ? 'text-red-700 dark:text-red-400' : 'text-amber-800 dark:text-amber-500/90'}`}>• {x.text}</li>

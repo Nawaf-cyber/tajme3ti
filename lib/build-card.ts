@@ -133,18 +133,6 @@ export const STATE_TEXT: Record<CardState, string> = {
 /* مصدرٌ واحد لتنسيق المجاميع (lib/price) — كانت هنا نسخةٌ ثانية بلا تقريب */
 export { formatTotal } from './price';
 
-/**
- * اسمٌ وضعه الباني تلقائياً — «تجميعة» + تاريخ اليوم.
- *
- * ⚠️ والتاريخ بصيغتين لأنّ `toLocaleDateString('ar-SA')` هجريٌّ في متصفّحٍ
- * وميلاديٌّ في آخر: «تجميعة ٢٢‏/٩‏/٢٠٢٦» و«تجميعة ١١ ربيع الآخر، ١٤٤٨ هـ»،
- * وكلاهما في القاعدة. والاسمُ الذي كتبه صاحبه («تجميعة 5070 Ti»،
- * «تجميعة - ١») يبقى.
- */
-export function isAutoName(name: string): boolean {
-  const t = name.replace(/[\u200E\u200F\u061C]/g, '').replace(/\s+/g, ' ').trim();
-  if (t === 'تجميعة' || t === 'تجميعة مخصصة') return true;
-  const rest = t.match(/^تجميعة (.+)$/)?.[1];
-  if (!rest || !/[0-9\u0660-\u0669]/.test(rest)) return false;
-  return rest.includes('/') || /هـ$/.test(rest);
-}
+/* اسمٌ وضعه الباني تلقائياً — انتقل إلى lib/build-name (بلا prisma، تستورده صفحات
+   المتصفّح أيضاً) ويُعاد تصديره هنا كي لا تتغيّر الاستيرادات القديمة */
+export { isAutoName } from './build-name';
