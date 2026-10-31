@@ -1,13 +1,15 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { buildEditUrl } from '../../lib/build-compare';
+import { buildEditUrl, analyzeBuild, buildStatus } from '../../lib/build-compare';
+import { buildTitle, shortPartName } from '../../lib/build-name';
+import { goToLogin } from '../../lib/login-href';
 import { shortDateAr } from '../../lib/time-ago';
 import GamePerformance from '../../components/GamePerformance';
 import { brandColor } from '../../lib/brand';
 import { formatPrice, formatTotal } from '../../lib/price';
 import StoreBuyChips from '../../components/StoreBuyChips';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { isAvailable, priceAsOf } from '../../lib/stores';
@@ -88,6 +90,40 @@ const CoolerNotice = ({ parts }: { parts: any }) => {
 
 const getBottleneckMessage = (parts: any) => computeBottleneck(parts?.['CPU'], parts?.['GPU']);
 
+/* ============ شكل ت (2026-10-31) — جدولٌ أو بطاقات، والمقارنة من القائمة ============ */
+const MAX_PICK = 3;
+const VIEW_KEY = 'tajme3ti:my-builds-view';
+const TONE = {
+  ok: 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10',
+  warn: 'text-amber-700 dark:text-amber-400 bg-amber-500/10',
+  block: 'text-red-700 dark:text-red-400 bg-red-500/10',
+} as const;
+/* التوازن وسماً قصيراً — نصّه الكامل في نافذة التجميعة */
+const BAL = {
+  'cpu-weak': { text: '⚠ المعالج أضعف', cls: 'text-amber-700 dark:text-amber-400 bg-amber-500/10' },
+  'gpu-weak': { text: '💡 الكرت أضعف', cls: 'text-blue-700 dark:text-blue-400 bg-blue-500/10' },
+  balanced: { text: '🚀 متوازنة', cls: 'text-cyan-700 dark:text-cyan-400 bg-cyan-500/10' },
+} as const;
+
+/* زرّ أيقونةٍ في صفّ التجميعة — رابطٌ أو زرّ، ويوقف النقرة كي لا تُفتح التجميعة */
+const IconBtn = ({ title, onClick, href, danger, active, children }: {
+  title: string; onClick?: (e: React.MouseEvent) => void; href?: string; danger?: boolean; active?: boolean; children: React.ReactNode;
+}) => {
+  const cls = `w-8 h-8 shrink-0 flex items-center justify-center rounded-sm border transition-colors ${
+    active
+      ? 'text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-900/30 border-cyan-300 dark:border-cyan-700/50'
+      : danger
+      ? 'text-rose-500 hover:text-white hover:bg-rose-500 border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60'
+      : 'text-slate-500 dark:text-slate-400 hover:text-cyan-700 dark:hover:text-cyan-400 hover:border-cyan-500/60 border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60'
+  }`;
+  return href ? (
+    <Link href={href} title={title} aria-label={title} onClick={(e) => e.stopPropagation()} className={cls}>{children}</Link>
+  ) : (
+    <button type="button" title={title} aria-label={title} onClick={onClick} className={cls}>{children}</button>
+  );
+};
+
+
 /* إطارات الكرت المقيسة — components/GamePerformance (كانت FpsEstimator المقدِّرة) */
 
 
@@ -102,6 +138,28 @@ export default function MyBuildsPage() {
   /* أيّ تجميعةٍ يحيطها الإطار السماويّ — تُعلَّم قبل أن تُفتح، كي يعرف
      المستخدم أيّها قصد، ويبقى الإطار بعد الإغلاق فيجد نفسه عندها. */
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  /* جدولٌ أو بطاقات — يُحفظ في هذا المتصفّح. ⚠️ يُقرأ بعد التركيب لا في القيمة
+     الأولى: التصيير على الخادم لا يعرف localStorage فيختلف عن المتصفّح */
+  const [view, setView] = useState<'table' | 'cards'>('table');
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(VIEW_KEY);
+      if (v === 'table' || v === 'cards') setView(v);
+    } catch {}
+  }, []);
+  const chooseView = (v: 'table' | 'cards') => {
+    setView(v);
+    try { localStorage.setItem(VIEW_KEY, v); } catch {}
+  };
+  /* المختارة للمقارنة — حتى ثلاث، كما تقبل صفحة المقارنة */
+  const [picked, setPicked] = useState<string[]>([]);
+  const togglePick = (id: string) =>
+    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= MAX_PICK ? p : [...p, id]));
+  /* هل في «أسعارٌ تخصّك» شيء؟ يفتح لها عموداً في الجدول */
+  const [hasDrops, setHasDrops] = useState(false);
+  /* الحالة بفحص المقارنة نفسه (lib/build-compare) — مكتملة / ناقصة / قطعة نافدة */
+  const analyses = useMemo(() => new Map(builds.map((b) => [b.id, analyzeBuild(b)])), [builds]);
+  const statusOf = (b: any) => buildStatus(analyses.get(b.id) ?? analyzeBuild(b));
   /* النقر على قطعةٍ نزل سعرها: يهبط إلى تجميعتها ثم يفتحها.
    *
    * والهبوط قبل الفتح لا بعده: النافذة تغطّي الشاشة، فلو فُتحت أوّلاً لَما
@@ -197,6 +255,7 @@ export default function MyBuildsPage() {
 
       toast.success('تم الحذف بنجاح');
       setBuilds(builds.filter(build => build.id !== id));
+      setPicked((p) => p.filter((x) => x !== id));
       if (selectedBuild?.id === id) setSelectedBuild(null);
     } catch (error) {
       toast.error('حدث خطأ أثناء الحذف');
@@ -220,33 +279,228 @@ export default function MyBuildsPage() {
   if (status === 'unauthenticated') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4">
-        <div className="bg-white dark:bg-[#111827] p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 max-w-sm w-full text-center">
-          <h2 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">حسابك غير متصل</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">سجل دخولك للوصول لتجميعاتك المحفوظة.</p>
-          <Link href="/api/auth/signin" className="block w-full bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-colors">تسجيل الدخول</Link>
+        <div className="max-w-sm w-full text-center bg-white/70 dark:bg-[#0F172A]/60 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-8">
+          <h2 className="text-xl font-black mb-2 text-slate-900 dark:text-white">سجّل دخولك</h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm font-semibold">تجميعاتك المحفوظة وجهازك الحالي تحتاج حسابك.</p>
+          {/* يعود إلى هنا بعد الدخول (lib/login-href) */}
+          <a href="/login" onClick={goToLogin} className="block w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2.5 rounded-sm font-black">تسجيل الدخول</a>
         </div>
       </div>
     );
   }
 
+  /* الترتيب مشتقٌّ عند العرض — ونفسه في الجدول والبطاقات */
+  const sorted = [...otherBuilds].sort((a, b) => {
+    if (sort === 'cheapest') return (Number(a.totalPrice) || 0) - (Number(b.totalPrice) || 0);
+    if (sort === 'priciest') return (Number(b.totalPrice) || 0) - (Number(a.totalPrice) || 0);
+    /* الأحدث: المسار يُرجعها مرتّبةً بـcreatedAt تنازلياً أصلاً، لكن الترتيب
+       يُثبَّت هنا صراحةً كي لا يعتمد العرضُ على ترتيبٍ قد يتغيّر في المسار. */
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+  const totals = builds.map((b) => Number(b.totalPrice) || 0).filter((n) => n > 0);
+  /* الرابط يحمل الاختيار — صفحة المقارنة تقرأ ?ids= وتبدأ بها */
+  const compareHref = picked.length >= 2 ? `/compare/builds?ids=${picked.join(',')}` : '/compare/builds';
+
+  /* مربّع الاختيار — زرٌّ لا input: يقع داخل صفٍّ يُنقر فيفتح التجميعة، فيوقف النقرة */
+  const pickBox = (id: string, className = '') => {
+    const on = picked.includes(id);
+    const full = !on && picked.length >= MAX_PICK;
+    return (
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={on}
+        aria-label={on ? 'أزلها من المقارنة' : 'اخترها للمقارنة'}
+        title={full ? `اخترت ${MAX_PICK} — أزل وحدة أوّلاً` : on ? 'أزلها من المقارنة' : 'اخترها للمقارنة'}
+        disabled={full}
+        onClick={(e) => { e.stopPropagation(); togglePick(id); }}
+        className={`shrink-0 w-[22px] h-[22px] rounded-sm border flex items-center justify-center text-[13px] font-black transition-colors ${
+          on
+            ? 'bg-cyan-500 border-cyan-500 text-white'
+            : full
+            ? 'border-slate-200 dark:border-slate-800 text-transparent cursor-not-allowed'
+            : 'border-slate-300 dark:border-slate-600 text-transparent hover:border-cyan-500'
+        } ${className}`}
+      >
+        ✓
+      </button>
+    );
+  };
+
+  /* العنوان والسطر الذي تحته — «تجميعة ٢٢/٩/٢٠٢٦» تصير «Ryzen 5 7500F + RTX 5070»
+     والاسم المحفوظ تحتها، والاسم المكتوب يبقى وتحته المعالج والكرت */
+  const titleBlock = (build: any) => {
+    const t = buildTitle(build);
+    const cpu = build.parts?.CPU?.name;
+    const gpu = build.parts?.GPU?.name;
+    return (
+      <div className="min-w-0 flex flex-col gap-0.5">
+        <span
+          className="text-[14px] font-black text-slate-900 dark:text-white leading-snug line-clamp-2 group-hover:text-cyan-700 dark:group-hover:text-cyan-400 transition-colors"
+          dir={t.auto ? 'ltr' : undefined}
+          style={t.auto ? { textAlign: 'right' } : undefined}
+        >
+          {t.title}
+        </span>
+        <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+          {t.auto ? (
+            <>باسم «{build.name}»</>
+          ) : (
+            <span dir="ltr">{[cpu, gpu && shortPartName(gpu)].filter(Boolean).join(' · ') || '—'}</span>
+          )}
+          <span className="mx-1.5 opacity-50">·</span>
+          <span className="tabular-nums">{shortDateAr(build.createdAt)}</span>
+        </span>
+      </div>
+    );
+  };
+
+  /* الحالة (فحص المقارنة نفسه) والتوازن — وسمان قصيران بدل صندوقين */
+  const tags = (build: any, className = '') => {
+    const st = statusOf(build);
+    const bal = getBottleneckMessage(build.parts);
+    return (
+      <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
+        <span className={`text-[12px] font-black px-1.5 py-0.5 rounded-sm ${TONE[st.tone]}`}>{st.text}</span>
+        {bal && <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-sm ${BAL[bal.kind].cls}`}>{BAL[bal.kind].text}</span>}
+      </div>
+    );
+  };
+
+  const actions = (build: any, withOpen = false) => (
+    <div className="flex items-center gap-1.5 justify-end">
+      {/* ⚠️ نقرةٌ واحدة لا نموذجُ إدخال: ٤٣ من ١٢٩ مستخدماً لهم تجميعةٌ محفوظة
+          أصلاً، فأسرعُ طريقٍ إلى «جهازي» أن يشير إلى واحدةٍ منها */}
+      <IconBtn title={build.isCurrent ? 'ليست جهازي الحالي' : 'هذي تجميعتي الحاليّة'} active={build.isCurrent} onClick={(e) => handleSetCurrent(build.id, !build.isCurrent, e)}>
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+      </IconBtn>
+      <IconBtn title="انسخ رابط المشاركة" onClick={(e) => handleShare(build.id, e)}>
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+      </IconBtn>
+      {!withOpen && (
+        <IconBtn title="افتحها في الباني" href={getEditUrl(build)}>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+        </IconBtn>
+      )}
+      <IconBtn title="احذفها" danger onClick={(e) => handleDelete(build.id, e)}>
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+      </IconBtn>
+      {withOpen && (
+        <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedBuild(build); }}
+          className="px-3 h-8 rounded-sm border border-slate-300 dark:border-slate-700 text-[12.5px] font-black text-slate-700 dark:text-slate-200 hover:border-cyan-500 hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors">
+          افتح ←
+        </button>
+      )}
+    </div>
+  );
+
+  const price = (build: any, size = 'text-base') => (
+    <span className={`inline-flex items-center gap-1 font-mono font-black tabular-nums text-emerald-600 dark:text-emerald-400 ${size}`}>
+      {formatTotal(build.totalPrice)} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-600 dark:bg-emerald-400" />
+    </span>
+  );
+
+  /* الإطار السماويّ حول التجميعة التي نزل سعر قطعتها — يبقى بعد إغلاق النافذة
+     فيجد نفسه عندها (openBuildById) */
+  const hl = (id: string) => (highlightedId === id ? ' ring-2 ring-inset ring-cyan-500' : '');
+
+  const sortChips = () =>
+    /* ⚠️ الفرز يظهر من ثلاثٍ فصاعداً: ترتيبُ اثنتين لا يُغني عن النظر إليهما */
+    otherBuilds.length >= 3 ? (
+      <div className="flex items-center gap-1.5">
+        <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 me-0.5">الترتيب</span>
+        {([
+          ['newest', 'الأحدث'],
+          ['cheapest', 'الأرخص'],
+          ['priciest', 'الأغلى'],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setSort(key)}
+            aria-pressed={sort === key}
+            className={`text-[12px] font-black rounded-sm px-2.5 py-1 border transition-colors ${
+              sort === key
+                ? 'bg-cyan-500/10 border-cyan-500/70 text-cyan-700 dark:text-cyan-300'
+                : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-cyan-500/50'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    ) : null;
+
+  /* السويتش — جدولٌ أسرع حين تكثر التجميعات، وبطاقاتٌ لمن يحبّ الصور. والاختيار
+     يُحفظ في هذا المتصفّح (localStorage) */
+  const viewSwitch = () => (
+    <div role="group" aria-label="طريقة العرض" className="inline-flex p-0.5 rounded-sm border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60">
+      {([
+        ['table', 'جدول', 'M4 6h16M4 12h16M4 18h16'],
+        ['cards', 'بطاقات', 'M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4zM14 15h6v4h-6z'],
+      ] as const).map(([key, label, d]) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => chooseView(key)}
+          aria-pressed={view === key}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[12.5px] font-black transition-colors ${
+            view === key ? 'bg-cyan-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:text-cyan-700 dark:hover:text-cyan-400'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={d} /></svg>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const pickedNames = picked.map((id) => builds.find((b) => b.id === id)).filter(Boolean);
+
   return (
-    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        
-        {/* ============ جهازي الحالي — قبل كلّ شيء ============
-            ⚠️ وفوق العنوان لا تحته: هو **مرجعُك**، والمكتبةُ ما تخطّط له.
-            ووضعُه بعد العنوان والحصيلة والمقارنة يجعله نتيجةَ تصفّحٍ لا
-            نقطةَ بداية — وأوّلُ ما تقع عليه العين يجب أن يكون ما تملكه.
-            ⚠️ ويُستبعد من الشبكة أدناه لا يُكرَّر فيها: ظهورُه مرّتين
-            يجعل عدّاد «تجميعاتك» يكذب، ويُربك من يبحث عنه. */}
-        {/* ⚠️ وتُركَّب دائماً لا داخل شرطٍ: هي تسأل الخادم بنفسها،
-            ولا تُعرض إلّا لمن لم يرها ولم يعيّن جهازاً. */}
+    <div className="min-h-screen py-6 md:py-8 px-4">
+      <div className="max-w-6xl mx-auto flex flex-col gap-5">
+
+        {/* ⚠️ تُركَّب دائماً لا داخل شرطٍ: هي تسأل الخادم بنفسها، ولا تُعرض إلّا لمن
+            لم يرها ولم يعيّن جهازاً. والدعوة تُنزل نظره إلى المكتبة حيث الأزرار. */}
         <RigIntroModal onPick={() => {
-          /* الدعوة تُنزل نظره إلى الشبكة حيث الأزرار — ونافذةٌ تُغلق
-             على صفحةٍ لم تتغيّر تُقرأ «لم يقع شيء». */
           document.getElementById('builds-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }} />
 
+        {/* ===== الرأس — شكل ت (2026-10-31): العنوان وما تملكه في سطر، بدل أربع
+            بلاطات («مجموع قيمتها» رقمٌ لا يفيد قراراً) ولافتة مقارنة منفصلة ===== */}
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+              تجميعا<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500 dark:from-cyan-400 dark:to-blue-400">تي.</span>
+            </h1>
+            {builds.length > 0 && (
+              <p className="mt-2 text-[14px] font-semibold text-slate-600 dark:text-slate-400">
+                <span className="font-mono">{builds.length}</span> {builds.length === 1 ? 'تجميعة' : builds.length === 2 ? 'تجميعتان' : builds.length <= 10 ? 'تجميعات' : 'تجميعة'}
+                {totals.length > 1 && (
+                  <>
+                    {' '}· أرخصها <span className="font-mono">{formatTotal(Math.min(...totals))}</span>
+                    {' '}· أغلاها <span className="font-mono">{formatTotal(Math.max(...totals))}</span> ريال
+                  </>
+                )}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {builds.length >= 2 && (
+              <Link href="/compare/builds" className="px-4 py-2.5 rounded-sm border border-cyan-500/50 dark:border-cyan-400/40 bg-cyan-500/10 dark:bg-cyan-400/10 text-[13px] font-black text-cyan-800 dark:text-cyan-300 hover:bg-cyan-500 hover:text-white hover:border-cyan-500 transition-colors">
+                ⚖ قارن تجميعاتك
+              </Link>
+            )}
+            <Link href="/builder" className="px-4 py-2.5 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-[13px] font-black shadow-lg shadow-cyan-500/25 transition-colors">
+              ＋ تجميعة جديدة
+            </Link>
+          </div>
+        </div>
+
+        {/* ============ جهازي الحالي — قبل المكتبة ============
+            ⚠️ هو **مرجعُك**، والمكتبةُ ما تخطّط له. ويُستبعد من المكتبة لا يُكرَّر
+            فيها: ظهورُه مرّتين يُربك من يبحث عنه. */}
         {currentRig && (
           <CurrentRigCard
             build={currentRig}
@@ -256,328 +510,224 @@ export default function MyBuildsPage() {
           />
         )}
 
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-          {/* ============ من مفردات الصفحة الرئيسية ============
-              الشريط المتدرّج المتوهّج قبل العنوان هو توقيع الرئيسية —
-              `from-cyan-400 to-blue-500` مع هالة. كان هنا مستطيلاً أزرق
-              مصمتاً بلا صلةٍ ببقيّة النظام.
-              ⚠️ ولمسةُ هذه الصفحة أنها تعدّ ما تملك: عدد التجميعات بجانب
-              العنوان. الرئيسية تُعرّف بالمنتج، وهذه تُدير مقتنياتٍ — فرقٌ
-              يستحقّ أن يظهر بدل نسخ الرأس حرفياً. */}
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-            <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40" />
-            مكتبة التجميعات
-            {builds.length > 0 && (
-              <span className="text-[11px] font-black text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/30 rounded-full px-2.5 py-1 tabular-nums">
-                {builds.length}
-              </span>
-            )}
-          </h1>
-          <Link
-            href="/builder"
-            className="group relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black py-2.5 px-6 rounded-xl text-sm shadow-lg shadow-cyan-500/25 hover:shadow-xl hover:shadow-cyan-500/40 hover:-translate-y-0.5 transition-all"
-          >
-            + بناء جديد
-          </Link>
-        </div>
-
-        {/* ============ شريط الحصيلة ============
-            ⚠️ المكتبة كانت شبكةً تُعرض بلا خلاصة: يفتحها صاحب ٢٢ تجميعة
-            فلا يعرف كم أنفق ولا أين يقف. وثلاثة أرقامٍ تجيب ما يسأله فعلاً
-            — كم عندي، وكم مجموعها، وما مداها.
-            والأرقام مشتقّة من `builds` لا محفوظة: قيمةٌ ثانية تتباعد. */}
-        {builds.length > 0 && (
-          <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-3">
-            {(() => {
-              const totals = builds.map((b) => Number(b.totalPrice) || 0).filter((n) => n > 0);
-              const sum = totals.reduce((a, c) => a + c, 0);
-              const stats = [
-                { label: 'تجميعاتك', value: String(builds.length), unit: '', accent: 'cyan' },
-                { label: 'مجموع قيمتها', value: formatPrice(sum), unit: 'riyal', accent: 'emerald' },
-                { label: 'أقلّها', value: totals.length ? formatPrice(Math.min(...totals)) : '—', unit: 'riyal', accent: 'slate' },
-                { label: 'أعلاها', value: totals.length ? formatPrice(Math.max(...totals)) : '—', unit: 'riyal', accent: 'slate' },
-              ];
-              return stats.map((s) => (
-                <div
-                  key={s.label}
-                  className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200 dark:border-slate-800/60 rounded-2xl px-4 py-3"
-                >
-                  <span className="block text-[10.5px] font-bold text-slate-500 dark:text-slate-400 mb-1">{s.label}</span>
-                  <span
-                    className={`flex items-center gap-1 font-black text-lg tabular-nums ${
-                      s.accent === 'cyan'
-                        ? 'text-cyan-600 dark:text-cyan-400'
-                        : s.accent === 'emerald'
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-slate-700 dark:text-slate-200'
-                    }`}
-                  >
-                    {s.value}
-                    {s.unit === 'riyal' && s.value !== '—' && (
-                      <RiyalIcon
-                        size="h-3.5 w-3.5"
-                        colorClass={s.accent === 'emerald' ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-500 dark:bg-slate-300'}
-                      />
-                    )}
-                  </span>
-                </div>
-              ));
-            })()}
-          </div>
-        )}
-
-        {/* ===== دعوة صريحة لمقارنة التجميعات =====
-            كانت زراً صغيراً في الرأس يضيع بين العناصر. الآن بطاقة كاملة
-            العرض تشرح الفائدة وتعرض عدد التجميعات الجاهزة — فالمستخدم
-            يفهم "ليش أقارن؟" لا "وش هذا الزر؟". */}
-        {builds.length >= 2 && (
-          <Link
-            href="/compare/builds"
-            className="group relative block overflow-hidden mb-8 bg-gradient-to-l from-cyan-50 via-white to-white dark:from-cyan-950/30 dark:via-[#0F172A] dark:to-[#0F172A] border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-5 md:p-6 shadow-sm hover:shadow-lg hover:shadow-cyan-500/10 transition-all"
-          >
-            {/* الزاوية الهندسية — بصمة بطاقات الموقع */}
-            <div className="absolute top-0 right-0 w-0 h-0 border-t-[16px] border-t-cyan-500/60 border-l-[16px] border-l-transparent pointer-events-none"></div>
-            <div className="absolute -top-20 -left-20 w-48 h-48 bg-cyan-500/10 blur-3xl rounded-full pointer-events-none"></div>
-
-            <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="w-14 h-14 shrink-0 rounded-sm bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-2xl shadow-lg shadow-cyan-500/30 group-hover:scale-105 transition-transform">
-                ⚖️
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <h2 className="text-lg md:text-xl font-black text-slate-900 dark:text-white mb-1 leading-snug">
-                  تبي تقارن تجميعاتك؟
-                </h2>
-                <p className="text-[13px] font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
-                  السعر الكلي، الأداء، الاستهلاك، وقطعة بقطعة — ونقول لك أيّها أنصح ولماذا.
-                </p>
-                <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                  <span className="font-mono text-[10px] font-black text-cyan-700 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-800/50 px-2 py-0.5 rounded-sm">
-                    {builds.length} تجميعة جاهزة
-                  </span>
-                  <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                    اختر حتى ٣ للمقارنة
-                  </span>
-                </div>
-              </div>
-
-              <span className="shrink-0 flex items-center gap-2 px-6 py-3 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-black shadow-sm shadow-cyan-500/20 group-hover:opacity-90 transition-opacity w-full sm:w-auto justify-center">
-                قارن الآن
-                <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </span>
-            </div>
-          </Link>
-        )}
-
-        {/* تلميح لمن عنده تجميعة واحدة — يشرح الشرط بدل إخفاء الميزة بصمت */}
+        {/* تلميح لمن عنده تجميعة واحدة — يشرح الشرط بدل إخفاء المقارنة بصمت */}
         {builds.length === 1 && (
-          <div className="mb-8 flex items-center gap-3 p-4 rounded-sm border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/30">
-            <span className="text-xl shrink-0 opacity-50">⚖️</span>
-            <p className="text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
-              احفظ تجميعة ثانية لتفتح <b className="text-slate-700 dark:text-slate-300">مقارنة التجميعات</b> —
-              تعرض السعر والأداء والاستهلاك جنباً إلى جنب.
+          <div className="flex items-center gap-3 p-4 rounded-sm border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/30">
+            <span className="text-xl shrink-0 opacity-50">⚖</span>
+            <p className="text-[13px] font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
+              احفظ تجميعة ثانية وتقدر <b className="text-slate-800 dark:text-slate-200">تقارن بينها</b> — السعر والأداء والاستهلاك جنباً إلى جنب.
             </p>
           </div>
         )}
-
-        {/* ===== نزلت أسعارها — قبل طلبات القطع: خبرٌ يخصّ ما بناه
-            بالفعل، وأقربُ إلى سبب زيارته من طلبٍ ينتظر ردّاً ===== */}
-        <PriceDropsForUser onOpenBuild={openBuildById} />
 
         {/* ===== طلبات القطع (يظهر فقط إن طلب المستخدم شيئاً) ===== */}
         <MyPartRequests />
 
         {builds.length === 0 ? (
-          <div className="text-center py-16 bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p className="text-slate-500 mb-4 font-bold">لا توجد تجميعات محفوظة.</p>
+          <div className="text-center py-14 px-4 bg-white/70 dark:bg-[#0F172A]/60 border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm">
+            <p className="text-lg font-black text-slate-900 dark:text-white mb-1.5">ما عندك تجميعات محفوظة</p>
+            <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-6">ابنِ وحدة في الباني واحفظها — تلقاها هنا بأسعارها الحين.</p>
+            <Link href="/builder" className="inline-block bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black py-2.5 px-6 rounded-sm text-sm">افتح الباني</Link>
+          </div>
+        ) : view === 'table' ? (
+          /* ============ ت١ — المكتبة جدولاً، وتنبيهات الأسعار عمودٌ جانبيّ ============ */
+          <div className={`grid gap-5 items-start ${hasDrops ? 'lg:grid-cols-[minmax(0,1fr)_320px]' : ''}`}>
+            <section id="builds-grid" className="min-w-0 bg-white/70 dark:bg-[#0F172A]/60 border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm overflow-clip">
+              <div className="flex items-center justify-between gap-3 flex-wrap px-3 md:px-4 py-3 border-b border-slate-200 dark:border-slate-800">
+                <h2 className="text-[17px] font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  {currentRig ? 'المحفوظة' : 'تجميعاتك'}
+                  <span className="text-[13px] font-mono font-black text-slate-500 dark:text-slate-400">{otherBuilds.length}</span>
+                </h2>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {sortChips()}
+                  {viewSwitch()}
+                </div>
+              </div>
+
+              {otherBuilds.length === 0 ? (
+                <p className="px-4 py-8 text-center text-[13px] font-semibold text-slate-500 dark:text-slate-400">
+                  ما فيه غير جهازك الحالي — احفظ تجميعة ثانية من الباني وتظهر هنا.
+                </p>
+              ) : (
+                <>
+                  {/* رؤوس الأعمدة — في الشاشة العريضة وحدها؛ والجوال صفوفٌ مكدّسة */}
+                  <div className="hidden lg:grid grid-cols-[22px_minmax(0,1fr)_160px_112px_auto] gap-x-4 px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-[12px] font-black text-slate-500 dark:text-slate-400">
+                    <span></span>
+                    <span>التجميعة</span>
+                    <span>الحالة</span>
+                    <span className="text-left">السعر الحين</span>
+                    <span className="w-[146px]"></span>
+                  </div>
+                  {sorted.map((build) => {
+                    const on = picked.includes(build.id);
+                    return (
+                      <div
+                        key={build.id}
+                        id={'build-' + build.id}
+                        onClick={() => setSelectedBuild(build)}
+                        className={`group grid grid-cols-[22px_minmax(0,1fr)_auto] lg:grid-cols-[22px_minmax(0,1fr)_160px_112px_auto] gap-x-3 lg:gap-x-4 gap-y-2 items-center px-3 md:px-4 py-3 border-b border-slate-200/80 dark:border-slate-800/80 last:border-b-0 cursor-pointer transition-colors ${
+                          on ? 'bg-cyan-500/[0.07]' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
+                        }${hl(build.id)}`}
+                      >
+                        {pickBox(build.id, 'self-start mt-0.5 lg:self-center lg:mt-0')}
+                        {titleBlock(build)}
+                        <span className="row-start-1 col-start-3 lg:col-start-4 self-start lg:self-center text-left">
+                          {price(build)}
+                        </span>
+                        {/* في الجوال: الوسوم والأزرار سطرٌ ثانٍ تحت العنوان — لو بقيت الأزرار
+                            في عمود السعر لضاق العنوان إلى ١٢٦ بكسل. وفي العريضة يذوب
+                            الغلاف (contents) فيقع كلٌّ في عموده */}
+                        <div className="col-start-2 col-span-2 flex items-center justify-between gap-2 flex-wrap lg:contents">
+                          {tags(build, 'lg:col-start-3')}
+                          <div className="lg:col-start-5">{actions(build)}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* شريط المقارنة — المقارنة من القائمة نفسها بدل لافتةٍ منفصلة وصفحةٍ تعيد
+                  الاختيار. ⚠️ overflow-clip لا hidden على القسم: hidden يكسر sticky */}
+              {otherBuilds.length >= 2 && (
+                <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 flex-wrap px-3 md:px-4 py-3 bg-cyan-50/95 dark:bg-[#0B2A36]/95 backdrop-blur-sm border-t border-cyan-500/40">
+                  <span className="text-[13px] font-black text-slate-800 dark:text-slate-200">
+                    {picked.length === 0
+                      ? 'علّم تجميعتين أو ثلاث وقارن بينها'
+                      : <>اخترت <span className="font-mono">{picked.length}</span> من <span className="font-mono">{MAX_PICK}</span> للمقارنة{picked.length === 1 ? ' — علّم وحدة ثانية' : ''}</>}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {picked.length > 0 && (
+                      <button type="button" onClick={() => setPicked([])} className="text-[12px] font-bold text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400">
+                        امسح الاختيار
+                      </button>
+                    )}
+                    <Link
+                      href={compareHref}
+                      aria-disabled={picked.length < 2}
+                      onClick={(e) => { if (picked.length < 2) e.preventDefault(); }}
+                      className={`px-4 py-2 rounded-sm text-[13px] font-black transition-opacity ${
+                        picked.length >= 2 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed'
+                      }`}
+                    >
+                      قارنها الحين ←
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* «أسعارٌ تخصّك» — عمودٌ جانبيّ في الشاشة العريضة، وفوق المكتبة في الجوال.
+                ⚠️ والعمود لا يُفتح إلّا حين يكون في اللوحة شيء (onHasContent) */}
+            <aside className="order-first lg:order-none min-w-0 empty:hidden">
+              <PriceDropsForUser onOpenBuild={openBuildById} onHasContent={setHasDrops} className="" />
+            </aside>
           </div>
         ) : (
+          /* ============ ت٢ — بطاقات، ودرجٌ سفليّ للمقارنة ============ */
           <>
-            {/* ⚠️ الفرز يظهر من ثلاثٍ فصاعداً: ترتيبُ اثنتين لا يُغني عن
-                النظر إليهما، وزرٌّ بلا فائدة يشغل حيّزاً ويطلب قراراً. */}
-            {builds.length >= 3 && (
-              <div className="mb-4 flex items-center justify-end gap-1.5">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 me-1">الترتيب</span>
-                {([
-                  ['newest', 'الأحدث'],
-                  ['cheapest', 'الأقلّ سعراً'],
-                  ['priciest', 'الأعلى سعراً'],
-                ] as const).map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => setSort(key)}
-                    className={`text-[11.5px] font-black rounded-full px-3 py-1.5 border transition-all ${
-                      sort === key
-                        ? 'bg-cyan-500/10 border-cyan-400/70 text-cyan-700 dark:text-cyan-300 shadow-[0_0_10px] shadow-cyan-500/20'
-                        : 'bg-white/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/60 text-slate-600 dark:text-slate-400 hover:border-cyan-400/50'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+            {/* ===== نزلت أسعارها — خبرٌ يخصّ ما بناه بالفعل ===== */}
+            <PriceDropsForUser onOpenBuild={openBuildById} onHasContent={setHasDrops} className="" />
+
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h2 className="text-[17px] font-black text-slate-900 dark:text-white flex items-baseline gap-2">
+                {currentRig ? 'المحفوظة' : 'تجميعاتك'}
+                <span className="text-[13px] font-mono font-black text-slate-500 dark:text-slate-400">{otherBuilds.length}</span>
+                {otherBuilds.length >= 2 && <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">· علّم اثنتين أو ثلاث للمقارنة</span>}
+              </h2>
+              <div className="flex items-center gap-3 flex-wrap">
+                {sortChips()}
+                {viewSwitch()}
+              </div>
+            </div>
+
+            {otherBuilds.length === 0 ? (
+              <p className="px-4 py-8 text-center text-[13px] font-semibold text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-sm">
+                ما فيه غير جهازك الحالي — احفظ تجميعة ثانية من الباني وتظهر هنا.
+              </p>
+            ) : (
+              <div id="builds-grid" className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+                {sorted.map((build) => {
+                  const on = picked.includes(build.id);
+                  const st = statusOf(build);
+                  const t = buildTitle(build);
+                  const cpu = build.parts?.CPU;
+                  const gpu = build.parts?.GPU;
+                  /* صورُ القطع — يميّز تجميعاته بشكل الكيس والكرت أسرع ممّا يقرأ أسماءها */
+                  const thumbs = BUILD_ORDER.map((c) => build.parts?.[c]).filter((x: any) => x?.imageUrl).slice(0, 8);
+                  return (
+                    <div
+                      key={build.id}
+                      id={'build-' + build.id}
+                      onClick={() => setSelectedBuild(build)}
+                      className={`group relative flex flex-col gap-2.5 p-3.5 rounded-sm border-x border-b border-t-2 cursor-pointer transition-colors bg-white/70 dark:bg-[#0F172A]/70 ${
+                        st.tone === 'ok' ? 'border-t-cyan-500/70' : st.tone === 'warn' ? 'border-t-amber-500' : 'border-t-red-500'
+                      } ${on ? 'border-x-cyan-500/70 border-b-cyan-500/70 bg-cyan-500/[0.05]' : 'border-x-slate-200 border-b-slate-200 dark:border-x-slate-800 dark:border-b-slate-800 hover:border-x-cyan-500/50 hover:border-b-cyan-500/50'}${hl(build.id)}`}
+                    >
+                      {pickBox(build.id, 'absolute top-3 left-3')}
+                      <div className="pl-8">
+                        {titleBlock(build)}
+                      </div>
+                      {thumbs.length >= 2 && (
+                        <div className="flex items-center gap-1.5">
+                          {thumbs.map((x: any) => (
+                            <span key={x.id} title={x.name} className="w-[30px] h-[30px] shrink-0 rounded-sm bg-white border border-slate-200 dark:border-slate-700/60 p-0.5 flex items-center justify-center">
+                              <img src={productImage(x.imageUrl)} alt="" loading="lazy" className="max-w-full max-h-full object-contain" />
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {/* الاسم التلقائيّ صار «المعالج + الكرت» فوق — فلا يُكرَّران هنا */}
+                      {!t.auto && (cpu || gpu) && (
+                        <div className="flex flex-col gap-0.5 text-[12px] font-bold text-slate-700 dark:text-slate-300" dir="ltr" style={{ textAlign: 'right' }}>
+                          {cpu && <span className="truncate">{cpu.name}</span>}
+                          {gpu && <span className="truncate text-slate-500 dark:text-slate-400">{gpu.name}</span>}
+                        </div>
+                      )}
+                      {tags(build)}
+                      <div className="mt-auto flex items-center justify-between gap-2 pt-2.5 border-t border-slate-200/80 dark:border-slate-800/80">
+                        {price(build, 'text-lg')}
+                        {actions(build, true)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-          {currentRig && otherBuilds.length > 0 && (
-            <h2 className="mb-3 text-[13px] font-black text-slate-500 dark:text-slate-400">
-              تجميعاتك المحفوظة ({otherBuilds.length})
-            </h2>
-          )}
-
-          <div id="builds-grid" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[...otherBuilds]
-              .sort((a, b) => {
-                if (sort === 'cheapest') return (Number(a.totalPrice) || 0) - (Number(b.totalPrice) || 0);
-                if (sort === 'priciest') return (Number(b.totalPrice) || 0) - (Number(a.totalPrice) || 0);
-                /* الأحدث: المسار يُرجعها مرتّبةً بـcreatedAt تنازلياً أصلاً،
-                   لكن الترتيب يُثبَّت هنا صراحةً كي لا يعتمد العرضُ على
-                   ترتيبٍ قد يتغيّر في المسار بلا أن ينتبه أحد. */
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-              })
-              .map((build) => {
-              const bottleneck = getBottleneckMessage(build.parts);
-              const cpu = build.parts['CPU'];
-              const gpu = build.parts['GPU'];
-              const unavailableCount = Object.values(build.parts).filter(
-                (c: any) => c && !isAvailable(c)
-              ).length;
-              
-              return (
-                <div 
-                  key={build.id}
-                  id={"build-" + build.id} 
-                  /* السطح الزجاجيّ من الرئيسية: `bg-white/60 dark:bg-slate-900/40`
-                     مع `backdrop-blur-sm` و`rounded-2xl`.
-                     ⚠️ ولمسةُ هذه الصفحة: خطٌّ سماويّ يزحف من الأعلى عند
-                     التحويم (`before:` بارتفاع صفر يكبر). الرئيسية بطاقاتُها
-                     ساكنة تُعرض، وهذه بطاقاتٌ تُنقر — فالاستجابة للمس جزءٌ
-                     من معناها لا زخرفة. */
-                  className={"group relative overflow-hidden bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-800/60 shadow-sm cursor-pointer flex flex-col transition-all hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:-translate-y-0.5 before:absolute before:inset-x-0 before:top-0 before:h-0 before:bg-gradient-to-r before:from-cyan-400 before:to-blue-500 before:transition-all hover:before:h-0.5"
-                    + (highlightedId === build.id
-                      /* ⚠️ لون الفاصل من خلفية الصفحة نفسها لا من تخمين: الجسم
-                         `bg-(--page-bg)` (globals.css)، و`ring-offset-slate-50`
-                         (#F8FAFC) كان يترك حلقةً أفتحَ من الصفحة تبدو خللاً.
-                         و`shadow-lg` حُذف: يخسر أمام `shadow-sm` في ترتيب الأصناف
-                         فلا أثر له — والتلوين وحده (`shadow-cyan-500/20`) يعمل. */
-                      ? " ring-2 ring-cyan-500 ring-offset-2 ring-offset-(--page-bg) shadow-cyan-500/20"
-                      : "")}
-                  onClick={() => setSelectedBuild(build)}
-                >
-                  <div className="p-5 flex-1">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-bold text-lg text-slate-900 dark:text-white line-clamp-1">{build.name}</h3>
-                      {/* ⚠️ وسمُ «جهازي» يسبق التاريخ: هو ما يبحث عنه بصرُه
-                          حين يفتح الصفحة، والتاريخ تفصيلٌ يُقرأ بعده. */}
-                      {build.isCurrent && (
-                        <span className="shrink-0 me-auto ms-2 text-[10px] font-black text-cyan-800 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-900/40 border border-cyan-300 dark:border-cyan-700/50 px-2 py-1 rounded">
-                          🖥️ جهازي الحالي
-                        </span>
-                      )}
-                      {/* ⚠️ كان `ar-SA` مجرّداً، وهو يترك التقويم ونظام الأرقام
-                          لتقدير المتصفّح: فيخرج التاريخ بأرقامٍ هندية (٢٠٢٦/٧/١٨)
-                          بينما السعر تحته بأرقامٍ لاتينية (9602.00) — نظامان في
-                          بطاقةٍ واحدة. وقد يخرج هجرياً على متصفّحٍ آخر فيتغيّر
-                          التاريخ نفسه. فالتقويم والأرقام يُثبتان صراحةً. */}
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded tabular-nums">
-                        {shortDateAr(build.createdAt)}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      {cpu && (
-                        <div className="text-xs bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg truncate">
-                          <span className="font-bold text-slate-400 me-1">المعالج:</span>
-                          <span className={`${brandColor(cpu.brand, cpu.name, 'CPU')} font-bold me-1`}>{cpu.brand}</span>
-                          <span className="text-slate-700 dark:text-slate-300 font-semibold">{cpu.name}</span>
-                        </div>
-                      )}
-                      {gpu && (
-                        <div className="text-xs bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg truncate">
-                          <span className="font-bold text-slate-400 me-1">الكرت:</span>
-                          <span className={`${brandColor(gpu.brand, gpu.name, 'GPU')} font-bold me-1`}>{gpu.brand}</span>
-                          <span className="text-slate-700 dark:text-slate-300 font-semibold">{gpu.name}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {bottleneck && (
-                      <div className={`p-2 border rounded-lg ${bottleneck.bg} mb-4`}>
-                        <span className={`font-bold text-xs ${bottleneck.color}`}>{bottleneck.title}</span>
-                      </div>
-                    )}
-
-
-                    {/* ============ شريط صور القطع ============
-                        ⚠️ البطاقة كانت نصّاً خالصاً: اسمان وتنبيه. والصور
-                        موجودةٌ عندنا لكلّ قطعة ولا تُستعمل هنا — والزائر
-                        يميّز تجميعاته بشكل الكيس والكرت أسرع ممّا يقرأ
-                        أسماءها. فصفٌّ من مصغّراتٍ يعطي البطاقة وجهاً.
-                        وتُعرض المتاحة فقط بلا مربّعاتٍ فارغة تعدّ النقص. */}
-                    {(() => {
-                      const thumbs = BUILD_ORDER
-                        .map((c) => build.parts[c])
-                        .filter((x: any) => x?.imageUrl)
-                        .slice(0, 6);
-                      if (thumbs.length < 2) return null;
-                      return (
-                        <div className="flex items-center gap-1.5 mb-4">
-                          {thumbs.map((x: any) => (
-                            <div
-                              key={x.id}
-                              title={x.name}
-                              className="h-8 w-8 shrink-0 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 p-0.5 flex items-center justify-center"
-                            >
-                              <img src={productImage(x.imageUrl)} alt="" className="max-w-full max-h-full object-contain" />
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                    {unavailableCount > 0 && (
-                      <div className="p-2 border rounded-lg bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/40 mb-4">
-                        <span className="font-bold text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                          {unavailableCount} من القطع غير متوفرة حالياً
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* rounded-b-2xl لا b-xl: البطاقة صارت 2xl، وزاويةٌ لا تطابق حاويتها
-                      تترك شقّاً رفيعاً من لون الخلفية عند الحافّة. */}
-                  <div className="px-5 py-3 bg-slate-50/80 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800/60 flex justify-between items-center rounded-b-2xl">
-                    <span className="font-black text-lg text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      {formatTotal(build.totalPrice)} <RiyalIcon size="h-4 w-4" />
+            {/* الدرج السفليّ — يظهر حين تعلّم وحدة، ويبقى لاصقاً وأنت تنزل */}
+            {picked.length > 0 && (
+              <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 flex-wrap px-3 md:px-4 py-3 rounded-sm border border-cyan-500/50 bg-white/95 dark:bg-[#082F3C]/95 backdrop-blur-sm shadow-xl shadow-slate-900/20">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="text-[13px] font-black text-slate-800 dark:text-slate-200">⚖ مختارة للمقارنة:</span>
+                  {pickedNames.map((b: any) => {
+                    const t = buildTitle(b);
+                    return (
+                      <button key={b.id} type="button" onClick={() => togglePick(b.id)} title="أزلها"
+                        className="max-w-[220px] inline-flex items-center gap-1.5 px-2 py-1 rounded-sm border border-slate-300 dark:border-slate-600 text-[12px] font-bold text-slate-700 dark:text-slate-200 hover:border-rose-400">
+                        <span className="truncate" dir={t.auto ? 'ltr' : undefined}>{t.title}</span>
+                        <span className="text-slate-400" aria-hidden="true">✕</span>
+                      </button>
+                    );
+                  })}
+                  {picked.length < MAX_PICK && (
+                    <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
+                      {picked.length === 1 ? 'علّم وحدة ثانية' : 'وتقدر تضيف وحدة'}
                     </span>
-                    <div className="flex gap-2">
-                      {/* ⚠️ نقرةٌ واحدة لا نموذجُ إدخال: ٤٣ من ١٢٩ مستخدماً
-                          لهم تجميعةٌ محفوظة أصلاً، فأسرعُ طريقٍ إلى «جهازي»
-                          أن يشير إلى واحدةٍ منها لا أن يعيد اختيار ثمانٍ. */}
-                      <button
-                        onClick={(e) => handleSetCurrent(build.id, !build.isCurrent, e)}
-                        className={`p-2 rounded-lg border transition-colors ${
-                          build.isCurrent
-                            ? 'text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-900/30 border-cyan-300 dark:border-cyan-700/50'
-                            : 'text-slate-400 hover:text-cyan-600 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                        }`}
-                        title={build.isCurrent ? 'ليست جهازي الحالي' : 'هذي تجميعتي الحاليّة'}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                      </button>
-                      <button onClick={(e) => handleShare(build.id, e)} className="p-2 text-slate-400 hover:text-blue-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors" title="مشاركة">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-                      </button>
-                      <button onClick={(e) => handleDelete(build.id, e)} className="p-2 text-rose-500 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors" title="حذف">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+                <Link
+                  href={compareHref}
+                  aria-disabled={picked.length < 2}
+                  onClick={(e) => { if (picked.length < 2) e.preventDefault(); }}
+                  className={`px-4 py-2 rounded-sm text-[13px] font-black transition-opacity ${
+                    picked.length >= 2 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 cursor-not-allowed'
+                  }`}
+                >
+                  قارنها الحين ←
+                </Link>
+              </div>
+            )}
           </>
         )}
 
@@ -596,7 +746,7 @@ export default function MyBuildsPage() {
               <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] shrink-0">
                 <h2 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
                   <span className="w-1.5 h-5 bg-blue-600 rounded-full"></span>
-                  {selectedBuild.name}
+                  <span dir={buildTitle(selectedBuild).auto ? 'ltr' : undefined}>{buildTitle(selectedBuild).title}</span>
                 </h2>
                 <div className="flex gap-2">
                   <button onClick={() => handleShare(selectedBuild.id)} className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-blue-600 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" title="مشاركة">

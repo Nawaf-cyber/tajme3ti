@@ -20,11 +20,17 @@ import DropsPanel, { type DropsView } from './DropsPanel';
 
 const EMPTY: DropsView = { fresh: [], pinned: [], lowest: [], totalSaved: 0, mutedCount: 0 };
 
-export default function PriceDropsForUser({ onOpenBuild }: {
+export default function PriceDropsForUser({ onOpenBuild, onHasContent, className }: {
   onOpenBuild?: (buildId: string) => void;
+  /* هل في اللوحة شيءٌ يُعرض؟ «تجميعاتي» جدولاً تفتح لها عموداً جانبياً، ولا تتركه فارغاً */
+  onHasContent?: (has: boolean) => void;
+  className?: string;
 } = {}) {
   const [view, setView] = useState<DropsView>(EMPTY);
   const [busy, setBusy] = useState(false);
+  /* الشرط نفسه الذي تُخفي به DropsPanel نفسها */
+  const has = view.fresh.length > 0 || view.pinned.length > 0 || (view.fresh.length === 0 && view.lowest.length > 0);
+  useEffect(() => { onHasContent?.(has); }, [has]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let alive = true;
@@ -89,5 +95,5 @@ export default function PriceDropsForUser({ onOpenBuild }: {
     }
   };
 
-  return <DropsPanel view={view} onOpenBuild={onOpenBuild} onPin={onPin} busy={busy} />;
+  return <DropsPanel view={view} onOpenBuild={onOpenBuild} onPin={onPin} busy={busy} className={className} />;
 }

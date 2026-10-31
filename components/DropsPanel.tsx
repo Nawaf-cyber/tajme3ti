@@ -145,11 +145,11 @@ function Row({ drop, mode, inLowGroup, onOpenBuild, onPin, busy }: {
               <span className="mx-1.5 opacity-40">·</span>
               {drop.source === 'build' ? `في «${drop.buildName}»` : 'تتابعها'}
             </p>
-            <div className="sm:hidden"><Prices drop={drop} mode={mode} /></div>
+            <div className="@sm:hidden"><Prices drop={drop} mode={mode} /></div>
           </div>
         </div>
 
-        <div className="hidden sm:flex shrink-0"><Prices drop={drop} mode={mode} /></div>
+        <div className="hidden @sm:flex shrink-0"><Prices drop={drop} mode={mode} /></div>
       </RowShell>
 
       {onPin && (
@@ -230,8 +230,10 @@ function Group({ title, hint, drops, mode, inLowGroup, startCollapsed, onOpenBui
   );
 }
 
-export default function DropsPanel({ view, onOpenBuild, onPin, busy }: {
+export default function DropsPanel({ view, onOpenBuild, onPin, busy, className = 'mb-8' }: {
   view: DropsView;
+  /* الهامش من الحاوية: في «تجميعاتي» جدولاً تقف اللوحة عموداً جانبياً بلا هامش */
+  className?: string;
   /* يُمرَّر من «تجميعاتي» وحدها: هناك التجميعة على الصفحة نفسها فتُفتح.
      وحيث لا يُمرَّر تبقى البطاقة رابطاً إلى صفحة القطعة — زرٌّ لا يفعل
      شيئاً أسوأ من رابطٍ يذهب إلى مكانٍ آخر. */
@@ -248,7 +250,9 @@ export default function DropsPanel({ view, onOpenBuild, onPin, busy }: {
   if (!fresh.length && !pinned.length && !showLowest.length) return null;
 
   return (
-    <section className="mb-8 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border-x border-b border-t-2 border-slate-200 border-t-emerald-500 dark:border-slate-800/80 dark:border-t-emerald-500 rounded-sm shadow-sm">
+    /* ⚠️ @container لا sm: — اللوحة تقف أحياناً في عمودٍ عرضه ٣٢٠ على شاشةٍ عريضة،
+       فالسعر ينزل سطراً بعرض اللوحة نفسها لا بعرض الشاشة */
+    <section className={`@container ${className} bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border-x border-b border-t-2 border-slate-200 border-t-emerald-500 dark:border-slate-800/80 dark:border-t-emerald-500 rounded-sm shadow-sm`}>
       <div className="p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-3">
           <h2 className="text-[15px] font-black text-slate-900 dark:text-white flex items-center gap-2">

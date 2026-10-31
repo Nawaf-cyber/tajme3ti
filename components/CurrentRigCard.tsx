@@ -20,6 +20,7 @@ import { formatPrice } from '../lib/price';
 import { checkBuild } from '../lib/build-check';
 import { bottleneck } from '../lib/bottleneck';
 import { CATEGORY_META } from '../lib/category-meta';
+import { buildTitle } from '../lib/build-name';
 import CustomPartInput from './CustomPartInput';
 import RigUpgradeHint from './RigUpgradeHint';
 import RigStoryButton from './RigStoryButton';
@@ -68,33 +69,27 @@ export default function CurrentRigCard({
   const balance = bottleneck(parts.CPU, parts.GPU);
 
   const filled = ORDER.filter((k) => parts[k] || custom[k]).length;
+  /* «تجميعة ٢٢/٩/٢٠٢٦» لا تقول شيئاً — «المعالج + الكرت» مكانها (lib/build-name) */
+  const title = buildTitle(build);
 
   return (
-    <section className="mb-10">
-      <div className="relative overflow-hidden rounded-2xl border border-cyan-300/60 dark:border-cyan-800/40 bg-gradient-to-br from-cyan-50/90 via-white/70 to-white/50 dark:from-cyan-950/40 dark:via-slate-900/50 dark:to-slate-900/30 backdrop-blur-sm shadow-lg shadow-cyan-500/5">
-        {/* شريطٌ سماويّ علويّ — نفس توقيع الرئيسية */}
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400" />
-        {/* هالتان تُعطيان العمق الذي يليق بأوّل ما تقع عليه العين */}
-        <div className="absolute -top-24 -start-24 w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/[0.07] blur-3xl rounded-full pointer-events-none" />
-        <div className="absolute -bottom-28 -end-20 w-72 h-72 bg-blue-500/8 dark:bg-blue-500/[0.05] blur-3xl rounded-full pointer-events-none" />
-        {/* زاويةٌ هندسيّة — مفردةُ البطاقات في الموقع */}
-        <div className="absolute top-0 end-0 w-0 h-0 border-t-[18px] border-t-cyan-500/50 border-s-[18px] border-s-transparent" />
+    <section>
+      {/* شكل ت (2026-10-31): لوحةٌ بحدٍّ علويّ أخضر وزاوية — من مفردات اللوحات الجديدة،
+          بدل الهالات والزوايا المدوّرة. والأخضر لأنه ما تملكه لا ما تخطّط له */}
+      <div className="relative overflow-hidden rounded-sm border-x border-b border-t-2 border-slate-200 dark:border-slate-800 border-t-emerald-500 dark:border-t-emerald-500 bg-white/75 dark:bg-[#0F172A]/70 backdrop-blur-sm shadow-sm">
+        <div className="absolute top-0 end-0 w-0 h-0 border-t-[14px] border-t-emerald-500/60 border-s-[14px] border-s-transparent pointer-events-none" />
 
-        <div className="relative p-5 sm:p-7">
+        <div className="relative p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-3 mb-5">
-            <span className="flex items-center gap-1.5 text-[11px] font-black text-cyan-800 dark:text-cyan-300 bg-cyan-100/80 dark:bg-cyan-900/40 border border-cyan-300 dark:border-cyan-700/50 px-2.5 py-1.5 rounded-full">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-60" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-500" />
-              </span>
-              جهازي الحالي
+            <span className="flex items-center gap-1.5 text-[12px] font-black text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/40 px-2 py-1 rounded-sm">
+              🖥 جهازي الحالي
             </span>
 
             <div className="min-w-0">
-              <h2 className="font-black text-2xl sm:text-[28px] leading-tight text-slate-900 dark:text-white truncate">
-                {build.name}
+              <h2 className="font-black text-xl sm:text-[22px] leading-tight text-slate-900 dark:text-white truncate" dir={title.auto ? 'ltr' : undefined}>
+                {title.title}
               </h2>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
+              <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
                 {filled} من ٨ قطع
               </span>
             </div>
@@ -118,7 +113,7 @@ export default function CurrentRigCard({
           </div>
 
           {/* ============ القطع ============ */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
             {ORDER.map((k) => {
               const p = parts[k];
               const text = custom[k];
@@ -150,7 +145,7 @@ export default function CurrentRigCard({
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
-                    <span className="block text-[9.5px] font-black tracking-wide text-slate-400 dark:text-slate-500 uppercase">
+                    <span className="block text-[11px] font-black text-slate-500 dark:text-slate-400">
                       {LABEL[k]}
                     </span>
                     <span
@@ -158,6 +153,9 @@ export default function CurrentRigCard({
                         p ? 'text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'
                       }`}
                       title={p ? `${p.brand} ${p.name}` : text || 'لم تُضف'}
+                      /* auto: الاسم اللاتينيّ يُقصّ من آخره («Radeon RX 90…») لا من أوّله («…eon RX 9070») */
+                      dir="auto"
+                      style={{ textAlign: 'right' }}
                     >
                       {p ? p.name : text || '—'}
                     </span>
@@ -167,7 +165,7 @@ export default function CurrentRigCard({
                     {!p && (
                       <button
                         onClick={() => setEditing(editing === k ? null : k)}
-                        className="mt-0.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors"
+                        className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors"
                       >
                         {text ? '✍️ عدّلها' : '✍️ اكتبها بنفسك'}
                       </button>
@@ -197,21 +195,21 @@ export default function CurrentRigCard({
           </div>
 
           {/* ============ الحكم ============ */}
-          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-200/70 dark:border-slate-800/70">
-            <span className="flex items-center gap-1.5 font-black text-2xl text-emerald-600 dark:text-emerald-400 tabular-nums">
+          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-200/70 dark:border-slate-800/70">
+            <span className="flex items-center gap-1.5 font-mono font-black text-2xl text-emerald-600 dark:text-emerald-400 tabular-nums">
               {formatPrice(Number(build.totalPrice) || 0)} <RiyalIcon size="h-5 w-5" />
             </span>
 
             {blocks.length > 0 ? (
-              <span className="text-[12px] font-black text-rose-700 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800/40 px-2.5 py-1.5 rounded-full">
+              <span className="text-[12px] font-black text-rose-700 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800/40 px-2 py-1 rounded-sm">
                 ⛔ {blocks.length} تعارض
               </span>
             ) : warns.length > 0 ? (
-              <span className="text-[12px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/40 px-2.5 py-1.5 rounded-full">
+              <span className="text-[12px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/40 px-2 py-1 rounded-sm">
                 ⚠️ {warns.length} ملاحظة
               </span>
             ) : (
-              <span className="text-[12px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/40 px-2.5 py-1.5 rounded-full">
+              <span className="text-[12px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/40 px-2 py-1 rounded-sm">
                 ✓ متوافق
               </span>
             )}
