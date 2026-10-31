@@ -24,7 +24,8 @@ export type TierBuild = {
   params: string;
 };
 
-export async function tierBuilds(): Promise<TierBuild[]> {
+/* `day` للفحص وحده (scripts/tier-builds-check.ts يمرّ على أيّامٍ قادمة) — الموقع يستدعيها بلا معاملات */
+export async function tierBuilds(day: string = new Date().toISOString().slice(0, 10)): Promise<TierBuild[]> {
   const categories = await prisma.category.findMany({
     include: { components: { include: OFFER_INCLUDE } }
   });
@@ -50,7 +51,7 @@ export async function tierBuilds(): Promise<TierBuild[]> {
   /* ============ البذرة اليومية ============
      بديل Math.random: دالة تجزئة بسيطة (FNV-1a) على نص ثابت.
      نفس النص ⟵ نفس النتيجة دائماً، فتثبت التجميعة طوال اليوم. */
-  const todaySeed = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const todaySeed = day; // YYYY-MM-DD
 
   const hashStr = (str: string): number => {
     let h = 2166136261;
@@ -98,6 +99,32 @@ export async function tierBuilds(): Promise<TierBuild[]> {
     return pool;
   };
 
+  /* ============ قصُّ القائمة عند وسيط أسعارها ============
+     ⚠️ الاختيار بالبذرة كان من المستوى كلّه بلا نظرٍ للسعر، فوقعت الاقتصاديّة يوم
+     2026-10-31 على Intel Arc A770 بـ٥٠٧٨ — عرض أمازون وحيد، وأقرانه في المستوى
+     ١٥٠٠–٢٧٠٠ — فصار مجموعها ٨٣٦٠ مقابل ٩٦٩٠ للمتوسطة. فالاقتصاديّة والمتوسطة
+     من النصف الأرخص (≤ الوسيط)، والعليا تُسقط الشاذّ وحده (> ١٫٥× الوسيط: 4070 Ti
+     بـ١١٨١٤ وأقرانه وسيطهم ٤٥٨٨) ولا تُقصّ أكثر — فيها 5090 لا تُقاس بأسعار 5080.
+     والوسيط لكلّ مستوى أداءٍ وحده: كرتٌ من المستوى ١ لا يُقاس بأسعار المستوى ٢.
+     ⚠️ إلّا الرام والتخزين (byLevel=false): يُختاران بالسعة لا بالمستوى، فقائمتهما
+     تخلط المستويات، ووسيط كلّ مستوىً فيها أبقى رام ١٦GB بـ١٤١٣ في الاقتصاديّة. */
+  const median = (xs: number[]) => {
+    const v = [...xs].sort((a, b) => a - b);
+    const m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  };
+  const trimByPrice = (pool: any[], tier: 'economy' | 'mid' | 'high', perLevel = true) => {
+    const factor = tier === 'high' ? 1.5 : 1;
+    const byLevel = new Map<number, number[]>();
+    for (const c of pool) {
+      const k = perLevel ? c.performanceTier ?? -1 : -1;
+      byLevel.set(k, [...(byLevel.get(k) ?? []), c.price]);
+    }
+    const cap = new Map([...byLevel].map(([k, prices]) => [k, factor * median(prices)]));
+    const kept = pool.filter((c) => c.price <= cap.get(perLevel ? c.performanceTier ?? -1 : -1)!);
+    return kept.length ? kept : pool;
+  };
+
   const createTierBuild = (tier: 'economy' | 'mid' | 'high') => {
     // 1. تصفية المعالجات التي لها لوحة أم متوافقة فقط (لمنع خطأ الصفر)
     const cpusWithMobos = cpus.filter(cpu => {
@@ -109,10 +136,10 @@ export async function tierBuilds(): Promise<TierBuild[]> {
     if (cpusWithMobos.length === 0 || gpus.length === 0) return null;
 
     // 2. الكرت والمعالج حسب مستوى الأداء — اختيار ثابت بالبذرة
-    const validGpus = pickByTier(gpus, tier);
+    const validGpus = trimByPrice(pickByTier(gpus, tier), tier);
     const gpu = pickSeeded(validGpus, tier + ':gpu') || validGpus[0];
 
-    const validCpus = pickByTier(cpusWithMobos, tier);
+    const validCpus = trimByPrice(pickByTier(cpusWithMobos, tier), tier);
     const cpu = pickSeeded(validCpus, tier + ':cpu') || validCpus[0];
 
     if (!cpu || !gpu) return null;
@@ -130,7 +157,7 @@ export async function tierBuilds(): Promise<TierBuild[]> {
     );
     if (compMobos.length === 0) return null;
 
-    const moboPool = pickByTier(compMobos, tier);
+    const moboPool = trimByPrice(pickByTier(compMobos, tier), tier);
     const mobo = pickSeeded(moboPool, tier + ':mobo') || moboPool[0];
     if (!mobo) return null;
 
@@ -157,6 +184,7 @@ export async function tierBuilds(): Promise<TierBuild[]> {
     if (filteredRams.length === 0) filteredRams = compRams.filter(r => getCap(r) <= capMax);
     if (filteredRams.length === 0) filteredRams = compRams;
 
+    filteredRams = trimByPrice(filteredRams, tier, false);
     const ram = pickSeeded(filteredRams, tier + ':ram') || filteredRams[0];
 
     /* 5. مزود الطاقة — الاستهلاك يشمل كل القطع لا المعالج والكرت فقط.
@@ -173,7 +201,7 @@ export async function tierBuilds(): Promise<TierBuild[]> {
     let compPsus = psus.filter(p => parseFloat(parseSpecs(p.specs).wattage || '0') >= reqWattage);
     if (compPsus.length === 0) compPsus = psus;
 
-    const psuPool = pickByTier(compPsus, tier);
+    const psuPool = trimByPrice(pickByTier(compPsus, tier), tier);
     const psu = pickSeeded(psuPool, tier + ':psu') || psuPool[0] || psus[0];
 
     /* 6. التخزين — سعةً **وسعراً**.
@@ -197,6 +225,13 @@ export async function tierBuilds(): Promise<TierBuild[]> {
     if (filteredStorages.length === 0) filteredStorages = storages.filter(st => st.price <= stPriceCap && isSSD(st));
     if (filteredStorages.length === 0) filteredStorages = storages.filter(isSSD);
     if (filteredStorages.length === 0) filteredStorages = storages;
+    /* المتوسطة والعليا على NVMe إن وُجد: خرجت العليا يوم 2026-10-31 بـ870 EVO SATA
+       بـ٢٢٠١ في جهاز 4K. والاقتصاديّة يكفيها ما يقع تحت سقفها. */
+    if (tier !== 'economy') {
+      const nvme = filteredStorages.filter((st) => /nvme/i.test(String(parseSpecs(st.specs).type || '')));
+      if (nvme.length) filteredStorages = nvme;
+    }
+    filteredStorages = trimByPrice(filteredStorages, tier, false);
     const storage = pickSeeded(filteredStorages, tier + ':storage') || filteredStorages[0];
 
     /* 7. الكيس — يقبل طول الكرت **ومقاس اللوحة**.
@@ -226,6 +261,7 @@ export async function tierBuilds(): Promise<TierBuild[]> {
        ٤٦٧ من المتوسطة لأنه… أرخص من أن يُستبعد لكنه لم يُفضَّل. */
     let filteredCases = pickByTier(compCases, tier);
     if (filteredCases.length === 0) filteredCases = compCases;
+    filteredCases = trimByPrice(filteredCases, tier);
     const pcase = pickSeeded(filteredCases, tier + ':case') || filteredCases[0] || cases[0];
 
     // التجميع والنتيجة
