@@ -15,8 +15,8 @@ export const dynamic = 'force-dynamic';
 
 /* ?cat=GPU من بلاطات الرئيسية: الفئة باسمها الإنجليزيّ (مفتاح Category.name)
    لا بمعرّفها — الرابط يُقرأ ويُكتب بيد، والمعرّف cuid لا يُقرأ. */
-export default async function ComponentsPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
-  const { cat } = await searchParams;
+export default async function ComponentsPage({ searchParams }: { searchParams: Promise<{ cat?: string; q?: string }> }) {
+  const { cat, q } = await searchParams;
   const [components, categories, storesCount, newest] = await Promise.all([
     prisma.component.findMany({ include: { category: true, ...OFFER_INCLUDE }, orderBy: { createdAt: 'desc' } }),
     prisma.category.findMany({ where: HAS_PARTS }),
@@ -32,6 +32,7 @@ export default async function ComponentsPage({ searchParams }: { searchParams: P
           components={components}
           categories={categories}
           initialCatId={initialCatId}
+          initialSearch={(q ?? '').slice(0, 80)}
           storesCount={storesCount}
           updatedAt={newest._max.lastScrapedAt?.toISOString() ?? null}
         />

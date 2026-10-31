@@ -78,18 +78,20 @@ const catRank = (name: string) => { const i = CAT_ORDER.indexOf(name); return i 
  * الافتراضي «الأكثر انخفاضاً». والبطاقة تبقى واحدة: نسخةٌ ثانية منها تعني
  * عيباً يُصلَح هنا ويعيش هناك. */
 export default function ComponentsClient({
-  components, categories, dealsLocked = false, initialCatId = 'all', storesCount = 0, updatedAt = null,
+  components, categories, dealsLocked = false, initialCatId = 'all', initialSearch = '', storesCount = 0, updatedAt = null,
 }: {
   components: any[];
   categories: any[];
   dealsLocked?: boolean;
   /** الفئة المفتوحة ابتداءً (?cat=GPU من بلاطات الرئيسية) */
   initialCatId?: string;
+  /** البحث ابتداءً (?q= من صفحة 404) */
+  initialSearch?: string;
   storesCount?: number;
   /** آخر سحبٍ للأسعار — ISO */
   updatedAt?: string | null;
 }) {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
 
   /* ما يبحث عنه الزائر — يُسجَّل بعد سكوتٍ ثانيةً ونصف لا عند كلّ حرف،
      ويُشترط ثلاثةُ محارف: حرفان يعودان بنصف الكتالوج ولا يدلّان على قصد. */
