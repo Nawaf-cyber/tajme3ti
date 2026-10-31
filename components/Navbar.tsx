@@ -148,8 +148,11 @@ export default function Navbar() {
             <Icon className="w-6 h-6" d={isMobileMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
           </button>
 
-          {/* ===== الشاشة الكبيرة ===== */}
-          <div className="hidden md:flex items-center gap-1">
+          {/* ===== الشاشة الكبيرة =====
+              ⚠️ بين 768 و1024 لا يتّسع الشريط كاملاً: كان «قارن القطع» ينكسر سطرين
+              ومجموعة الحساب تخرج عن حافّة الشاشة ٢٠ بكسل (قِيس بحساب أدمن على 768).
+              فهناك تُخفى أيقونات الروابط ويضيق الحشو، ولا ينكسر نصّ (whitespace-nowrap) */}
+          <div className="hidden md:flex items-center gap-0.5 lg:gap-1">
 
             {NAV.map((item) => {
               const on = isActive(item.href);
@@ -158,7 +161,7 @@ export default function Navbar() {
                   key={item.href}
                   href={item.href}
                   aria-current={on ? 'page' : undefined}
-                  className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-sm text-sm font-bold transition-all ${
+                  className={`relative flex items-center gap-1.5 px-2.5 lg:px-3.5 py-2 rounded-sm text-sm font-bold whitespace-nowrap transition-all ${
                     on
                       ? item.accent
                         ? 'text-rose-600 dark:text-rose-400 bg-rose-500/[0.08]'
@@ -168,7 +171,7 @@ export default function Navbar() {
                         : 'text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-cyan-500/[0.07]'
                   }`}
                 >
-                  <Icon d={item.icon} />
+                  <Icon d={item.icon} className="w-4 h-4 hidden lg:block" />
                   {item.label}
                   {/* خطٌّ سفليّ يقول «أنت هنا» — الأثر الذي كان غائباً */}
                   {on && (
@@ -182,7 +185,7 @@ export default function Navbar() {
               );
             })}
 
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700/70 mx-2" />
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700/70 mx-1 lg:mx-2" />
 
             {mounted && (
               <button
@@ -207,7 +210,7 @@ export default function Navbar() {
                   <Link
                     href="/admin"
                     aria-current={isActive('/admin') ? 'page' : undefined}
-                    className={`text-sm font-bold px-3 py-2 rounded-sm transition-colors ${
+                    className={`text-sm font-bold px-2.5 lg:px-3 py-2 rounded-sm whitespace-nowrap transition-colors ${
                       isActive('/admin')
                         ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/[0.08]'
                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -220,7 +223,7 @@ export default function Navbar() {
                 <Link
                   href="/my-builds"
                   aria-current={isActive('/my-builds') ? 'page' : undefined}
-                  className={`text-sm font-bold px-3.5 py-2 rounded-sm border transition-colors flex items-center gap-1.5 ${
+                  className={`text-sm font-bold px-3 lg:px-3.5 py-2 rounded-sm border whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                     isActive('/my-builds')
                       ? 'text-white bg-cyan-600 border-cyan-600 shadow-sm shadow-cyan-500/25'
                       : 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/40 border-cyan-100 dark:border-cyan-800/30'
@@ -281,7 +284,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="mr-2 text-sm font-black text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-5 py-2.5 rounded-sm transition-all shadow-md shadow-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/30 active:scale-95"
+                className="mr-2 text-sm font-black whitespace-nowrap text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-5 py-2.5 rounded-sm transition-all shadow-md shadow-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/30 active:scale-95"
               >
                 تسجيل الدخول
               </Link>
