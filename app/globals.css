@@ -486,6 +486,25 @@ html[data-theme-fading] *::after {
   .bp-pulse { display: none; }
 }
 
+/* ---- رأس الرئيسية (شكل س١ · components/HomeBoardHero): اللوحة الأمّ تُخطّ عند
+   التحميل كمخطّط الخلفية، ثمّ خطوط التعليقات وتسميات القطع. والنصّ لا يُخفى ولا
+   يتأخّر — الحركة في الرسم وحده. ---- */
+.hb-draw :is(rect, circle, path) {
+  stroke-dasharray: 1.01 1;
+  stroke-dashoffset: 1.01;
+  animation: bp-draw 2s cubic-bezier(0.45, 0, 0.25, 1) forwards;
+  animation-delay: var(--d, 0s);
+}
+.hb-fade {
+  opacity: 0;
+  animation: bp-fade 0.8s ease forwards;
+  animation-delay: var(--d, 1.4s);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hb-draw :is(rect, circle, path) { animation: none; stroke-dashoffset: 0; }
+  .hb-fade { animation: none; opacity: 1; }
+}
+
 /* ---- المصباح: صندوقٌ مقنّع يتحرّك، وداخله الخلفية تتحرّك بعكسه ---- */
 .bg-lamp {
   position: absolute;

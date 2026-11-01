@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 };
 import SavePrebuildButton from './SavePrebuildButton';
 import Link from 'next/link';
-import { isAvailable } from '../../lib/stores';
 import { OFFER_INCLUDE } from '../../lib/stores-server';
 import RiyalSign from '../../components/RiyalSign';
+import { prebuildLive } from '../../lib/prebuilds';
 
 // تحديث حي دائماً — يعرض أحدث حالة التوفّر بلا حاجة redeploy
 export const dynamic = 'force-dynamic';
@@ -51,7 +51,8 @@ export default async function PrebuildsPage() {
         
         <div className="flex flex-col gap-5">
           {list.map((build) => {
-            const compObj = typeof build.components === 'string' ? JSON.parse(build.components) : build.components || {};
+            /* القطع والمجموع اللحظيّ والرابط من lib/prebuilds — الرئيسية تقرأ الحساب نفسه */
+            const { compObj, builderHref, parts: buildPartsDisplay, missingParts, liveTotal } = prebuildLive(build, categories, allComponents as any);
             const partsCount = Object.keys(compObj).length;
             
             const getCompId = (catName: string) => {
@@ -71,32 +72,6 @@ export default async function PrebuildsPage() {
               /* كان غائباً: «حفظ في حسابي» يُسقط المبرّد، فتصل التجميعة إلى «تجميعاتي» بلا تبريد */
               coolerId: getCompId('Cooler'),
             };
-
-            /* «افتحها في الباني»: معاملات الفئات تستبدل مسودّة الباني بالتجميعة كاملة
-               (components/PCBuilderClient · hasUrlParams) — فيعدّلها بلا حساب */
-            const builderHref = '/builder?' + categories
-              .filter((cat) => compObj[cat.id])
-              .map((cat) => `${cat.name.toLowerCase()}=${encodeURIComponent(compObj[cat.id])}`)
-              .join('&');
-
-            const buildPartsDisplay = categories.map(cat => {
-              const compId = compObj[cat.id];
-              if (!compId) return null;
-              const compDetails = allComponents.find((c: any) => c.id === compId);
-              return {
-                categoryId: cat.id,
-                categoryName: cat.name,
-                componentId: compId,
-                componentName: compDetails?.name || 'غير متوفر',
-                isAvailable: compDetails ? isAvailable(compDetails) : false,
-                price: compDetails?.price ?? 0,
-              };
-            }).filter(Boolean) as any[];
-
-            /* السعر لحظيّ للمتوفّر وحده — كان build.price رقماً ثابتاً حُفظ يوم أُنشئت
-               التجميعة، ويجمع قطعاً صارت غير متوفّرة (مراجعة أدسنس 2026-10-15) */
-            const missingParts = buildPartsDisplay.filter((p) => !p.isAvailable);
-            const liveTotal = buildPartsDisplay.reduce((s, p) => s + (p.isAvailable ? p.price : 0), 0);
 
             return (
               <div 
