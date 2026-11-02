@@ -5,13 +5,16 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { alternates: { canonical: '/' } };
 import { prisma } from '../lib/prisma';
 import PriceDropsSection from '../components/PriceDropsSection';
-import HomeBoardHero, { HomeBoardDetails, HomePrebuilds } from '../components/HomeBoardHero';
+import HomeCrown from '../components/HomeCrown';
+import HomePlanner from '../components/HomePlanner';
+import HomeSpread from '../components/HomeSpread';
+import HomePrebuilds from '../components/HomePrebuilds';
 import { homeShowcase } from '../lib/home-showcase';
 import { formatPrice } from '../lib/price';
 import { GUIDE_CATEGORIES } from '../lib/content';
 import { catMeta, CATEGORY_META } from '../lib/category-meta';
 import { HAS_PARTS } from '../lib/categories';
-import { longDateAr } from '../lib/time-ago';
+import { longDateAr, timeAgoAr } from '../lib/time-ago';
 
 /* ⚠️ كانت revalidate = 300 فتُخزَّن النسخة ٥ دقائق، ومع stale-while-revalidate
    يرى أول زائرٍ بعدها النسخة **القديمة** ويُطلق التجديد للتالي — فالتأخير
@@ -19,14 +22,13 @@ import { longDateAr } from '../lib/time-ago';
    وقسم تخفيضات، والسعر المتأخّر أسوأ من الصفحة الأبطأ بأجزاء الثانية. */
 export const dynamic = 'force-dynamic';
 
-/* ============ الرئيسية — شكل س١ «البرق في المقبس» (2026-11-01) ============
- * كان شكل هـ (رأسٌ مقسوم: عنوان ٤٦px وبطاقة تجميعات اليوم) — قال نوّاف «احسها
- * مبتذلة… ابي الصفحة توضح الموقع نفس القديمة يوم كان شعارنا بالوسط وتحسه هيبة».
- * فالرأس لوحةٌ أمّ مرسومة والشعار مكان المعالج، وتعليقاتها تشرح الموقع بأمثلةٍ
- * حيّة (components/HomeBoardHero · lib/home-showcase)، ثمّ «تفاصيل اللوحة»،
- * فالتجميعات الجاهزة الستّ، فالفئات بأعدادها، فالتخفيضات، فالمقالات.
- * ⚠️ أُزيل من الرئيسية: بطاقة تجميعات اليوم (HomeBuildsCard)، و«أحدث القطع»،
- * وCompareTeaser — مكوّناتها باقية إن أُرجعت. */
+/* ============ الرئيسية — شكل «التاج» (2026-11-02) ============
+ * س١ (لوحة أمّ مرسومة) لم يعجب نوّاف: «ماعجبني… ابهرني». فالرأس الشعار في الوسط
+ * وحوله منقلةٌ عليها المتاجر السبع تصبّ أسعارها فيه (components/HomeCrown)، ثمّ
+ * الشيء الحيّ: «قل لنا وش بتسوي» يبدّل تجميعةً حقيقيّة فوراً (HomePlanner)، ثمّ
+ * لماذا الموقع: فرق المتاجر على الكتالوج كلّه (HomeSpread)، فالتجميعات الجاهزة،
+ * فالفئات بأعدادها، فالتخفيضات، فالمقالات. الحساب الثقيل في lib/home-showcase
+ * (مخزّن عشر دقائق)؛ و«محدّثة قبل…» والأعداد هنا لحظيّة. */
 
 /* «متجر واحد» · «متجرين» · «3 متاجر» */
 const storesAr = (n: number) => (n === 1 ? 'متجر واحد' : n === 2 ? 'متجرين' : n <= 10 ? `${n} متاجر` : `${n} متجراً`);
@@ -36,16 +38,17 @@ const CAT_ORDER = Object.keys(CATEGORY_META);
 const catRank = (name: string) => { const i = CAT_ORDER.indexOf(name); return i < 0 ? 99 : i; };
 
 export default async function HomePage() {
-  const [show, latestNews, componentsCount, storesCount, categories, minPrices] = await Promise.all([
+  const [show, latestNews, componentsCount, lastRead, categories, minPrices] = await Promise.all([
     homeShowcase(),
     prisma.news.findMany({ take: 4, orderBy: { createdAt: 'desc' } }),
     prisma.component.count(),
-    prisma.store.count({ where: { active: true } }),
+    prisma.componentOffer.aggregate({ _max: { lastCheckedAt: true } }),
     prisma.category.findMany({ where: HAS_PARTS, include: { _count: { select: { components: true } } } }),
     prisma.component.groupBy({ by: ['categoryId'], where: { price: { gt: 0 } }, _min: { price: true } }),
   ]);
   const minByCat = new Map(minPrices.map((m) => [m.categoryId, m._min.price ?? 0]));
   const tiles = [...categories].sort((a, b) => catRank(a.name) - catRank(b.name));
+  const storesCount = show.stores.length;
 
   /* مقتطفٌ يُقصّ في الخادم (~١٦٠ حرفاً) — كانت البطاقة تحمل المقال كاملاً داخل الرابط
      ويُخفيه line-clamp وحده، فيقرأ الزاحف رابطاً بـ١٨٠٠ حرف (مراجعة أدسنس 2026-10-15) */
@@ -71,18 +74,22 @@ export default async function HomePage() {
     <div className="relative min-h-screen text-slate-900 dark:text-slate-100 transition-colors pb-16 font-sans selection:bg-cyan-500/20">
       <div className="relative z-10">
 
-        <div className="max-w-7xl mx-auto px-4 pt-6 xl:pt-7 flex flex-col gap-14">
+        <div className="max-w-7xl mx-auto px-4 pt-4 xl:pt-6 flex flex-col gap-20 lg:gap-28">
+          {/* ===== 1. الرأس — الشعار والمتاجر حوله ===== */}
+          <HomeCrown stores={show.stores} partsCount={componentsCount} livePrices={show.livePrices} updatedAgo={timeAgoAr(lastRead._max.lastCheckedAt)} />
 
-          {/* ===== 1. الرأس — اللوحة الأمّ والشعار في المقبس ===== */}
-          <HomeBoardHero show={show} partsCount={componentsCount} storesCount={storesCount} />
+          {/* ===== 2. قل لنا وش بتسوي — تجميعةٌ حقيقيّة تتبدّل ===== */}
+          <HomePlanner planner={show.planner} stores={show.stores} />
 
-          {/* ===== 2. تفاصيل اللوحة — الأمثلة الثلاثة كاملة ===== */}
-          <HomeBoardDetails show={show} />
+          {/* ===== 3. فرق المتاجر ===== */}
+          <HomeSpread spread={show.spread} />
+        </div>
 
-          {/* ===== 3. التجميعات الجاهزة الستّ ===== */}
+        <div className="max-w-7xl mx-auto px-4 mt-20 lg:mt-24 flex flex-col gap-14">
+          {/* ===== 4. التجميعات الجاهزة الستّ ===== */}
           <HomePrebuilds show={show} />
 
-          {/* ===== 4. تصفّح بالفئة — بأعدادها وأرخص سعر ===== */}
+          {/* ===== 5. تصفّح بالفئة — بأعدادها وأرخص سعر ===== */}
           <section className="flex flex-col gap-3.5">
             <div className="flex items-end justify-between gap-3 flex-wrap">
               <div>
@@ -116,13 +123,13 @@ export default async function HomePage() {
 
         </div>
 
-        {/* ===== 5. التخفيضات — قسمها كامل العرض ===== */}
+        {/* ===== 6. التخفيضات — قسمها كامل العرض ===== */}
         <div className="mt-4">
           <PriceDropsSection />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 flex flex-col gap-10">
-          {/* ===== 6. أحدث المقالات ===== */}
+          {/* ===== 7. أحدث المقالات ===== */}
           <section className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3">
               <Heading>أحدث المقالات</Heading>

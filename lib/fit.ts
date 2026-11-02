@@ -152,7 +152,7 @@ const num = (v: unknown): number | null => {
 };
 
 /** أكبر رادييتر يقبله الكيس. «2x 360mm» تعني فتحتين بمقاس ٣٦٠ لا رادييتر ٧٢٠ */
-const maxRadiator = (support: unknown): number | null => {
+export const maxRadiator = (support: unknown): number | null => {
   const s = String(support ?? '');
   const all = [...s.matchAll(/(\d{2,3})\s*mm/gi)].map((m) => Number(m[1]));
   return all.length ? Math.max(...all) : num(s);
