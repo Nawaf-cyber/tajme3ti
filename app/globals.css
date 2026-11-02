@@ -3,8 +3,12 @@
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
 }
+/* ⚠️ منعُ التمرير الأفقيّ على html وحده. على body صار clip لا hidden (2026-10-30): hidden
+   يجعل body حاويةَ تمرير (overflow-y يصير auto)، فيتعطّل position: sticky في الموقع كلّه
+   بصمت — عمود المقال الجانبيّ وكلّ «لاصقٍ» كان يمرّ مع الصفحة. clip يقصّ بلا حاوية. */
+html { overflow-x: hidden; }
+body { overflow-x: clip; }
 /* ===== حركات الطابع العصري (Gaming/Tech) ===== */
 
 @keyframes fade-up {

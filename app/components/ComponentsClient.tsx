@@ -214,7 +214,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
     <div className="flex flex-col lg:flex-row gap-8">
       
       {/* قسم الفلاتر (الجانبي) */}
-      <div className="w-full lg:w-72 shrink-0 h-fit lg:sticky lg:top-6">
+      <div className="w-full lg:w-72 shrink-0 h-fit lg:sticky lg:top-20">
         {/* اللوحة نفسها التي تحمل البطاقات: حدٌّ سماويّ علويّ واستدارة ٤
             بكسل. كانت rounded-3xl بلا حدٍّ علويّ — صندوقٌ من صفحة أخرى
             يجاور بطاقاتٍ لغتها غيره. */}
