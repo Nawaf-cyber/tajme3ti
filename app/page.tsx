@@ -94,9 +94,9 @@ export default async function HomePage() {
                     >
                       <b className="text-[14px] font-extrabold text-slate-800 dark:text-slate-200">{catMeta(cat.name).label}</b>
                       <span className="font-mono text-[22px] font-black leading-none text-slate-900 dark:text-white tabular-nums" dir="ltr">
-                        {cat._count.components}<small className="ms-1 text-[11px] font-bold text-slate-500 dark:text-slate-500 font-sans">قطعة</small>
+                        {cat._count.components}<small className="ms-1 text-[12px] font-bold text-slate-500 dark:text-slate-400 font-sans">قطعة</small>
                       </span>
-                      <span className="text-[11.5px] font-bold text-slate-500 dark:text-slate-500">{hint}</span>
+                      <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400">{hint}</span>
                     </Link>
                   );
                 })}
@@ -148,7 +148,7 @@ export default async function HomePage() {
                       className={`group flex flex-col justify-between gap-2.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm p-5 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300 ${big ? 'lg:col-span-2 lg:row-span-2' : i === 3 ? 'lg:col-span-2' : ''}`}
                     >
                       <span>
-                        <span className="inline-block text-[11px] font-extrabold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 border border-transparent dark:border-cyan-500/20 px-2.5 py-1 rounded-sm">
+                        <span className="inline-block text-[12px] font-extrabold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 border border-transparent dark:border-cyan-500/20 px-2.5 py-1 rounded-sm">
                           {longDateAr(n.createdAt)}{n.category ? ` · ${n.category}` : ''}
                         </span>
                         <h3 className={`${big ? 'text-2xl mt-3' : 'text-[15px] mt-2.5'} font-black text-slate-900 dark:text-white leading-[1.5] line-clamp-3 group-hover:text-cyan-700 dark:group-hover:text-cyan-400 transition-colors`}>

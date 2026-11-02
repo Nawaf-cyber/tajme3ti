@@ -83,6 +83,24 @@ export default function HomePlanner({ planner, stores }: { planner: Planner; sto
   const [res, setRes] = useState<(typeof PLAN_RES)[number]>('1440p');
   const [tier, setTier] = useState<Tier>('balanced');
   const [moved, setMoved] = useState(false);
+  /* شريط الجوال: يظهر والأداة في الشاشة والخلاصة لم تصل بعد — كان المجموع وزرّ الباني
+     تحت القطع الثمان، قرابة ٨٠٠px تحت الاختيار */
+  const sectionRef = useRef<HTMLElement>(null);
+  const asideRef = useRef<HTMLElement>(null);
+  const [seen, setSeen] = useState({ section: false, aside: false });
+  useEffect(() => {
+    const sec = sectionRef.current, side = asideRef.current;
+    if (!sec || !side || typeof IntersectionObserver === 'undefined') return;
+    const watch = (el: Element, key: 'section' | 'aside', rootMargin: string) => {
+      const io = new IntersectionObserver(([e]) => setSeen((v) => (v[key] === e.isIntersecting ? v : { ...v, [key]: e.isIntersecting })), { rootMargin });
+      io.observe(el);
+      return io;
+    };
+    /* الأداة «في الشاشة» حين يتجاوز أعلاها ٦٠٪ من ارتفاعها */
+    const a = watch(sec, 'section', '0px 0px -40% 0px');
+    const b = watch(side, 'aside', '0px');
+    return () => { a.disconnect(); b.disconnect(); };
+  }, []);
 
   const u = uses.find((x) => x.key === use) ?? uses[0];
   const list = u ? plans[planKey(u.key, u.res ? res : null)] ?? [] : [];
@@ -94,6 +112,8 @@ export default function HomePlanner({ planner, stores }: { planner: Planner; sto
   if (!u || !plan) return null;
 
   const pick = (fn: () => void) => { fn(); setMoved(true); };
+  const showBar = seen.section && !seen.aside;
+  const tierLabel = TIERS.find((t) => t.key === plan.key)?.label;
 
   /* المجموع موزّعاً على المتاجر */
   const byStore = new Map<number, number>();
@@ -109,7 +129,7 @@ export default function HomePlanner({ planner, stores }: { planner: Planner; sto
       : 'border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-[#0F172A]/80 text-slate-700 dark:text-slate-300 hover:border-cyan-500/60 hover:text-cyan-700 dark:hover:text-cyan-300'}`;
 
   return (
-    <section id="planner" className="scroll-mt-24 flex flex-col gap-6">
+    <section ref={sectionRef} id="planner" className="scroll-mt-24 flex flex-col gap-6">
       <header className="flex flex-col items-center text-center gap-2.5">
         <h2 className="text-[27px] sm:text-[40px] leading-tight font-black tracking-tight text-slate-900 dark:text-white">
           قل لنا وش بتسوي، ونجمّعها لك الحين
@@ -221,7 +241,7 @@ export default function HomePlanner({ planner, stores }: { planner: Planner; sto
         </div>
 
         {/* ---- الخلاصة ---- */}
-        <aside className="flex flex-col gap-5 border-t lg:border-t-0 lg:border-s border-slate-200 dark:border-slate-800 p-5 sm:p-6">
+        <aside ref={asideRef} className="flex flex-col gap-5 border-t lg:border-t-0 lg:border-s border-slate-200 dark:border-slate-800 p-5 sm:p-6">
           <div>
             <span className="text-[13px] font-extrabold text-slate-500 dark:text-slate-400">المجموع اليوم</span>
             <p className="font-mono text-[44px] leading-none mt-1.5 font-black text-emerald-600 dark:text-emerald-400 tabular-nums" dir="ltr">
@@ -280,7 +300,7 @@ export default function HomePlanner({ planner, stores }: { planner: Planner; sto
             <p className="border-t border-dashed border-slate-300 dark:border-slate-700 pt-4 text-[13.5px] font-bold leading-relaxed text-slate-600 dark:text-slate-400">{u.reason}.</p>
           )}
 
-          <div className="mt-auto flex flex-col gap-2">
+          <div className="flex flex-col gap-2 pt-1">
             <p className={`text-[13px] font-extrabold ${plan.issues ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
               {plan.issues ? `فيها ${plan.issues === 1 ? 'ملاحظة' : `${plan.issues} ملاحظات`} تشوفها في الباني` : '✓ كل القطع متوافقة مع بعض'}
             </p>
@@ -292,6 +312,32 @@ export default function HomePlanner({ planner, stores }: { planner: Planner; sto
             </Link>
           </div>
         </aside>
+      </div>
+
+      {/* ---- شريط الجوال: المجموع والزرّ تحت الإبهام ---- */}
+      <div
+        inert={!showBar}
+        className={`lg:hidden fixed inset-x-0 bottom-0 z-40 transition-transform duration-300 ease-out ${showBar ? 'translate-y-0' : 'translate-y-full'}`}
+      >
+        <div
+          className="flex items-center gap-3 border-t-2 border-cyan-500 bg-white/95 dark:bg-[#0B1120]/95 backdrop-blur-md px-4 pt-2.5 shadow-[0_-8px_24px_rgba(2,6,23,0.18)]"
+          style={{ paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom))' }}
+        >
+          <div className="min-w-0">
+            <span className="block truncate text-[12px] font-extrabold text-slate-500 dark:text-slate-400">
+              {u.label} · {tierLabel}{u.res ? <> · <bdi className="font-mono">{res}</bdi></> : null}
+            </span>
+            <span className="font-mono text-[22px] leading-tight font-black text-emerald-600 dark:text-emerald-400 tabular-nums" dir="ltr">
+              {formatTotal(total)}<RiyalSign />
+            </span>
+          </div>
+          <Link
+            href={planHref(plan.parts)}
+            className="ms-auto shrink-0 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-[14px] font-bold text-white shadow-md shadow-cyan-500/25"
+          >
+            افتحها في الباني
+          </Link>
+        </div>
       </div>
     </section>
   );
