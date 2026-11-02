@@ -405,9 +405,13 @@ html[data-theme-fading] *::after {
   -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(50% - 720px), rgb(0 0 0 / 0.35) calc(50% - 630px), rgb(0 0 0 / 0.35) calc(50% + 630px), #000 calc(50% + 720px), #000 100%);
   mask-image: linear-gradient(90deg, #000 0, #000 calc(50% - 720px), rgb(0 0 0 / 0.35) calc(50% - 630px), rgb(0 0 0 / 0.35) calc(50% + 630px), #000 calc(50% + 720px), #000 100%);
 }
-/* ---- مخطّط القطع (BlueprintParts): خطوطٌ باهتة، ومضيئةٌ داخل المصباح ---- */
+/* ---- مخطّط القطع (BlueprintParts): خطوطٌ باهتة، ومضيئةٌ داخل المصباح.
+   سميكٌ للمحيط (bp-line) ورفيعٌ للتفاصيل والأبعاد (bp-thin)، كالرسم الهندسيّ ---- */
 .bp-line { fill: none; stroke: #A8CCE4; stroke-opacity: 0.4; stroke-width: 1.3; }
+.bp-thin { fill: none; stroke: #A8CCE4; stroke-opacity: 0.26; stroke-width: 0.85; }
 .bp-fill { fill: #A8CCE4; fill-opacity: 0.32; }
+.bp-pat { fill: #A8CCE4; fill-opacity: 0.3; }
+.bp-pat-s { fill: none; stroke: #A8CCE4; stroke-opacity: 0.22; stroke-width: 0.8; }
 .bp-parts use {
   fill: #A8CCE4;
   fill-opacity: 0.7;
@@ -415,11 +419,19 @@ html[data-theme-fading] *::after {
   font: 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   letter-spacing: 0.04em;
 }
+.bp-parts use.bp-big { font-size: 14px; font-weight: 700; letter-spacing: 0.12em; }
 .bp-parts--lit .bp-line { stroke-opacity: 0.85; }
-.bp-parts--lit .bp-fill { fill-opacity: 0.75; }
+.bp-parts--lit .bp-thin { stroke-opacity: 0.6; }
+.bp-parts--lit :is(.bp-fill, .bp-pat) { fill-opacity: 0.75; }
+.bp-parts--lit .bp-pat-s { stroke-opacity: 0.55; }
 .bp-parts--lit use { fill-opacity: 1; }
-/* الهامش دون ١٢٨px لا يُظهر من القطعة إلّا شريطاً — فلا مخطّط تحت 1536 */
-@media (max-width: 1535px) {
+/* لوحتان بعرض الهامش نفسه (عمود المحتوى 1280 · حافّتاه ±640، والرسم من ±664)،
+   فتصغر مع الشاشة ولا تُقصّ؛ وارتفاعهما من viewBox */
+.bp-side { position: absolute; top: 132px; height: auto; overflow: visible; }
+.bp-side--l { right: calc(50% + 664px); width: min(660px, calc(50% - 680px)); }
+.bp-side--r { left: calc(50% + 664px); width: min(660px, calc(50% - 680px)); }
+/* هامشٌ دون ١٨٠px يصغّر اللوحة الأمّ إلى أيقونة — فلا مخطّط تحت 1720 */
+@media (max-width: 1719px) {
   .bp-parts { display: none; }
 }
 /* ---- حركة المخطّط: تُخطّ القطع مرّةً عند التحميل (pathLength=1 لكلّ شكل،
@@ -427,13 +439,14 @@ html[data-theme-fading] *::after {
    ثمّ تدور حلقات المراوح ببطء (--spin)، وتجري نبضةٌ سماويّة على محيط اللوحة
    والكرت وأنابيب المبرّد (--pulse دورة، --pd بدء). نسخة المصباح (lit) ساكنة بلا
    حلقاتٍ ولا نبضات: صندوقه مركّب (will-change) وحركةٌ داخله تُعيد رسمه كلّ إطار. ---- */
-.bp-parts:not(.bp-parts--lit) .bp-line :is(rect, circle, path):not(.bp-spin):not(.bp-dash) {
+.bp-parts:not(.bp-parts--lit) :is(.bp-line, .bp-thin) :is(rect, circle, path, line):not(.bp-spin):not(.bp-dash),
+.bp-parts:not(.bp-parts--lit) :is(rect, circle, path, line):is(.bp-line, .bp-thin):not(.bp-dash) {
   stroke-dasharray: 1.01 1;
   stroke-dashoffset: 1.01;
   animation: bp-draw 2.2s cubic-bezier(0.45, 0, 0.25, 1) forwards;
   animation-delay: var(--d, 0s);
 }
-.bp-parts:not(.bp-parts--lit) :is(.bp-fill, .bp-dash, use) {
+.bp-parts:not(.bp-parts--lit) :is(.bp-fill, .bp-dash, .bp-patfill, use) {
   opacity: 0;
   animation: bp-fade 0.8s ease forwards;
   animation-delay: calc(var(--d, 0s) + 1.4s);
@@ -481,8 +494,8 @@ html[data-theme-fading] *::after {
 }
 @media (prefers-reduced-motion: reduce) {
   .bp-parts * { animation: none !important; }
-  .bp-parts .bp-line :is(rect, circle, path) { stroke-dashoffset: 0; }
-  .bp-parts :is(.bp-fill, .bp-dash, .bp-spin, use) { opacity: 1; }
+  .bp-parts :is(.bp-line, .bp-thin) :is(rect, circle, path, line), .bp-parts :is(.bp-line, .bp-thin) { stroke-dashoffset: 0; }
+  .bp-parts :is(.bp-fill, .bp-dash, .bp-patfill, .bp-spin, use) { opacity: 1; }
   .bp-pulse { display: none; }
 }
 

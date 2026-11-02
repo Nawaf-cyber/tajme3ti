@@ -104,9 +104,10 @@ export default function PCBBackground() {
         <rect width="100%" height="100%" fill="url(#dotMinor)" />
         <rect width="100%" height="100%" fill="url(#dotMajor)" />
       </svg>
-      <svg className="absolute inset-0 w-full h-full hidden dark:block" aria-hidden="true">
+      {/* لوحتا القطع: عنصرا svg بموضعٍ من CSS (globals.css · .bp-side) لا داخل svg */}
+      <div className="absolute inset-0 hidden dark:block">
         <BlueprintParts />
-      </svg>
+      </div>
 
       {/* ===== التوهّج — ليليٌّ فقط؛ الورق لا يتوهّج. واحدٌ بعرض العمود فوقه ===== */}
       <div className="hidden dark:block absolute top-10 left-1/2 -translate-x-1/2 w-[1280px] max-w-full h-[380px] bg-cyan-500/12 rounded-full blur-[120px] animate-pulse-slow"></div>

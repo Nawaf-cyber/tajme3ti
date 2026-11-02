@@ -15,5 +15,20 @@
   <text id="bp-ram" direction="ltr">DDR5 · 288 pin</text>
   <text id="bp-m2" direction="ltr">M.2 2280</text>
   <text id="bp-fan" direction="ltr">FAN · Ø140</text>
-  <text id="bp-aio" direction="ltr">AIO · 360 mm</text>
+  <text id="bp-aio" direction="ltr">AIO · 360 mm · 1:2</text>
+  <!-- الجولة الثانية (2026-11-02): أرقام خطوط الأبعاد وتفصيلة المقبس ومربّع العنوان.
+       الأرقام في منتصف فجوة الخطّ (middle + central) -->
+  <text id="bp-d305" text-anchor="middle" dominant-baseline="central" direction="ltr">305</text>
+  <text id="bp-d244" text-anchor="middle" dominant-baseline="central" direction="ltr">244</text>
+  <text id="bp-d140" text-anchor="middle" dominant-baseline="central" direction="ltr">Ø140</text>
+  <text id="bp-d304" text-anchor="middle" dominant-baseline="central" direction="ltr">304</text>
+  <text id="bp-d150" text-anchor="middle" dominant-baseline="central" direction="ltr">150</text>
+  <text id="bp-d133" text-anchor="middle" dominant-baseline="central" direction="ltr">133.35</text>
+  <text id="bp-d80" text-anchor="middle" dominant-baseline="central" direction="ltr">80</text>
+  <text id="bp-a" text-anchor="middle" dominant-baseline="central" direction="ltr">A</text>
+  <text id="bp-det-a" text-anchor="middle" direction="ltr">DETAIL A · SOCKET · 2:1</text>
+  <text id="bp-tb1" text-anchor="middle" dominant-baseline="central" direction="ltr">TAJME3TI</text>
+  <text id="bp-tb2" text-anchor="middle" dominant-baseline="central" direction="ltr">TOP VIEW</text>
+  <text id="bp-tb3" text-anchor="middle" dominant-baseline="central" direction="ltr">1:1 mm</text>
+  <text id="bp-tb4" text-anchor="middle" dominant-baseline="central" direction="ltr">SHEET 1/1</text>
 </svg>

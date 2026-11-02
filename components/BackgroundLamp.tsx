@@ -100,8 +100,10 @@ export default function BackgroundLamp() {
           </defs>
           <rect width="100%" height="100%" fill="url(#lampDotMinor)" />
           <rect width="100%" height="100%" fill="url(#lampDotMajor)" />
-          <BlueprintParts lit />
         </svg>
+        <div className="absolute inset-0 hidden dark:block">
+          <BlueprintParts lit />
+        </div>
       </div>
     </div>
   );
