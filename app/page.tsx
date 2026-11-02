@@ -27,11 +27,8 @@ export const dynamic = 'force-dynamic';
  * وحوله منقلةٌ عليها المتاجر السبع تصبّ أسعارها فيه (components/HomeCrown)، ثمّ
  * الشيء الحيّ: «قل لنا وش بتسوي» يبدّل تجميعةً حقيقيّة فوراً (HomePlanner)، ثمّ
  * لماذا الموقع: فرق المتاجر على الكتالوج كلّه (HomeSpread)، فالتجميعات الجاهزة،
- * فالفئات بأعدادها، فالتخفيضات، فالمقالات. الحساب الثقيل في lib/home-showcase
- * (مخزّن عشر دقائق)؛ و«محدّثة قبل…» والأعداد هنا لحظيّة. */
-
-/* «متجر واحد» · «متجرين» · «3 متاجر» */
-const storesAr = (n: number) => (n === 1 ? 'متجر واحد' : n === 2 ? 'متجرين' : n <= 10 ? `${n} متاجر` : `${n} متجراً`);
+ * فالتخفيضات، فالمقالات. والفئات بأعدادها تحت الرأس مباشرة. الحساب الثقيل في
+ * lib/home-showcase (مخزّن عشر دقائق)؛ و«محدّثة قبل…» والأعداد هنا لحظيّة. */
 
 /* ترتيب بلاطات الفئات: كما في lib/category-meta، وما لم يُسجَّل بعدها */
 const CAT_ORDER = Object.keys(CATEGORY_META);
@@ -48,7 +45,6 @@ export default async function HomePage() {
   ]);
   const minByCat = new Map(minPrices.map((m) => [m.categoryId, m._min.price ?? 0]));
   const tiles = [...categories].sort((a, b) => catRank(a.name) - catRank(b.name));
-  const storesCount = show.stores.length;
 
   /* مقتطفٌ يُقصّ في الخادم (~١٦٠ حرفاً) — كانت البطاقة تحمل المقال كاملاً داخل الرابط
      ويُخفيه line-clamp وحده، فيقرأ الزاحف رابطاً بـ١٨٠٠ حرف (مراجعة أدسنس 2026-10-15) */
@@ -75,51 +71,49 @@ export default async function HomePage() {
       <div className="relative z-10">
 
         <div className="max-w-7xl mx-auto px-4 pt-4 xl:pt-6 flex flex-col gap-20 lg:gap-28">
-          {/* ===== 1. الرأس — الشعار والمتاجر حوله ===== */}
-          <HomeCrown stores={show.stores} partsCount={componentsCount} livePrices={show.livePrices} updatedAgo={timeAgoAr(lastRead._max.lastCheckedAt)} />
+          <div className="flex flex-col gap-12 lg:gap-14">
+            {/* ===== 1. الرأس — الشعار والمتاجر حوله ===== */}
+            <HomeCrown stores={show.stores} partsCount={componentsCount} livePrices={show.livePrices} updatedAgo={timeAgoAr(lastRead._max.lastCheckedAt)} />
 
-          {/* ===== 2. قل لنا وش بتسوي — تجميعةٌ حقيقيّة تتبدّل ===== */}
+            {/* ===== 2. تصفّح بالفئة — تحت الرأس مباشرة (طلب نوّاف 2026-11-02: «ارفع الفئات الى هنا»)؛
+                  بلا سطر الأعداد: شريط الرأس فوقها يقوله ===== */}
+            <section className="flex flex-col gap-3.5">
+              <div className="flex items-end justify-between gap-3 flex-wrap">
+                <Heading>تصفّح بالفئة</Heading>
+                <More href="/components">كل القطع</More>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                {tiles.map((cat) => {
+                  const min = minByCat.get(cat.id) ?? 0;
+                  const hint = cat.name === 'RAM' ? 'DDR4 وDDR5' : cat.name === 'Storage' ? 'NVMe وSATA' : min > 0 ? `من ${formatPrice(min)} ريال` : '';
+                  return (
+                    <Link
+                      key={cat.id}
+                      href={`/components?cat=${encodeURIComponent(cat.name)}`}
+                      className="group relative overflow-hidden flex flex-col gap-1.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-[#0F172A]/60 px-3.5 pt-3.5 pb-3 hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-[inset_0_2px_0_rgba(6,182,212,0.7)] transition-all"
+                    >
+                      <b className="text-[14px] font-extrabold text-slate-800 dark:text-slate-200">{catMeta(cat.name).label}</b>
+                      <span className="font-mono text-[22px] font-black leading-none text-slate-900 dark:text-white tabular-nums" dir="ltr">
+                        {cat._count.components}<small className="ms-1 text-[11px] font-bold text-slate-500 dark:text-slate-500 font-sans">قطعة</small>
+                      </span>
+                      <span className="text-[11.5px] font-bold text-slate-500 dark:text-slate-500">{hint}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+
+          {/* ===== 3. قل لنا وش بتسوي — تجميعةٌ حقيقيّة تتبدّل ===== */}
           <HomePlanner planner={show.planner} stores={show.stores} />
 
-          {/* ===== 3. فرق المتاجر ===== */}
+          {/* ===== 4. فرق المتاجر ===== */}
           <HomeSpread spread={show.spread} />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 mt-20 lg:mt-24 flex flex-col gap-14">
-          {/* ===== 4. التجميعات الجاهزة الستّ ===== */}
+          {/* ===== 5. التجميعات الجاهزة الستّ ===== */}
           <HomePrebuilds show={show} />
-
-          {/* ===== 5. تصفّح بالفئة — بأعدادها وأرخص سعر ===== */}
-          <section className="flex flex-col gap-3.5">
-            <div className="flex items-end justify-between gap-3 flex-wrap">
-              <div>
-                <Heading>تصفّح بالفئة</Heading>
-                <p className="mt-1.5 ms-4 text-[11.5px] font-bold text-slate-500 dark:text-slate-400">
-                  {componentsCount} قطعة من {storesAr(storesCount)} سعودية · الأسعار تتحدّث آلياً عدّة مرّات يومياً
-                </p>
-              </div>
-              <More href="/components">كل القطع</More>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
-              {tiles.map((cat) => {
-                const min = minByCat.get(cat.id) ?? 0;
-                const hint = cat.name === 'RAM' ? 'DDR4 وDDR5' : cat.name === 'Storage' ? 'NVMe وSATA' : min > 0 ? `من ${formatPrice(min)} ريال` : '';
-                return (
-                  <Link
-                    key={cat.id}
-                    href={`/components?cat=${encodeURIComponent(cat.name)}`}
-                    className="group relative overflow-hidden flex flex-col gap-1.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-[#0F172A]/60 px-3.5 pt-3.5 pb-3 hover:border-cyan-400/60 dark:hover:border-cyan-500/50 hover:shadow-[inset_0_2px_0_rgba(6,182,212,0.7)] transition-all"
-                  >
-                    <b className="text-[14px] font-extrabold text-slate-800 dark:text-slate-200">{catMeta(cat.name).label}</b>
-                    <span className="font-mono text-[22px] font-black leading-none text-slate-900 dark:text-white tabular-nums" dir="ltr">
-                      {cat._count.components}<small className="ms-1 text-[11px] font-bold text-slate-500 dark:text-slate-500 font-sans">قطعة</small>
-                    </span>
-                    <span className="text-[11.5px] font-bold text-slate-500 dark:text-slate-500">{hint}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
 
         </div>
 
