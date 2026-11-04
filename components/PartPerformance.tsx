@@ -43,9 +43,29 @@ export default function PartPerformance({ category, name, specs }: { category?: 
             ))}
           </div>
           <p className="mt-3 text-[13px] font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{feelLine(p)}</p>
-          <p className="mt-2 text-[12px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
+          {/* مع تتبّع الأشعة: الترتيب قد ينقلب فيه (RX 9070 أسرع من RTX 5070 بدونه وأبطأ معه)،
+              والأرقام العادية وحدها توعد اللاعب بضعف ما سيراه — الوصف بالحدود نفسها */}
+          {p.rt && (
+            <div className="mt-4 border-t border-slate-200 dark:border-slate-800 pt-3">
+              <p className="mb-2 text-[13px] font-black text-slate-800 dark:text-slate-200">
+                مع تتبّع الأشعة
+                <span className="font-semibold text-[12px] text-slate-500 dark:text-slate-400"> · لو شغّلته في الألعاب اللي تدعمه</span>
+              </p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {([['1080p', p.rt.f1080], ['1440p', p.rt.f1440], ['4K', p.rt.f4k]] as [string, number][]).map(([res, fps]) => (
+                  <div key={res} className="rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 py-2">
+                    <div className="text-xl font-black text-slate-900 dark:text-white font-mono">{Math.round(fps)}</div>
+                    <div className="text-[12px] font-bold text-slate-500 dark:text-slate-400" dir="ltr">{res}</div>
+                    <span className={`inline-block mt-1 px-1.5 py-0.5 rounded-sm text-[11px] font-black ${FEEL_CLS[feel(fps)]}`}>{feel(fps)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="mt-3 text-[12px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
             متوسّط الإطارات لشريحة {p.chip} في اختبارات{' '}
             <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a>
+            {p.rt ? '، بدون تتبّع الأشعة ومعه' : ''}
             {' '}— يختلف باللعبة والمعالج. «مريح» 60 إطاراً فأكثر، و«مقبول» 45–60.
           </p>
         </Panel>
