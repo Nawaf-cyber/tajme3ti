@@ -65,7 +65,7 @@ export default function PartPerformance({ category, name, specs }: { category?: 
           <p className="mt-3 text-[12px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
             متوسّط الإطارات لشريحة {p.chip} في اختبارات{' '}
             <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a>
-            {p.rt ? '، بدون تتبّع الأشعة ومعه' : ''}
+            {p.rt ? '، كلها بدون DLSS أو FSR' : '، بدون DLSS أو FSR'}
             {' '}— يختلف باللعبة والمعالج. «مريح» 60 إطاراً فأكثر، و«مقبول» 45–60.
           </p>
         </Panel>

@@ -393,8 +393,9 @@ export default function CompareBuildsClient() {
                             <th scope="row" className={TH}>
                               الألعاب
                               <span className="block mt-0.5 text-[12px] font-normal text-slate-500 dark:text-slate-400 leading-relaxed">
-                                متوسّط الإطارات ·{' '}
-                                <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a>
+                                متوسّط الإطارات بدون DLSS أو FSR ·{' '}
+                                {/* bdi: بلاه يلتصق «FSR · Tom's Hardware» في سطرٍ لاتينيّ واحد فيُقرأ «أو Tom's Hardware» */}
+                                <bdi><a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a></bdi>
                               </span>
                             </th>
                             {analyses.map((a, i) => (

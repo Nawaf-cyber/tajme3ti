@@ -48,7 +48,7 @@ export default function GamePerformance({ gpu, cpu }: { gpu: PartLike; cpu?: Par
       <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-slate-200 dark:border-slate-700/50">
         <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">⚡ أداء الكرت في الألعاب</h4>
         <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-          متوسّط الإطارات في ألعاب حديثة بإعدادات عالية — مقيس، مو تقدير
+          متوسّط الإطارات في ألعاب حديثة بإعدادات عالية بدون DLSS أو FSR — مقيس، مو تقدير
         </p>
       </div>
 
