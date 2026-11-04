@@ -49,7 +49,7 @@ export default function PartPerformance({ category, name, specs }: { category?: 
             <div className="mt-4 border-t border-slate-200 dark:border-slate-800 pt-3">
               <p className="mb-2 text-[13px] font-black text-slate-800 dark:text-slate-200">
                 مع تتبّع الأشعة
-                <span className="font-semibold text-[12px] text-slate-500 dark:text-slate-400"> · لو شغّلته في الألعاب اللي تدعمه</span>
+                <span className="font-semibold text-[12px] text-slate-500 dark:text-slate-400"> · بدون DLSS أو FSR</span>
               </p>
               <div className="grid grid-cols-3 gap-2 text-center">
                 {([['1080p', p.rt.f1080], ['1440p', p.rt.f1440], ['4K', p.rt.f4k]] as [string, number][]).map(([res, fps]) => (
