@@ -53,19 +53,40 @@ export default function GamePerformance({ gpu, cpu }: { gpu: PartLike; cpu?: Par
       </div>
 
       {p ? (
-        <div className="grid grid-cols-3 gap-2 p-3">
-          {rows.map(([res, fps]) => (
-            <div
-              key={res}
-              className={`rounded-sm border py-3 text-center ${res === best ? 'border-cyan-500/60 bg-cyan-500/[0.05]' : 'border-slate-200 dark:border-slate-700/60'}`}
-            >
-              <div className="text-[12px] font-black text-slate-500 dark:text-slate-400" dir="ltr">{res}{res === best && ' ★'}</div>
-              <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-0.5">{Math.round(fps)}</div>
-              <div className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">إطار</div>
-              <span className={`inline-block mt-1.5 px-1.5 py-0.5 rounded-sm text-[11px] font-black ${FEEL_CLS[feel(fps)]}`}>{feel(fps)}</span>
+        <>
+          <div className="grid grid-cols-3 gap-2 p-3">
+            {rows.map(([res, fps]) => (
+              <div
+                key={res}
+                className={`rounded-sm border py-3 text-center ${res === best ? 'border-cyan-500/60 bg-cyan-500/[0.05]' : 'border-slate-200 dark:border-slate-700/60'}`}
+              >
+                <div className="text-[12px] font-black text-slate-500 dark:text-slate-400" dir="ltr">{res}{res === best && ' ★'}</div>
+                <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-0.5">{Math.round(fps)}</div>
+                <div className="text-[11.5px] font-bold text-slate-500 dark:text-slate-400">إطار</div>
+                <span className={`inline-block mt-1.5 px-1.5 py-0.5 rounded-sm text-[11px] font-black ${FEEL_CLS[feel(fps)]}`}>{feel(fps)}</span>
+              </div>
+            ))}
+          </div>
+          {/* مع تتبّع الأشعة — كما في صفحة الكرت (components/PartPerformance): الأرقام العادية
+              وحدها توعد من يشغّله بضعف ما سيراه. والنجمة للعادية وحدها. */}
+          {p.rt && (
+            <div className="mx-3 mb-3 border-t border-slate-100 dark:border-slate-700/50 pt-2.5">
+              <p className="mb-2 text-[12.5px] font-black text-slate-700 dark:text-slate-300">
+                مع تتبّع الأشعة
+                <span className="font-semibold text-[12px] text-slate-500 dark:text-slate-400"> · بدون DLSS أو FSR</span>
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {([['1080p', p.rt.f1080], ['1440p', p.rt.f1440], ['4K', p.rt.f4k]] as [string, number][]).map(([res, fps]) => (
+                  <div key={res} className="rounded-sm border border-slate-200 dark:border-slate-700/60 py-2 text-center">
+                    <div className="text-[12px] font-black text-slate-500 dark:text-slate-400" dir="ltr">{res}</div>
+                    <div className="text-xl font-black text-slate-900 dark:text-white font-mono">{Math.round(fps)}</div>
+                    <span className={`inline-block mt-1 px-1.5 py-0.5 rounded-sm text-[11px] font-black ${FEEL_CLS[feel(fps)]}`}>{feel(fps)}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       ) : (
         <p className="p-4 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
           ما لقينا قياساً منشوراً لهذا الكرت — فما نعرض أرقام فريمات بالتخمين.

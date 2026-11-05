@@ -395,12 +395,32 @@ export default function CompareBuildsClient() {
                               <span className="block mt-0.5 text-[12px] font-normal text-slate-500 dark:text-slate-400 leading-relaxed">
                                 متوسّط الإطارات بدون DLSS أو FSR ·{' '}
                                 {/* bdi: بلاه يلتصق «FSR · Tom's Hardware» في سطرٍ لاتينيّ واحد فيُقرأ «أو Tom's Hardware» */}
-                                <bdi><a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a></bdi>
+                                <bdi><a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a></bdi>
                               </span>
                             </th>
                             {analyses.map((a, i) => (
                               <td key={i} className={TD}>
                                 <GamingCell a={a} star={bi.has(i)} res={res} />
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })()}
+
+                      {/* مع تتبّع الأشعة — بالدقّة المختارة نفسها؛ الترتيب قد ينقلب فالنجمة لهذا الصفّ وحده،
+                          والحكم يبقى على الصفّ السابق. وبلونه: الصفّان مجموعةٌ واحدة */}
+                      {analyses.some((a) => a.gpuPerf?.rt) && (() => {
+                        const vals = analyses.map((a) => rtAt(a, res));
+                        const bi = bestIdx(vals, 'higher');
+                        return (
+                          <tr className="bg-cyan-500/[0.03]">
+                            <th scope="row" className={TH}>
+                              مع تتبّع الأشعة
+                              <span className="block mt-0.5 text-[12px] font-normal text-slate-500 dark:text-slate-400 leading-relaxed">بدون DLSS أو FSR</span>
+                            </th>
+                            {analyses.map((a, i) => (
+                              <td key={i} className={TD}>
+                                <RtCell a={a} star={bi.has(i)} res={res} />
                               </td>
                             ))}
                           </tr>
@@ -573,6 +593,32 @@ export default function CompareBuildsClient() {
 }
 
 /* خليّة الألعاب: الرقم الكبير 1440p، و1080p و4K تحته، ثمّ «يكفيني؟» — كمقارنة القطع */
+/** إطارات تتبّع الأشعة بالدقّة المختارة — null لما لا كرت أو لا قياس */
+const rtAt = (a: BuildAnalysis, res: Res): number | null => {
+  const r = a.hasGpu ? a.gpuPerf?.rt : null;
+  return r ? (res === '4K' ? r.f4k : res === '1080p' ? r.f1080 : r.f1440) : null;
+};
+
+function RtCell({ a, star, res }: { a: BuildAnalysis; star: boolean; res: Res }) {
+  const r = a.hasGpu ? a.gpuPerf?.rt : null;
+  if (!r) {
+    return <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">—</span>;
+  }
+  const at = (x: Res) => Math.round(x === '4K' ? r.f4k : x === '1080p' ? r.f1080 : r.f1440);
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="font-black text-base text-slate-900 dark:text-white">
+        <span className="font-mono">{at(res)}</span> إطار{star && <Star />}
+      </span>
+      <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-400">بدقّة <span dir="ltr">{res}</span></span>
+      <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-400" dir="ltr">
+        {RESES.filter((x) => x !== res).map((x) => `${x} ${at(x)}`).join(' · ')}
+      </span>
+      <span className="mt-1 text-[12px] font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{feelLine({ chip: '', ...r })}</span>
+    </div>
+  );
+}
+
 function GamingCell({ a, star, res }: { a: BuildAnalysis; star: boolean; res: Res }) {
   if (!a.hasGpu) {
     return <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">{a.igpuOnly ? 'رسوميّات مدمجة — ليست للألعاب الثقيلة' : 'بلا كرت'}</span>;

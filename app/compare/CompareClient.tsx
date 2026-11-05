@@ -1262,7 +1262,7 @@ export default function CompareClient({
                         <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
                           متوسّط الإطارات بدون DLSS أو FSR ·{' '}
                           {/* bdi: بلاه يلتصق «FSR · Tom's Hardware» في سطرٍ لاتينيّ واحد فيُقرأ «أو Tom's Hardware» */}
-                          <bdi><a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a></bdi>
+                          <bdi><a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a></bdi>
                         </span>
                       </th>
                       {ps.map((x, i) => (
@@ -1280,6 +1280,46 @@ export default function CompareClient({
                                 1080p {Math.round(x.f1080)} · 4K {Math.round(x.f4k)}
                               </span>
                               <span className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{feelLine(x)}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">ليس في جدول المصدر</span>
+                          )}
+                        </td>
+                      ))}
+                      {selected.length < 3 && <td className="border-b border-slate-200 dark:border-slate-800" data-filler style={{ borderRight: '1px dashed rgba(34,211,238,0.15)' }}></td>}
+                    </tr>
+                  );
+                })()}
+
+                {/* ===== مع تتبّع الأشعة — جدول Tom's الثاني (lib/gpu-perf · rt) =====
+                    الترتيب قد ينقلب هنا: RX 9070 أسرع من RTX 5070 في الصفّ السابق وأبطأ في هذا،
+                    فالنجمة لأعلى رقمٍ في هذا الصفّ وحده. والحكم يبقى على الأرقام العادية. */}
+                {cols.some((c) => c.perf?.rt) && (() => {
+                  const rs = cols.map((c) => c.perf?.rt ?? null);
+                  const best = Math.max(...rs.map((x) => x?.f1440 ?? 0));
+                  return (
+                    <tr>
+                      <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
+                        مع تتبّع الأشعة
+                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
+                          بدون DLSS أو FSR · الإعدادات نفسها
+                        </span>
+                      </th>
+                      {rs.map((x, i) => (
+                        <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${
+                          i === bestIdx ? 'bg-cyan-500/[0.05] dark:bg-cyan-400/[0.04]' : ''
+                        }`}>
+                          {x ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={`font-black text-base ${x.f1440 === best ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+                                <span className="font-mono">{Math.round(x.f1440)}</span> إطار
+                                {x.f1440 === best && rs.filter(Boolean).length > 1 && <span className="text-amber-600 dark:text-amber-400 text-xs mr-1">★</span>}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">بدقّة 1440p</span>
+                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400" dir="ltr">
+                                1080p {Math.round(x.f1080)} · 4K {Math.round(x.f4k)}
+                              </span>
+                              <span className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{feelLine({ chip: '', ...x })}</span>
                             </div>
                           ) : (
                             <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">ليس في جدول المصدر</span>
