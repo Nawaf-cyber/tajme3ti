@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import type { Metadata } from 'next';
 import { formatTotal } from '../../lib/price';
 import { catMeta } from '../../lib/category-meta';
+import { IN_BUILD } from '../../lib/categories';
 
 export const metadata: Metadata = {
   title: 'تجميعات جاهزة بميزانيات مختلفة',
@@ -38,7 +39,8 @@ export default async function PrebuildsPage() {
     orderBy: { price: 'asc' },
   });
   
-  const categories = await prisma.category.findMany();
+  /* فئات التجميعة وحدها — رابط الباني وجدول القطع والمجموع (lib/category-meta · isBuildCategory) */
+  const categories = await prisma.category.findMany({ where: IN_BUILD });
   
   const allComponents = await prisma.component.findMany({
     select: {

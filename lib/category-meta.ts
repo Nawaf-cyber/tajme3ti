@@ -31,6 +31,8 @@ export const CATEGORY_META: Record<string, CategoryMeta> = {
   PSU:         { label: 'مزوّد الطاقة',   icon: '⚡', short: 'PSU' },
   Case:        { label: 'الكيس',          icon: '🗄️', short: 'CASE' },
   Cooler:      { label: 'المبرّد',        icon: '❄️', short: 'COOL' },
+  /* ليست قطعة تجميعة — اقتراحٌ بجانبها (isBuildCategory أدناه) */
+  Monitor:     { label: 'الشاشة',         icon: '🖥️', short: 'MON' },
 };
 
 /** فئةٌ غير مسجّلة تُعرض باسمها بدل أن تختفي — النقص يُرى ولا يُسكت عنه */
@@ -47,3 +49,15 @@ export const catMeta = (name: string): CategoryMeta =>
 export const BUILD_ORDER = [
   'CPU', 'Cooler', 'Motherboard', 'RAM', 'GPU', 'Storage', 'PSU', 'Case',
 ] as const;
+
+/**
+ * قطعة تجميعة؟ — الفئات الثماني وحدها.
+ *
+ * كان الباني يعرض «كلّ فئةٍ فيها قطعة» (lib/categories · HAS_PARTS)، فأوّل شاشةٍ تُضاف
+ * كانت ستصير خانةً تاسعة يُجمع سعرها واستهلاكها في التجميعة (2026-11-06). والشاشة
+ * اقتراحٌ بجانب التجميعة لا جزءٌ منها — فما يخصّ التجميعة (الباني، التجميعات الجاهزة،
+ * «أضفها لتجميعتي»، «تناسب جهازك»، حكم المقارنة بالمستوى) يُقصر على هذه القائمة:
+ * **قائمةُ سماح لا قائمة منع**، فأيّ فئةٍ قادمة تبقى خارجها حتى تُضاف عمداً.
+ */
+export const isBuildCategory = (name: string | null | undefined): boolean =>
+  !!name && (BUILD_ORDER as readonly string[]).includes(name);

@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { STATUS_META, buildWithPartUrl, type PartStatus } from '../../lib/part-request';
+import { isBuildCategory } from '../../lib/category-meta';
 import { productImage } from '../../lib/image';
 import UseInBuildModal from '../compare/UseInBuildModal';
 
@@ -256,6 +257,8 @@ export default function MyPartRequests() {
               {/* ===== الإجراءات ===== */}
               {done ? (
                 <div className="flex flex-col gap-1.5">
+                  {/* الشاشة ليست خانةً في التجميعة (lib/category-meta · isBuildCategory) — فرابطها صفحتها */}
+                  {isBuildCategory(r.component!.categoryName) ? (
                   <div className="grid grid-cols-2 gap-1.5">
                     <Link
                       href={buildWithPartUrl(r.component!.categoryName, r.component!.id)}
@@ -277,6 +280,14 @@ export default function MyPartRequests() {
                       أضفها لتجميعتي
                     </button>
                   </div>
+                  ) : (
+                    <Link
+                      href={`/components/${r.component!.id}`}
+                      className="flex items-center justify-center gap-1.5 py-2.5 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white text-[11px] font-black transition-all active:scale-95 shadow-sm shadow-cyan-500/20"
+                    >
+                      شوف القطعة وأسعارها ←
+                    </Link>
+                  )}
 
                   {/* الحذف متاح بعد الإتمام فقط — قبله يفقد متابعة طلب لم يُنجَز */}
                   <button

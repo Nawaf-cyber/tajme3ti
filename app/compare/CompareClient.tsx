@@ -7,7 +7,7 @@ import { formatPrice } from '../../lib/price';
 import { isAvailable, offerDeal, priceAsOf } from '../../lib/stores';
 import { seriesInfo, variantNotes, warrantyText, notesCount, ISSUES_CHECKED, type SeriesInfo } from '../../lib/series';
 import { SeriesNotes } from '../../components/SeriesInfo';
-import { catMeta } from '../../lib/category-meta';
+import { catMeta, isBuildCategory } from '../../lib/category-meta';
 import { bundledCooler, checkBuild } from '../../lib/build-check';
 import { timeAgoAr, isPriceStale } from '../../lib/time-ago';
 import { pctAboveMin, daysAr, type PriceStats } from '../../lib/price-stats-core';
@@ -1018,6 +1018,8 @@ export default function CompareClient({
                           </div>
                         )}
                       {/* ===== زر: استخدم في تجميعتي ===== */}
+                        {/* الشاشة ليست خانةً في التجميعة (lib/category-meta · isBuildCategory) */}
+                        {isBuildCategory(categoryName) && (
                         <button
                           data-noexport
                           onClick={() => setBuildTarget(c)}
@@ -1030,6 +1032,7 @@ export default function CompareClient({
                             استخدم في تجميعتي
                           </span>
                         </button>
+                        )}
                       </th>
                     );
                   })}
@@ -1055,7 +1058,8 @@ export default function CompareClient({
 
               <tbody>
                 {/* صفّ القرار أوّلاً: أفضل قطعةٍ لا تنفع إن لم تُركَّب */}
-                {categoryName && (
+                {/* وما ليس قطعة تجميعة لا يُفحص في الجهاز — كان سيقول «تناسب» لكلّ شاشة */}
+                {isBuildCategory(categoryName) && (
                   <RigFitRow parts={selected} fits={rigFits} bestIdx={bestIdx} addCol={selected.length < 3} />
                 )}
 
@@ -1206,7 +1210,7 @@ export default function CompareClient({
                 })()}
 
                 {/* صف مستوى الأداء — لا للّوحة والكيس: لا يغيّران الأداء، والحكم لا يقرؤه فيهما */}
-                {!['Motherboard', 'Case'].includes(categoryName) && selected.some((c) => c.performanceTier) && (() => {
+                {isBuildCategory(categoryName) && !['Motherboard', 'Case'].includes(categoryName) && selected.some((c) => c.performanceTier) && (() => {
                   // الأعلى مستوىً هو الفائز — نُخفي النجمة عند تساوي الجميع
                   const rated = categoryName === 'CPU' || categoryName === 'GPU';
                   const tierNums = selected.map((c) => c.performanceTier ?? null);
@@ -1740,7 +1744,7 @@ export default function CompareClient({
                     بدل الاكتفاء بذكر "أفضل قيمة" في الخلاصة. الأعلى أفضل. */}
                 {/* ⚠️ لا للرام والتخزين واللوحة والكيس: مؤشّرٌ بالدرجة يتوّج غير ما يرشّحه
                     الحكم (lib/compare-verdict · kind) — ولها «ريال لكل جيجا/تيرا» أو السعر نفسه */}
-                {selected.length > 1 && !['RAM', 'Storage', 'Motherboard', 'Case'].includes(categoryName) && selected.some((c) => c.performanceTier && c.price > 0) && (() => {
+                {selected.length > 1 && isBuildCategory(categoryName) && !['RAM', 'Storage', 'Motherboard', 'Case'].includes(categoryName) && selected.some((c) => c.performanceTier && c.price > 0) && (() => {
                   // نقيس القيمة كمؤشر نسبي 0–100 (الأعلى = أفضل قيمة)
                   const raw = selected.map(valueScore);
                   const validRaw = raw.filter((n): n is number => n != null);

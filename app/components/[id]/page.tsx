@@ -23,7 +23,7 @@ import { Panel, SectionHeading, MicroLabel } from '../../../components/Panel';
 import { timeAgoAr, exactAr, isPriceStale } from '../../../lib/time-ago';
 import { fetchPriceStats } from '../../../lib/price-stats';
 import { pctAboveMin, daysAr } from '../../../lib/price-stats-core';
-import { catMeta } from '../../../lib/category-meta';
+import { catMeta, isBuildCategory } from '../../../lib/category-meta';
 import PartPerformance from '../../../components/PartPerformance';
 import PartRating from '../../../components/PartRating';
 
@@ -303,13 +303,16 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             {/* ما بعد القراءة: كانت الصفحة طريقاً مسدوداً إلّا الخروج إلى متجر — لا «أضفها لتجميعتي»
                 ولا «قارنها»، والقادم من البحث يهبط هنا (تجربة المستخدمين 2026-10-17).
                 والإضافة تدمج القطعة في مسودّة الباني ولا تمحوها (PCBuilderClient · ?add=). */}
-            <div className="grid grid-cols-2 gap-2 mb-5">
-              <Link
-                href={`/builder?add=${comp.id}`}
-                className="flex items-center justify-center gap-1.5 py-2.5 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[13px] font-black hover:opacity-90 transition-opacity"
-              >
-                ＋ أضفها لتجميعتي
-              </Link>
+            {/* ما ليس قطعة تجميعة (الشاشة) لا يُضاف للباني — الباني لا يعرض غير الفئات الثماني */}
+            <div className={`grid ${isBuildCategory(comp.category?.name) ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mb-5`}>
+              {isBuildCategory(comp.category?.name) && (
+                <Link
+                  href={`/builder?add=${comp.id}`}
+                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[13px] font-black hover:opacity-90 transition-opacity"
+                >
+                  ＋ أضفها لتجميعتي
+                </Link>
+              )}
               <Link
                 href={`/compare?ids=${comp.id}`}
                 className="flex items-center justify-center gap-1.5 py-2.5 rounded-sm border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[13px] font-black hover:border-cyan-500 hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors"
@@ -334,7 +337,8 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             {/* ⚠️ فوق «تابع السعر» لا تحته: «هل تناسب جهازي؟» سؤالُ قرارٍ،
                 و«تابع السعر» سؤالُ تأجيل. ومن يقرأ أنّها لا تناسبه لا
                 يحتاج أن يتابع سعرها. */}
-            <RigFitPanel category={comp.category?.name as any} part={comp as any} />
+            {/* «تناسب جهازك» يفحص قطعةً داخل الجهاز — ولا فحص للشاشة فيه، فكان سيقول «تناسب» لكلّ شاشة */}
+            {isBuildCategory(comp.category?.name) && <RigFitPanel category={comp.category?.name as any} part={comp as any} />}
           </div>
         </div>
 

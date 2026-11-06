@@ -13,5 +13,16 @@
  * الفارغة ليضيف إليها — إخفاؤها عنه يعني أن الفئة الجديدة لا تُملأ أبداً.
  */
 
+import { BUILD_ORDER } from './category-meta';
+
 /** فئاتٌ فيها قطعةٌ واحدة على الأقلّ — تُمرَّر إلى `where` في Prisma */
 export const HAS_PARTS = { components: { some: {} } } as const;
+
+/**
+ * فئات التجميعة وفيها قطع — للباني ونموذج التجميعات الجاهزة. التصفّح والمقارنة
+ * والعروض تبقى على HAS_PARTS فتظهر فيها الشاشة (lib/category-meta · isBuildCategory).
+ */
+export const IN_BUILD = { ...HAS_PARTS, name: { in: [...BUILD_ORDER] } };
+
+/** قطعةٌ من فئات التجميعة — لـ`where` على Component (أقسام الرئيسيّة) */
+export const BUILD_PART = { category: { name: { in: [...BUILD_ORDER] } } };

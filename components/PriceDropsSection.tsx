@@ -7,6 +7,7 @@ import { productImage, IMAGE_FALLBACK } from '../lib/image';
 import { specBadges } from '../lib/spec-badges';
 import MarqueeRail from './MarqueeRail';
 import { catMeta } from '../lib/category-meta';
+import { BUILD_PART } from '../lib/categories';
 
 /**
  * ============ انخفضت أسعارها ============
@@ -72,6 +73,8 @@ export default async function PriceDropsSection() {
       priceDroppedAt: { gte: since },
       previousPrice: { not: null },
       price: { gt: 0 },
+      /* قطع التجميعة وحدها — الشاشات لها صفّها لاحقاً (خطّة الشاشات 2026-11) */
+      ...BUILD_PART,
     },
     orderBy: { priceDroppedAt: 'desc' },
     take: 40, // نجلب أكثر ثم نصفّي المتوفّر ونرتّب بالنسبة

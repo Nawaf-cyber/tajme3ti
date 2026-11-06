@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { prisma } from '../../lib/prisma';
-import { HAS_PARTS } from '../../lib/categories';
+import { IN_BUILD } from '../../lib/categories';
 import PCBuilderClient from '../../components/PCBuilderClient';
 import { OFFER_INCLUDE, getStoreNotices } from '../../lib/stores-server';
 import StoreNotices from '../../components/StoreNotice';
@@ -58,7 +58,8 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
 
   // جلب الفئات والقطع
   const categories = await prisma.category.findMany({
-    where: HAS_PARTS,
+    /* فئات التجميعة وحدها: الشاشة اقتراحٌ لا خانة (lib/category-meta · isBuildCategory) */
+    where: IN_BUILD,
     /* ترتيبٌ ثابت للقطع (الشركة ثمّ الاسم) — كان بلا ترتيب، فتأتي بترتيب القاعدة الفيزيائيّ
        الذي يتبدّل مع كلّ تحديث سعر، وأوّلُ اللوحات ProArt بـ2,317 (تجربة المستخدمين 2026-10-17) */
     include: { components: { include: OFFER_INCLUDE, orderBy: [{ brand: 'asc' }, { name: 'asc' }] } },

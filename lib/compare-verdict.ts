@@ -114,6 +114,7 @@ import { daysAr } from './price-stats-core';
 import { feelLine, type GpuPerf } from './gpu-perf';
 import { upscalerLine, type Upscaler } from './gpu-upscaling';
 import { CPU_GAMING_TOP, type CpuPerf } from './cpu-perf';
+import { isBuildCategory } from './category-meta';
 
 /* اسمٌ لاتينيّ داخل جملةٍ عربيّة: «980 Pro 1TB» يبدأ برقمٍ فيقلبه المتصفّح
    («Pro 1TB 980»)، ويُفلت القوسَ من مكانه. FSI…PDI يعزله فيُعرض كما كُتب. */
@@ -154,6 +155,9 @@ export function buildVerdict(parts: VerdictInput[], category: string): Verdict {
   const EMPTY: Verdict = { pick: null, price: null, priceIsPlatform: false, priceNote: null, lead: null, feel: null, options: [], summary: null, watch: null, outNote: null, empty: null, ai: null, footnote: null, cards: [] };
   const n = parts.length;
   if (n < 2) return EMPTY;
+  /* ما ليس قطعة تجميعة (الشاشة) لا حكم له هنا بعد: «المستوى» من 5 لا معنى له فيها، وحكمها
+     بمعيارها يأتي مع خطّة الشاشات (2026-11) — لا حكمٌ أصدق من حكمٍ على رقمٍ فارغ */
+  if (!isBuildCategory(category)) return EMPTY;
   const storage = category === 'Storage';
   /* ⚠️ «درجة الأداء» من 5 كانت تحكم سبع فئات — ولا معنى لها في اللوحة والكيس،
      وتتجاهل أرقاماً حقيقيّة في الرام (زمن الاستجابة) والتخزين (السرعة والسعة).

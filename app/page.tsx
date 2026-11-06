@@ -11,6 +11,7 @@ import { productImage, IMAGE_FALLBACK } from '../lib/image';
 import { formatPrice, formatTotal } from '../lib/price';
 import { GUIDE_CATEGORIES } from '../lib/content';
 import { catMeta } from '../lib/category-meta';
+import { BUILD_PART } from '../lib/categories';
 
 /* ⚠️ كانت revalidate = 300 فتُخزَّن النسخة ٥ دقائق، ومع stale-while-revalidate
    يرى أول زائرٍ بعدها النسخة **القديمة** ويُطلق التجديد للتالي — فالتأخير
@@ -19,7 +20,9 @@ import { catMeta } from '../lib/category-meta';
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
+  /* قطع التجميعة وحدها: دفعةُ شاشاتٍ تُضاف معاً كانت ستملأ «أحدث القطع» (lib/categories · BUILD_PART) */
   const latestComponents = await prisma.component.findMany({
+    where: BUILD_PART,
     take: 6,
     orderBy: { createdAt: 'desc' },
     include: { category: true }
@@ -35,7 +38,7 @@ export default async function HomePage() {
     orderBy: { createdAt: 'desc' }
   });
 
-  const componentsCount = await prisma.component.count();
+  const componentsCount = await prisma.component.count({ where: BUILD_PART });
 
   /* مقتطفٌ يُقصّ في الخادم (~١٦٠ حرفاً) — كانت البطاقة تحمل المقال كاملاً داخل الرابط
      ويُخفيه line-clamp وحده، فيقرأ الزاحف رابطاً بـ١٨٠٠ حرف (مراجعة أدسنس 2026-10-15) */

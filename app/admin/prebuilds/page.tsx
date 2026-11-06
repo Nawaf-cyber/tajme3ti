@@ -1,11 +1,13 @@
 import { prisma } from '../../../lib/prisma';
 import { revalidatePath } from 'next/cache';
 import AdminPrebuildForm from './AdminPrebuildForm';
+import { IN_BUILD } from '../../../lib/categories';
 
 export default async function AdminPrebuildsPage() {
   const prebuilds = await prisma.prebuild.findMany({ orderBy: { createdAt: 'desc' } });
   const components = await prisma.component.findMany();
-  const categories = await prisma.category.findMany();
+  /* فئات التجميعة وحدها: النموذج يجمع سعر كلّ ما يُختار، فالشاشة كانت ستدخل سعر الجهاز */
+  const categories = await prisma.category.findMany({ where: IN_BUILD });
 
   // دالة الإضافة
   async function createPrebuild(formData: FormData) {
