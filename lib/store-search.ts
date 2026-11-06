@@ -3,19 +3,20 @@
  * طبقةٌ واحدة تجلب المرشّحين، ويقرّر كلُّ متجرٍ طريقَه بحسب ما يسمح به:
  *
  *   مايكرولس  يستجيب لطلبٍ عاديّ من الخادم — 200 في نصف ثانية، **بلا رصيد**
- *   كازاسوق   يردّ 403 على كل طلبٍ من خادم (جُرّب بلا ترويسات، وبمتصفّحٍ
- *             مزيّف، ومع Accept — الثلاثة 403). فيمرّ عبر Scrape.do،
- *             **ويكلّف طلباً لكل بحث** — ولذلك لا يُشغَّل إلا بطلبٍ صريح.
+ *   كازاسوق   منذ موقعه الجديد (~2026-10-25) واجهةٌ برمجيّة عامّة بلا وسيط و**بلا رصيد**
+ *             — انظر `searchCazasouq`. (كان قبلها يردّ 403 لكلّ طلبٍ من خادم.)
  *   أمازون    أوّل طلباتٍ تنجح ثم يردّ هيكلاً فارغاً بحالة 200 بلا إعلان.
- *             فيمرّ عبر Scrape.do مثل كازاسوق.
- *   نون       يردّ **403 Access Denied** لكل طلبٍ من خادم (قيس على
- *             `/saudi-en/search` و`/saudi-ar/search` — كلاهما 403 في ٣٠٠
- *             ملّي ثانية). ولا محوّل له: محوّلٌ يُعيد صفراً دائماً أسوأ من
- *             غيابه — يُوهم الأدمن أنّ السوق خالٍ.
+ *             فيمرّ عبر Scrape.do.
+ *   إنفيني آرك وريد زون  صفحة بحثٍ عاديّة من الخادم، **بلا رصيد**.
+ *   نون       خلف Akamai: الطلب المباشر يُعلَّق حتى المهلة، والوسيط العاديّ يفشل
+ *             (`ROTATION_FAILED` بعد ٥٧ث، بلا كلفة)، والمتقدّم (super) ينجح بـ**١٠
+ *             وحدات** للبحث (قِيس 2026-11-05). فلا محوّل له هنا: صفحة الإدارة تبحث
+ *             بالجملة، وعشرُ وحداتٍ للقطعة ثمنٌ لا يُدفع بلا قرار. والبحث اليدويّ
+ *             المدفوع في scripts/find-in-stores.ts.
  *
  * ⚠️ ولا يُستعمل متصفّح الزائر: صفحةُ الإدارة تعمل في متصفّحه، وطلبُها إلى
- * `cazasouq.com` يُحجب بـ CORS — المتجر لا يأذن لنطاقنا بقراءة ردّه. فما
- * ينجح في متصفّحٍ نتحكّم به مباشرةً لا ينجح من صفحةٍ في نطاقنا.
+ * المتاجر يُحجب بـ CORS — المتجر لا يأذن لنطاقنا بقراءة ردّه. فما ينجح في
+ * متصفّحٍ نتحكّم به مباشرةً لا ينجح من صفحةٍ في نطاقنا.
  *
  * ============ لماذا سجلّ لا شروط ============
  *
@@ -30,7 +31,7 @@
  */
 
 import type { Candidate } from './source-match';
-import { isBhdText, bhdToSar } from './currency';
+import { bhdToSar } from './currency';
 import { correctStock } from './stock-truth';
 
 const UA =
@@ -61,10 +62,15 @@ export type StoreAdapter = {
   perItemMs: number;
   /** ملاحظةٌ تُعرض في صفحة الإدارة */
   note: string;
-  /** رابط صفحة البحث في المتجر */
+  /** رابط صفحة البحث في المتجر — كما يفتحها إنسان */
   searchUrl: (query: string) => string;
   /** يستخرج المرشّحين من صفحة النتائج */
-  parse: (html: string) => Candidate[];
+  parse?: (html: string) => Candidate[];
+  /**
+   * بحثٌ كاملٌ بنفسه بدل «اجلب `searchUrl` ثمّ `parse`» — لمتجرٍ صفحةُ بحثه
+   * هيكلٌ فارغ تملؤه جافاسكربت من واجهةٍ برمجيّة (كازاسوق). يرمي عند الفشل.
+   */
+  search?: (query: string) => Promise<Candidate[]>;
 };
 
 const fetchText = async (url: string, timeoutMs = 25000): Promise<string> => {
@@ -72,6 +78,22 @@ const fetchText = async (url: string, timeoutMs = 25000): Promise<string> => {
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     return await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': UA } }).then((r) => r.text());
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+/** مثل fetchText لكن يرمي عند ردٍّ غير ناجح — فصفحة خطأٍ لا تُقرأ «لا نتائج» */
+const fetchOk = async (url: string, timeoutMs: number, init: RequestInit = {}): Promise<Response> => {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...init, signal: ctrl.signal, headers: { 'User-Agent': UA, ...(init.headers || {}) } });
+    if (!res.ok) {
+      const body = (await res.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200);
+      throw new Error(`HTTP ${res.status}${body ? ` — ${body}` : ''}`);
+    }
+    return res;
   } finally {
     clearTimeout(timer);
   }
@@ -105,7 +127,8 @@ function parseMicroless(html: string): Candidate[] {
       if (seen.has(m[1])) continue;
       seen.add(m[1]);
       const img = /data-src="([^"]+)"/.exec(m[2] || '')?.[1] ?? null;
-      out.push({ url: m[1], title: m[3].replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim(), image: img });
+      const title = m[3].replace(/&quot;/g, '"').replace(/&#0?39;|&#x27;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+      out.push({ url: m[1], title, image: img });
       if (out.length >= 12) break;
     }
     return out;
@@ -113,53 +136,143 @@ function parseMicroless(html: string): Candidate[] {
 }
 
 /**
- * كازاسوق — عبر Scrape.do، فيكلّف طلباً لكل بحث.
+ * كازاسوق — من واجهتهم البرمجيّة نفسها، بلا وسيط و**بلا رصيد**.
  *
- * ⚠️ ويُقصّ من `?search=` في الروابط: كازاسوق يُلحق سؤالَك بكل رابطٍ في
- * صفحة النتائج، فيصير الرابط حاملاً اسم قطعتنا حرفياً — ويُخفي أن المسار
- * نفسه لمنتجٍ آخر. (وقع ذلك فعلاً على «Ryzen 5 9600x» فأخفى رابطاً ميتاً.)
+ * ⚠️ صفحة البحث `/shop?q=` في موقعهم الجديد (~2026-10-25) هيكلٌ فارغ (٦٫٦KB،
+ * `<div id="root">`) تملؤه جافاسكربت — وكاش Netlify عندهم لا يفرّق بين سؤالٍ
+ * وآخر (`Netlify-Vary: query=lang`)، فلا نتائج فيها حتى عبر الوسيط. والبحث
+ * القديم `index.php?route=product/search` يُحوَّل إليها، فأعاد المُحلِّل القديم
+ * «0 من 0» لكلّ قطعة — بلا خطأ، كأنّ كازاسوق لا يبيع شيئاً.
+ *
+ * وصفحتهم تبحث بخطوتين (قِيس في المتصفّح 2026-11-05)، على `api.cazasouq.com` (Supabase):
+ *   ١) POST /rest/v1/rpc/search_products ← معرّفات المنتجات بترتيب الصلة
+ *   ٢) GET  /rest/v1/products?id=in.(…)  ← الاسم والرابط والسعر والمخزون
+ * بالمفتاح العامّ الذي ترسله كلّ صفحةٍ لكلّ زائر في `<meta name="cazasouq-supabase-anon-key">`.
+ * ويُقرأ من الصفحة لا يُكتب هنا: إن غيّروه لم ننكسر، وإن اختفى الوسم رمينا خطأً معلناً لا صفراً.
+ *
+ * والسعر والمخزون بقاعدتهم هم (وحدتا pricing وinventory في حزمتهم):
+ *   · الخصم ساري إن كان أقلّ من السعر وضمن نافذته (البداية ≤ الآن < النهاية).
+ *   · المتوفّر: stock_unlimited أو stock_quantity > 0. والطلب المسبق ليس «متوفّراً الآن»
+ *     — كما يحكم ساحب الأسعار (PreOrder في CAZ_OUT بـlib/scrape-prices).
+ *   · العملة دينار بحرينيّ: 57.000 في الواجهة = 57 BHD في JSON-LD صفحة المنتج.
  */
-function parseCazasouq(html: string): Candidate[] {
+const CAZ_SITE = 'https://www.cazasouq.com';
+let cazApi: Promise<{ base: string; key: string }> | null = null;
+
+const cazasouqApi = () =>
+  (cazApi ??= (async () => {
+    const html = await (await fetchOk(`${CAZ_SITE}/shop`, 20000)).text();
+    const meta = (name: string) => html.match(new RegExp(`<meta[^>]+name="${name}"[^>]+content="([^"]+)"`))?.[1];
+    const base = (meta('cazasouq-supabase-url') || '').replace(/\/+$/, '');
+    const key = meta('cazasouq-supabase-anon-key');
+    if (!/^https:\/\/[a-z0-9.-]+\.cazasouq\.com$/.test(base) || !key) {
+      throw new Error('كازاسوق: لا عنوان واجهةٍ أو مفتاحٍ عامّ في رأس الصفحة — تغيّر موقعهم؟');
+    }
+    return { base, key };
+  })().catch((e) => { cazApi = null; throw e; }));
+
+type CazRow = {
+  id: string; slug: string | null; name_en: string | null; name_ar: string | null;
+  price: number | null; discount_price: number | null;
+  discount_starts_at: string | null; discount_ends_at: string | null;
+  stock_quantity: number | null; stock_unlimited: boolean | null;
+  product_images?: { url: string; is_primary: boolean | null; sort_order: number | null }[] | null;
+};
+
+const cazPriceSar = (r: CazRow, now = new Date()): number | null => {
+  const p = Number(r.price), d = Number(r.discount_price);
+  const onSale = r.discount_price != null && d > 0 && d < p
+    && !(r.discount_starts_at && new Date(r.discount_starts_at) > now)
+    && !(r.discount_ends_at && new Date(r.discount_ends_at) <= now);
+  const bhd = onSale ? d : p;
+  return Number.isFinite(bhd) && bhd > 0 ? Math.round(bhdToSar(bhd) * 100) / 100 : null;
+};
+
+async function searchCazasouq(query: string): Promise<Candidate[]> {
+  const { base, key } = await cazasouqApi();
+  const headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+
+  const hits: { id?: string }[] = await (await fetchOk(`${base}/rest/v1/rpc/search_products`, 20000, {
+    method: 'POST',
+    headers,
+    /* المعاملات كما ترسلها صفحتهم حرفياً — الدالّة لها نسخٌ بمعاملاتٍ مختلفة */
+    body: JSON.stringify({
+      p_term: query, p_on_sale: false, p_in_stock: false, p_price_min: null, p_price_max: null,
+      p_sort: 'relevance', p_limit: 24, p_offset: 0,
+      p_category_ids: null, p_brand_ids: null, p_product_ids: null,
+    }),
+  })).json();
+  const order = (Array.isArray(hits) ? hits : []).map((h) => String(h?.id || '')).filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (!order.length) return [];
+
+  const select = 'id,slug,name_en,name_ar,price,discount_price,discount_starts_at,discount_ends_at,'
+    + 'stock_quantity,stock_unlimited,product_images(url,is_primary,sort_order)';
+  const rows: CazRow[] = await (await fetchOk(
+    `${base}/rest/v1/products?select=${encodeURIComponent(select)}&id=in.(${order.join(',')})&is_active=eq.true&is_archived=eq.false`,
+    20000,
+    { headers },
+  )).json();
+
+  const byId = new Map(rows.map((r) => [r.id, r]));
   const out: Candidate[] = [];
-  const seen = new Set<string>();
-
-  /* ⚠️ البطاقة تغيّرت عندهم: كان العنوان في `<h4>` فصار في
-     `<div class="name">`. والصفحة تعود سليمةً (٨٥٥ ألف حرف، ٩ بطاقات)،
-     لكنّ المُحلِّل يُعيد **صفراً لكل استعلام** — بلا خطأ ولا رسالة. فبدا
-     كأنّ كازاسوق «لا يبيع القطعة»، وهو يبيعها.
-
-     ولذلك يُقرأ العنوان من ثلاثة مواضع: عنصر الاسم، ثم `title` الصورة،
-     ثم `alt`. تغييرُ أحدها لا يُسكت المُحلِّل كلَّه. */
-  for (const block of html.split(/<div class="product-thumb/).slice(1)) {
-    const href = (block.match(/href="(https:\/\/www\.cazasouq\.com\/[^"]+)"/) || [])[1];
-    const title =
-      (block.match(/<div class="name"[^>]*>\s*<a[^>]*>([\s\S]*?)<\/a>/) || [])[1]
-      ?? (block.match(/<img[^>]+title="([^"]+)"/) || [])[1]
-      ?? (block.match(/<img[^>]+alt="([^"]+)"/) || [])[1];
-    if (!href || !title) continue;
-
-    const url = href.split('?')[0];
-    if (seen.has(url)) continue;
-    seen.add(url);
-
-    /* ⚠️ والسعر يُحوَّل: الصفحة تُعلن **بالدينار البحريني** («BHD 195.00»)
-       لأن المتجر يخدم واجهة البحرين لعناوين خوادمنا. ورقمٌ كهذا بجوار
-       أسعارنا بالريال يبدو انهياراً في السعر لا عملةً أخرى — ١٩٥ مقابل
-       ١٬٩٥٠. والقاعدة من `lib/currency.ts` نفسها التي يستعملها الساحب. */
-    const priceText = (block.match(/class="price-normal"[^>]*>([^<]+)</) || [])[1]
-      ?? (block.match(/class="price[^"]*"[\s\S]{0,160}?>([^<]*\d[^<]*)</) || [])[1]
-      ?? '';
-    const raw = Number((priceText.match(/[\d.]+/) || [])[0]);
-    const price = Number.isFinite(raw) && raw > 0
-      ? Math.round((isBhdText(priceText) ? bhdToSar(raw) : raw) * 100) / 100
-      : null;
-
+  for (const id of order) {
+    const r = byId.get(id);
+    const title = (r?.name_en || r?.name_ar || '').replace(/\s+/g, ' ').trim();
+    if (!r?.slug || !title) continue;
+    const img = [...(r.product_images || [])]
+      .sort((a, b) => Number(!!b.is_primary) - Number(!!a.is_primary) || (a.sort_order ?? 0) - (b.sort_order ?? 0))[0];
     out.push({
-      url,
-      title: title.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim(),
-      price,
+      url: `${CAZ_SITE}/product/${r.slug}`,
+      title,
+      price: cazPriceSar(r),
+      inStock: r.stock_unlimited === true || Math.floor(Number(r.stock_quantity)) > 0,
+      image: img?.url ?? null,
     });
     if (out.length >= 12) break;
+  }
+  return out;
+}
+
+/**
+ * ريد زون — متجر Zid سعوديّ بالريال، ويستجيب لطلبٍ من خادم بلا رصيد.
+ *
+ * ⚠️ المعامل `q` لا `search`: نموذج البحث في رأس صفحتهم يرسل `?search=`، والخادم
+ * يتجاهله فيعيد **كلّ المنتجات** (٢٣ صفحة) — فيبدو كلّ بحثٍ ناجحاً. أمّا `?q=` (وهو
+ * `urlTemplate` في SearchAction بـJSON-LD صفحتهم) فيرشّح فعلاً: «zzqxv» صفرٌ،
+ * و«x space» منتجان (قِيس 2026-11-05).
+ *
+ * والنتائج من `ItemList` في JSON-LD كإنفيني آرك، والسعر من البطاقة ذات الرابط نفسه —
+ * القائمة بلا سعر. والروابط بالترميز المئويّ كما تُخزَّن عروضهم عندنا (normUrl لا يفكّه).
+ */
+function parseRedzone(html: string): Candidate[] {
+  const key = (u: string) => { try { return decodeURIComponent(new URL(u, 'https://redzzone.com').pathname); } catch { return u; } };
+
+  const prices = new Map<string, number>();
+  for (const card of html.split('js-card-item').slice(1)) {
+    const href = card.match(/<h2[\s\S]{0,300}?href="(\/products\/[^"]+)"/)?.[1];
+    const n = Number(card.match(/<strong[^>]*>\s*([\d.,]+)\s*ر\.س/)?.[1]?.replace(/,/g, ''));
+    if (href && Number.isFinite(n) && n > 0 && !prices.has(key(href))) prices.set(key(href), n);
+  }
+
+  const out: Candidate[] = [];
+  const seen = new Set<string>();
+  for (const block of [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1])) {
+    if (!block.includes('ItemList')) continue;
+    let items: any[] = [];
+    try {
+      const j = JSON.parse(block);
+      const list = j['@type'] === 'ItemList' ? j : (j['@graph'] || []).find((x: any) => x['@type'] === 'ItemList');
+      items = list?.itemListElement ?? [];
+    } catch { continue; }
+    for (const it of items) {
+      let url = '';
+      try { url = new URL(String(it?.url || '')).href; } catch { continue; }
+      const title = String(it?.name || '').replace(/\s+/g, ' ').trim();
+      if (!url.startsWith('https://redzzone.com/products/') || !title || seen.has(url)) continue;
+      seen.add(url);
+      out.push({ url, title, price: prices.get(key(url)) ?? null });
+      if (out.length >= 12) break;
+    }
   }
   return out;
 }
@@ -273,12 +386,14 @@ export const ADAPTERS: StoreAdapter[] = [
   {
     slug: 'cazasouq',
     label: 'كازاسوق',
-    needsProxy: true,
-    delayMs: 1200,
-    perItemMs: 6260,
-    note: 'يستهلك رصيداً — يردّ 403 لكل طلبٍ من خادم',
-    searchUrl: (q) => 'https://www.cazasouq.com/index.php?route=product/search&search=' + encodeURIComponent(q),
-    parse: parseCazasouq,
+    needsProxy: false,
+    delayMs: 800,
+    /* طلبان (البحث ثمّ المنتجات) ~١٫٦ث + الفاصل — قِيس 2026-11-05 بأربعة استعلامات؛
+       وكان ٦٢٦٠ يوم كان يمرّ بالوسيط */
+    perItemMs: 2400,
+    note: 'مجّاني — من واجهة المتجر البرمجيّة · السعر بالدينار محوّلاً',
+    searchUrl: (q) => 'https://www.cazasouq.com/shop?q=' + encodeURIComponent(q),
+    search: searchCazasouq,
   },
   {
     slug: 'amazon',
@@ -301,6 +416,16 @@ export const ADAPTERS: StoreAdapter[] = [
     searchUrl: (q) => 'https://www.infiniarc.com/ar/shop?search=' + encodeURIComponent(q),
     parse: parseInfiniarc,
   },
+  {
+    slug: 'redzone',
+    label: 'ريد زون',
+    needsProxy: false,
+    delayMs: 700,
+    perItemMs: 1300, // ~٠٫٦ث للطلب + الفاصل — قِيس 2026-11-05 بأربعة استعلامات
+    note: 'مجّاني · سعوديّ بالريال',
+    searchUrl: (q) => 'https://redzzone.com/products?q=' + encodeURIComponent(q),
+    parse: parseRedzone,
+  },
 ];
 
 export const adapterFor = (slug: string): StoreAdapter | null =>
@@ -315,7 +440,7 @@ export const sourceMeta = () =>
  *
  * ⚠️ ويُترك سُبعُ النافذة: الجلبُ من القاعدة وبناء الجواب وبردُ الدالّة
  * كلُّها خارج حساب الطلبات، وطلبٌ واحدٌ يتجاوز السقف يُبطل الدفعة كلَّها.
- * والخسارة ليست وقتاً فحسب — كازاسوق وأمازون يُحسب لهما الطلبُ ولو مات
+ * والخسارة ليست وقتاً فحسب — ما يمرّ بالوسيط (أمازون) يُحسب له الطلبُ ولو مات
  * المسار قبل عرض نتيجته.
  */
 export const maxItemsIn = (slug: string, windowMs: number): number => {
@@ -323,6 +448,28 @@ export const maxItemsIn = (slug: string, windowMs: number): number => {
   if (!a) return 1;
   return Math.max(1, Math.floor((windowMs * 6) / 7 / a.perItemMs));
 };
+
+/**
+ * بحثٌ في متجرٍ واحد، **يرمي عند الفشل** — للأدوات اليدويّة التي تقول «لم أصل»
+ * لا «لم أجد» (scripts/find-in-stores.ts).
+ */
+export async function searchStoreOrThrow(
+  source: SearchSource,
+  query: string,
+  token: string,
+): Promise<Candidate[]> {
+  const ad = adapterFor(source);
+  if (!ad) throw new Error(`لا محرّك بحثٍ للمتجر «${source}»`);
+  if (ad.search) return ad.search(query);
+  if (ad.needsProxy && !token) throw new Error(`${ad.label} يحتاج SCRAPER_API_KEY`);
+
+  const target = ad.searchUrl(query);
+  const url = ad.needsProxy
+    ? `https://api.scrape.do/?token=${token}&url=${encodeURIComponent(target)}`
+    : target;
+  const html = await (await fetchOk(url, ad.needsProxy ? 45000 : 25000)).text();
+  return ad.parse ? ad.parse(html) : [];
+}
 
 /**
  * بحثٌ في متجرٍ واحد.
@@ -338,13 +485,8 @@ export async function searchStore(
   const ad = adapterFor(source);
   if (!ad) throw new Error(`لا محرّك بحثٍ للمتجر «${source}»`);
   if (ad.needsProxy && !token) throw new Error(`${ad.label} يحتاج SCRAPER_API_KEY`);
-
-  const target = ad.searchUrl(query);
-  const url = ad.needsProxy
-    ? `https://api.scrape.do/?token=${token}&url=${encodeURIComponent(target)}`
-    : target;
   try {
-    return ad.parse(await fetchText(url, ad.needsProxy ? 45000 : 25000));
+    return await searchStoreOrThrow(source, query, token);
   } catch {
     return [];
   }

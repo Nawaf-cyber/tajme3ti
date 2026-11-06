@@ -20,8 +20,10 @@
 import { capacityGb } from './capacity';
 
 /** ⚠️ `image` اختياريّة: صفحةُ النتائج تحملها في مايكرولس وإنفيني آرك بلا
-    طلبٍ إضافيّ، وغيرُهما لا يحملها. والمُطابِق لا يقرؤها — هي للعرض وحده. */
-export type Candidate = { title: string; url: string; price?: number | null; image?: string | null };
+    طلبٍ إضافيّ، وغيرُهما لا يحملها. والمُطابِق لا يقرؤها — هي للعرض وحده.
+    وكذلك `inStock`: يملؤه متجرٌ يُعلن المخزون صراحةً (واجهة كازاسوق)، ولا
+    يُستنتج من غياب شيءٍ في البطاقة — فغيابه «لا نعرف» لا «نافد». */
+export type Candidate = { title: string; url: string; price?: number | null; image?: string | null; inStock?: boolean | null };
 export type Verdict = { ok: boolean; why: string };
 
 const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '');

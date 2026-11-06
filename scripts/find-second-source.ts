@@ -37,7 +37,8 @@ const parseSpecs = (s: any) => (typeof s === 'string' ? JSON.parse(s) : (s as an
 
 async function main() {
   const token = process.env.SCRAPER_API_KEY || '';
-  if (SOURCE === 'cazasouq' && !token) { console.error('⛔ كازاسوق يحتاج SCRAPER_API_KEY'); process.exit(1); }
+  const ad = adapterFor(SOURCE)!;
+  if (ad.needsProxy && !token) { console.error(`⛔ ${ad.label} يحتاج SCRAPER_API_KEY`); process.exit(1); }
 
   const all = await prisma.component.findMany({
     where: ONLY ? { category: { name: ONLY } } : {},
