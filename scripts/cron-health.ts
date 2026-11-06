@@ -14,6 +14,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { BATCHES_PER_RUN, PER_RUN } from '../lib/cron-settings';
 import { readProxyStatus, readCredits24h } from '../lib/proxy-stats';
+import { channelOf } from '../lib/proxy-fallback';
 import 'dotenv/config';
 
 const hoursAgo = (d: Date | null) => (d ? (Date.now() - d.getTime()) / 3600_000 : Infinity);
@@ -60,11 +61,14 @@ async function main() {
   console.log(`  يومياً            : ${daily} فحصاً = ${cov >= 1 ? `كل قطعة ~${cov.toFixed(1)} مرّة` : `~${Math.round(cov * 100)}٪ من الكتالوج`}`);
   /* ⚠️ كان هنا «فحوص × 16.1»: متوسّطٌ من أيّام البروكسي المتقدّم وحده، فقال ~١٫٢ مليون شهرياً
      والعدّادات الفعليّة نحو ٦٠ ألفاً (2026-10-27). الآن من عدّادات آخر ٢٤ ساعة (lib/proxy-stats):
-     العاديّ وحدة والمتقدّم عشر. والعدّادات للمتاجر بوضع auto وحدها — كازاسوق (عاديّ دائماً)
-     ومتجرٌ بوضع premium لا عدّاد لهما، فيُقال ذلك لا يُقدَّر. */
+     بكلفة كلّ طريقٍ لمتجره (lib/proxy-fallback · PROXY_CHANNELS: العاديّ وحدة والمتقدّم عشر، وكازاسوق
+     المباشر صفر والوسيط وحدة). والعدّادات للمتاجر بوضع auto وحدها — متجرٌ بوضع premium لا عدّاد له،
+     فيُقال ذلك لا يُقدَّر. */
   const ps = await readProxyStatus(prisma);
-  const counted = Object.entries(ps.stores).map(([store, c]) =>
-    [store, c.normalOk + (c.fallback + c.bothFail) * 11 + (c.sampleSame + c.sampleDiff) * 10] as const);
+  const counted = Object.entries(ps.stores).map(([store, c]) => {
+    const { normal, premium } = channelOf(store).credits;
+    return [store, c.normalOk * normal + (c.fallback + c.bothFail) * (normal + premium) + (c.sampleSame + c.sampleDiff) * premium] as const;
+  });
   const credits = counted.reduce((n, [, v]) => n + v, 0);
   const uncounted = Object.entries(ps.modes).filter(([, m]) => m !== 'auto').map(([s]) => s);
   /* والأصدق ما كتبته Scrape.do نفسها عن كلّ طلب (lib/proxy-stats · readCredits24h) — متى وُجد */
@@ -77,7 +81,9 @@ async function main() {
     }
   } else {
     console.log(`  رصيد السحب       : ${credits.toLocaleString('en')} وحدة في آخر ٢٤ ساعة (${counted.map(([s, v]) => `${s} ${v}`).join(' · ')}) ≈ ${(credits * 30).toLocaleString('en')} شهرياً من 250,000`);
-    console.log(`                      وفوقه كازاسوق (وحدة لكلّ فحص)${uncounted.length ? ` و${uncounted.join('، ')} بوضع premium (عشر لكلّ فحص)` : ''} — بلا عدّاد`);
+    if (uncounted.length) {
+      console.log(`                      وفوقه ${uncounted.map((s) => `${s} (${channelOf(s).credits.premium} لكلّ فحص)`).join('، ')} بوضع premium — بلا عدّاد`);
+    }
   }
 
   const rows = await prisma.component.findMany({

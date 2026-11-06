@@ -463,8 +463,9 @@ async function scrapeAmazonVia(t: OfferTarget, token: string, premium: boolean):
  * والقاعدة التي خرقها القديم: **لا حكم من غياب شيء**. فكلّ ما لا نعرفه خطأٌ معلن والحالة كما هي،
  * والأحكام الثلاثة وحدها من إشاراتٍ صريحة — بالترتيب:
  *   ١) ليست صفحة متجرهم أصلاً (تحقّق Cloudflare، صفحة خطأ من الوسيط) ← خطأ، لا «أُزيل».
- *   ٢) انتهى الرابط خارج /product/ (‏Scrape.do-Resolved-Url: منتجٌ حُذف فحُوِّل إلى فئة) ← `gone`،
- *      ولا يسقط العرض إلّا بإشارتين متتاليتين (lib/scrape-offers · goneTwice).
+ *   ٢) انتهى الرابط خارج /product/ (منتجٌ حُذف فحُوِّل إلى فئة) ← `gone`، ولا يسقط العرض إلّا بإشارتين
+ *      متتاليتين (lib/scrape-offers · goneTwice). والرابط النهائيّ `res.url` للطلب المباشر، ورأس
+ *      Scrape.do-Resolved-Url للوسيط — وقِيسا 2026-11-06 على المحذوفَين: الرابط النهائيّ نفسه بالطريقين.
  *   ٣) صفحة منتجٍ بلا بياناته ← خطأ (ويُعاد الطلب مرّةً في scrapeCazasouq) — لا «أُزيل»: صفحةٌ لم تُجهَّز
  *      بياناتها والمنتجُ المحذوف يبدوان واحداً من الداخل، والفرق في (٢) وحده.
  *   ٤) بيانات منتجٍ آخر (offers.url ≠ og:url) أو عرضٌ غير «Offer» (‏AggregateOffer لنسخٍ متعدّدة) ← خطأ.
@@ -553,16 +554,31 @@ export function readCazasouqPage(html: string, t: OfferTarget, finalUrl?: string
   return out;
 }
 
-export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<StoreOutcome> {
+/* ⚠️ مباشرةً أولاً بلا وسيط ولا رصيد، وScrape.do العاديّ احتياطاً (lib/proxy-fallback، والقياس في
+   PROXY_CHANNELS هناك). كان كلّ فحصٍ وحدةً بالوسيط لأنّ موقعهم القديم ردّ 403 على الخوادم؛ والجديد على
+   Netlify لا يردّ. فإن عاد الحجب (أو خرجت القراءة غير نظيفة) أُعيدت الصفحة بالوسيط فوراً — كلفةُ ما قبل. */
+export const scrapeCazasouq = (t: OfferTarget, token: string): Promise<StoreOutcome> =>
+  withProxyFallback('cazasouq', t, (viaProxy) => scrapeCazasouqVia(t, token, viaProxy));
+
+/** مهلة الطلب المباشر: الصفحة ٠٫٤ث وسطياً و١٫١ث أقصى (٢٥٧ صفحة) — فما تأخّر أكثر يذهب للوسيط سريعاً */
+const CAZ_DIRECT_TIMEOUT = 10000;
+
+async function scrapeCazasouqVia(t: OfferTarget, token: string, viaProxy: boolean): Promise<StoreOutcome> {
   const out = emptyOutcome(t.inStock ?? true);
   if (!t.url || t.url.length <= 12) return out;
 
   try {
-    // بروكسي عادي (بلا super) — كازاسوق لا يحتاج حماية متقدمة، فيوفّر الرصيد
     const get = async () => {
-      const res = await scrapeFetch(scrapeUrl(token, t.url!, false));
-      /* الرابط النهائيّ بعد التحويل (توثيق Scrape.do) — به يُعرف المنتج المحذوف المحوَّل إلى فئة */
-      return { res, html: res.ok ? await res.text() : '', final: res.headers.get('scrape.do-resolved-url') };
+      if (viaProxy) {
+        // بروكسي عادي (بلا super) — كازاسوق لا يحتاج حماية متقدمة، فيوفّر الرصيد
+        const res = await scrapeFetch(scrapeUrl(token, t.url!, false));
+        /* الرابط النهائيّ بعد التحويل (توثيق Scrape.do) — به يُعرف المنتج المحذوف المحوَّل إلى فئة */
+        return { res, html: res.ok ? await res.text() : '', final: res.headers.get('scrape.do-resolved-url') };
+      }
+      /* مباشرةً: لا يمرّ ببوّابة scrapeFetch — لا يشغل مكاناً من حدّ تزامن Scrape.do، ولا يُعدّ في noteCost
+         (لا رصيد له). والرابط النهائيّ بعد التحويلات `res.url` بدل رأس الوسيط. */
+      const res = await fetchWithTimeout(t.url!, { cache: 'no-store', redirect: 'follow' }, budgetedTimeout(CAZ_DIRECT_TIMEOUT));
+      return { res, html: res.ok ? await res.text() : '', final: res.url || null };
     };
     let r = await get();
     if (!r.res.ok) {
@@ -570,7 +586,8 @@ export async function scrapeCazasouq(t: OfferTarget, token: string): Promise<Sto
       return out;
     }
     let o = readCazasouqPage(r.html, t, r.final);
-    /* صفحة منتجٍ بلا بياناتها: طلبٌ ثانٍ واحد (وحدة رصيد) قبل الحكم بالخطأ — إن بقي وقتٌ يكفيه */
+    /* صفحة منتجٍ بلا بياناتها: طلبٌ ثانٍ واحد بالطريق نفسه (مجّاناً مباشرةً، ووحدةٌ بالوسيط) قبل الحكم
+       بالخطأ — إن بقي وقتٌ يكفيه */
     if (o.errors.some((e) => e.includes(CAZ_NO_DATA)) && remainingBudget() > 8000) {
       await sleep(1500);
       r = await get();

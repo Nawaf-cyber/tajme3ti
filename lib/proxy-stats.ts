@@ -12,7 +12,7 @@
  */
 
 import type { PrismaClient } from '@prisma/client';
-import { setProxyModes, takeProxyTally, DEFAULT_PROXY_MODES, PROXY_STORES, type ProxyCounts, type ProxyDiff, type ProxyMode } from './proxy-fallback';
+import { setProxyModes, takeProxyTally, channelOf, DEFAULT_PROXY_MODES, PROXY_STORES, type ProxyCounts, type ProxyDiff, type ProxyMode } from './proxy-fallback';
 import { takeCreditTally } from './scrape-prices';
 
 /** وضع كلّ متجر: `proxy.mode.amazon` = auto | premium. وغيابُه = DEFAULT_PROXY_MODES */
@@ -142,13 +142,15 @@ export async function alertProxy(snap: ProxySnapshot): Promise<void> {
   const lines: string[] = [];
   for (const d of snap.diffs) {
     const fmt = (r: ProxyDiff['normal']) => (r.price != null ? `${r.price} ريال` : 'بلا سعر') + (r.inStock ? '' : ' (نافد)');
-    lines.push(`🔍 **${d.name}** (${d.store}): العادي ${fmt(d.normal)} · المتقدّم ${fmt(d.premium)}\n↳ ${d.url.split('?')[0]}`);
+    const ch = channelOf(d.store);
+    lines.push(`🔍 **${d.name}** (${d.store}): ${ch.normal} ${fmt(d.normal)} · ${ch.premium} ${fmt(d.premium)}\n↳ ${d.url.split('?')[0]}`);
   }
   for (const [store, c] of Object.entries(snap.counts)) {
     const total = c.normalOk + c.fallback + c.bothFail;
     const rate = total ? (c.fallback + c.bothFail) / total : 0;
     if (total >= 20 && rate > FALLBACK_ALERT_RATE) {
-      lines.push(`↻ **${store}**: ${Math.round(rate * 100)}% من ${total} صفحة احتاجت المتقدّم — البروكسي العادي قد يكون محجوباً. المفتاح في اللوحة يرجّعه للمتقدّم دائماً.`);
+      const ch = channelOf(store);
+      lines.push(`↻ **${store}**: ${Math.round(rate * 100)}% من ${total} صفحة احتاجت ${ch.premium} — ${ch.normal} قد يكون محجوباً. المفتاح في اللوحة يرجّعه لـ${ch.premium} دائماً.`);
     }
   }
   if (!lines.length) return;
@@ -160,7 +162,7 @@ export async function alertProxy(snap: ProxySnapshot): Promise<void> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         embeds: [{
-          title: '⚠️ البروكسي العادي — يحتاج نظرة',
+          title: '⚠️ البروكسي — يحتاج نظرة',
           description: lines.join('\n\n').slice(0, 4000),
           color: 15105570, // برتقالي
           timestamp: new Date().toISOString(),

@@ -16,6 +16,10 @@
  *
  * والعدّادات هنا في الذاكرة (لنسخة الدالة)، ويفرغها lib/proxy-stats في القاعدة
  * آخرَ كلّ تشغيلة. والوضع (`auto` أو `premium`) يحمّله المسار من اللوحة قبل السحب.
+ *
+ * ⚠️ وكازاسوق يمرّ من هنا بالقاعدة نفسها، لكنّ طريقيه غيرُ هذين (2026-11-06): «الأوّل» طلبٌ مباشرٌ
+ * لخادمهم بلا وسيط (٠ وحدة)، و«الاحتياط» Scrape.do العاديّ (وحدة) كما كان كلّ طلبٍ قبله. فالكلمات
+ * «normal/premium» هنا تعني «الأرخص/الاحتياط»، وما يعنيه كلٌّ لكلّ متجرٍ وكلفتُه في PROXY_CHANNELS.
  */
 
 import type { StoreOutcome } from './scrape-prices';
@@ -40,14 +44,29 @@ export const SAMPLE_RATE = 0.02;
    فارتفعت المتأخّرة من ٥ إلى ٢٩١. والسبب مايكرولس: صفحتُه بالعاديّ ٦٫٩ث وسطياً وبالمتقدّم
    ١٫٦ث (خمس صفحات بالطريقتين)، والدفعة تنتظر أبطأ صفحاتها. وأمازون بالعاديّ ٤٫٠ث وبالمتقدّم
    ٤٫٠ث — لا فرق في السرعة وعُشر الرصيد. فالوضع لكلّ متجر، والافتراضيّ ما قِيس. */
-export const PROXY_STORES = ['amazon', 'microless'] as const;
+export const PROXY_STORES = ['amazon', 'microless', 'cazasouq'] as const;
+
+/* ما يعنيه الطريقان لكلّ متجر، وكلفةُ كلٍّ بوحدات Scrape.do — للوحة وscripts/cron-health والتنبيه.
+   كازاسوق: منذ انتقل موقعهم إلى Netlify (~2026-10-25) يردّ على طلبٍ عاديٍّ من الخادم بـ200 وبالـJSON-LD
+   نفسه. قِيس 2026-11-06 على عروضه الـ٢٥٧ (scripts/cazasouq-direct-check-2026-11-06): ٢٥٧ ردّاً 200، و٢٥٥
+   مقروءة تطابق آخر قراءةٍ بالوسيط وواجهتَهم البرمجيّة كلّها، والمحذوفان «أُزيل» برابط res.url النهائيّ،
+   و١٢/١٢ بالطريقين في اللحظة نفسها بالـJSON-LD نفسه حرفاً وبالرابط النهائيّ نفسه. وسيطُ الزمن ٠٫٤ث
+   مباشرةً و٣٫٥ث بالوسيط. */
+export type ProxyChannel = { normal: string; premium: string; credits: { normal: number; premium: number } };
+export const PROXY_CHANNELS: Record<string, ProxyChannel> = {
+  amazon: { normal: 'العادي', premium: 'المتقدّم', credits: { normal: 1, premium: 10 } },
+  microless: { normal: 'العادي', premium: 'المتقدّم', credits: { normal: 1, premium: 10 } },
+  cazasouq: { normal: 'المباشر', premium: 'الوسيط', credits: { normal: 0, premium: 1 } },
+};
+export const channelOf = (store: string): ProxyChannel => PROXY_CHANNELS[store] ?? PROXY_CHANNELS.amazon;
 
 /* متوسّط وحدات السحب للقطعة بالأوضاع الافتراضيّة — تقديرٌ محسوب لا مقيس: مرور الكتالوج
    (2026-10-20) أمازون ٦٢٧ عرضاً بالعاديّ (~١٬٠٠٠ مع الاحتياط والعيّنة) + مايكرولس ٥٢٤ بالمتقدّم
-   (٥٬٢٤٠) + الباقي (٣٠٩) ≈ ٦٬٥٥٠ ÷ ٧١٧ قطعة. وكان ١٦٫١ مقيساً من عدّاد Scrape.do قبل
-   البروكسي العاديّ (2026-08-11). يقرؤه زرّ «المتأخّرة» وردّ الكرون. */
-export const CREDITS_PER_PART = 9.1;
-export const DEFAULT_PROXY_MODES: Record<string, ProxyMode> = { amazon: 'auto', microless: 'premium' };
+   (٥٬٢٤٠) + الباقي (٣٠٩) ≈ ٦٬٥٥٠ ÷ ٧١٧ قطعة = ٩٫١. ثمّ كازاسوق مباشرةً (2026-11-06): من ~٢٥٧ وحدةً في
+   المرور إلى ~٧ (المحذوفة والعيّنة) ← ٨٫٨. وكان ١٦٫١ مقيساً من عدّاد Scrape.do قبل البروكسي العاديّ
+   (2026-08-11). يقرؤه زرّ «المتأخّرة» وردّ الكرون. */
+export const CREDITS_PER_PART = 8.8;
+export const DEFAULT_PROXY_MODES: Record<string, ProxyMode> = { amazon: 'auto', microless: 'premium', cazasouq: 'auto' };
 
 let modes: Record<string, ProxyMode> = { ...DEFAULT_PROXY_MODES };
 export const setProxyModes = (m: Record<string, ProxyMode>) => { modes = { ...DEFAULT_PROXY_MODES, ...m }; };
