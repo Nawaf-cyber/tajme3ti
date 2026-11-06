@@ -132,9 +132,8 @@ export async function POST(req: Request) {
         id: p.id, brand: p.brand, name: p.name, price: p.price, specs: parseSpecs(p.specs),
       }));
 
-    if (!peers.length) {
-      return NextResponse.json({ error: `لا قطعَ أخرى في فئة «${category}» ليُقترح منها بديل` }, { status: 400 });
-    }
+    /* لا بدائل = أوّل قطعةٍ في فئةٍ جديدة (أوّل شاشة 2026-11): يُكتب الوصف بلا قسم البديل
+       (lib/describe · buildUserPrompt وcheckDraft) — كان يُرفض 400 فلا تولد الفئة بوصف */
 
     try {
       const d = await draftDescription(

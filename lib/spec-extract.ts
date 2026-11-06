@@ -134,6 +134,24 @@ const gb = (v: string) => {
   return m[1] + unit;
 };
 
+/* ============ الشاشة (2026-11) ============
+ * القيم بالشكل الذي يقرؤه مُطابق الكرت (spec-schema · Monitor): الدقّة بالبكسل، والهرتز رقماً. */
+
+/** «2560 x 1440» و«QHD» → «2560x1440» */
+const monRes = (v: string) => {
+  const m = unComma(v).match(/(\d{3,4})\s*[x×*]\s*(\d{3,4})/);
+  if (m) return `${m[1]}x${m[2]}`;
+  if (/\b4k\b|uhd/i.test(v)) return '3840x2160';
+  if (/uwqhd/i.test(v)) return '3440x1440';
+  if (/w?qhd|1440p/i.test(v)) return '2560x1440';
+  if (/fhd|full ?hd|1080p/i.test(v)) return '1920x1080';
+  return '';
+};
+
+/** «Rapid IPS» و«Nano IPS» → «IPS»؛ وما لا يُعرف فارغ */
+const monPanel = (v: string) =>
+  /qd-?oled/i.test(v) ? 'QD-OLED' : /oled/i.test(v) ? 'OLED' : /\bva\b/i.test(v) ? 'VA' : /ips/i.test(v) ? 'IPS' : /\btn\b/i.test(v) ? 'TN' : '';
+
 const RULES: Record<string, Rule[]> = {
   CPU: [
     { key: 'socket', match: /socket/, clean: sockets },
@@ -253,6 +271,24 @@ const RULES: Record<string, Rule[]> = {
     { key: 'psuFormFactor', match: /psu|power supply/, clean: (v) =>
       (v.match(/SFX-L|SFX|TFX|Flex ?ATX|ATX/i) || [''])[0].toUpperCase() },
   ],
+  /* مايكرولس (قيس على LG 27GS75Q، 2026-11-06): «Screen Size = 27"»، «Refresh Rate = 180Hz»، «Display Type = IPS»،
+     «Response Time (GTG) = 1ms»، و«DisplayPort = Yes» **بلا نسخة** — فالنسختان من صفحة الشركة غالباً.
+     ⚠️ والهرتز من الجدول لا من العنوان: العنوان يقول «up to 200Hz» (رفع التردّد) والجدول 180. */
+  Monitor: [
+    { key: 'sizeInch', match: /^screen size|^display size|^size$|حجم الشاشة|مقاس الشاشة/, clean: (v) => (unComma(v).match(/\b(\d{2}(?:\.\d)?)/) || ['', ''])[1] },
+    { key: 'resolution', match: /^(native |max(imum)? )?resolution|الدقة/, clean: monRes },
+    { key: 'refreshHz', match: /refresh rate|معدل التحديث/, clean: (v) => {
+      const ns = (unComma(v).match(/\d{2,3}/g) || []).map(Number).filter((n) => n >= 60 && n <= 600);
+      return ns.length ? String(Math.max(...ns)) : '';
+    } },
+    { key: 'panel', match: /^(display|panel) type|panel technology|نوع اللوحة|نوع الشاشة/, clean: monPanel },
+    { key: 'responseMs', match: /response time|زمن الاستجابة/, clean: num },
+    { key: 'curvature', match: /curvature|انحناء/, clean: (v) => {
+      const m = v.match(/(\d{3,4})\s*R\b/i);
+      return m ? `${m[1]}R` : /flat|مسطح/i.test(v) ? 'Flat' : '';
+    } },
+    { key: 'brightnessNits', match: /^brightness|السطوع/, clean: int },
+  ],
   Cooler: [
     { key: 'sockets', match: /socket/, clean: sockets },
     { key: 'sizeMm', match: /^height|الارتفاع|radiator/, clean: num },
@@ -339,6 +375,32 @@ export function mapAttributes(category: string, attrs: Record<string, string>): 
     if (/pump|liquid cool|water block|coolant|aio/.test(text)) derived.type = 'AIO';
     else if (/radiator size/.test(text) && /\b(120|140|240|280|360|420)\s*mm/.test(text)) derived.type = 'AIO';
     else if (names.some((n) => /^height/.test(n)) && names.some((n) => /heat.?pipe|fan size/.test(n))) derived.type = 'Air';
+  }
+
+  /* ============ الشاشة: ما يتوزّع على أكثر من سطر ============
+   * مايكرولس يكتب «Adaptive Sync = FreeSync» و«NVIDIA G-Sync™ = Yes» سطرين، و«HDR10 = Yes» سطراً
+   * مستقلّاً — والقاعدة الواحدة تقرأ سطراً واحداً. فتُجمع هنا من الجدول كلّه، وتبقى «مقروءة». */
+  if (category === 'Monitor') {
+    const pairs = Object.entries(attrs).map(([k, v]) => [normKey(k), String(v ?? '')] as const);
+    const all = pairs.map(([k, v]) => `${k} ${v}`).join(' | ').toLowerCase();
+    const on = (re: RegExp) => pairs.some(([k, v]) => re.test(k) && !/^(no|none|not|لا|بدون)/i.test(v.trim()));
+    const fs = /freesync premium pro/.test(all) ? 'FreeSync Premium Pro' : /freesync premium/.test(all) ? 'FreeSync Premium' : /freesync/.test(all) ? 'FreeSync' : '';
+    /* «G-Sync = Yes» في جداول المتاجر يعني «متوافقة» غالباً — الوحدة الأصليّة نادرةٌ وتُكتب «Ultimate» أو «module» */
+    /* ⚠️ normKey يحوّل الشرطة مسافة: «NVIDIA G-Sync™» تصل «nvidia g sync™» — فالتعبير يقبل الاثنين */
+    const gs = /g[- ]?sync (ultimate|module)/.test(all) ? 'G-Sync' : (/g[- ]?sync compatible/.test(all) || on(/g[- ]?sync/)) ? 'G-Sync Compatible' : '';
+    const vrr = [fs, gs].filter(Boolean).join(' · ');
+    if (vrr) specs.vrr = vrr;
+    if (!specs.hdr) {
+      const tb = all.match(/displayhdr\s*true\s*black\s*(\d{3})/);
+      const dh = all.match(/displayhdr\s*(\d{3,4})/);
+      if (tb) specs.hdr = `DisplayHDR True Black ${tb[1]}`;
+      else if (dh) specs.hdr = `DisplayHDR ${dh[1]}`;
+      else if (on(/^hdr ?10$/) || /hdr10/.test(all)) specs.hdr = 'HDR10';
+    }
+    const dp = all.match(/(?:displayport|\bdp)\s*(?:version\s*)?(1\.[24]|2\.[01])/);
+    if (dp && !specs.dpVersion) specs.dpVersion = dp[1];
+    const hd = all.match(/hdmi\s*(?:version\s*)?(1\.4|2\.[01])/);
+    if (hd && !specs.hdmiVersion) specs.hdmiVersion = hd[1];
   }
 
   return { specs, derived, tdpWattage };

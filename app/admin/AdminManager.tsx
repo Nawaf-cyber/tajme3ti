@@ -14,6 +14,7 @@ import type { CronSource } from '../../lib/cron-settings';
 import ManualUpdateButton from "./components/ManualUpdateButton";
 import UpdateStaleButton from "./components/UpdateStaleButton";
 import ProxyHealthPanel from "./components/ProxyHealthPanel";
+import { NEEDS_TDP } from '../../lib/component-draft';
 import type { ProxyStatus } from "../../lib/proxy-stats";
 import AdminNav from './AdminNav';
 import BackToMenuButton from './BackToMenuButton';
@@ -363,7 +364,7 @@ export default function AdminManager({ categories, components, news, cronStatus,
               <input type="text" name="brand" defaultValue={editingComponent?.brand} placeholder="الشركة المصنعة (Brand)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               <input type="text" name="name" defaultValue={editingComponent?.name} placeholder="اسم القطعة (Name)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               <input type="number" step="0.01" name="price" defaultValue={editingComponent?.price} placeholder="السعر (Price)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-              <input type="number" name="tdpWattage" defaultValue={editingComponent?.tdpWattage} placeholder="استهلاك الطاقة بالواط (TDP)" required className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="number" name="tdpWattage" defaultValue={editingComponent?.tdpWattage} placeholder={NEEDS_TDP.has(selectedCategoryName) ? 'استهلاك الطاقة بالواط (TDP)' : 'استهلاك الطاقة بالواط — اختياريّ'} required={NEEDS_TDP.has(selectedCategoryName)} className="p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               
               {/* الكلمات نفسها التي يراها الزائر (lib/perf-rating · LEVEL_WORDS). وللمعالج والكرت
                   المقيسَين يُحسب المستوى عند الحفظ ويُتجاهل هذا الاختيار (actions · measuredTier) */}

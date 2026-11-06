@@ -28,7 +28,7 @@ type Row = {
   failure?: string | null;
 };
 
-const CATEGORIES = ['GPU', 'RAM', 'Motherboard', 'CPU', 'Storage', 'PSU', 'Case', 'Cooler'];
+const CATEGORIES = ['GPU', 'RAM', 'Motherboard', 'CPU', 'Storage', 'PSU', 'Case', 'Cooler', 'Monitor'];
 
 type SourceMeta = { slug: string; label: string; needsProxy: boolean; note: string; maxPerRun: number };
 

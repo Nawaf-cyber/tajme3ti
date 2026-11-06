@@ -168,7 +168,8 @@ export async function addComponent(formData: FormData) {
   const brand = formData.get('brand') as string;
   const name = formData.get('name') as string;
   const price = parseFloat(formData.get('price') as string);
-  const tdpWattage = parseInt(formData.get('tdpWattage') as string);
+  /* فارغٌ = صفر: الحقل اختياريّ لغير ما يجمعه الباني (component-draft · NEEDS_TDP)، وparseInt('') = NaN */
+  const tdpWattage = parseInt(formData.get('tdpWattage') as string) || 0;
   const specs = JSON.parse(formData.get('specs') as string);
   const description = formData.get('description') as string || null;
   const imageUrl = formData.get('imageUrl') as string || null;
@@ -195,7 +196,8 @@ export async function updateComponent(formData: FormData) {
   const brand = formData.get('brand') as string;
   const name = formData.get('name') as string;
   const price = parseFloat(formData.get('price') as string);
-  const tdpWattage = parseInt(formData.get('tdpWattage') as string);
+  /* فارغٌ = صفر: الحقل اختياريّ لغير ما يجمعه الباني (component-draft · NEEDS_TDP)، وparseInt('') = NaN */
+  const tdpWattage = parseInt(formData.get('tdpWattage') as string) || 0;
   const specs = JSON.parse(formData.get('specs') as string);
   const description = formData.get('description') as string || null;
   const imageUrl = formData.get('imageUrl') as string || null;

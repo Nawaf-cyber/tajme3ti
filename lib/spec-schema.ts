@@ -153,6 +153,20 @@ export const SPEC_SCHEMA: Record<string, CategorySchema> = {
     conditional: ['color'],
     undecided: ['clearanceMm'],
   },
+
+  /* الشاشة (2026-11) — ليست قطعة تجميعة بل اقتراحٌ بجانبها (lib/category-meta · isBuildCategory).
+     «compat» هنا ما يقرؤه مُطابق الشاشة بالكرت: الدقّة والهرتز (من إطارات الكرت)، ونسختا
+     المنفذين (من lib/gpu-display). ⚠️ ولا تُوسم في الجدول «توافقاً» (spec-labels · COMPAT_KEYS)
+     حتى يقرأها المُطابق فعلاً.
+     resolution بالبكسل «2560x1440» لا «1440p»: «1440p» لا تميّز العريضة (3440x1440)، والعرض
+     يترجمها (spec-labels · VALUE_LABELS). وdpVersion «None» لشاشةٍ بلا DisplayPort.
+     dpUhbr مشروط: سرعة DP 2.1 (UHBR13.5 / UHBR20) — تقرّر هل تصل 4K بـ240 بلا ضغط. */
+  Monitor: {
+    compat: ['resolution', 'refreshHz', 'dpVersion', 'hdmiVersion'],
+    compare: ['sizeInch', 'panel', 'responseMs', 'hdr', 'vrr', 'curvature'],
+    conditional: ['color', 'dpUhbr'],
+    undecided: ['dsc', 'brightnessNits', 'usbC', 'speakers'],
+  },
 };
 
 /* ============ ما نزل إلى «المزايا» ============

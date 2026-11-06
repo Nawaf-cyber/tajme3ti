@@ -30,6 +30,8 @@ export const REQUIRED_SPECS: Record<string, string[]> = {
   PSU: ['wattage', 'rating', 'formFactor', 'modularity'],
   Case: ['formFactor', 'maxGpuLength', 'maxCoolerHeight', 'radiatorSupport', 'psuFormFactor', 'includedFans'],
   Cooler: ['type', 'sizeMm', 'sockets', 'fanSize', 'fanCount', 'rgb'],
+  /* الشاشة: ما يقرؤه مُطابق الكرت (الدقّة، الهرتز، المنفذان) وما يقارن به المشتري */
+  Monitor: ['sizeInch', 'resolution', 'refreshHz', 'panel', 'responseMs', 'dpVersion', 'hdmiVersion', 'vrr', 'curvature'],
 };
 
 /** فئاتٌ يُشترط فيها استهلاكٌ بالواط — الباني يجمعها لحساب المزوّد */
@@ -72,11 +74,16 @@ const CATEGORY_HINTS_AR: [string, RegExp][] = [
   ['Storage', /قرص صلب|وحدة تخزين|هارد/],
   ['PSU', /مزوّ?د طاقة|وحدة تغذية/],
   ['Case', /صندوق كمبيوتر|كيس كمبيوتر|هيكل كمبيوتر/],
+  /* بعد الكرت عمداً: «كرت شاشة» و«بطاقة شاشة» تحملان «شاشة» */
+  ['Monitor', /شاش[ةه] (ألعاب|العاب|كمبيوتر|جيمنج|مسطحة|منحنية)|شاش[ةه][^\n]{0,30}(\d{2,3} ?هرتز|بوصة|انش|إنش)/],
 ];
 
 const CATEGORY_HINTS: [string, RegExp][] = [
   ['Cooler', /\b(cpu (air )?cooler|heatsink|aio|liquid (freezer|cooler)|مبرّ?د|تبريد)\b/i],
   ['GPU', /\b(rtx|gtx|radeon rx|geforce|arc [ab]\d|graphics card|كرت شاشة|بطاقة رسوم)\b/i],
+  /* الشاشة بعد الكرت: عنوان كرتٍ قد يقول «supports 4 monitors». وتُشترط مع كلمة monitor
+     علامةُ شاشةٍ فعليّة — مقاسٌ بالإنش أو هرتز — فلا يكفي ذكر الكلمة وحدها */
+  ['Monitor', /^(?=.*\bmonitor\b)(?=.*(\b\d{2,3}\s*hz\b|\b\d{2}(\.\d)?\s*("|”|''|-?\s?inch\b|in\b)))/i],
   ['CPU', /\b(ryzen \d|core i[3579]|core ultra|processor|معالج)\b/i],
   ['Motherboard', /\b(motherboard|mainboard|[abxzhb]\d{3}[a-z]?m?\b.*(wifi|gaming|tomahawk|aorus|prime|tuf)|لوحة ?أم|اللوحة الأم)\b/i],
   ['RAM', /\b(ddr[45]|dimm|memory kit|desktop memory|ذاكرة|رام)\b/i],
@@ -95,6 +102,9 @@ const BRANDS = [
   'ASUS', 'Gigabyte', 'MSI', 'ASRock', 'NZXT', 'Lian Li', 'Phanteks', 'Fractal Design',
   'Montech', 'Thermaltake', 'HYTE', 'Antec', 'Seasonic', 'PNY', 'Zotac', 'Sapphire', 'XFX', 'Palit',
   'AMD', 'Intel', 'NVIDIA', 'Gamdias', 'Xigmatek',
+  /* شركات الشاشات (2026-11) — ASUS وMSI وGigabyte وSamsung أعلاه */
+  'LG', 'Dell', 'Alienware', 'AOC', 'BenQ', 'ViewSonic', 'Acer', 'Philips', 'KOORUI', 'Lenovo', 'HP',
+  'Xiaomi', 'Huawei', 'Titan Army', 'Majesty',
 ];
 
 export const guessCategory = (title: string): string | null =>
@@ -119,6 +129,16 @@ const BRANDS_AR: [RegExp, string][] = [
   [/اسوس|أسوس/, 'ASUS'],
   [/نوكتوا/, 'Noctua'],
   [/سيجيت|سي ?جيت/, 'Seagate'],
+  /* الشاشات — والقصيرة بحدودٍ عربيّة صريحة: «ديل» داخل «موديل»، و«ال جي» أوّل «الجيمنج» */
+  [/(^|[^؀-ۿ])(إل|ال) جي(?![؀-ۿ])/, 'LG'],
+  [/(^|[^؀-ۿ])ديل(?![؀-ۿ])/, 'Dell'],
+  [/بين ?كيو/, 'BenQ'],
+  [/فيو ?سونيك/, 'ViewSonic'],
+  [/(^|[^؀-ۿ])[أا]يسر(?![؀-ۿ])/, 'Acer'],
+  [/ماجيستي|ماجستي/, 'Majesty'],
+  [/شاومي/, 'Xiaomi'],
+  [/لينوفو/, 'Lenovo'],
+  [/فيليبس/, 'Philips'],
 ];
 
 export const guessBrand = (title: string): string => {
@@ -220,6 +240,40 @@ function specsFromTitle(cat: string, title: string): Record<string, string> {
     else if (/\bM-?ATX\b|micro[- ]?atx/i.test(t)) s.formFactor = 'Micro-ATX';
     else if (/\bE-?ATX\b/i.test(t)) s.formFactor = 'E-ATX';
     else if (/\bATX\b/i.test(t)) s.formFactor = 'ATX';
+  }
+
+  /* الشاشة — كلّها مكتوبةٌ في عناوين الشاشات عادةً. والدقّة بالبكسل (spec-schema · Monitor):
+     4K أوّلاً، ثمّ العريضة لأنّ «UWQHD» تحمل «QHD» */
+  if (cat === 'Monitor') {
+    const inch = grab(t, /\b(\d{2}(?:\.\d)?)\s*(?:"|”|''|-?\s?inch\b|in\b|بوصة|انش|إنش)/i);
+    if (inch) s.sizeInch = inch;
+    /* «165 هرتز» في عناوين أمازون العربيّة — و\b لا يعمل بعد حرفٍ عربيّ، فلا حدّ بعد هرتز */
+    const hz = [...t.matchAll(/\b(\d{2,3})\s*(?:hz\b|هرتز)/gi)].map((m) => +m[1]).filter((n) => n >= 60);
+    if (hz.length) s.refreshHz = String(Math.max(...hz));
+    if (/3840\s*[x×]\s*2160|\b4k\b|\buhd\b/i.test(t)) s.resolution = '3840x2160';
+    else if (/3440\s*[x×]\s*1440|\buwqhd\b/i.test(t)) s.resolution = '3440x1440';
+    else if (/2560\s*[x×]\s*1080|\buwfhd\b/i.test(t)) s.resolution = '2560x1080';
+    else if (/2560\s*[x×]\s*1440|\bw?qhd\b|\b1440p\b/i.test(t)) s.resolution = '2560x1440';
+    else if (/1920\s*[x×]\s*1080|\bfhd\b|full\s*hd|\b1080p\b/i.test(t)) s.resolution = '1920x1080';
+    if (/qd[- ]?oled/i.test(t)) s.panel = 'QD-OLED';
+    else if (/\boled\b/i.test(t)) s.panel = 'OLED';
+    else if (/\bva\b/i.test(t)) s.panel = 'VA';
+    else if (/\bips\b/i.test(t)) s.panel = 'IPS';
+    else if (/\btn\b/i.test(t)) s.panel = 'TN';
+    const ms = grab(t, /\b(\d+(?:\.\d+)?)\s*ms\b/i);
+    if (ms) s.responseMs = ms;
+    const r = grab(t, /\b(\d{3,4})\s*R\b/);
+    if (r) s.curvature = r + 'R';
+    const vrr = [
+      /freesync\s*premium\s*pro/i.test(t) ? 'FreeSync Premium Pro' : /freesync\s*premium/i.test(t) ? 'FreeSync Premium' : /freesync/i.test(t) ? 'FreeSync' : '',
+      /g-?sync\s*compatible/i.test(t) ? 'G-Sync Compatible' : /g-?sync/i.test(t) ? 'G-Sync' : '',
+    ].filter(Boolean);
+    if (vrr.length) s.vrr = vrr.join(' · ');
+    const tb = grab(t, /displayhdr\s*true\s*black\s*(\d{3})/i);
+    const dh = grab(t, /(?:display\s*)?hdr\s*(\d{3,4})\b/i);
+    if (tb) s.hdr = `DisplayHDR True Black ${tb}`;
+    else if (dh) s.hdr = `DisplayHDR ${dh}`;
+    else if (/\bhdr10\b/i.test(t)) s.hdr = 'HDR10';
   }
 
   if (cat === 'CPU') {

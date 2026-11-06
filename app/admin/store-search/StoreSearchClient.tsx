@@ -344,7 +344,7 @@ export default function StoreSearchClient() {
             onChange={(e) => setDcat(e.target.value)}
             className="px-3 py-2 rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/40 text-[13px] font-bold text-slate-900 dark:text-white"
           >
-            {['GPU', 'CPU', 'Motherboard', 'RAM', 'Storage', 'PSU', 'Case', 'Cooler'].map((c) => (
+            {['GPU', 'CPU', 'Motherboard', 'RAM', 'Storage', 'PSU', 'Case', 'Cooler', 'Monitor'].map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>

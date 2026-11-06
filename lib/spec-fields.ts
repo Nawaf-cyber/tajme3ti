@@ -125,6 +125,22 @@ const BY_CATEGORY: Record<string, Record<string, FieldMeta>> = {
   },
   PSU: { formFactor: { type: 'select', options: ['ATX', 'ATX 3.0', 'ATX 3.1', 'SFX', 'SFX-L'] } },
   Case: { formFactor: { type: 'select', options: ['Mid Tower', 'Full Tower', 'Micro-ATX Tower', 'Mini-ITX'] } },
+  /* الخيارات من خطّة الشاشات (2026-11) لا من الكتالوج — لا شاشة فيه بعد؛ تُراجَع مع أوّل دفعة */
+  Monitor: {
+    sizeInch: { type: 'number', hint: '27' },
+    resolution: { type: 'select', options: ['1920x1080', '2560x1080', '2560x1440', '3440x1440', '3840x2160'] },
+    refreshHz: { type: 'number', hint: '180' },
+    panel: { type: 'select', options: ['IPS', 'VA', 'OLED', 'QD-OLED', 'TN'] },
+    responseMs: { type: 'number', hint: '1' },
+    hdr: { type: 'select', options: ['None', 'HDR10', 'DisplayHDR 400', 'DisplayHDR 600', 'DisplayHDR 1000', 'DisplayHDR True Black 400', 'DisplayHDR True Black 500'] },
+    vrr: { type: 'text', hint: 'FreeSync Premium · G-Sync Compatible' },
+    dpVersion: { type: 'select', options: ['1.2', '1.4', '2.1', 'None'] },
+    dpUhbr: { type: 'select', options: ['UHBR10', 'UHBR13.5', 'UHBR20'] },
+    hdmiVersion: { type: 'select', options: ['1.4', '2.0', '2.1'] },
+    curvature: { type: 'select', options: ['Flat', '1800R', '1500R', '1000R', '800R'] },
+    dsc: { type: 'select', options: ['Yes', 'No'] },
+    brightnessNits: { type: 'number', hint: '400' },
+  },
 };
 
 /** شكل الحقل في فئةٍ بعينها — أو نصٌّ حرّ إن لم يُسجَّل */

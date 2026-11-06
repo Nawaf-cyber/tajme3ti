@@ -114,8 +114,10 @@ export const buildUserPrompt = (part: PartInput, peers: PeerInput[]): string =>
 المواصفات المسجّلة عندنا:
 ${fmtSpecs(part.specs)}
 
-بدائل من نفس الفئة في كتالوجنا — اختر منها واحداً واربطه بمعرّفه:
-${peers.map(fmtPeer).join('\n')}
+${peers.length
+    ? `بدائل من نفس الفئة في كتالوجنا — اختر منها واحداً واربطه بمعرّفه:\n${peers.map(fmtPeer).join('\n')}`
+    /* أوّل قطعةٍ في فئةٍ جديدة (أوّل شاشة 2026-11) — لا بديل يُربط، فلا يُخترع */
+    : 'لا بدائل من هذه الفئة في كتالوجنا بعد: احذف قسم البديل كلّه (من --- إلى سطر «بإمكانك التوجه»)، ولا تربط أيّ قطعة.'}
 
 اكتب الوصف.`;
 
@@ -140,7 +142,8 @@ export function checkDraft(
   if (!/^###\s/m.test(text)) problems.push('ينقصه العنوان ###');
 
   const links = [...text.matchAll(/\/components\/([A-Za-z0-9]+)\)/g)].map((m) => m[1]);
-  if (!links.length) problems.push('بلا بديلٍ مرتبط');
+  /* بلا بدائل معطاة (أوّل قطعةٍ في فئتها) لا يُطالَب ببديل — وأيّ رابطٍ حينها خطأٌ يمسكه السطر التالي */
+  if (!links.length && opts.peerIds.size) problems.push('بلا بديلٍ مرتبط');
   for (const id of links) {
     if (id === opts.selfId) problems.push('يربط القطعة بنفسها');
     else if (!opts.peerIds.has(id)) problems.push(`معرّفٌ ليس من قائمة البدائل: ${id}`);

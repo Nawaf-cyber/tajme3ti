@@ -90,8 +90,16 @@ export const IS_SYSTEM =
  * لكيس HYTE Y60 — فيه اسمُ الشركة وفيه الطراز، والمُطابِق لا يرى أنّه لوحُ
  * تبريدٍ يُركَّب فيه لا هو.
  */
-const IS_ACCESSORY =
-  /distro plate|\bbracket\b|\briser\b|mounting kit|\bstand\b|dust filter|cable (kit|comb|extension)|adapter kit|replacement (fan|panel)|\bsleeve\b|\bscrews?\b/i;
+const IS_ACCESSORY_BASE =
+  /distro plate|\bbracket\b|\briser\b|mounting kit|dust filter|cable (kit|comb|extension)|adapter kit|replacement (fan|panel)|\bsleeve\b|\bscrews?\b/i;
+
+/**
+ * ⚠️ «stand» وحدها كانت ملحقاً — فرُفضت كلّ شاشةٍ «with Height Adjustable Stand» (2026-11-06).
+ * والفرق أنّ الشاشة تذكر هرتزها، وحاملُ الشاشة لا هرتز له («Dual Monitor Stand … fits 13-32"»).
+ */
+const IS_ACCESSORY = {
+  test: (t: string) => IS_ACCESSORY_BASE.test(t) || (/\bstand\b/i.test(t) && !/\b\d{2,3}\s*hz\b/i.test(t)),
+};
 
 /**
  * كابلٌ اسمُه المنتجُ نفسه — «كابل» في الاسم قبل أوّل فاصلة.
@@ -132,8 +140,17 @@ const IS_BUNDLE = new RegExp(`${PART_NOUN}[^,،]{0,80}?\\s(?:with|\\+)\\s[^,،]{
  * ولا تحمل الكلمةَ «laptop» ولا «notebook» — فالتقاطُها بعلامتين لا تكونان
  * إلّا في محمول: **مقاسُ شاشةٍ بالبوصة**، و**لاحقةُ معالجٍ محمول** (H/HX/HS/U).
  */
-const IS_LAPTOP =
-  /\b\d{2}(\.\d)?"\s*(qhd|fhd|uhd|oled|ips|display|screen)|\b(core\s*)?i[3579][- ]?\d{4,5}(hx|hs|h|u)\b|\bryzen\s*\d\s*\d{4}(hx|hs|h|u)\b/i;
+const IS_LAPTOP_SCREEN = /\b\d{2}(\.\d)?"\s*(qhd|fhd|uhd|oled|ips|display|screen)/i;
+const IS_LAPTOP_CPU = /\b(core\s*)?i[3579][- ]?\d{4,5}(hx|hs|h|u)\b|\bryzen\s*\d\s*\d{4}(hx|hs|h|u)\b/i;
+
+/**
+ * ⚠️ والمقاس بالبوصة مع «IPS» أو «QHD» علامةُ **شاشة** أيضاً: «27" IPS Gaming Monitor» كان يُرفض
+ * «محمولاً» (2026-11-06). فعلامة الشاشة لا تُحسب محمولاً إن سمّى العنوان نفسه شاشة؛ ولاحقة
+ * المعالج المحمول تبقى حاسمةً وحدها — لا شاشة فيها معالج.
+ */
+const IS_LAPTOP = {
+  test: (t: string) => IS_LAPTOP_CPU.test(t) || (IS_LAPTOP_SCREEN.test(t) && !/\bmonitor\b|شاش[ةه]/i.test(t)),
+};
 
 /**
  * «هذا ليس قطعةً مفردة» — بوّابةٌ واحدة لمسار الاكتشاف.

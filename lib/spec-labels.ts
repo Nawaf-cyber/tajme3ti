@@ -116,6 +116,23 @@ const LABELS: Record<string, string> = {
   dualChamber: 'حجرتان',
   pcieRiser: 'كابل رايزر',
   screen: 'شاشة',
+
+  // الشاشة (2026-11)
+  sizeInch: 'المقاس',
+  resolution: 'الدقّة',
+  refreshHz: 'معدّل التحديث',
+  panel: 'نوع اللوحة',
+  responseMs: 'زمن الاستجابة',
+  hdr: 'HDR',
+  vrr: 'مزامنة الإطارات (VRR)',
+  dpVersion: 'DisplayPort',
+  dpUhbr: 'سرعة DisplayPort',
+  hdmiVersion: 'HDMI',
+  curvature: 'الانحناء',
+  dsc: 'ضغط DSC',
+  brightnessNits: 'السطوع',
+  usbC: 'منفذ USB-C',
+  speakers: 'سمّاعات مدمجة',
 };
 
 /** camelCase → «كلمتان» حين لا توجد تسمية مسجّلة — أفضل من عرض المفتاح خاماً */
@@ -165,6 +182,8 @@ const ORDER: Record<string, string[]> = {
   Storage: ['type', 'capacity', 'interface', 'formFactor', 'readSpeed', 'writeSpeed', 'dramCache', 'tbw'],
   PSU: ['wattage', 'rating', 'qualityTier', 'modularity', 'formFactor'],
   Case: ['formFactor', 'maxGpuLength', 'maxCoolerHeight', 'radiatorSupport', 'psuFormFactor', 'includedFans', 'frontPanel', 'sidePanel', 'dualChamber', 'verticalGpu', 'pcieRiser', 'cableManagement', 'screen', 'color'],
+  /* ما يقرّر التناسب مع الكرت أوّلاً (الدقّة والهرتز)، ثمّ الصورة، ثمّ المنافذ */
+  Monitor: ['sizeInch', 'resolution', 'refreshHz', 'panel', 'responseMs', 'hdr', 'vrr', 'dpVersion', 'dpUhbr', 'hdmiVersion', 'dsc', 'curvature', 'brightnessNits', 'usbC', 'speakers', 'color'],
 };
 
 /* ============ الوحدات ============
@@ -185,6 +204,10 @@ const UNITS: Record<string, string> = {
   maxCpuTdpW: 'واط',
   wattage: 'واط',
   speed: 'MT/s',
+  sizeInch: 'إنش',
+  refreshHz: 'هرتز',
+  responseMs: 'ms',
+  brightnessNits: 'نِت',
 };
 
 export const specUnit = (key: string): string | undefined => UNITS[key];
@@ -203,6 +226,13 @@ const VALUE_LABELS: Record<string, string> = {
   Semi: 'نصف قابلة للفكّ',
   Air: 'هوائي',
   AIO: 'مائي (AIO)',
+  /* الشاشة: الدقّة تُخزَّن بالبكسل وتُقرأ بالاسم الذي يعرفه المشتري */
+  '1920x1080': '1080p (Full HD)',
+  '2560x1080': '1080p عريضة',
+  '2560x1440': '1440p (QHD)',
+  '3440x1440': '1440p عريضة',
+  '3840x2160': '4K (UHD)',
+  Flat: 'مسطّحة',
 };
 
 /* الألوان تُترجم جزءاً جزءاً: «Black/Silver» → «أسود / فضّي». وما لا نعرفه يبقى كما هو */
@@ -283,6 +313,7 @@ const HERO: Record<string, string[]> = {
   Storage: ['capacity', 'type', 'readSpeed', 'interface'],
   PSU: ['wattage', 'rating', 'modularity', 'formFactor'],
   Case: ['formFactor', 'maxGpuLength', 'radiatorSupport', 'includedFans', 'sidePanel'],
+  Monitor: ['resolution', 'refreshHz', 'panel', 'sizeInch'],
 };
 
 /**
