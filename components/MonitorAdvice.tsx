@@ -65,7 +65,10 @@ export function MonitorAdviceCard({ gpu, monitors, onShowAll, className = '' }: 
     return (
       <div id="monitor-advice" className={shell}>
         <div className="px-4 py-3 text-[13px] font-semibold text-slate-600 dark:text-slate-300">
-          🖥️ ما عندنا قياس أداء منشور لـ{gpu.name}، فما نقترح شاشة بالتخمين.{' '}
+          {/* سببان مختلفان لا يُخلطان: كرتٌ بلا قياس، أو قياسٌ ولا شاشة متوفّرة الحين (كانت تقول «ما عندنا قياس» للثانية) */}
+          {a
+            ? <>🖥️ ما فيه شاشة متوفّرة الحين تناسب {a.perf.chip} (<bdi dir="ltr">{a.res}</bdi>، تقريباً {Math.round(a.fps)} إطار).{' '}</>
+            : <>🖥️ ما عندنا قياس أداء منشور لـ{gpu.name}، فما نقترح شاشة بالتخمين.{' '}</>}
           <a href="/components?cat=Monitor" className="font-black text-cyan-700 dark:text-cyan-400 underline">تصفّح الشاشات</a>
         </div>
       </div>

@@ -101,12 +101,12 @@ export default function Navbar() {
   useEffect(() => setMounted(true), []);
 
   /* الإعلان: يُقرأ بعد التركيب (localStorage غير موجود في الخادم). والفقاعة بعد ثانيةٍ لا فوراً:
-     الزائر يرى الصفحة أوّلاً. ولا تظهر في الإدارة ولا في صفحة التصفّح نفسها. */
+     الزائر يرى الصفحة أوّلاً. ولا تظهر في الإدارة ولا الدخول (الإدارة تحوّل إليه) ولا في صفحة التصفّح نفسها. */
   const [monFresh, setMonFresh] = useState(false);
   const [bubble, setBubble] = useState(false);
   useEffect(() => {
     setMonFresh(!seen(SEEN_LINK));
-    if (seen(SEEN_BUBBLE) || pathname.startsWith('/admin') || pathname.startsWith('/components')) return;
+    if (seen(SEEN_BUBBLE) || pathname.startsWith('/admin') || pathname.startsWith('/components') || pathname.startsWith('/login')) return;
     const t = setTimeout(() => setBubble(true), 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
