@@ -113,12 +113,13 @@ export default function Navbar() {
   }, []);
   const closeBubble = () => { setBubble(false); remember(SEEN_BUBBLE); };
   const openedMonitors = () => { closeBubble(); setMonFresh(false); remember(SEEN_LINK); };
-  /* أيّ نقرةٍ خارج الفقاعة تُغلقها (وداخلها يتولّاها زرّاها؛ data-announce لا ref: نسختان، للجوال وللكبيرة) — بالالتقاط كي لا يوقفها stopPropagation */
+  /* أيّ نقرةٍ خارج الفقاعة تُغلقها (وداخلها يتولّاها زرّاها؛ data-announce لا ref: نسختان، للجوال وللكبيرة) — بالالتقاط كي لا يوقفها stopPropagation.
+     ⚠️ click لا pointerdown: على الجوال أوّل لمسةٍ للتمرير pointerdown، فكانت تُغلق الفقاعة قبل أن تُقرأ. */
   useEffect(() => {
     if (!bubble) return;
-    const onDown = (e: PointerEvent) => { if (!(e.target as Element)?.closest?.('[data-announce]')) { setBubble(false); remember(SEEN_BUBBLE); } };
-    document.addEventListener('pointerdown', onDown, true);
-    return () => document.removeEventListener('pointerdown', onDown, true);
+    const onDown = (e: MouseEvent) => { if (!(e.target as Element)?.closest?.('[data-announce]')) { setBubble(false); remember(SEEN_BUBBLE); } };
+    document.addEventListener('click', onDown, true);
+    return () => document.removeEventListener('click', onDown, true);
   }, [bubble]);
 
   /* الفقاعة نفسها — side: أين السهم (يمين الرابط على الشاشة الكبيرة، يسار زرّ القائمة على الجوال) */
