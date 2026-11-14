@@ -11,6 +11,7 @@ import { productImage, IMAGE_FALLBACK } from '../../lib/image';
 import { catMeta } from '../../lib/category-meta';
 import { partRatings, levelWord } from '../../lib/perf-rating';
 import RatingMeter from '../../components/RatingMeter';
+import { MonitorFitSection, toMonitorItem } from '../../components/MonitorAdvice';
 
 // إضافة colorClass للتحكم بلون الشعار حسب مكانه (أزرق للفلتر، أخضر للأسعار)
 const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?: string, colorClass?: string }) => (
@@ -123,6 +124,28 @@ export default function ComponentsClient({ components, categories, dealsLocked =
     return name === 'CPU' || name === 'GPU' ? (name as 'CPU' | 'GPU') : null;
   }, [categories, selectedCat]);
   const useIdx = perfCat === 'CPU' ? cpuUse : 0;
+
+  /* ============ الرابط يفتح الفئة والفلاتر (?cat=Monitor&res=1440) ============
+   * لرابط «شوف كل شاشات 1440p» في الباني، ولرابط «الشاشات» في القائمة. من window لا useSearchParams:
+   * ذاك يُلزم الصفحة كلّها بـSuspense. ولا يُطبَّق في /deals (فئته وترتيبه مقفولان). */
+  useEffect(() => {
+    if (dealsLocked) return;
+    const q = new URLSearchParams(window.location.search);
+    const cat = categories.find((c) => c.name === q.get('cat'));
+    if (!cat) return;
+    setSelectedCat(cat.id);
+    if (cat.name === 'Monitor') {
+      const sel: MonSel = {};
+      for (const f of MON_FILTERS) { const v = q.get(f.key); if (v && f.options.some(([o]) => o === v)) sel[f.key] = v; }
+      setMonSel(sel);
+    }
+  }, [categories, dealsLocked]);
+
+  /* «شاشة تلائم تجميعتك» — الكروت والشاشات من الكتالوج نفسه المعروض */
+  const fitData = useMemo(() => ({
+    gpus: components.filter((c) => c.category?.name === 'GPU'),
+    monitors: components.filter((c) => c.category?.name === 'Monitor').map(toMonitorItem),
+  }), [components]);
 
   /* نحسب الخصم والتقييم مرّة واحدة لكل قطعة — الدالتان مشتركتان مع صفحة المنتج */
   const withDeals = useMemo(
@@ -491,6 +514,14 @@ export default function ComponentsClient({ components, categories, dealsLocked =
             {remaining > 0 ? `${visible.length} من ${filtered.length} قطعة` : `${filtered.length} قطعة`}
           </span>
         </div>
+
+        {monitorCat && !dealsLocked && (
+          <MonitorFitSection
+            gpus={fitData.gpus}
+            monitors={fitData.monitors}
+            onShowAll={(res) => { setMonSel({ res: res === '4K' ? '2160' : res.replace('p', '') }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          />
+        )}
 
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm rounded-sm border-x border-b border-t-2 border-slate-200 border-t-cyan-500/70 dark:border-slate-800/80 dark:border-t-cyan-500/70 shadow-sm text-center">

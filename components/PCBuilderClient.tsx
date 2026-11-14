@@ -1,6 +1,6 @@
 'use client';
 export const dynamic = 'force-dynamic';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { brandColor } from '../lib/brand';
 import { catMeta } from '../lib/category-meta';
@@ -22,6 +22,7 @@ import { goToLogin } from '../lib/login-href';
 import { partRatings, type Rating } from '../lib/perf-rating';
 import RatingMeter from './RatingMeter';
 import GamePerformance from './GamePerformance';
+import { MonitorAdviceCard, MonitorAdviceLine, toMonitorItem } from './MonitorAdvice';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
 import { track, trackOnce } from '../lib/track';
 import { productImage } from '../lib/image';
@@ -578,7 +579,9 @@ const SearchableSelect = ({
   );
 };
 
-export default function PCBuilderClient({ categories, importedSelections = {} }: { categories: Category[], importedSelections?: Record<string, string> }) {
+export default function PCBuilderClient({ categories, importedSelections = {}, monitors: monitorRows = [] }: { categories: Category[], importedSelections?: Record<string, string>, monitors?: any[] }) {
+  /* الشاشات لاقتراح «شاشة تلائم كرتك» — لا تدخل selectedComponents ولا تُحفظ (قرار نوّاف 2026-11) */
+  const monitors = useMemo(() => monitorRows.map(toMonitorItem), [monitorRows]);
   // نطبّق معرّفات لوحة الإدارة قبل أي رسم — الروابط تُبنى أثناء الرسم
   const { data: session } = useSession();
   const router = useRouter(); 
@@ -1511,6 +1514,7 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                   onShowDetails={(comp) => setDetailsModal({ comp, categoryName: category.name })}
                   showIncompatible={showIncompatible}
                 />
+                {category.name === 'GPU' && <MonitorAdviceLine gpu={selectedComponents['GPU']} monitors={monitors} />}
               </div>
             );
           })}
@@ -1544,6 +1548,14 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                   </div>
                 )}
                 
+                {/* الكرت مختار والتجميعة ناقصة: أداؤه وشاشته من الحين، ما ينتظران آخر قطعة */}
+                {selectedComponents['GPU'] && (
+                  <div className="w-full text-right">
+                    <GamePerformance gpu={selectedComponents['GPU']} cpu={selectedComponents['CPU']} />
+                    <MonitorAdviceCard gpu={selectedComponents['GPU']} monitors={monitors} className="mt-4" />
+                  </div>
+                )}
+
                 {(result.totalPrice > 0 || result.totalTdp > 0) && (
                   <div className="flex flex-wrap justify-center gap-3 mt-4 text-sm font-bold">
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-sm px-4 py-2 flex items-center gap-2 text-slate-600 dark:text-slate-400 shadow-sm">
@@ -1697,6 +1709,9 @@ export default function PCBuilderClient({ categories, importedSelections = {} }:
                     {/* إطاراتٌ مقيسة للكرت (components/GamePerformance) — كانت بطاقاتٍ مقدَّرة من المستويات */}
                     {result.status === 'success' && selectedComponents['GPU'] && (
                       <GamePerformance gpu={selectedComponents['GPU']} cpu={selectedComponents['CPU']} />
+                    )}
+                    {selectedComponents['GPU'] && (
+                      <MonitorAdviceCard gpu={selectedComponents['GPU']} monitors={monitors} className="mt-4" />
                     )}
 
                     {result.status === 'success' && (

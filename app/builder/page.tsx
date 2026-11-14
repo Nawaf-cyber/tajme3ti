@@ -76,6 +76,12 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
      buildStoreUrl من العرض نفسه. */
   const notices = await getStoreNotices();
 
+  /* الشاشات خارج التجميعة (اقتراحٌ لا خانة) — تُجلب وحدها لبطاقة «شاشة تلائم كرتك» (components/MonitorAdvice) */
+  const monitors = await prisma.component.findMany({
+    where: { category: { name: 'Monitor' } },
+    select: { id: true, brand: true, name: true, price: true, specs: true, imageUrl: true, offers: OFFER_INCLUDE.offers },
+  });
+
   // قراءة التجميعة إذا كان هناك متغير from في الرابط
   let importedSelections: Record<string, string> = {};
   if (from) {
@@ -93,7 +99,7 @@ export default async function BuilderPage({ searchParams }: { searchParams: Prom
       <div className="max-w-7xl mx-auto">
         <StoreNotices stores={notices as any} />
       </div>
-      <PCBuilderClient categories={categories} importedSelections={importedSelections} />
+      <PCBuilderClient categories={categories} importedSelections={importedSelections} monitors={monitors as any} />
     </div>
   );
 }
