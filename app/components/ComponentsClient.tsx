@@ -67,7 +67,7 @@ const monMatch = (sp: MonSpec, sel: MonSel, except?: string) =>
  *
  * والبطاقة تبقى واحدة: نسخةٌ ثانية منها تعني عيباً يُصلَح هنا ويعيش هناك.
  */
-export default function ComponentsClient({ components, categories, dealsLocked = false }: { components: any[], categories: any[], dealsLocked?: boolean }) {
+export default function ComponentsClient({ components, categories, dealsLocked = false, query }: { components: any[], categories: any[], dealsLocked?: boolean, query?: Record<string, string | undefined> }) {
   const [search, setSearch] = useState('');
 
   /* ============ ما يبحث عنه الزائر ============
@@ -126,20 +126,20 @@ export default function ComponentsClient({ components, categories, dealsLocked =
   const useIdx = perfCat === 'CPU' ? cpuUse : 0;
 
   /* ============ الرابط يفتح الفئة والفلاتر (?cat=Monitor&res=1440) ============
-   * لرابط «شوف كل شاشات 1440p» في الباني، ولرابط «الشاشات» في القائمة. من window لا useSearchParams:
-   * ذاك يُلزم الصفحة كلّها بـSuspense. ولا يُطبَّق في /deals (فئته وترتيبه مقفولان). */
+   * لرابط «شوف كل شاشات 1440p» في الباني، ولرابط «الشاشات» في القائمة. المعاملات تأتي من الصفحة
+   * (searchParams) لا من window: الصفحة تُعيد تركيب هذا المكوّن بمفتاحها، فالنقر على «الشاشات» وأنت
+   * في التصفّح أصلاً يطبّقها (window يُقرأ مرّةً عند التركيب فقط). ولا يُطبَّق في /deals. */
   useEffect(() => {
-    if (dealsLocked) return;
-    const q = new URLSearchParams(window.location.search);
-    const cat = categories.find((c) => c.name === q.get('cat'));
+    if (dealsLocked || !query) return;
+    const cat = categories.find((c) => c.name === query.cat);
     if (!cat) return;
     setSelectedCat(cat.id);
     if (cat.name === 'Monitor') {
       const sel: MonSel = {};
-      for (const f of MON_FILTERS) { const v = q.get(f.key); if (v && f.options.some(([o]) => o === v)) sel[f.key] = v; }
+      for (const f of MON_FILTERS) { const v = query[f.key]; if (v && f.options.some(([o]) => o === v)) sel[f.key] = v; }
       setMonSel(sel);
     }
-  }, [categories, dealsLocked]);
+  }, [categories, dealsLocked, query]);
 
   /* «شاشة تلائم تجميعتك» — الكروت والشاشات من الكتالوج نفسه المعروض */
   const fitData = useMemo(() => ({

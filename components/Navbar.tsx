@@ -38,6 +38,7 @@ const ICONS: Record<string, string> = {
   news: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15',
   compare: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
   deals: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z',
+  monitors: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
   builds: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
 };
 
@@ -49,12 +50,34 @@ const Icon = ({ d, className = 'w-4 h-4' }: { d: string; className?: string }) =
 
 /* الروابط في مكانٍ واحد — يقرؤها الشريط والقائمة المنسدلة معاً */
 const NAV = [
+  /* الشاشات (2026-11): تفتح التصفّح على فئتها وقسم «شاشة تلائم تجميعتك» — وعليها إعلان «جديد» أدناه */
+  { href: '/components?cat=Monitor', label: 'الشاشات', icon: ICONS.monitors, accent: false },
   { href: '/guides', label: 'أدلّة', icon: ICONS.guides, accent: false },
   { href: '/news', label: 'الأخبار', icon: ICONS.news, accent: false },
   { href: '/compare', label: 'قارن القطع', icon: ICONS.compare, accent: false },
   /* الورديّ هنا وحده — ولأن صفحة التخفيضات ورديّة، فهو ربطٌ لا تلوين */
   { href: '/deals', label: 'تخفيضات', icon: ICONS.deals, accent: true },
 ] as const;
+
+/* ============ إعلان الشاشات — «د» (اختيار نوّاف 2026-11-06) ============
+ * نقطةٌ مضيئة على رابط «الشاشات» حتى يفتحه الزائر مرّة، وفقاعةٌ تشير إليه مرّةً واحدة لكلّ زائر
+ * تختفي بأيّ نقرة ولا تعود. ⚠️ لا نافذة تغطّي الصفحة: قوقل تعاقب المنبثقات على الجوال.
+ * وعلى الجوال الرابط داخل القائمة المطويّة، فالفقاعة تشير لزرّ القائمة و«جديد» على الرابط داخلها.
+ * مفتاحان لأنّ النقر على زرّ القائمة يُخفي الفقاعة، و«جديد» يبقى ليراه داخلها. */
+const MON_HREF = '/components?cat=Monitor';
+const SEEN_BUBBLE = 'announce-monitors-bubble';
+const SEEN_LINK = 'announce-monitors-link';
+const remember = (k: string) => { try { localStorage.setItem(k, '1'); } catch { /* تصفّحٌ خاصّ — يعود الإعلان، ولا ضرر */ } };
+const seen = (k: string) => { try { return !!localStorage.getItem(k); } catch { return true; } };
+
+function NewDot() {
+  return (
+    <span className="pointer-events-none relative flex h-2 w-2" title="جديد">
+      <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-70 animate-ping" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-500" />
+    </span>
+  );
+}
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -76,6 +99,46 @@ export default function Navbar() {
   const accountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
+
+  /* الإعلان: يُقرأ بعد التركيب (localStorage غير موجود في الخادم). والفقاعة بعد ثانيةٍ لا فوراً:
+     الزائر يرى الصفحة أوّلاً. ولا تظهر في الإدارة ولا في صفحة التصفّح نفسها. */
+  const [monFresh, setMonFresh] = useState(false);
+  const [bubble, setBubble] = useState(false);
+  useEffect(() => {
+    setMonFresh(!seen(SEEN_LINK));
+    if (seen(SEEN_BUBBLE) || pathname.startsWith('/admin') || pathname.startsWith('/components')) return;
+    const t = setTimeout(() => setBubble(true), 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const closeBubble = () => { setBubble(false); remember(SEEN_BUBBLE); };
+  const openedMonitors = () => { closeBubble(); setMonFresh(false); remember(SEEN_LINK); };
+  /* أيّ نقرةٍ خارج الفقاعة تُغلقها (وداخلها يتولّاها زرّاها؛ data-announce لا ref: نسختان، للجوال وللكبيرة) — بالالتقاط كي لا يوقفها stopPropagation */
+  useEffect(() => {
+    if (!bubble) return;
+    const onDown = (e: PointerEvent) => { if (!(e.target as Element)?.closest?.('[data-announce]')) { setBubble(false); remember(SEEN_BUBBLE); } };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, [bubble]);
+
+  /* الفقاعة نفسها — side: أين السهم (يمين الرابط على الشاشة الكبيرة، يسار زرّ القائمة على الجوال) */
+  const bubbleEl = (side: 'right' | 'left', extra = '') => (
+    <div
+      data-announce
+      role="status"
+      className={`absolute top-full mt-3 z-[60] w-72 max-w-[calc(100vw-2rem)] rounded-sm border border-cyan-500/50 bg-white dark:bg-[#0F172A] p-3.5 shadow-xl shadow-cyan-500/10 animate-in fade-in slide-in-from-top-1 duration-300 ${side === 'right' ? 'right-0' : 'left-0'} ${extra}`}
+    >
+      <span className={`absolute -top-[7px] h-3 w-3 rotate-45 border-l border-t border-cyan-500/50 bg-white dark:bg-[#0F172A] ${side === 'right' ? 'right-6' : 'left-4'}`} />
+      <p className="text-[13px] font-bold leading-relaxed text-slate-700 dark:text-slate-200">
+        <span className="ml-1.5 rounded-sm bg-cyan-500 px-1.5 py-0.5 text-[11px] font-black text-white dark:text-[#052e37]">جديد</span>
+        الشاشات صارت هنا. اختر كرتك ونقولك الشاشة اللي تناسبه.
+      </p>
+      <div className="mt-3 flex items-center gap-2">
+        <Link href={MON_HREF} onClick={openedMonitors} className="rounded-sm bg-cyan-500 px-3 py-1.5 text-[12.5px] font-black text-white dark:text-[#052e37] hover:bg-cyan-400">جرّبها ←</Link>
+        <button onClick={closeBubble} className="rounded-sm px-3 py-1.5 text-[12.5px] font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">فهمت</button>
+      </div>
+    </div>
+  );
 
   useEffect(() => {
     if (!session) { setReqUnseen(0); setDropUnseen(0); return; }
@@ -138,7 +201,10 @@ export default function Navbar() {
             <span className="tracking-tight">تجميعتي</span>
           </Link>
 
-          {/* زر القائمة (الجوّال) */}
+          {/* زر القائمة (الجوّال) — وعليه نقطة الإعلان وفقاعته، لأنّ رابط الشاشات داخله */}
+          <div className="relative md:hidden">
+          {bubble && bubbleEl('left')}
+          {monFresh && !isMobileMenuOpen && <span className="absolute top-1 left-1"><NewDot /></span>}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-expanded={isMobileMenuOpen}
@@ -147,6 +213,7 @@ export default function Navbar() {
           >
             <Icon className="w-6 h-6" d={isMobileMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
           </button>
+          </div>
 
           {/* ===== الشاشة الكبيرة =====
               ⚠️ بين 768 و1024 لا يتّسع الشريط كاملاً: كان «قارن القطع» ينكسر سطرين
@@ -156,10 +223,12 @@ export default function Navbar() {
 
             {NAV.map((item) => {
               const on = isActive(item.href);
+              const mon = item.href === MON_HREF;
               return (
+                <div key={item.href} className="relative">
                 <Link
-                  key={item.href}
                   href={item.href}
+                  onClick={mon ? openedMonitors : undefined}
                   aria-current={on ? 'page' : undefined}
                   className={`relative flex items-center gap-1.5 px-2.5 lg:px-3.5 py-2 rounded-sm text-sm font-bold whitespace-nowrap transition-all ${
                     on
@@ -173,6 +242,7 @@ export default function Navbar() {
                 >
                   <Icon d={item.icon} className="w-4 h-4 hidden lg:block" />
                   {item.label}
+                  {mon && monFresh && <NewDot />}
                   {/* خطٌّ سفليّ يقول «أنت هنا» — الأثر الذي كان غائباً */}
                   {on && (
                     <span
@@ -182,6 +252,8 @@ export default function Navbar() {
                     />
                   )}
                 </Link>
+                {mon && bubble && bubbleEl('right', 'hidden md:block')}
+                </div>
               );
             })}
 
@@ -304,6 +376,7 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={item.href === MON_HREF ? openedMonitors : undefined}
                   aria-current={on ? 'page' : undefined}
                   className={`text-sm font-bold flex items-center gap-3 px-4 py-3 rounded-sm transition-colors border-r-2 ${
                     on
@@ -317,6 +390,9 @@ export default function Navbar() {
                 >
                   <Icon className="w-5 h-5" d={item.icon} />
                   {item.label}
+                  {item.href === MON_HREF && monFresh && (
+                    <span className="rounded-sm bg-cyan-500 px-1.5 py-0.5 text-[11px] font-black text-white dark:text-[#052e37]">جديد</span>
+                  )}
                 </Link>
               );
             })}
