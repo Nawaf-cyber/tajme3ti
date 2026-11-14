@@ -32,6 +32,24 @@ const RiyalIcon = ({ size = 'h-4 w-4', colorClass = 'bg-emerald-500' }: { size?:
 /* درجات فلتر الأداء: [أدنى مستوى، التسمية]. والكلمات من lib/perf-rating — هي نفسها على البطاقات */
 const PERF_STEPS = [[0, 'الكل'], [3, `${levelWord(3)} فأعلى`], [4, `${levelWord(4)} فأعلى`], [5, levelWord(5)]] as const;
 
+/* ============ فلاتر الشاشة (2026-11) ============
+ * تظهر حين تُختار فئة الشاشة وحدها، كفلتر الأداء للمعالج والكرت. والقيم من مواصفاتها نفسها
+ * (spec-schema · Monitor): الدقّة بالارتفاع (العريضة مع أختها)، والهرتز «فأعلى»، وOLED تجمع QD-OLED. */
+type MonSpec = { resolution?: string; refreshHz?: string; panel?: string; sizeInch?: string };
+const MON_FILTERS: { key: 'res' | 'hz' | 'panel' | 'size'; label: string; options: [string, string][]; test: (sp: MonSpec, v: string) => boolean }[] = [
+  { key: 'res', label: 'الدقّة', options: [['1080', '1080p'], ['1440', '1440p'], ['2160', '4K']],
+    test: (sp, v) => String(sp.resolution ?? '').endsWith('x' + v) },
+  { key: 'hz', label: 'معدّل التحديث', options: [['165', '165 فأعلى'], ['240', '240 فأعلى'], ['300', '300 فأعلى']],
+    test: (sp, v) => Number(sp.refreshHz) >= Number(v) },
+  { key: 'panel', label: 'نوع اللوحة', options: [['IPS', 'IPS'], ['VA', 'VA'], ['OLED', 'OLED']],
+    test: (sp, v) => (v === 'OLED' ? /OLED/.test(String(sp.panel)) : sp.panel === v) },
+  { key: 'size', label: 'المقاس', options: [['24', '24–25 إنش'], ['27', '27 إنش'], ['32', '32 إنش']],
+    test: (sp, v) => { const n = Number(sp.sizeInch); return v === '24' ? n >= 23 && n < 26 : v === '27' ? n >= 26 && n < 30 : n >= 30; } },
+];
+type MonSel = Partial<Record<'res' | 'hz' | 'panel' | 'size', string>>;
+const monMatch = (sp: MonSpec, sel: MonSel, except?: string) =>
+  MON_FILTERS.every((f) => f.key === except || !sel[f.key] || f.test(sp, sel[f.key]!));
+
 // دالة تلوين أسماء الماركات
 /* لون العلامة صار من lib/brand — كانت أربع نسخ بأربع لوحات */
 
@@ -98,6 +116,8 @@ export default function ComponentsClient({ components, categories, dealsLocked =
    * وغير المقيس لا يمرّ من فلتر «فأعلى»: لا نعرف مستواه، فلا ندّعي أنه يبلغه. */
   const [minLevel, setMinLevel] = useState(0);
   const [cpuUse, setCpuUse] = useState<0 | 1>(0);
+  const [monSel, setMonSel] = useState<MonSel>({});
+  const monitorCat = categories.find((cat) => cat.id === selectedCat)?.name === 'Monitor';
   const perfCat = useMemo(() => {
     const name = categories.find((cat) => cat.id === selectedCat)?.name;
     return name === 'CPU' || name === 'GPU' ? (name as 'CPU' | 'GPU') : null;
@@ -108,12 +128,12 @@ export default function ComponentsClient({ components, categories, dealsLocked =
   const withDeals = useMemo(
     () => components.map(c => {
       const specs = typeof c.specs === 'string' ? (() => { try { return JSON.parse(c.specs); } catch { return {}; } })() : c.specs || {};
-      return { ...c, _deal: offerDeal(c), _live: isAvailable(c), _ratings: partRatings(c.category?.name, c.name, specs) };
+      return { ...c, _specs: specs as MonSpec, _deal: offerDeal(c), _live: isAvailable(c), _ratings: partRatings(c.category?.name, c.name, specs) };
     }),
     [components]
   );
 
-  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== priceCeiling || sortBy !== (dealsLocked ? 'discount' : 'newest') || (onlyDeals && !dealsLocked) || (perfCat != null && minLevel > 0);
+  const isFiltered = search !== '' || selectedCat !== 'all' || maxPrice !== priceCeiling || sortBy !== (dealsLocked ? 'discount' : 'newest') || (onlyDeals && !dealsLocked) || (perfCat != null && minLevel > 0) || (monitorCat && Object.values(monSel).some(Boolean));
 
   /* «مسح الفلاتر» يعود بالصفحة إلى حالتها الابتدائية — وهي في الوضع
      المقفول ليست «كل القطع» بل «كل التخفيضات مرتّبةً بالانخفاض». */
@@ -125,6 +145,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
     setOnlyDeals(dealsLocked);
     setMinLevel(0);
     setCpuUse(0);
+    setMonSel({});
   };
 
   /* تغيير الفئة يُسقط فلتر الأداء وترتيبه إن لم تعد الفئة معالجاً أو كرتاً — وإلّا بقي «قمّة»
@@ -132,6 +153,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
   const handleCatChange = (id: string) => {
     setSelectedCat(id);
     const name = categories.find((cat) => cat.id === id)?.name;
+    if (name !== 'Monitor') setMonSel({});
     if (name !== 'CPU' && name !== 'GPU') {
       setMinLevel(0);
       if (sortBy === 'power') setSortBy(dealsLocked ? 'discount' : 'newest');
@@ -147,9 +169,17 @@ export default function ComponentsClient({ components, categories, dealsLocked =
     return matchSearch && matchCat && matchPrice;
   }), [withDeals, search, selectedCat, maxPrice]);
 
-  const baseFiltered = useMemo(
-    () => (!perfCat || minLevel === 0 ? prePerf : prePerf.filter((c) => (c._ratings[useIdx]?.level ?? 0) >= minLevel)),
-    [prePerf, perfCat, minLevel, useIdx],
+  const baseFiltered = useMemo(() => {
+    const byPerf = !perfCat || minLevel === 0 ? prePerf : prePerf.filter((c) => (c._ratings[useIdx]?.level ?? 0) >= minLevel);
+    return monitorCat ? byPerf.filter((c) => monMatch(c._specs, monSel)) : byPerf;
+  }, [prePerf, perfCat, minLevel, useIdx, monitorCat, monSel]);
+
+  /* عدّادات فلاتر الشاشة — ما ستراه لو ضغطت، مع بقيّة فلاتر الشاشة المفعّلة لا مع نفس المجموعة */
+  const monCounts = useMemo(
+    () => Object.fromEntries(MON_FILTERS.map((f) => [f.key, Object.fromEntries(
+      [['', ''] as [string, string], ...f.options].map(([v]) => [v, prePerf.filter((c) => monMatch(c._specs, { ...monSel, [f.key]: v || undefined }, v ? undefined : f.key)).length]),
+    )])) as Record<string, Record<string, number>>,
+    [prePerf, monSel],
   );
 
   /* عدّادات أزرار الأداء — كعدّاد التخفيضات: ما ستراه لو ضغطت، ضمن الفلاتر الحالية */
@@ -205,7 +235,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
   // أي تغيير في الفلاتر يعيد العرض للبداية — وإلا بقيت على صفحة 5 لنتيجة من 3
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [search, selectedCat, maxPrice, sortBy, onlyDeals, minLevel, cpuUse]);
+  }, [search, selectedCat, maxPrice, sortBy, onlyDeals, minLevel, cpuUse, monSel]);
 
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visible.length;
@@ -279,6 +309,31 @@ export default function ComponentsClient({ components, categories, dealsLocked =
               </div>
             </div>
           </div>
+
+          {monitorCat && MON_FILTERS.map((f) => (
+            <div key={f.key}>
+              <label className="block mb-2 text-[12px] font-bold text-slate-500 dark:text-slate-300">{f.label}</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {([['', 'الكل'], ...f.options] as [string, string][]).map(([v, label]) => {
+                  const on = (monSel[f.key] ?? '') === v;
+                  return (
+                    <button
+                      key={v || 'all'}
+                      onClick={() => setMonSel((s) => ({ ...s, [f.key]: v || undefined }))}
+                      className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-sm text-[12px] font-bold border transition-all active:scale-95 ${
+                        on
+                          ? 'bg-cyan-500 text-white dark:text-[#052e37] border-cyan-500 shadow-sm shadow-cyan-500/30'
+                          : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:border-cyan-400 dark:hover:border-cyan-600'
+                      }`}
+                    >
+                      <span dir={/^\d|^[A-Z]/.test(label) ? 'ltr' : undefined}>{label}</span>
+                      <span className="tabular-nums opacity-80">{monCounts[f.key]?.[v] ?? 0}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
 
           {perfCat && (
             <div>

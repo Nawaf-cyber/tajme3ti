@@ -39,11 +39,29 @@ const overlaps = (candidate: string, accepted: string[]): boolean => {
 /**
  * @param max عدد الشارات المطلوب (٣ في صفحة القطع، وأقلّ في المساحات الضيّقة)
  */
+/* ============ الشاشة (2026-11) ============
+ * مفاتيحها لا تمرّ بقائمة الأولويّة أعلاه (لا capacity ولا socket)، فكانت بطاقتها بلا شارة.
+ * وما يقرّر شراءها: الدقّة بالاسم الذي يعرفه المشتري، ثمّ الهرتز، ثمّ نوع اللوحة. */
+const MON_RES: Record<string, string> = {
+  '1920x1080': '1080p', '2560x1080': '1080p UW', '2560x1440': '1440p', '3440x1440': '1440p UW', '3840x2160': '4K',
+};
+function monitorBadges(sp: Record<string, unknown>, max: number): string[] | null {
+  if (!sp.refreshHz || !sp.resolution) return null;
+  return [
+    MON_RES[String(sp.resolution)] ?? String(sp.resolution),
+    `${sp.refreshHz}Hz`,
+    String(sp.panel ?? ''),
+    sp.sizeInch ? `${sp.sizeInch}"` : '',
+  ].filter(Boolean).slice(0, max);
+}
+
 export function specBadges(comp: BadgeSource, max = 3): string[] {
   const badges: string[] = [];
 
   try {
     const sp = (typeof comp.specs === 'string' ? JSON.parse(comp.specs) : comp.specs || {}) as Record<string, unknown>;
+    const mon = monitorBadges(sp, max);
+    if (mon) return mon;
     for (const key of PRIORITY) {
       if (badges.length >= max) break;
       const raw = sp?.[key];
