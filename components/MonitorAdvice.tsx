@@ -8,7 +8,7 @@
  *   <MonitorAdviceCard gpu={...} monitors={...} />   البطاقة كاملة (الباني تحت القطع، والتصفّح)
  *   <MonitorAdviceLine gpu={...} monitors={...} />   سطرٌ واحد تحت خانة الكرت في الباني
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { adviseMonitors, type MonitorLike, type MonRes, type Pick } from '../lib/monitor-match';
 import { isAvailable, type Offer } from '../lib/stores';
 import { specBadges } from '../lib/spec-badges';
@@ -154,6 +154,78 @@ export function MonitorAdviceLine({ gpu, monitors }: Props) {
  * الكرت من تجميعة الزائر المحفوظة في المتصفّح (draft_pc_build — الباني يكتبها)، وإلّا يختاره هنا.
  * والاختيار هنا لا يغيّر تجميعته: قراءةٌ فقط من localStorage. */
 type GpuOpt = { id: string; brand: string; name: string; specs?: unknown };
+
+/* بحثٌ بالكلمات: «5070 ti» يطابق «MSI GeForce RTX 5070 Ti …» — كلّ كلمةٍ موجودة في الاسم بأيّ ترتيب،
+   والمسافات داخل الرقم لا تهمّ («rtx5070» = «RTX 5070»). نوّاف 2026-11-15: «خل فيه بحث» — ٦٠ كرتاً في قائمةٍ واحدة. */
+const norm = (t: string) => t.toLowerCase().replace(/\s+/g, '');
+const matches = (g: GpuOpt, q: string) => {
+  const hay = norm(`${g.brand} ${g.name}`);
+  return q.trim().toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
+};
+const label = (g: GpuOpt) => `${g.brand} ${g.name}`;
+
+function GpuSearch({ gpus, value, onPick }: { gpus: GpuOpt[]; value: GpuOpt | null; onPick: (g: GpuOpt) => void }) {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const box = useRef<HTMLDivElement>(null);
+  const list = useMemo(() => gpus.filter((g) => matches(g, q)), [gpus, q]);
+  useEffect(() => setHi(0), [q]);
+  /* النقر خارجها يُغلقها ويُرجع النصّ للكرت المختار */
+  useEffect(() => {
+    if (!open) return;
+    const out = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) { setOpen(false); setQ(''); } };
+    document.addEventListener('mousedown', out);
+    return () => document.removeEventListener('mousedown', out);
+  }, [open]);
+  const pick = (g: GpuOpt) => { onPick(g); setOpen(false); setQ(''); };
+
+  return (
+    <div ref={box} className="relative w-full sm:w-80">
+      <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" /></svg>
+      <input
+        type="search"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls="gpu-search-list"
+        aria-label="ابحث عن كرت الشاشة"
+        value={open ? q : value ? label(value) : ''}
+        placeholder="اختر كرتك أو اكتب اسمه… (مثل 5070)"
+        dir={!open && value ? 'ltr' : undefined}
+        onFocus={() => { setOpen(true); setQ(''); }}
+        onClick={() => setOpen(true)}
+        onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); setHi((h) => Math.min(h + 1, list.length - 1)); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
+          else if (e.key === 'Enter' && open && list[hi]) { e.preventDefault(); pick(list[hi]); (e.target as HTMLInputElement).blur(); }
+          else if (e.key === 'Escape') { setOpen(false); setQ(''); (e.target as HTMLInputElement).blur(); }
+        }}
+        className="w-full pr-9 pl-3 py-2 rounded-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] font-bold text-slate-700 dark:text-slate-200 placeholder:text-slate-400 placeholder:font-semibold focus:outline-none focus:border-cyan-500"
+      />
+      {open && (
+        <ul id="gpu-search-list" role="listbox" className="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl">
+          {list.length === 0 ? (
+            <li className="px-3 py-2.5 text-[12.5px] font-semibold text-slate-500 dark:text-slate-400">ما لقينا كرت بهالاسم</li>
+          ) : list.map((g, i) => (
+            <li
+              key={g.id}
+              role="option"
+              aria-selected={value?.id === g.id}
+              /* mousedown لا click: يسبق إغلاق القائمة بالنقر خارجها */
+              onMouseDown={(e) => { e.preventDefault(); pick(g); }}
+              onMouseEnter={() => setHi(i)}
+              dir="ltr"
+              className={`cursor-pointer px-3 py-2 text-right text-[12.5px] font-bold ${i === hi ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300' : 'text-slate-700 dark:text-slate-200'} ${value?.id === g.id ? 'border-r-2 border-cyan-500' : ''}`}
+            >
+              <span className="text-slate-500 dark:text-slate-400">{g.brand}</span> {g.name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 export function MonitorFitSection({ gpus, monitors, onShowAll }: { gpus: GpuOpt[]; monitors: MonitorItem[]; onShowAll?: (res: MonRes) => void }) {
   const [gpuId, setGpuId] = useState<string>('');
   const [fromBuild, setFromBuild] = useState(false);
@@ -175,16 +247,7 @@ export function MonitorFitSection({ gpus, monitors, onShowAll }: { gpus: GpuOpt[
             {fromBuild && gpu ? 'أخذنا الكرت من تجميعتك — وتقدر تغيّره هنا بدون ما تتغيّر تجميعتك.' : 'اختر كرت الشاشة اللي عندك أو ناوي عليه، ونقترح لك الشاشة المناسبة له.'}
           </p>
         </div>
-        <select
-          value={gpuId}
-          onChange={(e) => { setGpuId(e.target.value); setFromBuild(false); }}
-          aria-label="كرت الشاشة"
-          dir={gpuId ? 'ltr' : undefined}
-          className="min-w-0 max-w-full sm:w-72 px-3 py-2 rounded-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] font-bold text-slate-700 dark:text-slate-200"
-        >
-          <option value="">اختر كرتك…</option>
-          {sorted.map((g) => <option key={g.id} value={g.id}>{g.brand} {g.name}</option>)}
-        </select>
+        <GpuSearch gpus={sorted} value={gpu} onPick={(g) => { setGpuId(g.id); setFromBuild(false); }} />
       </div>
       {gpu && <MonitorAdviceCard gpu={gpu} monitors={monitors} onShowAll={onShowAll} className="mt-4" />}
     </section>
