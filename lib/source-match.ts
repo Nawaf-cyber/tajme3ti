@@ -81,7 +81,7 @@ const BRAND_AR: Record<string, RegExp> = {
  * فالقاعدة هنا، و`discover.ts` يُعيد تصديرها — لا ينسخها.
  */
 export const IS_SYSTEM =
-  /gaming pc|gaming desktop|gaming computer|desktop pc|desktop computer|desktop configuration|\bpc\b.*(ryzen|core ultra|rtx)|prebuilt|barebone|workstation|\bserver\b|rack ?mount|\bepyc\b|laptop|notebook|all-in-one|bundle|بي ?سي ?قيمنق|جهاز جاهز|تجميعة جاهزة|كمبيوتر مكتبي/i;
+  /gaming pc|gaming desktop|gaming computer|desktop pc|desktop computer|desktop configuration|\bpc\b.*(ryzen|core ultra|rtx)|prebuilt|barebone|workstation|\bserver\b|rack ?mount|\bepyc\b|laptop|notebook|all-in-one|bundle|بي ?سي ?قيمنق|جهاز جاهز|تجميعة|كمبيوتر مكتبي/i;
 
 /**
  * ملحقٌ **لقطعة** لا القطعة نفسها.
@@ -203,6 +203,17 @@ const colorsOf = (s: string): string =>
 const VARIANT = /\b(TI|XTX|XT|GRE|SUPER|GTS?|SE|LE|LC|VISION|TRAY)\b/gi;
 const variantsOf = (s: string): string =>
   [...new Set((s.match(VARIANT) ?? []).map((v) => v.toUpperCase()))].sort().join(',');
+
+/**
+ * «Plus» في الاسم — طرازٌ آخر لا وصف.
+ *
+ * ⚠️ قِيس 2026-11-15: «Gigabyte Z890 AORUS ELITE WIFI7 **PLUS**» قُبل في مايكرولس
+ * وكازاسوق لقطعتنا «Z890 AORUS Elite WiFi7» — وهي لوحةٌ أخرى (تحديثٌ بشبكة 5GbE).
+ * و«PLUS» في GENERIC فلا تُشترط ولا يُشترط غيابها. وكذلك P3 / P3 Plus و990 EVO /
+ * 990 EVO Plus. فتُقارن باتّجاهين كالمراجعة — بعد حذف «80 Plus» شهادةِ المزوّدات،
+ * وهي في كلّ عنوان مزوّدٍ ولا في أسمائنا.
+ */
+const hasPlus = (s: string): boolean => /\bPLUS\b/i.test(s.replace(/\b80\s*\+?\s*PLUS\b/gi, ' '));
 
 /**
  * حرفُ اللوحة بعد رمز الشريحة — «H610M **H**» غير «H610M-**K**».
@@ -346,6 +357,10 @@ export function matches(fp: Fingerprint, cand: string): Verdict {
 
   /* ⚠️ وجيلُ الذاكرة لا يُفحص إلّا حين يذكره **الطرفان**: عنوانٌ لا يذكره
      لا يُدان بجهلنا — وأغلب عناوين المتاجر لا تذكره. */
+  if (hasPlus(ourName) !== hasPlus(cand)) {
+    return { ok: false, why: hasPlus(ourName) ? 'قطعتنا «Plus» والمرشّح لا' : 'المرشّح «Plus» وقطعتنا لا' };
+  }
+
   const ourDdr = ddrOf(ourName + ' ' + (fp.ramType ?? ''));
   const candDdr = ddrOf(cand);
   if (ourDdr && candDdr && ourDdr !== candDdr) {

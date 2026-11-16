@@ -15,6 +15,11 @@ const t = (ok: boolean, title: string, detail = '') => {
 
 type Case = { brand: string; name: string; specs?: any; cand: string; want: boolean; note: string };
 const CASES: Case[] = [
+  /* 2026-11-15 — كنسة الشاهد الثاني: مطابقان خاطئان قبلهما المُطابِق */
+  { brand:'Gigabyte', name:'Z890 AORUS Elite WiFi7', cand:'GIGABYTE Z890 AORUS ELITE WIFI7 PLUS ATX LGA 1851 Motherboard, Intel Z890 Chipset', want:false, note:'PLUS لوحةٌ أخرى' },
+  { brand:'AMD', name:'Ryzen 7 9800X3D', cand:'تجميعة الفئة الخارقة | AMD Ryzen 7 9800X3D & RTX 5080 16GB', want:false, note:'«تجميعة» جهازٌ كامل' },
+  { brand:'Corsair', name:'RM850x Shift 850W Gold', specs:{wattage:850}, cand:'Corsair RM850x SHIFT Fully Modular ATX Power Supply, 850W Power, 80 Plus Gold Certified', want:true, note:'«80 Plus» شهادةٌ لا طراز — يمرّ' },
+  { brand:'ASUS', name:'TUF Gaming B760-Plus WiFi', cand:'ASUS TUF GAMING B760-PLUS WIFI DDR5 Motherboard', want:true, note:'Plus في الطرفين — يمرّ' },
   /* ⚠️ الخمسُ التالية كنسةٌ حقيقيّة يوم 2026-09-12: من سبعة «مطابقاتٍ»
      وجدها المُطابِق في مايكرولس وإنفيني آرك، **خمسٌ كانت خاطئة**. ولولا
      أنّها عُرضت قبل الكتابة لدخلت خمسةُ أسعارٍ لمنتجاتٍ أخرى في الكتالوج. */
