@@ -74,6 +74,9 @@ async function main() {
   if (!noon) throw new Error('لا متجر نون');
   const offers = await prisma.componentOffer.findMany({
     where: { storeId: noon.id, url: { not: null } },
+    /* الأقدم قراءةً أوّلاً: إن حجب نون في منتصف التشغيل فالمتروك يتصدّر الموعد التالي،
+       ولا يبقى آخرُ العروض إضافةً هو المتروك دائماً */
+    orderBy: { lastCheckedAt: { sort: 'asc', nulls: 'first' } },
     select: { id: true, url: true, price: true, inStock: true, componentId: true, component: { select: { name: true } } },
   });
   log(`▶ ${offers.length} عرضاً من نون${apply ? '' : ' (عرضٌ فقط)'}`);
