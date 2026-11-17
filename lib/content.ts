@@ -11,6 +11,12 @@ import { prisma } from './prisma';
  *
  * لتحويل مقال من خبر إلى دليل: غيّر category إلى "دليل" من لوحة الإدارة.
  */
+/** مقالٌ أقصر من هذا لا يُفهرس ولا يدخل الـsitemap — رُفض أدسنس «محتوى منخفض القيمة» (2026-11-17)
+ *  وأقصر الأخبار كانت ٨٥–١٠٤ كلمات. صفحته تبقى للزائر؛ وتعود للفهرسة وحدها حين تُوسَّع. */
+export const THIN_WORDS = 250;
+export const isThinArticle = (content?: string | null) =>
+  (content || '').split(/\s+/).filter(Boolean).length < THIN_WORDS;
+
 export const GUIDE_CATEGORIES = ['دليل', 'أدلة', 'أدلّة', 'guide'];
 
 /** شرط Prisma يطابق الأدلّة فقط */

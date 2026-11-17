@@ -1,6 +1,6 @@
 import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
-import { getArticle, AUTHOR } from '../../../lib/content';
+import { getArticle, AUTHOR, isThinArticle } from '../../../lib/content';
 import JsonLd, { absUrl, plainText, breadcrumbs, SITE_URL } from '../../../components/JsonLd';
 import AuthorByline from '../../../components/AuthorByline';
 import type { Metadata } from 'next';
@@ -12,6 +12,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const news = await getArticle(id);
   if (!news) return { title: 'الخبر غير موجود', robots: { index: false, follow: true } };
   if (news.isGuide) return { title: news.title, alternates: { canonical: `/guides/${id}` }, robots: { index: false, follow: true } };
+  /* خبرٌ من فقرةٍ واحدة لا يُفهرس حتى يُوسَّع (lib/content: isThinArticle) */
+  const thin = isThinArticle(news.content);
 
   const description = (news.summary || news.content || '')
     .replace(/[#*\[\]]/g, '')
@@ -22,6 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title: news.title,
     description,
     alternates: { canonical: `/news/${id}` },
+    ...(thin ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
       title: news.title,
       description,

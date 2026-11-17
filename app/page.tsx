@@ -146,6 +146,10 @@ export default async function HomePage() {
           بعد التخفيضات والمقارنة وأحدث القطع (تجربة المستخدمين 2026-10-17) */}
       <AutoBuildsSection />
 
+      {/* ما يميّز الموقع عن قائمة أسعار — رُفض أدسنس «محتوى منخفض القيمة» (2026-11-17) والصفحة
+          كانت قوائم قطعٍ وأسعارٍ تحت العنوان، والأدوات لا تُرى إلّا لمن يدخلها */}
+      <ToolsSection />
+
         {/* قسم أداة المقارنة */}
       <PriceDropsSection />
 
@@ -288,5 +292,73 @@ export default async function HomePage() {
 
       </div>
     </div>
+  );
+}
+/* ============ «وش يسوّي لك تجميعتي» — الأدوات ============
+   كلّ بطاقةٍ تصف أداةً موجودةً فعلاً وتفتحها، بلهجة الواجهة (سعوديّة بيضاء خفيفة).
+   ⚠️ الأرقام هنا تُراجَع إن تغيّرت: سبعة متاجر (أمازون، نون، مايكرولس، كازاسوق، إنفيني آرك،
+   ريد زون، جرير)، والإطارات من جدول lib/gpu-perf. */
+const TOOLS = [
+  {
+    href: '/builder',
+    title: 'فحص توافق فعلي',
+    body: 'نفحص المقبس ونوع الرام ومقاس اللوحة مع الكيس وطول الكرت وارتفاع المبرّد وقدرة المزوّد — وإذا ناقصنا معلومة نقولها بدل ما نطمّنك.',
+    cta: 'جمّع تجميعتك',
+    icon: 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+  },
+  {
+    href: '/how-we-rate',
+    title: 'كم إطار يعطيك كرتك؟',
+    body: 'تقدير الإطارات لكل كرت في 1080p و1440p و4K من قياسات منشورة، مو تخمين — وتشوف وين الكرت مريح ووين يتعب.',
+    cta: 'كيف نقيّم؟',
+    icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z',
+  },
+  {
+    href: '/components?cat=Monitor',
+    title: 'شاشة تلائم كرتك',
+    body: 'من إطارات كرتك نحسب الدقّة والهرتز اللي تستفيد منها فعلاً، ونتأكّد إنّ منافذه توصل الشاشة لسرعتها، ونقترح لك ثلاث شاشات.',
+    cta: 'اختر كرتك',
+    icon: 'M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25',
+  },
+  {
+    href: '/deals',
+    title: 'سعر القطعة في ٧ متاجر',
+    body: 'نقارن سعر القطعة نفسها بين أمازون ونون ومايكرولس وكازاسوق وغيرها، ونسجّل تاريخ سعرها عشان تعرف هل السعر اليوم زين أو لا.',
+    cta: 'شوف التخفيضات',
+    icon: 'M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941',
+  },
+];
+
+function ToolsSection() {
+  return (
+    <section className="max-w-7xl mx-auto px-4 pb-20">
+      <div className="mb-8">
+        <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
+          <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
+          وش يسوّي لك تجميعتي؟
+        </h2>
+        <p className="mt-2 text-sm md:text-base font-medium text-slate-600 dark:text-slate-400 max-w-3xl">
+          مو قائمة أسعار بس: أدوات تساعدك تختار صح قبل ما تدفع.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {TOOLS.map((t) => (
+          <Link
+            key={t.href}
+            href={t.href}
+            className="group flex flex-col bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm p-5 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300"
+          >
+            <span className="w-10 h-10 rounded-sm flex items-center justify-center bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 mb-4">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d={t.icon} />
+              </svg>
+            </span>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-2">{t.title}</h3>
+            <p className="text-sm leading-relaxed font-medium text-slate-600 dark:text-slate-400 flex-1">{t.body}</p>
+            <span className="mt-4 text-sm font-black text-cyan-700 dark:text-cyan-400 group-hover:underline">{t.cta} &larr;</span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
