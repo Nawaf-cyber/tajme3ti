@@ -682,8 +682,7 @@ async function scrapeMicrolessVia(t: OfferTarget, token: string, premium: boolea
  * التي يجلبها الخادم ١٬٦ ميجابايت **بلا اسمٍ ولا سعر**. قِيس: خمسةُ رموزٍ
  * ظهرت في طلبات المتصفّح لم يوجد أحدُها في HTML.
  *
- * ⚠️ فالقراءة من مسارهم الداخليّ الذي يناديه موقعُهم نفسه، ويستجيب لطلبٍ
- * عاديٍّ من خادمنا **بلا وسيط وبلا رصيد**:
+ * ⚠️ فالقراءة من مسارهم الداخليّ الذي يناديه موقعُهم نفسه:
  *
  *     /api/catalogv2/product/store/sa-en/sku/<SKU>/visibilityAll/true/size/1
  *
@@ -696,31 +695,60 @@ async function scrapeMicrolessVia(t: OfferTarget, token: string, premium: boolea
  */
 const JARIR_SKU = /-(\d{6,8})\.html(?:[?#]|$)/;
 
-export async function scrapeJarir(t: OfferTarget, _token: string): Promise<StoreOutcome> {
+/* ⚠️ وكان يُطلب مباشرةً بلا وسيط ولا رصيد — حتى 2026-11-14: وضع جرير Cloudflare (تحدٍّ مُدار) ومعه
+   PerimeterX أمام الموقع كلّه ومساراته، فصار كلُّ طلبٍ من خادمٍ ٤٠٣ (وكذلك من عنوانٍ منزليّ بـcurl؛
+   قِيس 2026-11-17)، والمتصفّح الحقيقيّ يقرأ المسار نفسه بالشكل نفسه. فبقيت العروض الخمسة ثلاثة أيّامٍ
+   بسعرٍ قديم «متوفّرة». الآن بـScrape.do: العاديّ أولاً والمتقدّم احتياطاً (lib/proxy-fallback). */
+export const scrapeJarir = (t: OfferTarget, token: string): Promise<StoreOutcome> =>
+  withProxyFallback('jarir', t, (premium) => scrapeJarirVia(t, token, premium));
+
+/** ردّ JSON من مسارهم أم صفحة تحدٍّ؟ صفحة Cloudflare قد تصل 200 عبر الوسيط — فلا تُقرأ «لا منتج» */
+const readJson = async (res: Response): Promise<any | undefined> => {
+  const text = await res.text();
+  if (!/^\s*[{[]/.test(text)) return undefined;
+  try { return JSON.parse(text); } catch { return undefined; }
+};
+
+async function scrapeJarirVia(t: OfferTarget, token: string, premium: boolean): Promise<StoreOutcome> {
   const out = emptyOutcome(t.inStock ?? true);
   if (!t.url) return out;
+  const label = `جرير (${t.name})`;
 
   const sku = JARIR_SKU.exec(t.url)?.[1];
   if (!sku) {
-    out.errors.push(`جرير (${t.name}): الرابط بلا رمز منتج — يجب أن ينتهي بـ«-123456.html».`);
+    out.errors.push(`${label}: الرابط بلا رمز منتج — يجب أن ينتهي بـ«-123456.html».`);
+    return out;
+  }
+  if (!token) {
+    out.errors.push(`${label}: لا SCRAPER_API_KEY — جرير لا يُقرأ بلا وسيط منذ 2026-11-14.`);
     return out;
   }
 
   try {
     const api = `https://www.jarir.com/api/catalogv2/product/store/sa-en/sku/${sku}/visibilityAll/true/size/1`;
-    const res = await scrapeFetch(api);
+    const res = await scrapeFetch(scrapeUrl(token, api, premium));
     if (!res.ok) {
-      out.errors.push(`جرير (${t.name}): ${httpReason(res.status)}`);
+      out.errors.push(`${label}: ${httpReason(res.status)}`);
       return out;
     }
-    const json: any = await res.json().catch(() => null);
+    const json = await readJson(res);
+    if (json === undefined) {
+      out.errors.push(`${label}: الردّ ليس JSON من مسارهم (صفحة تحقّق حماية؟) — أُبقيت الحالة السابقة.`);
+      return out;
+    }
     const src = json?.data?.hits?.hits?.[0]?._source;
     /* ⚠️ ورمزٌ لا يُعيد وثيقةً ليس نفاداً: قد يكون المنتج حُذف أو الرابط
        خاطئاً. فتُبقى الحالة السابقة ويُقال الخبر. */
     if (!src) {
-      out.errors.push(`جرير (${t.name}): لا منتج بالرمز ${sku} — أُبقيت الحالة السابقة.`);
+      out.errors.push(`${label}: لا منتج بالرمز ${sku} — أُبقيت الحالة السابقة.`);
       return out;
     }
+    /* وثيقةُ المنتج نفسه لا غيره — شرطُ قبول الطريق العاديّ */
+    if (String(src.sku) !== sku) {
+      out.errors.push(`${label}: الوثيقة لرمزٍ آخر (${src.sku} لا ${sku}) — أُبقيت الحالة السابقة.`);
+      return out;
+    }
+    out.pageRecognized = true;
 
     /* ⚠️ لا `stock.is_in_stock` وحده: قِيس 2026-10-09 أنه `false` بكمّيّة 0 حتى لما يبيعه
        جرير فعلاً — RTX 5070 (11 قطعة) و990 PRO (43) وCS900 (8) كلّها «نافدة» به، فكان كلُّ
@@ -728,8 +756,9 @@ export async function scrapeJarir(t: OfferTarget, _token: string): Promise<Store
        عندهم، و`is_stock_available` بديلٌ حين يتعذّر. */
     out.inStock = src?.stock?.is_in_stock === true || Number(src?.is_stock_available) === 1;
     try {
-      const st = await scrapeFetch(`https://www.jarir.com/api/v2/sa_en/stock/getavailability?skuData=${encodeURIComponent(`${sku}|1|0|0`)}&customer_group=&quote_id=`);
-      const r: any = st.ok ? (await st.json().catch(() => null))?.data?.result?.[0] : null;
+      const stockApi = `https://www.jarir.com/api/v2/sa_en/stock/getavailability?skuData=${encodeURIComponent(`${sku}|1|0|0`)}&customer_group=&quote_id=`;
+      const st = await scrapeFetch(scrapeUrl(token, stockApi, premium));
+      const r: any = st.ok ? (await readJson(st))?.data?.result?.[0] : null;
       if (r && String(r.sku_code) === sku) out.inStock = r.stock_availablity === 'AVAILABLE' && Number(r.available_qty) > 0;
     } catch { /* يبقى البديل */ }
 
@@ -741,10 +770,10 @@ export async function scrapeJarir(t: OfferTarget, _token: string): Promise<Store
     if (price > 0) {
       applyPriceVerdict(out, 'جرير', t.name, price, listPrice, t.price, null);
     } else if (out.inStock) {
-      out.errors.push(`جرير (${t.name}): لم يتم العثور على سعر صالح.`);
+      out.errors.push(`${label}: لم يتم العثور على سعر صالح.`);
     }
   } catch {
-    out.errors.push(`جرير (${t.name}): تجاوز الوقت المسموح (Timeout) أو خطأ اتصال.`);
+    out.errors.push(`${label}: تجاوز الوقت المسموح (Timeout) أو خطأ اتصال.`);
   }
   return out;
 }

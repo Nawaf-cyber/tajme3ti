@@ -17,6 +17,7 @@ import {
   type OfferTarget, type StoreOutcome,
 } from './scrape-prices';
 import { scrapeGeneric, type GenericStoreConfig } from './scrape-generic';
+import { isStaleOffer } from './stores';
 
 /** المحرّكات المخصّصة — مرتبطة بالـslug لأنها كُتبت لبنية صفحات بعينها */
 const NATIVE: Record<string, (t: OfferTarget, token: string) => Promise<StoreOutcome>> = {
@@ -24,7 +25,8 @@ const NATIVE: Record<string, (t: OfferTarget, token: string) => Promise<StoreOut
   cazasouq: scrapeCazasouq,
   microless: scrapeMicroless,
   /* ⚠️ جرير يُقرأ من مساره الداخليّ لا من HTML — موقعُه يُصيَّر في المتصفّح
-     فصفحتُه تصل بلا اسمٍ ولا سعر. والمحرّك مجّانيّ: لا وسيط ولا رصيد. */
+     فصفحتُه تصل بلا اسمٍ ولا سعر. وكان مجّانيّاً بلا وسيط حتى وضعوا Cloudflare
+     (2026-11-14) — الآن بـScrape.do، العاديّ أولاً (lib/proxy-fallback). */
   jarir: scrapeJarir,
 };
 
@@ -38,6 +40,9 @@ export type OfferRow = {
   inStock: boolean;
   /** خطأ الفحص السابق — منه تُعرف الإشارة الثانية لـ«أُزيل من المتجر» */
   lastError?: string | null;
+  /** وقتُ المحاولة السابقة وآخرُ قراءةٍ نجحت — منهما يُحسب lastReadAt (انظر lib/stores · isStaleOffer) */
+  lastCheckedAt?: Date | null;
+  lastReadAt?: Date | null;
   store: StoreRow;
 };
 
@@ -158,9 +163,32 @@ export function resolveOfferPrices(
     if (!o.skipped) data.lastCheckedAt = new Date();
     if (o.price != null) data.price = o.price;
     if (o.listPrice !== undefined) data.listPrice = o.listPrice;
+
+    /* ============ آخر قراءةٍ نجحت (lastReadAt) ============
+       نجحت ← الآن. وفشلت ← تبقى كما هي، إلّا أن تكون المحاولةُ السابقة نجحت ولم
+       يُكتب لها العمود (قبل وجوده، أو قراءةٌ يدويّة تكتب lastCheckedAt وحده) —
+       فوقتُها هو آخر قراءةٍ ناجحة. وأوّل فشلٍ بلا أيّ قراءةٍ معروفة يبدأ العدّ
+       منه، فلا يبقى عرضٌ لم يُقرأ قطّ حيّاً إلى الأبد. */
+    let lastReadAt: Date | null = prev.lastReadAt ?? null;
+    if (!o.skipped) {
+      if (!o.errors.length) lastReadAt = new Date();
+      else if (!prev.lastError) {
+        const before = prev.lastCheckedAt ?? new Date();
+        if (!lastReadAt || before > lastReadAt) lastReadAt = before;
+      }
+      if (lastReadAt && lastReadAt !== prev.lastReadAt) data.lastReadAt = lastReadAt;
+    }
     offerUpdates.push({ offerId: r.offerId, data });
 
-    if (inStock && (price ?? 0) > 0) {
+    /* لا يُحسب «أقلّ سعر» من عرضٍ لا نضمن سعره — بالحكم نفسه الذي تعرض به الواجهة */
+    const stale = isStaleOffer({
+      store: prev.store,
+      lastCheckedAt: o.skipped ? prev.lastCheckedAt : new Date(),
+      lastReadAt,
+      lastError: data.lastError,
+    });
+
+    if (inStock && (price ?? 0) > 0 && !stale) {
       candidates.push({ store: r.storeSlug, price: price!, list: listPrice ?? null });
     }
     if (o.price != null && o.price > 0) pricePoints.push({ store: r.storeSlug, price: o.price });

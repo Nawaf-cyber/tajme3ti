@@ -42,8 +42,11 @@ export type Offer = {
   price: number | null;
   listPrice: number | null;
   inStock: boolean;
-  /** متى قُرئ سعر هذا العرض فعلاً — لا متى حاولنا قراءة القطعة كلّها */
+  /** متى حاولنا قراءة هذا العرض — ⚠️ يُكتب حتى على الفشل؛ القراءة الناجحة في lastReadAt */
   lastCheckedAt?: Date | string | null;
+  /** آخر قراءةٍ نجحت (انظر isStaleOffer) */
+  lastReadAt?: Date | string | null;
+  lastError?: string | null;
   store: StoreInfo;
 };
 
@@ -60,15 +63,47 @@ export type WithOffers = { offers?: Offer[] | null };
    ويُعرض سعر متجرٍ يُحدَّث آلياً بدلاً منه. وما لا متجر غيره له يظهر غير
    متوفّر — أصدق من سعرٍ لا نضمنه. والمتاجر الآليّة لا تُمسّ: وتيرة سحبها شأنٌ آخر. */
 export const MANUAL_STALE_DAYS = 3;
-const isStaleManual = (o: Offer): boolean =>
-  o.store?.scrapeMode === 'off' &&
-  (!o.lastCheckedAt || Date.now() - new Date(o.lastCheckedAt).getTime() > MANUAL_STALE_DAYS * 86_400_000);
 
-/** العروض القابلة للشراء فعلاً: سعر صالح + متوفّر + رابط (+ يدويٌّ غير شائخ)، الأرخص أولاً.
+/* ============ والآليّ الذي تفشل قراءته أيّاماً (2026-11-17) ============
+   «المتاجر الآليّة لا تُمسّ» أعلاه افترض أنّ ما يُسحب يُقرأ. فلمّا وضع جرير
+   Cloudflare أمام مساره (٤٠٣ منذ 2026-11-14) بقيت عروضه الخمسة حيّةً بسعر
+   ثلاثة أيّام، و«آخر تحديث» يقول اليوم لأنّ `lastCheckedAt` يُكتب على الفشل.
+   فالعرض الآليّ الذي **آخر محاولته فشلت** ولم يُقرأ بنجاح منذ أكثر من
+   SCRAPE_STALE_DAYS لا يُعدّ حيّاً — كاليدويّ. والفشل العابر (يومٌ أو اثنان)
+   لا يُسقط شيئاً: الدورة تمرّ يومياً، فثلاثة أيّام ≈ ثلاث محاولاتٍ فاشلة. */
+export const SCRAPE_STALE_DAYS = 3;
+
+/** آخر قراءةٍ ناجحة: إن نجحت آخر محاولةٍ فوقتُها (أو العمود إن كان أحدث)، وإلّا العمود.
+ *  ⚠️ لا العمود وحده: كاتبو السعر اليدويّ (scripts/noon-*، lib/manual-readings) يكتبون
+ *  lastCheckedAt وlastError: null فقط — ونجاحُهم قراءةٌ ناجحة. */
+export const lastGoodRead = (o: {
+  lastReadAt?: Date | string | null; lastCheckedAt?: Date | string | null; lastError?: string | null;
+}): Date | string | null => {
+  if (o.lastError) return o.lastReadAt ?? null;
+  const a = o.lastReadAt ? new Date(o.lastReadAt).getTime() : 0;
+  const b = o.lastCheckedAt ? new Date(o.lastCheckedAt).getTime() : 0;
+  return (b >= a ? o.lastCheckedAt : o.lastReadAt) ?? null;
+};
+
+const olderThan = (d: Date | string | null | undefined, days: number): boolean =>
+  !!d && Date.now() - new Date(d).getTime() > days * 86_400_000;
+
+/** عرضٌ لا نضمن سعره: يدويٌّ لم يُقرأ منذ ٣ أيّام، أو آليٌّ تفشل قراءته منذ ٣ أيّام.
+ *  ⚠️ والمنطق هنا وحده — يستعمله العرض (liveOffers) والساحب (resolveOfferPrices) معاً. */
+export const isStaleOffer = (o: {
+  store?: { scrapeMode?: string } | null;
+  lastCheckedAt?: Date | string | null; lastReadAt?: Date | string | null; lastError?: string | null;
+}): boolean => {
+  if (o.store?.scrapeMode === 'off') return !o.lastCheckedAt || olderThan(o.lastCheckedAt, MANUAL_STALE_DAYS);
+  /* آخر محاولةٍ نجحت ← حيّ. وفشلٌ بلا قراءةٍ ناجحةٍ معروفة (صفٌّ قبل العمود لم يُملأ) ← لا يُحكم عليه */
+  return !!o.lastError && olderThan(lastGoodRead(o), SCRAPE_STALE_DAYS);
+};
+
+/** العروض القابلة للشراء فعلاً: سعر صالح + متوفّر + رابط + سعرٌ غير شائخ، الأرخص أولاً.
  *  عند تساوي السعر يفصل ترتيب المتجر (sortOrder) لا ترتيب القاعدة العشوائي. */
 export const liveOffers = (offers?: Offer[] | null): Offer[] =>
   (offers || [])
-    .filter((o) => (o.price ?? 0) > 0 && o.inStock !== false && !!o.url && !isStaleManual(o))
+    .filter((o) => (o.price ?? 0) > 0 && o.inStock !== false && !!o.url && !isStaleOffer(o))
     .sort((a, b) => a.price! - b.price! || a.store.sortOrder - b.store.sortOrder);
 
 /** أرخص عرض متوفّر، أو null إن لم يتوفّر شيء */
@@ -92,7 +127,11 @@ export const isAvailable = (comp: WithOffers): boolean => liveOffers(comp.offers
  */
 export const priceAsOf = (
   comp: WithOffers & { lastScrapedAt?: Date | string | null },
-): Date | string | null => cheapestOffer(comp.offers)?.lastCheckedAt ?? comp.lastScrapedAt ?? null;
+): Date | string | null => {
+  const best = cheapestOffer(comp.offers);
+  /* آخر قراءةٍ ناجحة لا آخر محاولة — وإلّا قال «حُدِّث اليوم» عن سعرٍ فشلت قراءته اليوم */
+  return (best && (lastGoodRead(best) ?? best.lastCheckedAt)) ?? comp.lastScrapedAt ?? null;
+};
 
 /** أقل سعر معروض، أو 0 */
 export const lowestPrice = (offers?: Offer[] | null): number => cheapestOffer(offers)?.price ?? 0;

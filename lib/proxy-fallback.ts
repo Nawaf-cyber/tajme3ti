@@ -44,7 +44,7 @@ export const SAMPLE_RATE = 0.02;
    فارتفعت المتأخّرة من ٥ إلى ٢٩١. والسبب مايكرولس: صفحتُه بالعاديّ ٦٫٩ث وسطياً وبالمتقدّم
    ١٫٦ث (خمس صفحات بالطريقتين)، والدفعة تنتظر أبطأ صفحاتها. وأمازون بالعاديّ ٤٫٠ث وبالمتقدّم
    ٤٫٠ث — لا فرق في السرعة وعُشر الرصيد. فالوضع لكلّ متجر، والافتراضيّ ما قِيس. */
-export const PROXY_STORES = ['amazon', 'microless', 'cazasouq'] as const;
+export const PROXY_STORES = ['amazon', 'microless', 'cazasouq', 'jarir'] as const;
 
 /* ما يعنيه الطريقان لكلّ متجر، وكلفةُ كلٍّ بوحدات Scrape.do — للوحة وscripts/cron-health والتنبيه.
    كازاسوق: منذ انتقل موقعهم إلى Netlify (~2026-10-25) يردّ على طلبٍ عاديٍّ من الخادم بـ200 وبالـJSON-LD
@@ -57,6 +57,13 @@ export const PROXY_CHANNELS: Record<string, ProxyChannel> = {
   amazon: { normal: 'العادي', premium: 'المتقدّم', credits: { normal: 1, premium: 10 } },
   microless: { normal: 'العادي', premium: 'المتقدّم', credits: { normal: 1, premium: 10 } },
   cazasouq: { normal: 'المباشر', premium: 'الوسيط', credits: { normal: 0, premium: 1 } },
+  /* جرير: منذ 2026-11-14 مسارُه خلف Cloudflare (تحدٍّ مُدار، `cf-mitigated: challenge`) ومعه PerimeterX —
+     ٤٠٣ للطلب المباشر حتى من عنوانٍ منزليّ (قِيس 2026-11-17)، والمتصفّح الحقيقيّ يُفتح له. فلا طريقَ مجّانيّاً:
+     العاديّ أولاً والمتقدّم احتياطاً. والكلفة لكلّ عرضٍ طلبان (المنتج والمخزون).
+     قِيس 2026-11-17 على العروض الخمسة (scripts/jarir-check.ts --channels): المباشر ٤٠٣ ×٥، والعاديّ 200 بـJSON
+     صحيح ×٥ (وحدة، ٠٫٣–٣٫٣ث)، والمتقدّم ×٥ (١٠ وحدات، ~٠٫٥ث) — والسعر والتوفّر يطابقان قراءة المتصفّح. والمحرّك
+     كاملاً: ٥/٥ بالعاديّ، ١٠ وحدات للخمسة. */
+  jarir: { normal: 'العادي', premium: 'المتقدّم', credits: { normal: 1, premium: 10 } },
 };
 export const channelOf = (store: string): ProxyChannel => PROXY_CHANNELS[store] ?? PROXY_CHANNELS.amazon;
 
@@ -66,7 +73,7 @@ export const channelOf = (store: string): ProxyChannel => PROXY_CHANNELS[store] 
    المرور إلى ~٧ (المحذوفة والعيّنة) ← ٨٫٨. وكان ١٦٫١ مقيساً من عدّاد Scrape.do قبل البروكسي العاديّ
    (2026-08-11). يقرؤه زرّ «المتأخّرة» وردّ الكرون. */
 export const CREDITS_PER_PART = 8.8;
-export const DEFAULT_PROXY_MODES: Record<string, ProxyMode> = { amazon: 'auto', microless: 'premium', cazasouq: 'auto' };
+export const DEFAULT_PROXY_MODES: Record<string, ProxyMode> = { amazon: 'auto', microless: 'premium', cazasouq: 'auto', jarir: 'auto' };
 
 let modes: Record<string, ProxyMode> = { ...DEFAULT_PROXY_MODES };
 export const setProxyModes = (m: Record<string, ProxyMode>) => { modes = { ...DEFAULT_PROXY_MODES, ...m }; };

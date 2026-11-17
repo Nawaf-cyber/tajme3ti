@@ -14,6 +14,8 @@
  * والقاعدة بسيطة: الكيس يقبل مقاسه وما دونه، لا ما فوقه.
  */
 
+import { isStaleOffer } from './stores';
+
 /**
  * أصغر كيسٍ تحتاجه كل لوحة.
  *
@@ -245,14 +247,18 @@ export function gpuFitsCase(
  *   · بعضها ← «some»: يدخل بنسخةٍ بعينها، ويُسمّى المتجرُ وسعرُه.
  * وبلا عروضٍ متوفّرة يُحكم بطول الصفّ — كما كان قبل هذا كلّه.
  */
-type OfferLike = { lengthMm?: number | null; variant?: string | null; price?: number | null; inStock?: boolean; url?: string | null; store?: { name?: string; slug?: string; sortOrder?: number } };
+type OfferLike = {
+  lengthMm?: number | null; variant?: string | null; price?: number | null; inStock?: boolean; url?: string | null;
+  lastCheckedAt?: Date | string | null; lastReadAt?: Date | string | null; lastError?: string | null;
+  store?: { name?: string; slug?: string; sortOrder?: number; scrapeMode?: string };
+};
 
 export type OfferFit = { offer: OfferLike; lengthMm: number | null; fits: boolean | null };
 
 /** العروض المتوفّرة مرتّبةً بالسعر — نفس شرط «العرض الحيّ» في lib/stores */
 const liveSorted = (offers?: OfferLike[] | null): OfferLike[] =>
   (offers ?? [])
-    .filter((o) => (o.price ?? 0) > 0 && o.inStock !== false && !!o.url)
+    .filter((o) => (o.price ?? 0) > 0 && o.inStock !== false && !!o.url && !isStaleOffer(o))
     .sort((a, b) => a.price! - b.price! || (a.store?.sortOrder ?? 0) - (b.store?.sortOrder ?? 0));
 
 /** طولُ الكرت الذي يبيعه هذا العرض — أو طولُ صفّه إن لم يُقَس */

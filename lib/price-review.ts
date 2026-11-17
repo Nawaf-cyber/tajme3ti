@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { risePercent } from './price';
 import { recordPriceHistory } from './scrape-prices';
+import { isStaleOffer } from './stores';
 
 /**
  * ============ طابور مراجعة الارتفاعات ============
@@ -105,9 +106,13 @@ export async function recalcComponentPrice(
 ): Promise<number | null> {
   const offers = await prisma.componentOffer.findMany({
     where: { componentId, store: { active: true } },
-    select: { price: true, inStock: true },
+    select: {
+      price: true, inStock: true, lastCheckedAt: true, lastReadAt: true, lastError: true,
+      store: { select: { scrapeMode: true } },
+    },
   });
-  const live = offers.filter((o) => o.inStock && (o.price ?? 0) > 0).map((o) => o.price!);
+  /* والشائخ لا يُحسب (lib/stores · isStaleOffer) — كما لا تعرضه الواجهة */
+  const live = offers.filter((o) => o.inStock && (o.price ?? 0) > 0 && !isStaleOffer(o)).map((o) => o.price!);
   // كلّها نافدة → لا نمسّ المعروض: صفرٌ أسوأ من سعرٍ قديم
   if (!live.length) return null;
   return Math.round(Math.min(...live) * 100) / 100;

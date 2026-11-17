@@ -209,6 +209,16 @@ model ComponentOffer {
   lastCheckedAt DateTime?
   lastError     String? // null = آخر محاولة نجحت
 
+  /**
+   * آخرُ قراءةٍ **نجحت** — لا آخرُ محاولة. `lastCheckedAt` يُكتب حتى على
+   * الفشل، فعرضٌ محجوبٌ أيّاماً بدا «فُحص للتوّ» وبقي حيّاً بسعرٍ قديم (جرير
+   * 2026-11-14: ٤٠٣ من Cloudflare على العروض الخمسة، والسعر يُعرض كأنه اليوم).
+   * يكتبه الساحب (lib/scrape-offers)، وبه تُسقط lib/stores · isStaleOffer
+   * العرضَ الآليّ الذي فشل أكثر من SCRAPE_STALE_DAYS. null = لم يُعرف بعد
+   * (صفوفٌ قبل العمود)؛ حينها يُعتمد lastCheckedAt إن كانت آخر محاولةٍ نجحت.
+   */
+  lastReadAt    DateTime?
+
   reviews PriceReview[]
   reports PriceReport[]
 
