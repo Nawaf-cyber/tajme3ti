@@ -1,0 +1,710 @@
+[
+ {
+  "key": "Xiaomi G24i 2026",
+  "brand": "Xiaomi",
+  "name": "G24i 2026",
+  "specs": {
+   "sizeInch": "24",
+   "resolution": "1920x1080",
+   "refreshHz": "200",
+   "panel": "IPS",
+   "responseMs": "1",
+   "hdr": "DisplayHDR 400",
+   "vrr": "FreeSync Premium",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.0",
+   "curvature": "Flat",
+   "brightnessNits": "350",
+   "speakers": "No"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/71-4UXF8aRL._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0GQGL82VL"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/xiaomi-g24i-2026-gaming-monitor-24-fast-ips-display-fhd-resolution-200hz-refresh-rate-g-to-g-1ms-response-time-hdr-400-freesync-premium-colour-accuracy-black-p24fda-rggl/"
+   }
+  ],
+  "description": "### Xiaomi G24i 2026\n\nشاشة ألعاب 23.8 بوصة بدقّة 1080p (FHD) ولوحة Fast IPS بتردّد 200 هرتز، وهي نسخة 2026 من G24i (الطراز P24FDA-RGGL). مكانها مع كرتٍ اقتصاديّ أو متوسّط يعطي إطاراتٍ عالية في 1080p، لمن يبي حركةً سريعة وألواناً مضبوطة بسعرٍ منخفض.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]200 هرتز من DisplayPort وHDMI:[/green] Xiaomi تذكر 1920×1080 حتى 200 هرتز عبر DisplayPort 1.4 وعبر HDMI 2.0، والعلبة فيها كابل HDMI 2.0؛ أمّا كابل DisplayPort فيُشترى منفصلاً.\n\n[green]Fast IPS باستجابة 1ms (GtG):[/green] بحسب قياس Xiaomi على وضع Ultrafast، مع زوايا رؤية 178 درجة، فالحركة واضحة في ألعاب التصويب السريعة.\n\n[green]معايرة من المصنع (ΔE<2):[/green] كلّ شاشة تُعاير قبل الشحن، مع تغطية 100% sRGB و95% DCI-P3 وعمق 8 بت، فالألوان مضبوطة للألعاب والمحتوى والتصميم الخفيف.\n\n[green]DisplayHDR 400:[/green] الطراز P24FDA-RGGL مسجّل في قائمة VESA لشهادة DisplayHDR 400، وXiaomi تذكر سطوعاً أقصى 400 نِت.\n\n[green]FreeSync Premium:[/green] مزامنة الإطارات تمنع تمزّق الصورة حين تنزل الإطارات تحت 200، وصفحة Xiaomi تذكر أنّها تعمل مع G-Sync Compatible أيضاً.\n\n[green]راحة العين:[/green] شهادة TÜV Low Blue Light وتعتيمٌ بتيارٍ مستمرّ (DC) يقلّل الوميض في الجلسات الطويلة.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **حاملٌ يميل فقط:** من -5 إلى +15 درجة تقريباً، بلا رفعٍ ولا دوران؛ ولضبط الارتفاع تحتاج ذراعاً بمعيار VESA 75×75.\n* HDR 400 أدنى درجات HDR: التباين 1000:1 والإضاءة شاملة بلا تعتيمٍ موضعيّ، فالفرق في الأفلام والألعاب محدود.\n* منفذ HDMI واحد مع DisplayPort واحد: لو تبي توصل حاسباً وجهاز ألعاب كلاهما بـHDMI بتحتاج تبدّل الكابل.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا سمّاعات مدمجة: فيها مخرج صوت 3.5 ملم فقط لسمّاعة رأس أو سمّاعات خارجية.\n* لا USB ولا USB-C: مدخلاتها DisplayPort وHDMI فقط.\n\nhttps://www.mi.com/sa-en/product/xiaomi-gaming-monitor-g24i-2026/",
+  "altKey": "Dell G2524H",
+  "altReason": "أعلى تردّداً (240 مع رفعٍ إلى 280 عبر DisplayPort) وحاملها يرتفع ويدور، لكنّك تخسر المعايرة من المصنع وتغطية DCI-P3 الواسعة.",
+  "notes": "Official sources: spec table https://www.mi.com/sa-en/product/xiaomi-gaming-monitor-g24i-2026/specs/ (identical on /global, /uk, /sg, /cz), overview https://www.mi.com/global/product/xiaomi-gaming-monitor-g24i-2026/ and the official FAQ https://www.mi.com/pk/support/faq/details/KA-597664. SKU: spec table 'Product model P24FDA-RGGL'; Amazon B0GQGL82VL item model number P24FDA-RGGL (title 'Xiaomi G24i 2026 23.8 Inch 200Hz ...'); Microless URL ends in p24fda-rggl. Not to be confused with the older G24i P24FCA-RGGL (180Hz, 250 nits). Size: 23.8in -> '24'. Ports: the spec table lists only 'DP port x1, HDMI port x1, Audio port x1' without versions; versions come from the official FAQ Q7 'DP 1.4 x 1, HDMI 2.0 x 1' and FAQ 'Connecting the DP (1.4) / HDMI (2.0) ... maximum 1920x1080 at 200Hz' -> 200Hz on both inputs. Box: HDMI 2.0 cable only, DP cable sold separately (FAQ). Response: 1ms GtG (Ultrafast mode, Xiaomi lab). Brightness: spec table says 'Peak brightness 400nits (TYP)', FAQ Q10 says '350 nits/400 nits' -> brightnessNits 350 as the typical SDR figure (consistent with the 400 being the HDR peak); change to 400 if you prefer the spec-table number. HDR: overview says 'HDR 400'; VESA displayhdr.org certified list has 'Xiaomi Communications Co. P24FDA-RGGL' in the DisplayHDR 400 section (checked 2026-11-17) -> 'DisplayHDR 400'. VRR: Xiaomi says FreeSync Premium; the same section's text says 'Supports G-Sync compatible' but no NVIDIA certification is named, so vrr kept as 'FreeSync Premium' (description mentions Xiaomi's G-Sync wording). Colour: 100% sRGB / 95% DCI-P3 (CIE1976), 8-bit, factory-calibrated dE<2, contrast 1000:1, TUV Low Blue Light, DC dimming. Speakers: none (FAQ ports list only Audio out; spec table no speakers) -> 'No'. Tilt -5±2 to +15±2, no height/swivel/pivot (FAQ Q6), VESA 75x75. No USB (FAQ Q8). DSC not stated -> omitted. Panel P/N per FAQ: HKC SN238CS04-1 / CSOT SG2381B04-3. Image from brief kept (loads, image/jpeg)."
+ },
+ {
+  "key": "KOORUI G2511P",
+  "brand": "KOORUI",
+  "name": "G2511P",
+  "specs": {
+   "sizeInch": "24.5",
+   "resolution": "1920x1080",
+   "refreshHz": "200",
+   "panel": "IPS",
+   "responseMs": "1",
+   "hdr": "DisplayHDR 400",
+   "vrr": "Adaptive-Sync (FreeSync)",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.0",
+   "curvature": "Flat",
+   "brightnessNits": "350",
+   "speakers": "No"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/71US3wKBwOL._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/koorui-g2511p-gaming-monitor-25-ips-display-fhd-resolution-200hz-refresh-rate-1ms-mprt-response-time-adaptive-sync-technology-16-7m-color-display-black-g2511p/"
+   },
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0DPHDJQFC"
+   }
+  ],
+  "description": "### KOORUI G2511P\n\nشاشة ألعاب 24.5 بوصة بدقّة 1080p (FHD) ولوحة Fast IPS بتردّد 200 هرتز. مكانها مع كرتٍ اقتصاديّ أو متوسّط يلعب على 1080p، لمن يبي مقاس الرياضات الإلكترونية (24.5 بوصة) وحركةً سريعة بسعرٍ منخفض.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]200 هرتز من المنفذين:[/green] دليل KOORUI يذكر 1920×1080 على 200 هرتز عبر DisplayPort 1.4 وعبر منفذَي HDMI 2.0، وكابل HDMI في العلبة، فيكفيها أيّ كرتٍ حديث.\n\n[green]Fast IPS باستجابة 1ms:[/green] بوضع تسريع الاستجابة (Overdrive) بحسب أحدث دليلٍ من KOORUI، مع زوايا رؤية 178 درجة.\n\n[green]ألوانٌ أوسع من sRGB:[/green] تغطية 99% sRGB و90% DCI-P3، مع أوضاعٍ جاهزة تحصر الألوان على sRGB أو DCI-P3 أو Adobe RGB حين تبي ألواناً مضبوطة.\n\n[green]DisplayHDR 400:[/green] الطراز مدرج في قائمة VESA لشهادة DisplayHDR 400، وسطوعه 350 نِت في العادي و400 نِت في HDR.\n\n[green]Adaptive-Sync:[/green] مزامنة الإطارات تمنع تمزّق الصورة حين تنزل الإطارات تحت 200.\n\n[green]أدوات للألعاب:[/green] مؤشّر تصويب (Crosshair) تقدر تضعه على أحد اختصارَي القائمة، وأوضاع صورة جاهزة FPS وRPG وRCG وCinema.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **حاملٌ يميل فقط:** 5 درجات للأمام و20 للخلف، بلا رفعٍ ولا دوران؛ ولضبط الارتفاع تحتاج ذراعاً بمعيار VESA 75×75.\n* تباين 1000:1 كالمعتاد في IPS: السواد في الغرفة المظلمة أفتح منه في شاشات VA، وHDR 400 هنا تحسينٌ بسيط لا تجربة HDR كاملة.\n* دليلا الشركة للطراز يختلفان: الأحدث يذكر 1ms ومزامنة Adaptive-Sync، والأقدم 2ms وFreeSync؛ والتردّد والمنافذ واحدة في الاثنين.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا سمّاعات مدمجة: فيها مخرج صوت 3.5 ملم فقط.\n* لا شهادة G-Sync Compatible ولا FreeSync Premium في دليل KOORUI، ولا USB أو USB-C.\n\nhttps://cdn.shopify.com/s/files/1/0934/7570/1022/files/G2511P_user_manual.pdf",
+  "altKey": "Xiaomi G24i 2026",
+  "altReason": "التردّد نفسه (200) على 23.8 بوصة، لكنّها معايرة من المصنع (ΔE<2) بتغطية 95% DCI-P3 وشهادة FreeSync Premium، مقابل منفذ HDMI واحد بدل اثنين.",
+  "notes": "No koorui.com product page exists for G2511P (not in the US Shopify catalogue, store search returns 0; web search finds no other KOORUI regional page). Specs are from KOORUI's official user manuals linked on https://koorui.com/pages/user-manual (hosted on KOORUI's Shopify CDN): newer 'Product Specification' sheet https://cdn.shopify.com/s/files/1/0934/7570/1022/files/G2511P_user_manual.pdf?v=1794385961 and older 'Product Manual' sheet https://cdn.shopify.com/s/files/1/0934/7570/1022/files/G2511P_user_manual_fe4def59-1cf9-4202-9f72-9ce82e8e9c8d.pdf?v=1794385984. The description's last line is the newer PDF (no product page available) — swap for https://koorui.com/pages/user-manual if you prefer an HTML page. Newer sheet: Flat, Fast IPS, 24.5in, 1ms (OD), 16.7M colours, 'SDR 350cd/m2; HDR 400cd/m2', 1920x1080, 200Hz max, 1000:1, sRGB 99% / DCI-P3 90%, HDMI 2.0 x2, DP1.4 x1, no Type-C/USB, Audio OUT 1, Built-in Speakers None, VRR 'Adaptive SYNC', HDR 'HDR400', tilt forward 5 / back 20, no height/rotation/swivel, VESA 75x75, HDMI cable included. Manual text: 'DP 1.4 interface supports 1920*1080,200Hz; HDMI 2.0 supports 1920x1080, 200Hz' -> full refresh on both. Older sheet differs: response '2ms (OD)', VRR 'Free Sync', 350 nits, DCI-P3 90% — kept the newer values. No GtG figure given (Microless title says 1ms MPRT; manual says only '1ms (OD)'). HDR: displayhdr.org lists G2511P as a family model of HKC G2511E and KOORUI G2511E in the DisplayHDR 400 section (checked 2026-11-17) -> 'DisplayHDR 400'. VRR: no FreeSync Premium or G-Sync Compatible claim in KOORUI's own documents (retailers sometimes say Premium) -> 'Adaptive-Sync (FreeSync)'. SKU: Amazon B0DPHDJQFC title 'KOORUI G2511P Gaming Monitor', model number G2511P, bullets 25in Fast IPS 200Hz HDR400, 2x HDMI 2.0 + DP 1.4 (internal code MG25H3F); Microless URL ends in g2511p. Image from brief kept (loads)."
+ },
+ {
+  "key": "KOORUI G2711P",
+  "brand": "KOORUI",
+  "name": "G2711P",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "1920x1080",
+   "refreshHz": "200",
+   "panel": "IPS",
+   "responseMs": "1",
+   "hdr": "DisplayHDR 400",
+   "vrr": "Adaptive-Sync (FreeSync)",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.0",
+   "curvature": "Flat",
+   "brightnessNits": "300",
+   "speakers": "No"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/71XLC-2JiDL._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/koorui-g2711p-gaming-monitor-27-ips-display-1080p-resolution-200hz-refresh-rate-mprt-1ms-response-time-16-7m-color-depth-hdr-400-black-g2711p/"
+   },
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0DPHFYNY4"
+   }
+  ],
+  "description": "### KOORUI G2711P\n\nشاشة ألعاب 27 بوصة بدقّة 1080p (FHD) ولوحة Fast IPS بتردّد 200 هرتز. مكانها مع كرتٍ اقتصاديّ أو متوسّط يلعب على 1080p، لمن يبي شاشةً كبيرة وتردّداً أعلى من 180 المعتاد في هذه الفئة بسعرٍ منخفض.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]200 هرتز من المنفذين:[/green] دليل KOORUI يذكر 1920×1080 على 200 هرتز عبر DisplayPort 1.4 وعبر منفذَي HDMI 2.0، وكابل HDMI في العلبة، فيكفيها أيّ كرتٍ حديث.\n\n[green]Fast IPS باستجابة 1ms:[/green] بوضع تسريع الاستجابة (Overdrive) بحسب دليل KOORUI، مع زوايا رؤية 178 درجة.\n\n[green]ألوانٌ واسعة:[/green] تغطية 90% DCI-P3 بحسب KOORUI، مع أوضاعٍ جاهزة تحصر الألوان على sRGB أو DCI-P3 أو Adobe RGB حين تبي ألواناً مضبوطة.\n\n[green]DisplayHDR 400:[/green] الطراز مدرج في قائمة VESA لشهادة DisplayHDR 400، فتقبل محتوى HDR وترفع السطوع في المشاهد الساطعة.\n\n[green]Adaptive-Sync:[/green] مزامنة الإطارات تمنع تمزّق الصورة حين تنزل الإطارات تحت 200.\n\n[green]أدوات للألعاب:[/green] مؤشّر تصويب (Crosshair) تقدر تضعه على أحد اختصارَي القائمة، وأوضاع صورة جاهزة FPS وRPG وRCG وCinema.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **1080p على 27 بوصة:** نحو 82 نقطة في البوصة فقط، فالنصّ والتفاصيل أنعم منها في شاشة 24 بوصة بالدقّة نفسها، ويظهر ذلك من مسافة الجلوس القريبة.\n* سطوع 300 نِت وتباين 1000:1: كافٍ لغرفةٍ مضاءة، لكنّ HDR 400 هنا تحسينٌ بسيط لا تجربة HDR كاملة، والسواد أفتح منه في شاشات VA.\n* حاملٌ يميل فقط (5 درجات للأمام و20 للخلف) بلا رفعٍ ولا دوران؛ ولضبط الارتفاع تحتاج ذراعاً بمعيار VESA 75×75.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا سمّاعات مدمجة: فيها مخرج صوت 3.5 ملم فقط.\n* لا شهادة G-Sync Compatible ولا FreeSync Premium في دليل KOORUI، ولا USB أو USB-C.\n\nhttps://cdn.shopify.com/s/files/1/0934/7570/1022/files/G2711P_user_manual.pdf",
+  "altKey": "ASUS TUF Gaming VG279QM5A",
+  "altReason": "المقاس نفسه بتردّد 240 بدل 200، مع ELMB Sync وشهادتَي G-Sync Compatible وFreeSync Premium وسمّاعتين مدمجتين.",
+  "notes": "No koorui.com product page for G2711P (not in the US store's current catalogue; store search returns 0). Specs from KOORUI's official manuals on https://koorui.com/pages/user-manual: newer 'Product Specification' sheet https://cdn.shopify.com/s/files/1/0934/7570/1022/files/G2711P_user_manual.pdf?v=1794386002 (used as the description's last line — no product page available; swap for the manual-library page if preferred) and older 'Product Manual' sheet https://cdn.shopify.com/s/files/1/0934/7570/1022/files/G2711P_user_manual_54cab667-936c-4fda-984a-e15265011ad7.pdf?v=1794386006 (a third, Portuguese copy also exists). Newer sheet: Flat, Fast IPS, 27in, 1ms (OD), 300cd/m2, 1920x1080, 200Hz max, 1000:1, DCI-P3 90% (sRGB % not stated), HDMI 2.0 x2, DP1.4 x1, no USB/Type-C, Audio OUT 1, Built-in Speakers None, VRR 'Adaptive SYNC', HDR 'HDR400', tilt fwd 5 / back 20, no height/rotation/swivel, VESA 75x75, HDMI cable included. Manual text: DP 1.4 and HDMI 2.0 both 'support 1920*1080, 200Hz'. Older sheet: '1ms (GTG)', 300 nits, 'Free Sync', DP 1.4 / HDMI 2.0 — consistent. Brightness 300 (no separate HDR-peak figure in either sheet, unlike G2511P). HDR: displayhdr.org lists G2711P as a family model of 'HKC G27H2' in the DisplayHDR 400 section (checked 2026-11-17) -> 'DisplayHDR 400'. SKU WARNING (resolved): Amazon B0DPHFYNY4 shows 'Model Name: G2711P' but 'Model Number: G2711V' in its detail table; the title is 'KOORUI G2711P Gaming Monitor' and the bullets describe the G2711P (27in IPS, 200Hz, HDR400, 90% DCI-P3, 2x HDMI 2.0 + DP 1.4, tilt -5/+20, internal code MG27H11F3), so the G2711V model number looks like a listing data error — link kept, but worth a glance. Amazon's table also shows '1500:1' contrast and '300 cd/m2' (store data; 1000:1 used from KOORUI). Microless URL ends in g2711p. Image from brief kept (loads)."
+ },
+ {
+  "key": "ViewSonic VX2719-PC-MHD",
+  "brand": "ViewSonic",
+  "name": "VX2719-PC-MHD",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "1920x1080",
+   "refreshHz": "240",
+   "panel": "VA",
+   "responseMs": "1",
+   "hdr": "HDR10",
+   "vrr": "FreeSync Premium",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.0",
+   "curvature": "1500R",
+   "brightnessNits": "250",
+   "speakers": "Yes"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/71Y+XlP2VnL._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B097RNG21R"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/viewsonic-vx2719-pc-mhd-curved-gaming-monitor-27-va-display-fhd-resolution-240hz-refresh-rate-1ms-mprt-response-time-amd-freesync-premium-technology-black-vx2719-pc-mhd/"
+   }
+  ],
+  "description": "### ViewSonic VX2719-PC-MHD\n\nشاشة ألعاب منحنية 27 بوصة بدقّة 1080p (FHD) ولوحة VA بتردّد 240 هرتز وانحناء 1500R. مكانها مع كرتٍ يعطي إطاراتٍ عالية في 1080p، لمن يبي تردّداً عالياً وسواداً أعمق من شاشات IPS بسعرٍ منخفض.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]240 هرتز من DisplayPort وHDMI:[/green] ViewSonic تذكر 48–240 هرتز عبر DisplayPort 1.4 وعبر منفذَي HDMI، وكابل DisplayPort موجود في العلبة.\n\n[green]لوحة VA بتباين 3000:1:[/green] ثلاثة أضعاف التباين المعتاد في IPS، فالسواد أعمق في الأفلام والألعاب المظلمة وفي الغرفة الخافتة.\n\n[green]انحناء 1500R:[/green] يلفّ الصورة حول مجال نظرك على مقاس 27 بوصة، فتحسّ بانغماسٍ أكثر من الشاشة المسطّحة.\n\n[green]FreeSync Premium:[/green] مزامنة الإطارات تمنع تمزّق الصورة والتقطيع حين تنزل الإطارات تحت 240.\n\n[green]Black Stabilization وViewMode:[/green] الأولى تفتح المناطق المظلمة لتلمح الخصم في الظلّ، والثانية أوضاعٌ جاهزة للألعاب والأفلام والتحرير.\n\n[green]سمّاعتان مدمجتان (2W×2):[/green] صوتٌ أساسيّ للاستعمال اليوميّ، مع مخرج صوت 3.5 ملم لسمّاعة الرأس.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **1ms هنا MPRT لا GtG:** ViewSonic تعلن 1ms (MPRT) فقط ولا تذكر زمن GtG، وهو الرقم اللي يبيّن سرعة انتقال البكسل فعلياً، فلا تقارنه بـ1ms GtG في شاشات IPS.\n* سطوع 250 نِت وألوان 8 بت بطريقة 6 بت + FRC: كافٍ لغرفةٍ مضاءة، وHDR10 بهذا السطوع اسمٌ أكثر منه تجربة.\n* حاملٌ يميل فقط (من -5 إلى 20 درجة) بلا رفعٍ ولا دوران؛ ولضبط الارتفاع تحتاج ذراعاً بمعيار VESA 75×75.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* ليست 1440p: على 27 بوصة نحو 82 نقطة في البوصة، فالنصّ أنعم منه في شاشات 1440p.\n* لا USB ولا USB-C: مدخلاتها DisplayPort وHDMI فقط.\n\nhttps://www.viewsonic.com/me/products/lcd/VX2719-PC-MHD",
+  "altKey": "KOORUI G2711P",
+  "altReason": "لو ما تبي الانحناء ولوحة VA: مسطّحة بلوحة Fast IPS وتغطية 90% DCI-P3 وشهادة DisplayHDR 400، مقابل 200 هرتز بدل 240 وبلا سمّاعات.",
+  "notes": "Official sources: ViewSonic Middle East page https://www.viewsonic.com/me/products/lcd/VX2719-PC-MHD (same content on /global), UK page https://www.viewsonic.com/uk/business/products/lcd/VX2719-PC-MHD (marked 'Archived' in the UK only), and the official spec wiki https://manuals.viewsonic.com/VX2719-PC-mhd_Specifications (P/N VS18190). Specs: 27in VA, 1920x1080, 240Hz, 1ms MPRT (no GtG figure published), 250 cd/m2, 3000:1 static, HDR10, 8-bit (6-bit + FRC), sRGB 104% / NTSC 72% (size), 1500R, FreeSync Premium, speakers 2W x2, 3.5mm audio out, tilt -5/20, no height adjust, VESA 75x75, DP cable (v1.2) in box. Ports: DisplayPort (v1.4) x1 per Input Signal / Video Input rows; vertical 48-240Hz on both HDMI and DP -> full refresh on either. HDMI VERSION CONFLICT: ME/Global page says 'HDMI 2.1: 2' and 'HDMI (v2.1)', UK page says 'HDMI 2.0: 2' and 'HDMI (v2.0)', with identical frequency ranges; Amazon B097RNG21R title also says 'HDMI 2.0 X 2'. Chose hdmiVersion 2.0 (the lower value; 1080p/240Hz fits in HDMI 2.0 bandwidth and no FRL/HDMI 2.1 feature is claimed), so the GPU-port calculation stays correct either way. responseMs 1 is MPRT only — flagged in the description. SKU: Amazon B097RNG21R model number VX2719-PC-MHD; Microless URL ends in vx2719-pc-mhd. Image from brief kept (loads)."
+ },
+ {
+  "key": "ASUS TUF Gaming VG279Q3R",
+  "brand": "ASUS",
+  "name": "TUF Gaming VG279Q3R",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "1920x1080",
+   "refreshHz": "180",
+   "panel": "IPS",
+   "responseMs": "1",
+   "hdr": "None",
+   "vrr": "FreeSync",
+   "dpVersion": "1.2",
+   "hdmiVersion": "2.0",
+   "curvature": "Flat",
+   "brightnessNits": "250",
+   "speakers": "Yes"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/71aZeNdg5cL._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/asus-tuf-vg279q3r-gaming-monitor-27-fast-ips-display-fhd-resolution-180hz-refresh-rate-1ms-gtg-response-time-amd-freesync-technology-trace-free-technology-black-90lm0ad1-b01ea1/"
+   },
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0CZWT8CPN"
+   },
+   {
+    "store": "cazasouq",
+    "url": "https://www.cazasouq.com/product/asus-tuf-gaming-vg279q3r-27-inch-gaming-monitor"
+   }
+  ],
+  "description": "### ASUS TUF Gaming VG279Q3R\n\nشاشة ألعاب 27 بوصة بدقّة 1080p (FHD) ولوحة Fast IPS بتردّد 180 هرتز. مكانها مع كرتٍ اقتصاديّ أو متوسّط يلعب على 1080p، لمن يبي شاشةً كبيرة من ASUS بسمّاعاتٍ مدمجة وسعرٍ منخفض.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]180 هرتز من DisplayPort وHDMI:[/green] ASUS تذكر 48–180 هرتز عبر DisplayPort 1.2 وعبر منفذَي HDMI 2.0، فيكفيها أيّ كرتٍ حديث، وكابل DisplayPort ضمن الملحقات.\n\n[green]Fast IPS باستجابة 1ms (GtG):[/green] حركةٌ واضحة في الألعاب السريعة، مع تغطية 100% sRGB وزوايا رؤية 178 درجة.\n\n[green]ELMB وShadow Boost:[/green] الأولى تقلّل ضبابية الحركة، والثانية تفتح المناطق المظلمة دون أن تحرق الفاتحة، فتلمح الخصم في الزوايا المعتمة.\n\n[green]FreeSync (Adaptive-Sync):[/green] شهادة AMD FreeSync وشهادة VESA AdaptiveSync Display 180Hz، فلا تتمزّق الصورة حين تنزل الإطارات تحت 180.\n\n[green]GamePlus وGameVisual:[/green] مؤشّر تصويب ومؤقّت وعدّاد إطارات من زرٍّ واحد، وسبعة أوضاع صورة جاهزة للألعاب والأفلام.\n\n[green]سمّاعتان مدمجتان (2W×2):[/green] صوتٌ أساسيّ للاستعمال اليوميّ دون سمّاعات خارجية، مع منفذ سمّاعة رأس للعب.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **1080p على 27 بوصة:** نحو 82 نقطة في البوصة فقط، فالنصّ والتفاصيل أنعم منها في شاشة 24 بوصة بالدقّة نفسها، ويظهر ذلك من مسافة الجلوس القريبة.\n* سطوع 250 نِت وتباين 1000:1: كافٍ لغرفةٍ مضاءة، لكنّ السواد في الظلام أفتح منه في شاشات VA وOLED.\n* حاملٌ يميل فقط (من +22 إلى -5 درجات) بلا رفعٍ ولا دوران؛ ولضبط الارتفاع تحتاج ذراعاً بمعيار VESA 75×75.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا HDR فعليّ: صفحة ASUS التسويقية تذكر أوضاع HDR، لكنّ جدول المواصفات لا يذكر دعم HDR10، وسطوع 250 نِت لا يكفي له.\n* لا شهادة FreeSync Premium ولا G-Sync Compatible: ASUS تذكر AMD FreeSync وAdaptive-Sync فقط لهذا الطراز.\n\nhttps://www.asus.com/me-en/displays-desktops/monitors/tuf-gaming/tuf-gaming-vg279q3r/",
+  "altKey": "KOORUI G2711P",
+  "altReason": "المقاس نفسه بتردّد أعلى (200) وشهادة DisplayHDR 400 وتغطية 90% DCI-P3 وDisplayPort 1.4، لكنّك تخسر السمّاعات وأدوات ASUS مثل ELMB وShadow Boost.",
+  "notes": "Official sources: ASUS ME techspec https://www.asus.com/me-en/displays-desktops/monitors/tuf-gaming/tuf-gaming-vg279q3r/techspec/ (same values as the global techspec page) and the ME overview page. Techspec: 27in Fast IPS, 1920x1080, 180Hz max, 1ms (GTG), 250 cd/m2, 1000:1, sRGB 100%, 16.7M colours, ELMB Yes, Shadow Boost Yes, GamePlus, GameVisual, Trace Free, VRR 'Yes (Adaptive-Sync)', speakers 2W x2, ports 'DisplayPort 1.2 x 1' + 'HDMI(v2.0) x 2' + earphone jack, signal frequency DP 48~180Hz and HDMI 48~180Hz (full refresh on both), tilt +22/-5, no height adjust, VESA 75x75, accessories include a DisplayPort cable (vary by region). Certificates: AMD FreeSync (not Premium), VESA AdaptiveSync Display 180Hz, TUV Low Blue Light / Flicker-free -> vrr 'FreeSync'; no G-Sync Compatible listed. HDR: no HDR row in the techspec; the overview mentions 'Multiple HDR modes' and also '130% sRGB' (conflicts with the table's 100%) -> hdr None and sRGB 100% from the table (same treatment as VG249Q3A-W in the existing file). No OC refresh. SKU: Microless title MPN 90LM0AD1-B01EA1 (regional variant of the 90LM0AD1 family; ASUS US eshop sells -B01EB0, EU datasheets show -B01E70; MPN not listed on asus.com ME); Amazon B0CZWT8CPN model number VG279Q3R; Cazasouq URL names VG279Q3R. Retail listings also show a 'VG279Q3R-J' variant elsewhere — not one of these offers. Image from brief kept (loads)."
+ },
+ {
+  "key": "Alienware AW2725DM",
+  "brand": "Dell",
+  "name": "Alienware AW2725DM",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "2560x1440",
+   "refreshHz": "180",
+   "panel": "IPS",
+   "responseMs": "1",
+   "hdr": "DisplayHDR 400",
+   "vrr": "FreeSync · G-Sync Compatible",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.0",
+   "curvature": "Flat",
+   "brightnessNits": "400"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/613ueOZh+2L._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0F2KBZ7WQ"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/dell-alienware-27-aw2725dm-gaming-monitor-27-fast-ips-display-wqhd-resolution-180hz-refresh-rate-1ms-extreme-response-time-nvidia-g-sync-amd-freesync-black-210-bqwq/"
+   }
+  ],
+  "description": "### Dell Alienware AW2725DM\n\nشاشة ألعاب 27 بوصة بدقّة 1440p (QHD) ولوحة Fast IPS بتردّد 180 هرتز وشهادة DisplayHDR 400، بتصميم Alienware الجديد (AW30). مكانها مع كرتٍ متوسّط أو عالٍ يلعب على 1440p، لمن يبي شاشة ألعاب متكاملة بحاملٍ كامل التعديل من علامةٍ معروفة.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]180 هرتز عبر DisplayPort 1.4:[/green] تكفي كرتاً يعطي بين 100 و180 إطاراً في 1440p، أمّا منفذا HDMI فيصلان إلى 144 هرتز بحسب Dell.\n\n[green]Fast IPS باستجابة 1ms (GtG):[/green] في وضع Extreme، مع زوايا رؤية 178 درجة و1.07 مليار لون.\n\n[green]DisplayHDR 400 وسطوع 400 نِت:[/green] شهادة VESA رسمية وتغطية 95% من DCI-P3، فالألوان أغنى من شاشات sRGB العادية والصورة واضحة في غرفةٍ مضاءة.\n\n[green]G-Sync Compatible وFreeSync وVESA AdaptiveSync:[/green] مزامنة الإطارات تعمل مع كروت NVIDIA وAMD، فلا تتمزّق الصورة حين تنزل الإطارات تحت 180.\n\n[green]حاملٌ كامل التعديل:[/green] يرتفع 110 مم ويميل من -5 إلى 21 درجة ويلتفّ 20 درجة لكلّ جهة ويدور عمودياً (Pivot)، مع تثبيت VESA 100×100.\n\n[green]منفذا USB بسرعة 5Gbps ووضعٌ للكونسول:[/green] أحدهما يشحن (BC 1.2) بعد ربط الشاشة بالكمبيوتر بكابل USB المرفق، ومعها وضعٌ مخصّص للكونسول وتقليلٌ للضوء الأزرق من العتاد نفسه (ComfortView Plus).\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **الـ180 هرتز من DisplayPort فقط:** منفذا HDMI بالإصدار 2.1 لكن بنمط TMDS (نطاق HDMI 2.0)، ويقفان عند 144 هرتز في 1440p.\n* DisplayHDR 400 أدنى درجات HDR: إضاءةٌ جانبية (Edge) بلا تعتيمٍ موضعي، فالفرق في أفلام وألعاب HDR محدود.\n* تباين IPS المعتاد (1000:1): السواد في غرفةٍ مظلمة أفتح منه في شاشات VA وOLED.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا USB-C ولا سمّاعات: Dell لا تذكر سمّاعاتٍ مدمجة لهذا الطراز، ولا منفذاً ينقل صورة لابتوب بكابلٍ واحد.\n* ليست OLED: سواد OLED وسرعته في فئةٍ أعلى سعراً.\n\nhttps://www.dell.com/en-us/shop/alienware-27-gaming-monitor-aw2725dm/apd/210-bqwq/monitors-monitor-accessories",
+  "altKey": "MSI MAG 274QRF QD E2",
+  "altReason": "أفضل إن كنت توصل لابتوب أيضاً: بالتردّد نفسه (180 هرتز) فيها USB-C يشحن 65 واط وKVM وألوانٌ أوسع (98% DCI-P3)، لكنّ MSI لا تذكر لها شهادة G-Sync Compatible.",
+  "notes": "Specs from Dell's US product page (curl; loads 200, canonical https://www.dell.com/en-us/shop/monitors/apd/alienware-27-gaming-monitor-aw2725dm/aw2725dm/-; Dell mfr part FC46N). SKU: Microless title 'Dell Alienware 27 AW2725DM ... Black | 210-BQWQ' and Amazon.sa B0F2KBZ7WQ; same model. Dell table: Fast IPS, 2560x1440, 180 Hz, '1 ms GTG (Extreme Mode) / 2 ms (Super Fast) / 4 ms (Fast)', 400 nit, 1000:1, 95% DCI-P3 (CIE1976), 1.07B colours, LED Edgelight, VESA DisplayHDR 400 (also confirmed on displayhdr.org certified list, DisplayHDR 400 tab, spec v1.2). Ports: '2 HDMI ports (HDCP 1.4 & 2.3) (Supports up to QHD 2560 x 1440, 144 Hz, 10 bit, TMDS, HDR, VRR as per specified in HDMI 2.1)', '1 DisplayPort 1.4 (HDCP 1.4 & 2.3) (Supports up to 2560 x 1440, 180 Hz, HDR, VRR)', 2x USB 5Gbps Type-A down (one BC1.2) + 1x Type-B up. hdmiVersion '2.1' because Dell's table says 'HDMI Version 2.1 / Number of HDMI 2.1 Ports 2', BUT it is TMDS-only (HDMI 2.0-class bandwidth), same caveat as the existing Dell G2524H entry. VRR: Dell's own adaptive-sync filter marks this SKU as 'AMD FreeSync + NVIDIA G-SYNC Compatible + VESA' (not Premium). Stand: height 110 mm (4.33 in), tilt -5/+21, swivel -20/+20, pivot +/-90, VESA 100. speakers left EMPTY: Dell lists only 'USB Hub' under built-in devices and no speaker row (not stated explicitly as No). color left empty: Dell lists Product Color 'Dark Blue' (Color Family Blue) while Microless says Black; neither is White, so not set. responseMs 1 = GtG in Extreme mode. Image kept from brief (Amazon). | ORCHESTRATOR 2026-11-17: hdmiVersion set to 2.0 — Dell labels it HDMI 2.1 but it is TMDS-only and stops at 144 Hz; same convention as Dell G2524H, so the port check does not claim HDMI reaches the max refresh."
+ },
+ {
+  "key": "Dell S2725DSM",
+  "brand": "Dell",
+  "name": "27 Plus S2725DSM",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "2560x1440",
+   "refreshHz": "144",
+   "panel": "IPS",
+   "responseMs": "4",
+   "hdr": "None",
+   "vrr": "FreeSync",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.0",
+   "curvature": "Flat",
+   "brightnessNits": "350",
+   "speakers": "Yes",
+   "color": "White"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/71mQw9tQVEL._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/dell-27-plus-s2725dsm-monitor-27-ips-display-qhd-resolution-144hz-refresh-rate-1ms-mprt-response-time-flicker-free-low-blue-light-ash-white-s2725dsm/"
+   },
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0FQ5BH7DX"
+   }
+  ],
+  "description": "### Dell 27 Plus S2725DSM\n\nشاشة 27 بوصة بدقّة 1440p (QHD) ولوحة IPS بتردّد 144 هرتز، بلونٍ أبيض رماديّ (Ash White) وسمّاعتين مدمجتين. مكانها لمن يجمع العمل والدراسة مع ألعابٍ قصصية أو متوسّطة على كرتٍ متوسّط، ويبي شاشةً هادئة الشكل تناسب مكتباً أبيض.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]144 هرتز من المنفذين:[/green] Dell تنصّ على 2560×1440 بـ144 هرتز عبر DisplayPort 1.4 وعبر HDMI، فأيّ كرتٍ حديث يكفيها.\n\n[green]IPS بتباين 1500:1 وسطوع 350 نِت:[/green] تباينٌ أعلى من IPS المعتاد (1000:1)، مع تغطية 99% من sRGB وزوايا رؤية 178 درجة.\n\n[green]AMD FreeSync:[/green] مزامنة الإطارات تمنع تمزّق الصورة حين تنزل الإطارات، ومنفذ HDMI يدعم VRR كما في مواصفة HDMI 2.1.\n\n[green]سمّاعتان مدمجتان (3 واط):[/green] صوتٌ يكفي للاجتماعات والفيديو بلا سمّاعاتٍ خارجية.\n\n[green]حاملٌ كامل التعديل:[/green] يرتفع 110 مم ويميل من -5 إلى 21 درجة ويلتفّ 30 درجة لكلّ جهة ويدور عمودياً (Pivot)، مع تثبيت VESA 100×100.\n\n[green]راحة العين بتقييم TÜV أربع نجوم:[/green] شاشة بلا وميض (Flicker-free) وبضوءٍ أزرق منخفض، مريحة لساعات العمل الطويلة.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **الـ1ms هنا MPRT لا GtG:** انتقال البكسل الفعلي 4ms في وضع Extreme و8ms في الوضع العادي بحسب Dell، فهي أبطأ من شاشات الألعاب المخصّصة في ألعاب التصويب السريعة.\n* 144 هرتز حدّها: كافية للألعاب القصصية، لكنّ كرتاً قوياً يعطي أكثر من ذلك في 1440p لن تستفيد منه.\n* منفذا صورة فقط (HDMI واحد وDisplayPort واحد): لا تتّسع لأكثر من جهازين.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا HDR ولا G-Sync Compatible: Dell لا تذكر لها دعم HDR ولا شهادة NVIDIA.\n* لا USB-C ولا منافذ USB: لا توصل لابتوب بكابلٍ واحد ولا ماوساً أو فلاشاً في الشاشة.\n\nhttps://www.dell.com/en-us/shop/dell-27-plus-qhd-monitor-s2725dsm/apd/210-btgm/monitors-monitor-accessories",
+  "altKey": "Alienware AW2725DM",
+  "altReason": "أفضل للألعاب: 180 هرتز واستجابة 1ms (GtG) وDisplayHDR 400 وG-Sync Compatible، لكنك تخسر السمّاعات واللون الأبيض.",
+  "notes": "Specs from Dell's US product page (curl; loads 200; Dell part 210-BTGM, mfr part GTT45). SKU: Microless title 'Dell 27 Plus S2725DSM ... Ash White | S2725DSM'; Amazon.sa B0FQ5BH7DX per brief. Dell table: IPS, 2560x1440 at 144 Hz, response '1 ms MPRT / 4 ms GTG (Extreme) / 5 ms GTG (Fast) / 8 ms GTG' -> responseMs 4 (best GtG; stores advertise the 1 ms MPRT), 350 cd/m2, 1500:1, 99% sRGB, AMD FreeSync (no Premium, no G-Sync listed), speakers 2 x (output power '3W' as Dell writes it, unclear if total or per speaker), stand height 110 mm, tilt -5/+21, swivel +/-30, pivot +/-90, VESA 100, Ash White, TUV Eye Comfort 4 star. Ports: '1 HDMI (HDCP1.4) (Support up to 2560 x 1440 144Hz, VRR as per specified in HDMI2.1(TMDS)' and '1 DisplayPort 1.4 (HDCP1.4)'; no USB. hdmiVersion '2.1' follows Dell's 'HDMI 2.1 (TMDS)' wording as in the existing G2524H entry; it is TMDS-only (HDMI 2.0-class bandwidth), and 1440p144 fits HDMI 2.0 anyway, so '2.0' would be equally safe for the port check. Dell's box includes an 'HDMI 1.4 cable'. No HDR stated -> None. Image kept from brief (Amazon). Did not read the PDF user guide (dell.com support pages return 403 to curl). | ORCHESTRATOR 2026-11-17: hdmiVersion set to 2.0 — Dell labels it HDMI 2.1 but it is TMDS-only and stops at 144 Hz; same convention as Dell G2524H, so the port check does not claim HDMI reaches the max refresh."
+ },
+ {
+  "key": "Xiaomi G Pro 27i",
+  "brand": "Xiaomi",
+  "name": "G Pro 27i",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "2560x1440",
+   "refreshHz": "180",
+   "panel": "IPS",
+   "responseMs": "1",
+   "hdr": "DisplayHDR 1000",
+   "vrr": "FreeSync",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.0",
+   "curvature": "Flat"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/61d32xTFxlL._AC_SL1200_.jpg",
+  "offers": [
+   {
+    "store": "redzone",
+    "url": "https://redzzone.com/products/%D8%B4%D8%A7%D8%B4%D8%A9-%D8%B4%D8%A7%D9%88%D9%85%D9%8A-g-pro-27i-%D9%84%D9%84%D8%A3%D9%84%D8%B9%D8%A7%D8%A8-27-%D8%A8%D9%88%D8%B5%D8%A9-2k-180hz"
+   },
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0D7VZCP6S"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/xiaomi-g-pro-27i-mini-led-gaming-monitor-27-inch-ips-hdr-2k-qhd-fast-180hz-1ms-99-dci-p3-amd-freesync-adjustable-angle-2-hdmi-2-0-2-dp-1-4-white-p27qba-rgpgl/"
+   }
+  ],
+  "description": "### Xiaomi G Pro 27i\n\nشاشة ألعاب 27 بوصة بدقّة 1440p (QHD) ولوحة Fast IPS بإضاءةٍ خلفية Mini-LED من 1152 منطقة إعتام، بتردّد 180 هرتز وشهادة DisplayHDR 1000. مكانها مع كرتٍ متوسّط أو عالٍ يلعب على 1440p، لمن يبي HDR حقيقياً وألواناً واسعة بسعرٍ أقلّ من OLED.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]Mini-LED بـ1152 منطقة إعتام:[/green] الإضاءة الخلفية (4608 حبّة LED) تخفت في المناطق الداكنة وتقوى في المضيئة، ولها أربعة أوضاع تحكّم: عالٍ ومتوسّط ومنخفض وإيقاف.\n\n[green]DisplayHDR 1000 وذروة 1000 نِت:[/green] الطراز مدرجٌ في قائمة VESA المعتمدة، فالأضواء والانفجارات في ألعاب وأفلام HDR تلمع فعلاً، لا مجرّد اسم.\n\n[green]ألوانٌ واسعة بمعايرة مصنعية:[/green] 99% من DCI-P3 و97% من Adobe RGB و100% من sRGB بعمق 10-bit (8-bit + FRC)، ومعها في العلبة تقرير معايرة بفرق ألوان ΔE أقلّ من 2.\n\n[green]180 هرتز وFast IPS باستجابة 1ms (GtG):[/green] حركةٌ سلسة في 1440p، مع FreeSync لمنع تمزّق الصورة حين تنزل الإطارات.\n\n[green]حاملٌ يرتفع ويلتفّ ويدور عمودياً:[/green] مع ميلٍ من -5 إلى 21 درجة تقريباً، وإضاءة RGB خلفية، وشهادة TÜV للضوء الأزرق المنخفض.\n\n[green]أربعة منافذ صورة:[/green] منفذا DisplayPort 1.4 ومنفذا HDMI 2.0، فتوصل الكمبيوتر وجهاز ألعاب معاً دون تبديل كابلات.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **للـ180 هرتز استعمل DisplayPort:** Xiaomi توصي بمنفذ DisplayPort والكابل المرفق للوصول إلى أعلى تردّد، ولا تذكر تردّداً لمنفذَي HDMI 2.0.\n* هالاتٌ حول الأجسام المضيئة (Blooming): 1152 منطقة كثيرة لكنها ليست إضاءةً لكلّ بكسل كالـOLED، فقد يظهر توهّجٌ خفيف حول العناصر المضيئة على خلفيةٍ سوداء.\n* تباين اللوحة الثابت 1000:1 مثل IPS المعتاد، والسواد العميق يأتي من الإعتام الموضعي؛ والـ1ms بعد تفعيل Overdrive كما تذكر Xiaomi.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا G-Sync Compatible رسمياً: Xiaomi تذكر FreeSync فقط.\n* لا USB-C ولا منافذ USB: قائمة المنافذ فيها منفذ صوتٍ واحد مع منافذ الصورة.\n\nhttps://www.mi.com/sa-en/product/xiaomi-mini-led-gaming-monitor-g-pro-27i/",
+  "altKey": "MSI MAG 274QPF X30MV",
+  "altReason": "إن أردت Mini-LED بـDisplayHDR 1000 أيضاً لكن بتردّد أعلى بكثير (300 هرتز) وتباينٍ أعمق من لوحة VA، مع HDMI 2.1 يعطي التردّد كاملاً، وبسعرٍ أعلى.",
+  "notes": "Specs from Xiaomi Saudi pages (curl, load 200): spec page https://www.mi.com/sa-en/product/xiaomi-mini-led-gaming-monitor-g-pro-27i/specs/ (identical to /global/) and overview page. Model P27QBA-RGPGL = Microless SKU 'Xiaomi G Pro 27i ... | P27QBA-RGPGL'; Redzone title 'شاشة شاومي G Pro 27i ... 2K 180Hz'. Values: 27 in, 2560x1440, 180Hz max, 1ms (TYP; overview: 1ms GTG achieved with OD), Fast IPS, 1152 zones / 4608 beads, peak 1000 nits (HDR + dynamic backlight), 1000:1 static, 1.07B (8-bit+FRC), 99% DCI-P3 / 97% Adobe RGB / 100% sRGB, deltaE<2 with calibration report, FreeSync (no Premium, no G-Sync listed), ports 'DP port x2, HDMI port x2, Audio port x1, DC IN'; overview: 'DP1.4 x2, HDMI2.0 x2'; stand height/tilt (+5/-21 +/-2)/swivel/portrait, VESA 75x75, external 24V adapter. hdr: VESA displayhdr.org certified list (DisplayHDR 1000 tab) has 'Xiaomi P27QBA-RGP' with family models incl. P27QBA-RGPGL -> DisplayHDR 1000. brightnessNits LEFT EMPTY: Xiaomi publishes only the HDR peak (1000), no typical SDR value (same policy as XG27AQWMG). Port max Hz: Xiaomi only says 180Hz needs the included DP cable on the DP port; a non-official mvideo.ru sheet says HDMI max 144Hz (not used as a spec). speakers left empty (no speaker listed; ports list only an audio port). color left empty: Microless title says 'White' but Xiaomi's images and the Amazon image show a black monitor, so the Microless 'White' looks wrong; not set. Image kept from brief (Amazon, shows the black G Pro 27i)."
+ },
+ {
+  "key": "Gigabyte M27Q3",
+  "brand": "Gigabyte",
+  "name": "M27Q3",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "2560x1440",
+   "refreshHz": "300",
+   "panel": "IPS",
+   "responseMs": "1",
+   "hdr": "DisplayHDR 400",
+   "vrr": "G-Sync Compatible",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.1",
+   "curvature": "Flat",
+   "brightnessNits": "400",
+   "usbC": "Yes",
+   "dsc": "Yes"
+  },
+  "imageUrl": "https://chqgmmjhrrcjwtnbhcpr.supabase.co/storage/v1/object/public/media-library/opencart/d14f2783c587b3d391563c33e491836e67a4ec1ee9b9ae4fa620760666848fc2.png",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0FPXG8PGT"
+   },
+   {
+    "store": "cazasouq",
+    "url": "https://www.cazasouq.com/product/gigabyte-m27q3-27-inch-gaming-monitor"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/gigabyte-m27q3-gaming-monitor-27-ss-ips-display-qhd-resolution-300hz-refresh-rate-1ms-gtg-response-time-nvidia-g-sync-compatible-flicker-free-low-blue-light-black-m27q3/"
+   }
+  ],
+  "description": "### Gigabyte M27Q3\n\nشاشة ألعاب 27 بوصة بدقّة 1440p (QHD) ولوحة SS IPS بتردّد 300 هرتز، يرتفع إلى 320 بالرفع (Overclock)، مع USB-C ينقل الصورة وKVM. مكانها مع كرتٍ قويّ يعطي إطاراتٍ عالية في 1440p، لمن يلعب ألعاب المنافسة ويوصل لابتوب العمل على الشاشة نفسها.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]300 هرتز، و320 بالرفع، من كلّ المنافذ:[/green] جدول التوقيتات في دليل Gigabyte يذكر 2560×1440 بـ300 و320 هرتز عبر HDMI 2.1 وDisplayPort 1.4 وUSB-C جميعها، فلا يقيّدك نوع الكابل.\n\n[green]SS IPS باستجابة 1ms (GtG) وG-Sync Compatible:[/green] ألوان 95% من DCI-P3 بعمق 1.07 مليار لون (8-bit + FRC)، وزوايا رؤية 178 درجة، ومزامنة إطارات بشهادة NVIDIA.\n\n[green]DisplayHDR 400 وسطوع 400 نِت:[/green] شهادة VESA رسمية، فالصورة واضحة في غرفةٍ مضاءة.\n\n[green]DisplayPort 1.4 مع DSC ومنفذا HDMI 2.1:[/green] الضغط (DSC) يمرّر 320 هرتز عبر DisplayPort 1.4، وفي القائمة خيارٌ لإصدار HDMI ودعم HDMI-CEC لأجهزة الألعاب.\n\n[green]USB-C ينقل الصورة مع KVM:[/green] كابلٌ واحد ينقل صورة اللابتوب ويشحنه حتى 18 واط، وزرّ KVM يحوّل لوحة المفاتيح والفأرة بين جهازين عبر منفذَي USB 3.2.\n\n[green]حاملٌ يرتفع 130 مم ويدور عمودياً (Pivot):[/green] مع ميلٍ من -5 إلى 20 درجة والتفافٍ 15 درجة لكلّ جهة، وأدواتٌ مثل Aim Stabilizer Sync لتقليل ضبابية الحركة وAI Black Equalizer لإظهار التفاصيل في الظلام.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **300 هرتز تحتاج جهازاً قوياً جداً:** في الألعاب الثقيلة على 1440p تعطي أغلب الكروت أقلّ من ذلك بكثير، فالاستفادة الكاملة في الألعاب التنافسية الخفيفة أساساً.\n* DisplayHDR 400 أدنى درجات HDR: الفرق في أفلام وألعاب HDR محدود، وتباين IPS (1000:1) يجعل السواد أفتح في الغرفة المظلمة.\n* Gigabyte تذكر G-Sync Compatible فقط ولا تذكر شهادة FreeSync Premium، وإن كانت القائمة تحوي خيار VRR العامّ.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا سمّاعات في قائمة المنافذ: الصوت عبر منفذ سمّاعة الرأس فقط بحسب دليل Gigabyte.\n* ليست OLED: سواد OLED وسرعته في فئةٍ أعلى سعراً.\n\nhttps://www.gigabyte.com/Monitor/M27Q3/sp",
+  "altKey": "Samsung Odyssey G6 G60F",
+  "altReason": "تكسب 350 هرتز أصلية بلا رفع وHDMI 2.1 أيضاً، لكنك تخسر USB-C وKVM ومنافذ USB.",
+  "notes": "WARNING RESOLVED: the real refresh rate is 300 Hz native / 320 Hz OC, and all three offers are the same product. Evidence: Gigabyte's official user guide (download.gigabyte.com/FileList/Manual/GIGABYTE_M27Q3_M27Q2_M27Q2ICE_UM_English_20260826.pdf, downloaded and read) has a timing table where M27Q3 supports 2560x1440 @240/300/320(OC) Hz on HDMI 1/2, DP AND Type-C. The Amazon.sa listing (B0FPXG8PGT) title says '170Hz ... FreeSync Premium ... HDMI 2.0' but that title is copied from the old M27Q (170 Hz); the same listing's model number is 'M27Q3 EK', its bullets say '300Hz refresh rate (OC 320Hz)' and 'HDMI 2.1', and reviews mention 300/320 Hz. Microless title says 300Hz; Cazasouq title just 'Gigabyte M27Q3'. IMAGE CHANGED: the brief's Amazon image (71DjmXUbWnL) shows a WHITE Gigabyte with a '4K 160Hz / FHD 320Hz' badge = M27UP ICE, not the M27Q3 (the Amazon listing's gallery is the wrong monitor). Replaced with Cazasouq og:image (supabase), which matches the official M27Q3 render (dark-grey stand, checked against pcmonitors.info's press image). gigabyte.com returns 403 to curl and WebFetch, so spec-page values come from search-result excerpts of gigabyte.com/Monitor/M27Q3/sp: SS IPS, 300Hz/OC 320Hz, 1ms GTG, 95% DCI-P3 / 132% sRGB, 'G-Sync Compatible', tilt -5~+20, swivel +/-15, pivot 0~90, height 130 mm, 400 cd/m2 typ, VESA Display HDR400, 2x HDMI 2.1 + 1x DP 1.4. Manual: 400 cd/m2 typ, 1000:1, 1.07B (8bit+FRC), 2x HDMI 2.1 (the M27Q2 column says 'HDMI 2.1 TMDS mode', the M27Q3 column does not), 1x DP 1.4, USB-C with PD profiles 5V/3A..15V/1.2A (= 18W max) and video input, 2x USB 3.2 down + upstream, headphone, KVM, VESA 100x100, OSD option 'DSC: Select OFF to disable DSC (Only for M27Q3)' -> dsc Yes, OSD 'HDMI Version' select (M27Q3 only). DisplayHDR 400 also confirmed on displayhdr.org (GigaByte M27Q3 family). VRR: Gigabyte lists only G-Sync Compatible; FreeSync Premium appears only in retailer titles (and the wrong Amazon title), so not used. speakers left EMPTY: manual I/O list and troubleshooting ('make sure the headphone cable is connected') imply no speakers, but pcmonitors.info claims 2x5W (likely copied from M27UP) -> unresolved. A search excerpt mentioned 'dynamic 45W' USB-C charging; not confirmed, so description says up to 18W."
+ },
+ {
+  "key": "MSI MAG 274QRF QD E2",
+  "brand": "MSI",
+  "name": "MAG 274QRF QD E2",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "2560x1440",
+   "refreshHz": "180",
+   "panel": "IPS",
+   "responseMs": "1",
+   "hdr": "DisplayHDR 400",
+   "vrr": "FreeSync",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.0",
+   "curvature": "Flat",
+   "brightnessNits": "400",
+   "usbC": "Yes"
+  },
+  "imageUrl": "https://chqgmmjhrrcjwtnbhcpr.supabase.co/storage/v1/object/public/media-library/opencart/bf3a8ae6954ef288607a912a5586c3f8da3e053bff92c829fedefede9a58b112.png",
+  "offers": [
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/msi-mag-274qrf-qd-e2-gaming-monitor-27-wqhd-rapid-ips-display-180hz-refresh-rate-1ms-gtg-response-time-adaptive-sync-technology-1-07b-display-color-black-mag-274qrf-qd-e2/"
+   },
+   {
+    "store": "cazasouq",
+    "url": "https://www.cazasouq.com/product/msi-mag-274qrf-qd-e2-27-inch-180hz-wqhd-gaming-monitor"
+   }
+  ],
+  "description": "### MSI MAG 274QRF QD E2\n\nشاشة ألعاب 27 بوصة بدقّة 1440p (WQHD) ولوحة Rapid IPS بطبقة Quantum Dot وتردّد 180 هرتز، مع USB-C يشحن 65 واط وKVM. مكانها مع كرتٍ متوسّط أو عالٍ يلعب على 1440p، ولمن يشارك الشاشة بين الكمبيوتر ولابتوب العمل.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]180 هرتز عبر DisplayPort وUSB-C:[/green] MSI تذكر 2560×1440 بـ180 هرتز عبر DisplayPort 1.4a وعبر USB-C، وتكفي كرتاً يعطي بين 100 و180 إطاراً في 1440p.\n\n[green]Quantum Dot وألوانٌ واسعة:[/green] 98% من DCI-P3 و94% من Adobe RGB و150% من sRGB، بعمق 1.07 مليار لون (8-bit + FRC)، فالألوان مشبعة في الألعاب والأفلام.\n\n[green]DisplayHDR 400 وسطوع 400 نِت:[/green] شهادة VESA رسمية، فالصورة واضحة حتى في غرفةٍ مضاءة.\n\n[green]USB-C بشحن 65 واط وKVM:[/green] كابلٌ واحد ينقل صورة اللابتوب ويشحن أغلب لابتوبات العمل، وKVM يتحكّم بجهازين بلوحة مفاتيح وفأرة واحدة عبر منفذَي USB-A.\n\n[green]Rapid IPS باستجابة 1ms (GtG) وAMD FreeSync:[/green] مزامنة الإطارات من 48 إلى 180 هرتز تمنع تمزّق الصورة، مع زوايا رؤية 178 درجة.\n\n[green]حاملٌ كامل التعديل:[/green] يرتفع 130 مم ويميل من -5 إلى 20 درجة ويلتفّ 45 درجة لكلّ جهة ويدور عمودياً (Pivot)، ومعه PIP/PBP ووضعٌ للكونسول.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **HDMI يقف عند 144 هرتز:** منفذا HDMI بالإصدار 2.0b يعطيان 144 هرتز في 1440p، فللـ180 استعمل DisplayPort أو USB-C.\n* DisplayHDR 400 أدنى درجات HDR: الفرق في أفلام وألعاب HDR محدود، وتباين IPS (1000:1) يجعل السواد أفتح في الظلام.\n* منافذ USB بالإصدار 2.0 وتثبيت VESA بمقاس 75×75 مم: المنافذ للماوس والكيبورد لا لنقل ملفاتٍ كبيرة، وتأكّد من مقاس الذراع قبل شرائها.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا G-Sync Compatible ولا FreeSync Premium رسمياً: MSI تذكر AMD FreeSync فقط.\n* لا سمّاعات مدمجة في مواصفات MSI: فيها منفذ سمّاعة رأس فقط.\n\nhttps://www.msi.com/Monitor/MAG-274QRF-QD-E2/Specification",
+  "altKey": "MSI MAG 274QPF E20",
+  "altReason": "أرخص وأسرع قليلاً (200 هرتز و0.5ms) مع USB-C وDisplayHDR 400 وG-Sync Compatible، لكنّ شحن USB-C فيها 15 واط فقط وبلا طبقة Quantum Dot.",
+  "notes": "msi.com returns 403 to tools; specs from MSI's official datasheet PDF https://storage-asset.msi.com/datasheet/monitor/global/MAG-274QRF-QD-E2.pdf (loads; generated 2025-10-14; US/UK/DE/SG copies near-identical). SKU: Microless 'MSI MAG 274QRF QD E2 ... Black | MAG 274QRF QD E2', Cazasouq 'MSI MAG 274QRF-QD E2 27 in 180Hz WQHD'. Datasheet (label/value columns are offset in the PDF text layer, re-aligned by order): flat Rapid IPS, 2560x1440, 400 nits, 1000:1, 180Hz, 48~180Hz activated range, 1ms (GTG), 'AMD FreeSync' (no Premium, no G-Sync), DisplayHDR 400 (also on displayhdr.org list), '1x Display Port (1.4a) 2x HDMI (2.0b) 1x Type-C (DP alt.) w/ PD 65W charging', 2x USB 2.0 A + 1x USB 2.0 B, headphone out, Adobe RGB 94% / DCI-P3 98% / sRGB 150%, 1.07B (8bit+FRC), PIP/PBP, external adaptor, tilt -5~20, swivel -45~45, pivot -90~90, height 0~130 mm, VESA 75x75, KVM, Console Mode. Note: 'DisplayPort: 2560x1440 (Up to 180Hz); Type C: 2560x1440 (Up to 180Hz) and 65W PD; HDMI: 2560x1440 (Up to 144Hz)'. Feature blurb also mentions 1ms(MPRT); used the GTG spec. speakers left empty (not listed by MSI). Image: Cazasouq og:image (supabase), checked: black MAG 274QRF QD E2 front with Quantum Dot / 180Hz / 65W / HDR400 badges."
+ },
+ {
+  "key": "MSI MAG 274QRFW X32",
+  "brand": "MSI",
+  "name": "MAG 274QRFW X32",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "2560x1440",
+   "refreshHz": "320",
+   "panel": "IPS",
+   "responseMs": "0.5",
+   "hdr": "DisplayHDR 400",
+   "vrr": "FreeSync Premium · G-Sync Compatible",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.1",
+   "curvature": "Flat",
+   "brightnessNits": "300",
+   "color": "White"
+  },
+  "imageUrl": "https://chqgmmjhrrcjwtnbhcpr.supabase.co/storage/v1/object/public/media-library/opencart/b6993a99af5f05d88f68d0a43c7816ee492d6e99483f3615c27d56fb75817317.png",
+  "offers": [
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/msi-mag-274qrfw-x32-monitor-27-rapid-ips-display-wqhd-resolution-320hz-refresh-rate-0-5ms-gtg-response-time-amd-freesync-premium-nvidia-g-sync-technology-white-9s6-3ce49h-028/"
+   },
+   {
+    "store": "cazasouq",
+    "url": "https://www.cazasouq.com/product/msi-mag-274qrfw-x32-wqhd-ips-320hz-0-5ms-gaming-monitor"
+   }
+  ],
+  "description": "### MSI MAG 274QRFW X32\n\nشاشة ألعاب بيضاء 27 بوصة بدقّة 1440p (WQHD) ولوحة Rapid IPS بتردّد 320 هرتز. مكانها مع كرتٍ قويّ يعطي إطاراتٍ عالية في 1440p، لمن يلعب ألعاب المنافسة ويبني تجميعةً بيضاء.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]320 هرتز من HDMI وDisplayPort:[/green] MSI تذكر 2560×1440 بـ320 هرتز عبر منفذَي HDMI 2.1 وعبر DisplayPort 1.4a، فلا يقيّدك نوع الكابل.\n\n[green]Rapid IPS باستجابة 0.5ms (أدنى GtG):[/green] انتقالٌ سريع للبكسل يقلّل الظلال خلف الأجسام المتحرّكة، مع زوايا رؤية 178 درجة.\n\n[green]G-Sync Compatible وFreeSync Premium:[/green] مزامنة الإطارات من 48 إلى 320 هرتز تعمل مع كروت NVIDIA وAMD، فلا تتمزّق الصورة حين تنزل الإطارات.\n\n[green]DisplayHDR 400 وألوانٌ واسعة:[/green] شهادة VESA رسمية، مع 97% من DCI-P3 و95% من Adobe RGB و129% من sRGB بعمق 1.07 مليار لون (8-bit + FRC).\n\n[green]حاملٌ كامل التعديل:[/green] يرتفع 130 مم ويميل من -5 إلى 20 درجة ويلتفّ 30 درجة لكلّ جهة ويدور عمودياً (Pivot)، مع تثبيت VESA 100×100.\n\n[green]هيكلٌ أبيض ومزوّد طاقةٍ داخلي:[/green] يكمّل تجميعةً بيضاء بلا محوّلٍ خارجي على المكتب، ومعه PIP/PBP وHDMI-CEC ووضعٌ للكونسول.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **سطوعها العادي 300 نِت:** الـ400 ذروةٌ في HDR فقط، وDisplayHDR 400 أدنى درجات HDR، فالفرق في أفلام وألعاب HDR محدود.\n* 320 هرتز تحتاج جهازاً قوياً جداً: في الألعاب الثقيلة على 1440p تعطي أغلب الكروت أقلّ من ذلك بكثير، فالاستفادة الكاملة في الألعاب التنافسية الخفيفة أساساً.\n* تباين IPS المعتاد (1000:1): السواد في غرفةٍ مظلمة أفتح منه في شاشات VA وOLED.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا USB-C ولا منافذ USB ولا KVM: MSI تنصّ على عدم دعم KVM، فلا توصل لابتوب بكابلٍ واحد.\n* لا سمّاعات مدمجة في مواصفات MSI: فيها منفذ سمّاعة رأس فقط.\n\nhttps://www.msi.com/Monitor/MAG-274QRFW-X32/Specification",
+  "altKey": "Gigabyte M27Q3",
+  "altReason": "بتردّدٍ قريب (300 هرتز، و320 بالرفع) تكسب USB-C ينقل الصورة وKVM ومنافذ USB وسطوعاً عادياً 400 نِت، لكنها سوداء لا بيضاء.",
+  "notes": "msi.com returns 403 to tools; specs from MSI's official datasheet PDF https://storage-asset.msi.com/datasheet/monitor/global/MAG-274QRFW-X32.pdf (loads; generated 2026-07-27). SKU: Microless 'MSI MAG 274QRFW X32 ... White | 9S6-3CE49H-028', Cazasouq 'MSI MAG 274QRFW X32 (WQHD) IPS 320Hz 0.5ms'. CAUTION for linking: Cazasouq also lists a different 180 Hz 'MSI MAG 274QRFW 27 in 180Hz' (cazasouq.com/product/msi-g274qrfw-27-inch-180hz-wqhd-ips-gaming-monitor-white) - NOT this product. Datasheet: flat Rapid IPS, 2560x1440, SDR 300 / HDR 400 (peak) cd/m2, 1000:1, 320Hz, 48~320Hz, 0.5ms (GtG, Min.), NVIDIA G-SYNC Compatible + AMD FreeSync Premium, VESA DisplayHDR 400 (also on displayhdr.org), '1x DisplayPort 1.4a (HBR3)', '2x HDMI 2.1 (WQHD@320Hz)', headphone out, Adobe RGB 95% / DCI-P3 97% / sRGB 129%, 1.07B (8bit+FRC), internal power board, tilt -5~20, swivel -30~30, pivot -90~90, height 0~130 mm, VESA 100x100; note 'HDMI: 2560x1440 (Up to 320Hz); DisplayPort: 2560x1440 (Up to 320Hz); Support: HDMI CEC, PIP/PBP; Non Support: KVM'. No USB ports listed. The US datasheet copy has a leftover '180Hz High Refresh Rate' blurb in its feature column next to the 320Hz spec; used 320. dsc left EMPTY: MSI doesn't mention DSC, but 1440p@320 over DP 1.4 HBR3 exceeds uncompressed bandwidth, so DSC must be in use on DP (the site's portFit infers this); HDMI 2.1 carries 320 Hz without it. speakers empty (not listed). color White from the model name (W) and the Microless 'White' title; the datasheet has no colour row. Image: Cazasouq og:image (supabase), checked: white MAG 274QRFW X32 front with 320Hz / 0.5ms badges."
+ },
+ {
+  "key": "BenQ MOBIUZ EX271QMZ",
+  "brand": "BenQ",
+  "name": "MOBIUZ EX271QMZ",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "2560x1440",
+   "refreshHz": "240",
+   "panel": "QD-OLED",
+   "responseMs": "0.03",
+   "hdr": "HDR10",
+   "vrr": "FreeSync Premium",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.1",
+   "curvature": "Flat",
+   "brightnessNits": "200",
+   "usbC": "Yes",
+   "speakers": "Yes"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/61-LI9bZL4L._AC_SL1102_.jpg",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0H89WY7ZF"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/benq-mobiuz-ex271qmz-gaming-monitor-27-oled-display-2k-qhd-resolution-240hz-refresh-rate-0-03ms-gtg-response-time-oled-burn-in-protection-technology-black-ex271qmz/"
+   }
+  ],
+  "description": "### BenQ MOBIUZ EX271QMZ\n\nشاشة ألعاب 27 بوصة (26.5 فعلياً حسب BenQ) بدقّة 1440p ولوحة QD-OLED من الجيل الثالث بتردّد 240 هرتز واستجابة 0.03ms. لمن يبي OLED بمنافذ كاملة (USB-C وسمّاعات) ويلعب غالباً في غرفة إضاءتها هادئة.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]QD-OLED بتباين 1,500,000:1:[/green] كلّ بكسل يضيء وحده، فالأسود أسود فعلاً بلا توهّج، والألوان تغطّي 99% من مساحة P3 بعمق 1.07 مليار لون.\n\n[green]240 هرتز و0.03ms (GtG):[/green] حركةٌ نقيّة بلا ظلال تقريباً، تناسب كرتاً يعطي بين 150 و240 إطاراً في 1440p.\n\n[green]منفذا HDMI 2.1 وDisplayPort 1.4:[/green] توصل الكمبيوتر وجهاز ألعاب حديثاً معاً دون تبديل الكابلات.\n\n[green]USB-C مع DisplayPort Alt Mode وشحن 15 واط:[/green] توصل لابتوباً بكابلٍ واحد للصورة والبيانات وتشحنه شحناً خفيفاً.\n\n[green]سمّاعتان 2 واط ومنفذ سمّاعة رأس:[/green] صوتٌ أساسيّ يكفي للاستخدام اليوميّ بدون سمّاعات خارجية.\n\n[green]حماية OLED وBrightness Flow:[/green] Pixel Refresh وPixel Shift وتعتيم الشعارات وطبقة جرافين لتبريد اللوحة، وميزة Brightness Flow تثبّت السطوع بدل التذبذب المعتاد في OLED.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **سطوعٌ متواضع وHDR بلا شهادة:** 200 نِت (Typical) و400 نِت كحدٍّ أعلى في HDR، وBenQ تذكر HDR10 فقط بلا شهادة DisplayHDR، فهي أنسب لغرفةٍ خافتة.\n* السطح لامع (Glare): السواد أعمق في الإضاءة الخافتة، لكن الانعكاسات تظهر أمام نافذة أو إضاءةٍ قوية.\n* خطر احتراق الشاشة (Burn-in) المعتاد في OLED مع العناصر الثابتة، وصفحة المنتج لا تذكر صراحةً أنّ الضمان يغطّيه، فتأكّد من البائع.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا تدوير عمودي (Pivot): الحامل يرتفع 100 مم ويميل ويدور يميناً ويساراً فقط.\n* BenQ تذكر FreeSync Premium فقط، بلا Premium Pro ولا شهادة G-Sync Compatible.\n\nhttps://www.benq.com/en-me/monitor/gaming/ex271qmz.html",
+  "altKey": "Gigabyte MO27Q28GR",
+  "altReason": "W-OLED لامعة بتردّد 280 هرتز وسطوعٍ أعلى (True Black 500)، مع منفذ USB-C.",
+  "notes": "Official: BenQ Middle East spec page https://www.benq.com/en-me/monitor/gaming/ex271qmz/spec.html (identical to BenQ US and UK spec pages): Screen Size 26.5 inch; Panel Type 'OLED'; 2560x1440; 200 nits typ; 400 nits peak (HDR); HDR: HDR10 (no DisplayHDR certification listed; 'DisplayHDR' appears only as a colour-mode name); 0.03 ms GtG; 240 Hz; 1,500,000:1; 99% P3; 1.07B colours; coating 'Glare'; speakers 2W x2 + headphone jack; HDMI (v2.1) x2, DisplayPort (v1.4) x1, USB-C (PD 15W, DP Alt Mode, Data) x1; FreeSync Premium; tilt -5~15, swivel 15/15, height 100 mm, no pivot row; VESA 100x100. Panel = QD-OLED from BenQ's own overview copy ('Powered by 3rd Gen QD-OLED with a Tandem Structure') and the BenQ ME page title ('27\" 2K 240Hz QD-OLED Gaming Monitor'). Oddity: BenQ lists 26.5\" although 27\" QD-OLED panels are normally 26.7\"; sizeInch=27 (class). Not stated by BenQ (left out): DSC, per-port max refresh (whether HDMI reaches 240 Hz), G-Sync Compatible, burn-in warranty terms (the page links only to generic warranty info). curvature: BenQ's spec table has no curvature row; set Flat from the product imagery/flat chassis (depth w/o base 62.4 mm) - the only spec not read from a labelled row. SKU match: Microless URL ends in 'ex271qmz' and Amazon B0H89WY7ZF was listed for EX271QMZ in the brief. Price ~ $450-500 US per launch news (not used). | ORCHESTRATOR: alt changed from AOC Q27G4ZD (dropped: Amazon and Microless sell two different Q27G4ZD versions)."
+ },
+ {
+  "key": "Gigabyte MO27Q28GR",
+  "brand": "Gigabyte",
+  "name": "MO27Q28GR",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "2560x1440",
+   "refreshHz": "280",
+   "panel": "OLED",
+   "responseMs": "0.03",
+   "hdr": "DisplayHDR True Black 500",
+   "vrr": "G-Sync Compatible",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.1",
+   "curvature": "Flat",
+   "brightnessNits": "335",
+   "usbC": "Yes",
+   "speakers": "Yes"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/61eDkr8CtZL._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0GKF8K19Q"
+   },
+   {
+    "store": "infiniarc",
+    "url": "https://www.infiniarc.com/shop/monitor/mo27q28gr-ek-gigabyte-mo27q28gr-27-inch-qhd-2560-x-1440-w-oled-280hz-0-03ms-gtg-amd-freesync-premium-pro-g-sync-compatible-type-c-kvm-hdmi-dp-type-c-gaming-monitor-glossy-13866"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/gigabyte-mo27q28gr-gaming-monitor-27-woled-display-qhd-resolution-280hz-refresh-rate-0-03ms-gtg-response-time-nvidia-g-sync-compatible-black-mo27q28gr/"
+   }
+  ],
+  "description": "### Gigabyte MO27Q28GR\n\nالنسخة اللامعة من MO27Q28G: شاشة ألعاب 27 بوصة بدقّة 1440p ولوحة WOLED من الجيل الرابع (Primary RGB Tandem) بتردّد 280 هرتز واستجابة 0.03ms، بطبقة RealBlack Glossy. لمن يملك كرتاً عالياً ويبي سرعة OLED وأعمق سوادٍ ممكن مع USB-C وحاملٍ كامل الحركة.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]280 هرتز و0.03ms (GtG):[/green] حركةٌ نقيّة جداً في ألعاب التصويب، لمن يعطي كرته أكثر من 200 إطار في 1440p.\n\n[green]طبقة RealBlack Glossy:[/green] سطحٌ لامع بطبقةٍ بصرية بلا ضبابية مع طلاءٍ مضادّ للانعكاس، وGigabyte تذكر شهادة UL بثبات السواد حتى في إضاءة 500 لوكس.\n\n[green]DisplayHDR True Black 500 ولمعان 1500 نِت:[/green] النقاط المضيئة الصغيرة (1.5% من الشاشة) تصل إلى 1500 نِت، مع DCI-P3 99.5% وBT.2020 84% وعمق 10 بت ومعايرة مصنعية ΔE أقلّ من 2.\n\n[green]منفذا HDMI 2.1 وDisplayPort 1.4:[/green] توصل الكمبيوتر وجهاز ألعاب حديثاً معاً دون تبديل الكابلات.\n\n[green]USB-C مع KVM وشحن 18 واط:[/green] صورة وبيانات للابتوب بكابلٍ واحد، وتتحكّم بجهازين بلوحة مفاتيح وفأرةٍ واحدة.\n\n[green]حاملٌ يرتفع 130 مم ويميل ويدور ويقف عمودياً (Pivot):[/green] وفيه سمّاعتان 5 واط، وميزة AI OLED Care لتقليل خطر الاحتراق.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **اللمعان سلاحٌ ذو حدّين:** أمام نافذة أو إضاءةٍ قوية تظهر الانعكاسات أوضح من النسخة غير اللامعة MO27Q28G رغم طبقة مضادّ الانعكاس.\n* سطوع الشاشة الكاملة 335 نِت (SDR)، فالـ1500 نِت للنقاط الصغيرة فقط، والمشاهد الساطعة الواسعة أخفت من شاشات LCD.\n* خطر احتراق الشاشة (Burn-in) المعتاد في OLED مع العناصر الثابتة، وGigabyte تغطّيه ضمن ضمان 3 سنوات.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا DisplayPort 2.1: المنفذ هنا نسخة 1.4.\n* Gigabyte تذكر G-Sync Compatible فقط، ولا تذكر شهادة FreeSync في صفحتها.\n\nhttps://www.gigabyte.com/Monitor/MO27Q28GR",
+  "altKey": "Gigabyte MO27Q28G",
+  "altReason": "النسخة نفسها بسطحٍ غير لامع: أنسب لغرفةٍ مضيئة أو أمام نافذة، مقابل سوادٍ أفتح قليلاً من طبقة RealBlack Glossy.",
+  "notes": "Official: gigabyte.com blocks curl/WebFetch (403), so I read it in a real browser. Spec page https://www.gigabyte.com/Monitor/MO27Q28GR/sp: '27\" WOLED'; viewing area 586.75 x 330.05 mm (=26.5\" diag; sizeInch=27 class); 99.5% DCI-P3, 84% BT2020; Display Surface 'Glossy, Anti-Reflection'; 335 cd/m2 (Typ, SDR APL 100%), 1500 cd/m2 (Typ, HDR APL 1.5%); 1.5M:1; 10-bit; 280 Hz; 0.03 ms GTG; VESA DisplayHDR True Black 500; factory calibration dE<2; 2x HDMI 2.1, 1x DisplayPort 1.4, 1x USB Type-C (Alternate Mode; upstream; PD up to 18W), 2x USB 3.2 down, 1x USB 3.2 up, earphone jack; speakers 5W x2; tilt -5~+21, swivel +-15, pivot 0~+90, height 130 mm; VESA 100x100. Key-features page https://www.gigabyte.com/Monitor/MO27Q28GR: '4th Gen WOLED', 'Primary RGB Tandem OLED', 'RealBlack Glossy', UL 'Perfect Black' at 500 lux, HyperNits, 'G-Sync Compatible', 'OLED VRR Anti-Flicker', AI OLED Care, KVM, '3-year warranty including coverage for panel burn-in', USB-C 'Smart PD 18W (dynamic 45W)'. Not stated by Gigabyte (left out / flagged): FreeSync tier - Gigabyte's GR pages (global and aorus.com/au) never mention FreeSync, although InfiniArc's title says 'AMD FreeSync Premium Pro'; so vrr lists only G-Sync Compatible. DSC: not stated (1440p/280 Hz 10-bit exceeds DP 1.4 bandwidth without DSC, but Gigabyte doesn't say). Which port reaches 280 Hz: not stated per port. SKU match: InfiniArc URL 'mo27q28gr-ek ... glossy', Microless URL ends 'mo27q28gr'."
+ },
+ {
+  "key": "Alienware AW2725DF",
+  "brand": "Dell",
+  "name": "Alienware AW2725DF",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "2560x1440",
+   "refreshHz": "360",
+   "panel": "QD-OLED",
+   "responseMs": "0.03",
+   "hdr": "DisplayHDR True Black 400",
+   "vrr": "FreeSync Premium Pro · VESA AdaptiveSync",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.0",
+   "curvature": "Flat",
+   "brightnessNits": "250",
+   "dsc": "Yes",
+   "speakers": "No"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/41+QKCclxML._AC_SL1280_.jpg",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0CVN8HWG7"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/dell-alienware-27-aw2725df-qd-oled-gaming-monitor-0-03-ms-response-time-360hz-refresh-rate-smooth-stutter-free-gaming-amd-freesync-premium-pro-vesa-dp-1-4-hdmi-usb-3-2-type-c-aw2725df/"
+   }
+  ],
+  "description": "### Dell Alienware AW2725DF\n\nشاشة ألعاب 27 بوصة (26.7 فعلياً) بدقّة 1440p ولوحة QD-OLED بتردّد 360 هرتز واستجابة 0.03ms. للاعب المنافسات اللي كرته يعطي إطارات عالية جداً في 1440p ويبي من أسرع شاشات OLED مع ضمان Dell الشامل للاحتراق.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]360 هرتز و0.03ms (GtG):[/green] من أسرع شاشات QD-OLED بدقّة 1440p، لألعاب التصويب اللي يعطي فيها كرتك 250 إطاراً فأكثر.\n\n[green]منفذا DisplayPort 1.4 مع DSC:[/green] الـ360 هرتز تعمل عبر DisplayPort بضغط DSC تصفه Dell بأنه «بلا فقدٍ مرئيّ»، فيلزم كرتٌ يدعم DSC.\n\n[green]DisplayHDR True Black 400 ولمعان 1000 نِت:[/green] تباين 1.5M:1 في SDR وHDR، ولمعانٌ يصل إلى 1000 نِت في النقاط المضيئة الصغيرة.\n\n[green]ألوان DCI-P3 99.3% ومعايرة مصنعية:[/green] دقّة ΔE أقلّ من 2 في وضعي sRGB وDCI-P3، مع تقرير معايرة داخل العلبة.\n\n[green]FreeSync Premium Pro وشهادة VESA AdaptiveSync:[/green] مزامنة إطارات بلا تمزّق ولا تقطيع عبر DisplayPort وHDMI.\n\n[green]ضمان 3 سنوات يشمل الاحتراق (Burn-in):[/green] خدمة استبدال متقدّمة من Dell، مع حاملٍ يرتفع 110 مم ويميل ويدور ويقف عمودياً وإضاءة AlienFX.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **HDMI محدود بـ144 هرتز:** Dell تسمّيه HDMI 2.1 لكنه يعمل بنمط TMDS حتى 1440p بتردّد 144 هرتز فقط، فالـ360 هرتز من DisplayPort وحده، وأجهزة الألعاب تأخذ 144 هرتز كحدٍّ أقصى.\n* سطوع الشاشة البيضاء الكاملة 250 نِت (SDR)، فهي أنسب لغرفةٍ غير ساطعة.\n* خطر الاحتراق المعتاد في OLED قائمٌ مع العناصر الثابتة لساعاتٍ طويلة، وإن كان الضمان يغطّيه.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا سمّاعات ولا USB-C للصورة: منفذ USB-C الموجود للبيانات والشحن فقط.\n* Dell لا تذكر شهادة G-Sync Compatible من NVIDIA في مواصفاتها.\n\nhttps://www.dell.com/en-us/shop/p/APD/210-BLJD/",
+  "altKey": "LG UltraGear 27GX790A",
+  "altReason": "تكسب 480 هرتز بدل 360 وDisplayPort 2.1 وHDMI يصل للتردّد الكامل، وتخسر ضمان Dell للاحتراق لثلاث سنوات (ضمان LG سنتان).",
+  "notes": "Official sources: Dell US product page https://www.dell.com/en-us/shop/p/APD/210-BLJD/ (read in a browser) and Dell's AW2725DF User's Guide PDF https://dl.dell.com/content/manual84043186-alienware-aw2725df-monitor-user-s-guide.pdf (linked from Dell's support Manuals page), cross-checked with Dell's EU spec sheet. Panel QD OLED, 678.20 mm (26.70\") diagonal (sizeInch=27 class); 2560x1440; 'QHD 2560 x 1440 at 360Hz (Native with DisplayPort)', 'at 144Hz (Native with HDMI)'; ports '2 x DP 1.4 (HDCP 1.4 & 2.3)(Supports up to QHD 2560 x 1440 360 Hz, HDR, VRR)' and '1 x HDMI 2.1 (HDCP 1.4 & 2.3)(Supports up to QHD 2560 x 1440 144 Hz TMDS, HDR, VRR as per specified in HDMI 2.1)'; user guide: DP max preset '2560 x 1440 at 359.98 Hz (DSC enabled and visually lossless)', HDMI max 143.97 Hz, vertical range 48-360 Hz (DP) / 48-144 Hz (HDMI) -> dsc=Yes. hdmiVersion kept as Dell's label '2.1', BUT it is TMDS-only (no FRL) and capped at 144 Hz - if the site's port calculator would assume HDMI 2.1 can carry 360 Hz, override HDMI max to 144 or set hdmiVersion '2.0' for the calculation. Luminance: 250 cd/m2 typ (SDR full white), 450 (HDR TB400 per user guide; product page says 400), 1000 (HDR peak). 1.5M:1; anti-reflection coating; 0.03 ms GtG; DCI-P3 99.3%; dE<2; VESA DisplayHDR 400 True Black; AMD FreeSync Premium Pro + VESA AdaptiveSync certified; EU spec sheet lists 'NVIDIA G-SYNC: No' -> no G-Sync Compatible claim. Built-in Speaker: No; Audio line out: No. USB: 1x Type-B up, 2x USB-A rear, 1x USB-A + 1x USB-C downstream (data + BC1.2 charging, NOT video) -> usbC omitted. Stand: height 110 mm, tilt -5~21, swivel -20~20, pivot -90~90. Warranty: '3-Year Advanced Exchange Service and Premium Panel Exchange (Including coverage for OLED burn in)' (US page; regional terms may differ). SKU: Microless URL ends 'aw2725df'; Amazon B0CVN8HWG7 per brief. Note the different AW2725D (280 Hz) and AW2725DM exist - don't confuse. | ORCHESTRATOR 2026-11-17: hdmiVersion set to 2.0 — Dell labels it HDMI 2.1 but it is TMDS-only and stops at 144 Hz; same convention as Dell G2524H, so the port check does not claim HDMI reaches the max refresh."
+ },
+ {
+  "key": "LG UltraGear 27GX790A",
+  "brand": "LG",
+  "name": "UltraGear 27GX790A-B",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "2560x1440",
+   "refreshHz": "480",
+   "panel": "OLED",
+   "responseMs": "0.03",
+   "hdr": "DisplayHDR True Black 400",
+   "vrr": "FreeSync Premium Pro · G-Sync Compatible · VESA AdaptiveSync",
+   "dpVersion": "2.1",
+   "hdmiVersion": "2.1",
+   "curvature": "Flat",
+   "brightnessNits": "275",
+   "dsc": "Yes",
+   "speakers": "No"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/61srELM6QtL._AC_SL1122_.jpg",
+  "offers": [
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/lg-27gx790a-ultragear-gaming-monitor-27-oled-display-qhd-resolution-480hz-refresh-rate-0-03ms-gtg-response-time-nvidia-g-sync-amd-freesync-premium-pro-technology-black-27gx790a/"
+   },
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0DYVNZR13"
+   }
+  ],
+  "description": "### LG UltraGear 27GX790A-B\n\nشاشة ألعاب 27 بوصة (26.5 فعلياً) بدقّة 1440p ولوحة OLED بتقنية MLA+ وتردّد 480 هرتز واستجابة 0.03ms، مع DisplayPort 2.1. للاعب المنافسات اللي كرته يعطي مئات الإطارات ويبي أعلى سرعة ممكنة في OLED بدقّة 1440p.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]480 هرتز و0.03ms (GtG):[/green] من أسرع الشاشات اليوم، وLG تقول إنها أوّل شاشة OLED تحصل على شهادة VESA ClearMR 21000 لوضوح الحركة.\n\n[green]DisplayPort 2.1 وHDMI 2.1 مع DSC:[/green] منفذ DP 2.1 ومنفذا HDMI 2.1، ودليل LG يذكر توقيت 1440p بتردّد 480 هرتز على النوعين، والشاشة تدعم ضغط VESA DSC.\n\n[green]MLA+ ولمعان 1300 نِت:[/green] سطوعٌ معتاد 275 نِت في SDR ولمعانٌ يصل إلى 1300 نِت، مع DisplayHDR True Black 400 وتباين 1.5M:1 وألوان DCI-P3 98.5%.\n\n[green]G-Sync Compatible وFreeSync Premium Pro وVESA AdaptiveSync:[/green] مزامنة إطارات معتمدة مع كروت NVIDIA وAMD بلا تمزّق.\n\n[green]سطح مضادّ للانعكاس:[/green] طبقة Anti-Glare منخفضة الانعكاس تريحك في الغرف المضيئة أو أمام إضاءة LED.\n\n[green]حامل L يرتفع 110 مم ويميل ويدور ±30 درجة ويقف عمودياً:[/green] مع إضاءة Hexagon خلفية، ووضع 24 بوصة للمنافسات، ومنفذ سمّاعة رباعي يدعم DTS Headphone:X.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **الـ480 هرتز تحتاج كرتاً قوياً ومنفذاً مناسباً:** LG تذكر في صفحتها أنّ كروت DisplayPort 1.4 أو HDMI 2.1 تبلغ 240 هرتز، فالأضمن للـ480 كرتٌ بمنفذ DisplayPort 2.1.\n* ضمان LG سنتان يشمل لوحة OLED، وLG تنبّه إلى أنّ الاحتراق (Burn-in) وارد مع الصور الثابتة وأنّ أدوات الحماية قد لا تمنعه كلّياً.\n* مزوّد الطاقة خارجيّ (Adapter) لا داخليّ.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا سمّاعات ولا USB-C: منفذ سمّاعة رأس ومنفذا USB-A للملحقات فقط.\n* ليست 4K: الدقّة 1440p، وقيمتها في السرعة لا في الدقّة.\n\nhttps://www.lg.com/sa_en/monitors/gaming/27gx790a-b/",
+  "altKey": "Alienware AW2725DF",
+  "altReason": "إن كان كرتك لا يتجاوز 360 إطاراً فهي أرخص عادةً بلوحة QD-OLED وضمان 3 سنوات يغطّي الاحتراق، وتخسر 480 هرتز وDisplayPort 2.1 وHDMI بالتردّد الكامل.",
+  "notes": "Official: LG Saudi page https://www.lg.com/sa_en/monitors/gaming/27gx790a-b/ (key features + All Spec), LG UK spec page (https://www.lg.com/uk/monitors/gaming/27gx790a-b/), LG USA owner's manual (gscs-b2c.lge.com fileId XLzMDS6LF1IKP3KS1mW4A, linked from https://www.lg.com/us/support/product/lg-27GX790A-B.AUS) and LG USA spec sheet PDF (hosted by PC Richard). Size 26.5\" (67.3 cm) per LG UK (sizeInch=27 class); OLED (WOLED, MLA+); 2560x1440; 480 Hz; 0.03 ms (GtG at Faster); 275 cd/m2 typ / 250 min; peak 1300 nits (LG feature copy; US spec sheet also shows 1300/1040); 1.5M:1; DCI-P3 98.5% typ; 10-bit; VESA DisplayHDR True Black 400; ClearMR 21000; NVIDIA G-SYNC Compatible + VESA Certified AdaptiveSync + AMD FreeSync Premium Pro; 'VESA DSC Tech' (UK) / 'VESA DSC: Yes' (US sheet) -> dsc=Yes; DP 1x, DP version 2.1; HDMI 2ea, HDMI 2.1 (US sheet: 'Supports FRL as compliant with HDMI 2.1'); USB up 1, down 2 (USB 3.0); 4-pole headphone out with DTS HP:X; no speakers and no USB-C listed; surface 'Anti-Glare, Low-Reflection'; stand swivel -30~30, tilt -5~15, height 110 mm, pivot clockwise; external adapter 19V. Manual preset timing tables list 2560x1440 @ 480.167 Hz on HDMI (Input compatibility 2.1 PC) and 480.168 Hz on DisplayPort (2.1/1.4). CONFLICT: LG USA product page footnote says 'Graphics card that supports DisplayPort 1.4 or HDMI 2.1 are required to achieve up to 240Hz refresh rate support' - I worded the description cautiously (DP 2.1 GPU safest for 480). dpUhbr LEFT OUT: no LG document I could read states the UHBR tier. Secondary sources: TFTCentral/Notebookcheck say LG first wrote '80Gbps' then LG support said UHBR13.5 (54 Gbps), not formally confirmed by LG's product team; at UHBR13.5 1440p/480 10-bit still needs DSC. Warranty (LG SA page): '2-YEAR WARRANTY for UltraGear OLED gaming monitors ... including OLED Display Panel' (limited, varies by country); burn-in not explicitly named; LG notes burn-in 'may' occur and protection features 'may not prevent every afterimage'. Note: LG has a successor 27GX790B-B; don't mix. SKU: Microless URL ends '27gx790a', Amazon B0DYVNZR13 per brief."
+ },
+ {
+  "key": "Gigabyte GS27U",
+  "brand": "Gigabyte",
+  "name": "GS27U",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "3840x2160",
+   "refreshHz": "160",
+   "panel": "IPS",
+   "responseMs": "1",
+   "hdr": "DisplayHDR 400",
+   "vrr": "Adaptive-Sync",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.1",
+   "curvature": "Flat",
+   "brightnessNits": "350",
+   "speakers": "No",
+   "usbC": "No",
+   "dsc": "Yes"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/71G8a20Z5CL._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0DFMJZG5L"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/gigabyte-gs27u-gaming-monitor-27-ss-ips-display-4k-uhd-resolution-160hz-refresh-rate-1ms-mprt-response-time-support-adaptive-sync-technology-black-gs27u-ek/"
+   }
+  ],
+  "description": "### Gigabyte GS27U\n\nشاشة ألعاب 27 بوصة بدقّة 4K ولوحة SS IPS بتردّد 160 هرتز، بتصميمٍ بسيط بلا إضافاتٍ كثيرة. مكانها مع كرتٍ قويّ يلعب على 4K (أو يعتمد على DLSS وFSR)، لمن يبي حدّة 4K بأقلّ تكلفة ويستغني عن الحامل المرن والمنافذ الإضافيّة.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]4K على 27 بوصة:[/green] قرابة 163 نقطة في البوصة، فالنصّ حادٌّ جداً والتفاصيل في الألعاب أنقى بوضوح من 1440p.\n\n[green]SS IPS بتردّد 160 هرتز:[/green] ألوانٌ تغطّي 95% من DCI-P3 و1.07 مليار لون، وزوايا رؤية 178 درجة، وسطحٌ مطفأ يقلّل الانعكاس.\n\n[green]DisplayPort 1.4 مع DSC ومنفذا HDMI 2.1:[/green] GIGABYTE تذكر الضغط (DSC) على منفذ DisplayPort ليمرّر 4K بـ160 هرتز، ومنفذا HDMI 2.1 للكونسول أو جهازٍ ثانٍ.\n\n[green]Adaptive-Sync:[/green] مزامنة الإطارات تمنع تمزّق الصورة حين تنزل الإطارات تحت 160، وهذا يحصل كثيراً في ألعاب 4K الثقيلة.\n\n[green]أدوات GIGABYTE للألعاب:[/green] Aim Stabilizer يقلّل ضبابيّة الحركة، وBlack Equalizer يكشف المناطق المظلمة، مع نقطة تصويب ومؤقّت، وOSD Sidekick لضبط الشاشة بالفأرة.\n\n[green]PiP وPbP:[/green] تعرض مصدرين على الشاشة نفسها، مثل الكمبيوتر والكونسول.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **1ms هنا MPRT لا GtG:** GIGABYTE لا تنشر زمن GtG، ورقم MPRT يعتمد على تقليل الضبابيّة، فلا تقارنه بـ1ms (GtG) في شاشاتٍ أخرى.\n* DisplayHDR 400 بداية HDR لا أكثر: السطوع المعتاد 350 نِت والإضاءة جانبيّة (Edge) وتباين IPS المعتاد 1000:1، فالسواد في غرفةٍ مظلمة أفتح منه في VA وOLED.\n* حاملٌ يميل فقط (من -5 إلى +20 درجة) بلا رفعٍ ولا التفاف؛ ولضبط الارتفاع تحتاج ذراعاً بمعيار VESA 100×100.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا سمّاعات مدمجة ولا USB-C: منفذ سمّاعة رأس فقط.\n* GIGABYTE لا تذكر شهادة FreeSync Premium أو G-Sync Compatible لهذه الشاشة، ولا وضع 1080p بتردّدٍ أعلى (Dual Mode).\n\nhttps://www.gigabyte.com/Monitor/GS27U",
+  "altKey": "Gigabyte M27UP ICE",
+  "altReason": "Gigabyte M27UP ICE بالمقاس والدقّة والتردّد نفسها، وتضيف حاملاً يرتفع ويدور وUSB-C بشحن وKVM وسمّاعتين ووضع 1080p بـ320 هرتز، مقابل سعرٍ أعلى.",
+  "notes": "Official spec + key-features pages read in a real browser (gigabyte.com 403s curl/WebFetch): https://www.gigabyte.com/Monitor/GS27U/sp and /Monitor/GS27U. Spec table: 27\" SS IPS, viewing area 596.16x335.34 mm, 3840x2160, 160Hz max, '1ms MPRT' (no GtG published -> responseMs 1 is MPRT), 350 cd/m2 typ, 1000:1, 95% DCI-P3/127% sRGB, 1.07B colors, 'VESA Display HDR400', Edge backlight (the table prints 'Panel Type: Edge' - a Gigabyte typo for backlight), non-glare, ports '2 x HDMI 2.1, 1 x Displayport 1.4 (DSC), 1 x Earphone Jack' -> dsc Yes, usbC No, 'Speaker: N/A', tilt -5~+20, no swivel/pivot/height, VESA 100. VRR: the key-features page only says 'Support Adaptive-Sync Technology' (no FreeSync logo or G-Sync Compatible claim in the page HTML; the only 'G-Sync-Compatible' string is the site nav), so vrr='Adaptive-Sync'. Unconfirmed: Gigabyte does not say whether HDMI 2.1 also reaches 4K 160Hz (it very likely does, but only DP is documented with DSC). SKU: Amazon.sa B0DFMJZG5L title 'Gigabyte GS27U 27\" UHD Gaming Monitor - 3840 x 2160, 160Hz...'; Microless part GS27U-EK. No Dual Mode/KVM/USB-C on this model."
+ },
+ {
+  "key": "Alienware AW2725QF",
+  "brand": "Dell",
+  "name": "Alienware AW2725QF",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "3840x2160",
+   "refreshHz": "180",
+   "panel": "IPS",
+   "responseMs": "0.5",
+   "hdr": "DisplayHDR 600",
+   "vrr": "G-Sync Compatible · Adaptive-Sync",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.1",
+   "curvature": "Flat",
+   "brightnessNits": "400",
+   "speakers": "No",
+   "usbC": "No",
+   "dsc": "Yes"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/51VhrSnIHaL._AC_SL1280_.jpg",
+  "offers": [
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/dell-alienware-aw2725qf-gaming-monitor-27-ips-display-up-to-4k-uhd-resolution-up-to-360hz-refresh-rate-0-5ms-gtg-response-time-nvidia-g-sync-technology-black-210-bnht/"
+   },
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0DG9BWZHK"
+   }
+  ],
+  "description": "### Dell Alienware AW2725QF\n\nشاشة ألعاب 27 بوصة بلوحة IPS ووضعين تبدّل بينهما بضغطة زرّ (Dual-Resolution): 4K بـ180 هرتز أو 1080p بـ360 هرتز. مكانها مع كرتٍ قويّ يلعب على 4K، لمن يبي شاشةً واحدة للألعاب القصصيّة الجميلة وألعاب التصويب السريعة.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]وضعان في شاشةٍ واحدة:[/green] 4K بـ165 هرتز أصلاً و180 مع رفع التردّد (Overclock)، و1080p بـ330 هرتز و360 مع الرفع، عبر DisplayPort أو HDMI.\n\n[green]DisplayHDR 600 وDolby Vision:[/green] السطوع المعتاد 400 نِت وذروة HDR تبلغ 600 نِت، أعلى من شاشات HDR 400 المعتادة في هذه الفئة، مع 95% من DCI-P3 و100% من sRGB.\n\n[green]استجابة سريعة لـIPS:[/green] Dell تذكر 0.5ms (GtG) كحدٍّ أدنى و1ms كقيمةٍ معتادة في وضع Extreme، وتنبّه إلى أنّه قد يُظهر أثراً خفيفاً خلف الأجسام، فجرّب Super Fast (2ms) أيضاً.\n\n[green]G-Sync Compatible وVESA AdaptiveSync:[/green] شهادتان رسميّتان لمزامنة الإطارات؛ وDell لا تذكر شهادة FreeSync، لكنّ كروت AMD تدعم معيار Adaptive-Sync نفسه.\n\n[green]DisplayPort 1.4 مع DSC ومنفذا HDMI 2.1:[/green] الثلاثة تصل إلى أقصى تردّد في الوضعين، وأحد منفذي HDMI يدعم eARC لتمرير صوت Dolby Atmos إلى مكبّر صوت (Soundbar)، مع وضعٍ خاصّ للكونسول وPiP وPbP.\n\n[green]حاملٌ يرتفع 110 مم ويدور عمودياً (Pivot):[/green] مع ميلٍ والتفاف، ومنافذ USB سريعة الوصول أسفل الشاشة للشحن والملحقات.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **180 و360 هرتز بالرفع (Overclock):** الأرقام الأصليّة 165 و330 هرتز، والوصول إلى 180 و360 يحتاج تفعيل الرفع من قائمة الشاشة.\n* وضع 1080p على 27 بوصة أقلّ حدّةً بوضوح (قرابة 82 نقطة في البوصة)، فهو للتنافسيّة لا للعمل اليوميّ.\n* إضاءة جانبيّة (Edge) وتباين 1000:1: الـHDR هنا أفضل من HDR 400، لكنّ السواد لا يقارن بـOLED.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا سمّاعات مدمجة، ومنفذ USB-C فيها للشحن والملحقات فقط لا لنقل الصورة.\n* ليست OLED: سواد OLED وسرعته في فئةٍ أعلى سعراً.\n\nhttps://www.dell.com/support/product-details/en-us/product/aw2725qf-monitor/overview",
+  "altKey": "Gigabyte M27UP ICE",
+  "altReason": "Gigabyte M27UP ICE بفكرة Dual Mode نفسها (4K بـ160 أو 1080p بـ320) وبسعرٍ أقلّ، ومعها USB-C ينقل الصورة وسمّاعتان، لكنّ HDR فيها 400 لا 600.",
+  "notes": "Source: Dell's official AW2725QF User's Guide PDF (Rev. listed on the Dell support manuals page), https://dl.dell.com/content/manual10676330-alienware-aw2725qf-monitor-user-s-guide.pdf (dell.com shop pages redirect/geo-block, so the last description line is Dell's support overview page https://www.dell.com/support/product-details/en-us/product/aw2725qf-monitor/overview, which loads). Spec table: IPS, 684.70 mm (27.00 in.) diagonal, 400 cd/m2 typ / 600 HDR peak, 1000:1, LED edgelight, anti-glare 3H, '0.5 ms GtG min, 1 ms GtG most observed in Extreme mode; 2 ms Super Fast; 3 ms Fast', 8-bit+A-FRC, DCI-P3 95% / sRGB 100%, DisplayHDR 600, Dolby Vision. Ports: 'Two HDMI 2.1 ports (... Supports 4K 3840x2160 at 165 Hz, FHD 1920x1080 at 330 Hz, FRL, HDR, VRR)', 'One DisplayPort 1.4 connector (... 4K at 165 Hz, FHD at 330 Hz, DSC, HDR)', both with 'NOTE: Refresh rate can be overclocked up to 180 Hz in 4K mode and up to 360 Hz in FHD mode'; one HDMI has eARC/ARC. USB: 1 USB-B up, 2 USB-A down, quick access 1 USB-C 3.2 Gen1 downstream (data/charging only, no video) + 1 USB-A BC1.2 -> usbC No. No speakers anywhere in the guide -> speakers No. Stand: height 110 mm, tilt -5/+21, swivel -20/+20, pivot -90/+90. VRR: guide lists 'NVIDIA G-SYNC Compatible Certification and VESA AdaptiveSync Display certification'; no FreeSync claim -> vrr 'G-Sync Compatible · Adaptive-Sync'. WARNING resolved: resolution 3840x2160, refreshHz 180 per the brief = 4K max with Dell's OSD overclock (native 165 Hz; DP and HDMI both reach it); FHD 330/360 mode described in the text. responseMs 0.5 = Dell's GtG min figure (1 ms 'most observed'); change to 1 if you prefer the typical value. SKU: Amazon.sa B0DG9BWZHK title 'Alienware AW2725QF 27\" Gaming Monitor Dual Resolution - 4K 180Hz, Full HD 360Hz, IPS, 0.5ms ... HDR600, Dolby Vision'; Microless part 210-BNHT."
+ },
+ {
+  "key": "Gigabyte MO27U2",
+  "brand": "Gigabyte",
+  "name": "MO27U2",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "3840x2160",
+   "refreshHz": "240",
+   "panel": "QD-OLED",
+   "responseMs": "0.03",
+   "hdr": "DisplayHDR True Black 400",
+   "vrr": "FreeSync Premium Pro · G-Sync Compatible",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.1",
+   "curvature": "Flat",
+   "brightnessNits": "250",
+   "speakers": "Yes",
+   "usbC": "Yes"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/71eIqklJ61L._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0F4H2LDLT"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/gigabyte-mo27u2-gaming-monitor-27-qd-oled-display-4k-uhd-resolution-240hz-refresh-rate-0-03ms-gtg-response-time-amd-freesync-premium-pro-nvidia-g-sync-black-mo27u2/"
+   }
+  ],
+  "description": "### Gigabyte MO27U2\n\nشاشة ألعاب 27 بوصة (26.5) بلوحة QD-OLED ودقّة 4K وتردّد 240 هرتز. مكانها مع كرتٍ من الفئة العليا يلعب على 4K، لمن يبي سواد OLED وسرعته مع حدّة 166 نقطة في البوصة على مكتبٍ عاديّ.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]QD-OLED بدقّة 4K و240 هرتز:[/green] لوحة Tandem من خمس طبقات تقول GIGABYTE إنّها أكفأ وأطول عمراً، مع استجابة 0.03ms (GtG) وشهادة ClearMR 13000 للحركة الواضحة.\n\n[green]DisplayHDR True Black 400 وذروة 1000 نِت:[/green] لمعاتٌ ساطعة في مساحاتٍ صغيرة (3% من الشاشة) فوق سوادٍ حقيقيّ وتباين 1.5 مليون:1، مع 99% من DCI-P3 ومعايرة من المصنع (ΔE < 2).\n\n[green]FreeSync Premium Pro وG-Sync Compatible:[/green] مزامنة الإطارات مع AMD وNVIDIA، وميزة OLED VRR Anti-Flicker تقلّل وميض OLED المعروف حين تتذبذب الإطارات (بعد تحديث البرنامج الثابت).\n\n[green]منفذا HDMI 2.1 وDisplayPort 1.4 وUSB-C:[/green] USB-C ينقل الصورة ويشحن حتى 18 واط، مع KVM للتحكّم بجهازين بلوحة مفاتيح وفأرة واحدة.\n\n[green]OLED Care وتبريدٌ بلا مراوح:[/green] خوارزميّات لتقليل خطر الاحتراق مع طبقة تبريد من الجرافين ومشتّتٍ حراريّ وتهويةٍ من الجهات الأربع.\n\n[green]حاملٌ يرتفع 130 مم ويدور عمودياً (Pivot):[/green] مع ميلٍ والتفاف، وسمّاعتان 5 واط للاستعمال الخفيف.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **الاحتراق وارد والسطوع على الشاشة كاملةً متوسّط:** 250 نِت حين تكون الصورة بيضاء بالكامل، أقلّ من IPS في غرفةٍ مضاءة. وGIGABYTE تذكر ضماناً 3 سنوات يشمل الاحتراق لكنّها تقول إنّ الشروط تختلف حسب المنطقة، فاسأل المتجر.\n* 4K بـ240 إطاراً صعبة حتى على أقوى الكروت في الألعاب الثقيلة، فالـ240 هرتز تظهر أكثر في الألعاب الخفيفة أو مع DLSS وFSR.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا DisplayPort 2.1 (UHBR): الـ240 هرتز في 4K عبر DisplayPort 1.4 تحتاج ضغط DSC، ولا تذكره GIGABYTE صراحةً في مواصفاتها.\n* ليست للكروت المتوسّطة: شاشة 1440p OLED أنسب لها.\n\nhttps://www.gigabyte.com/Monitor/MO27U2",
+  "altKey": "Samsung Odyssey OLED G8 G81SF 27",
+  "altReason": "Samsung G81SF مقاس 27 باللوحة والدقّة والتردّد نفسها، مع طبقة Glare Free المطفأة التي تخفّف الانعكاسات وتصميمٍ معدنيّ، لكنّك تخسر USB-C وKVM والسمّاعات.",
+  "notes": "Official pages read in a real browser (gigabyte.com 403s curl/WebFetch): https://www.gigabyte.com/Monitor/MO27U2/sp and /Monitor/MO27U2. Spec table: 27\" QD-OLED, viewing area 589.97x332.93 mm (26.5\" -> class 27), 3840x2160, 240Hz, 0.03ms GTG, '250 cd/m2 (Typ, SDR APL 100%); 1000 cd/m2 (Typ, HDR APL 3%)', 1.5M:1, 99% DCI-P3, 10-bit, VESA DisplayHDR True Black 400, ClearMR 13000, factory calibration dE<2, anti-reflection surface, ports '2 x HDMI 2.1, 1 x Displayport 1.4, 1 x USB Type-C (Alternate Mode; Upstream port; Power Delivery up to 18W), 2 x USB 3.2 down, 1 x USB 3.2 up, earphone jack', 'Speaker 5W x 2', tilt -5~+21, swivel +/-15, pivot 90, height 130 mm. Key-features page: '5-layer tandem' EL Gen 3 QD-OLED, 166 PPI, G-Sync Compatible, a 'FreeSync Premium Pro' logo image (found in page HTML), OLED VRR Anti-Flicker and Ultra Clear (firmware update), KVM, Tactical Switch 2.0 (resolution/size switch, not a refresh dual mode), graphene film + heatsink + fanless, '3 YEAR WARRANTY ... including coverage for panel burn-in' with '* Warranty terms may vary by region'. DSC: Gigabyte's table says plain 'Displayport 1.4' with no '(DSC)' tag (unlike GS27U), so dsc is left empty as with MO32U2; physically 4K240 over DP1.4 needs DSC. Which port reaches 240Hz is not stated. SKU: Amazon.sa B0F4H2LDLT title 'Gigabyte MO27U2 OLED 4K UHD Gaming Monitor - 3840 x 2160, 240Hz, 0.03ms...'; Microless part MO27U2. imageUrl NOTE: the brief's image (71eIqklJ61L) is the SAME Amazon image ID already used for the existing 'Gigabyte MO32U2' entry - the two look alike from the front, but please check it really is the MO27U2's own Amazon image."
+ },
+ {
+  "key": "Samsung Odyssey OLED G8 G81SF 27",
+  "brand": "Samsung",
+  "name": "Odyssey OLED G8 G81SF 27",
+  "specs": {
+   "sizeInch": "27",
+   "resolution": "3840x2160",
+   "refreshHz": "240",
+   "panel": "QD-OLED",
+   "responseMs": "0.03",
+   "hdr": "DisplayHDR True Black 400",
+   "vrr": "FreeSync Premium Pro",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.1",
+   "curvature": "Flat",
+   "brightnessNits": "250",
+   "speakers": "No",
+   "usbC": "No",
+   "color": "Silver"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/81Z4qs5scQL._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0DVBZS5WZ"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/samsung-odyssey-g8-gaming-monitor-27-4k-uhd-oled-display-240hz-refresh-rate-0-03ms-gtg-response-time-freesync-premium-pro-super-arena-gaming-ux-silver-ls27fg810smxue/"
+   }
+  ],
+  "description": "### Samsung Odyssey OLED G8 G81SF 27\n\nشاشة ألعاب 27 بوصة بلوحة QD-OLED ودقّة 4K وتردّد 240 هرتز، بتصميمٍ معدنيّ فضّيّ، وهي الأخت الأصغر لنسخة 32 بوصة. مكانها مع كرتٍ من الفئة العليا يلعب على 4K، لمن يبي أعلى حدّة (166 نقطة في البوصة) وسواد OLED في غرفةٍ مضاءة.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]QD-OLED بدقّة 4K و240 هرتز:[/green] سوادٌ كامل وتباين 1,000,000:1، واستجابة 0.03ms (GtG)، و166 نقطة في البوصة تجعل النصّ أحدّ من نسخة 32 بوصة.\n\n[green]طبقة Glare Free المطفأة:[/green] تقول Samsung إنّها أقلّ لمعاناً بنسبة 54% من طبقات مقاومة الانعكاس المعتادة، وهي موثّقة من UL، فانعكاس النوافذ والإضاءة أقلّ بكثير.\n\n[green]DisplayHDR True Black 400 وHDR10+ Gaming:[/green] لمعاتٌ ساطعة فوق سوادٍ حقيقيّ، والألعاب الداعمة لـHDR10+ تضبط الصورة تلقائيّاً، مع 99% من DCI-P3 وتقرير معايرة من المصنع.\n\n[green]FreeSync Premium Pro:[/green] مزامنة الإطارات تمنع تمزّق الصورة حين تنزل الإطارات عن 240. وSamsung السعوديّة تكتب «G-Sync: No» في مواصفاتها، أي بلا شهادة NVIDIA رسميّة، وإن كانت كروت NVIDIA تفعّل المزامنة يدوياً على أغلب شاشات FreeSync.\n\n[green]حماية OLED Safeguard+:[/green] أنبوبٌ حراريّ تقول Samsung إنّه يبرّد أسرع بخمس مرّات من الجرافيت، مع تعتيم الشعارات وشريط المهامّ الثابتة وخفض السطوع تلقائياً عند ارتفاع الحرارة.\n\n[green]حاملٌ يرتفع 120 مم ويدور عمودياً (Pivot):[/green] مع ميلٍ والتفافٍ 30 درجة لكلّ جهة، وإضاءة CoreSync خلفيّة تعكس ألوان اللعبة.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **الاحتراق ممكن والسطوع اليوميّ متوسّط:** السطوع المعتاد 250 نِت، وSamsung السعوديّة تقول إنّ ضمانها يغطّي الاحتراق في الاستخدام العاديّ لا التجاريّ أو سوء الاستخدام.\n* DisplayPort 1.4 لا 2.1: لا يوجد UHBR، وSamsung لا تذكر ضغط DSC في مواصفاتها مع أنّ 4K بـ240 هرتز عبر DisplayPort 1.4 لا تمرّ بدونه.\n* 4K بـ240 إطاراً صعبة حتى على أقوى الكروت في الألعاب الثقيلة، فالـ240 هرتز تظهر أكثر في الألعاب الخفيفة أو مع DLSS وFSR.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا USB-C ولا سمّاعات مدمجة.\n* ليست النسخة الذكيّة: لا تطبيقات بثّ مدمجة.\n\nhttps://www.samsung.com/sa_en/monitors/gaming/odyssey-oled-g8-g81sf-27-inch-240hz-oled-uhd-ls27fg810smxue/",
+  "altKey": "Gigabyte MO27U2",
+  "altReason": "Gigabyte MO27U2 بالمقاس واللوحة والدقّة والتردّد نفسها، وتضيف USB-C بشحن 18 واط وKVM وسمّاعتين وشهادة G-Sync Compatible، لكنّك تخسر طبقة Glare Free المطفأة والتصميم المعدنيّ.",
+  "notes": "Official Samsung Saudi page read in a real browser: https://www.samsung.com/sa_en/monitors/gaming/odyssey-oled-g8-g81sf-27-inch-240hz-oled-uhd-ls27fg810smxue/ (page model code LS27FG810SMXUE; page title '27\" Odyssey OLED G8 Gaming Monitor 4K 240Hz 0.03 MS'; the series code G81SF is in Samsung's own URL slug and on Samsung AE/UK/US pages for the same model). WARNING resolved: name 'Odyssey OLED G8 G81SF 27' (existing 32\" is name 'Odyssey OLED G8 G81SF', LS32FG810S). Spec table: 4K, 250 cd/m2 typ (min 200), 1,000,000:1 static, 0.03ms GTG, 240Hz, Screen Size (Class) 27, Flat, active area 589.97x332.9 mm (=26.5\"), Panel Type 'OLED' (feature text: 'QD-OLED in 4K', 166 PPI) -> QD-OLED, VESA DisplayHDR True Black 400, HDR10+ Gaming, 99% DCI-P3, FreeSync Premium Pro, 'G-Sync: No', Smart Type No, DP 1 EA version 1.4, HDMI 2 EA version 2.1, headphone yes, 'USB-C: No', USB-B up 1 + USB-A 3.2 Gen1 down 2, 'Speaker: No', factory calibration report yes, front/rear/stand color SILVER, HAS 120 mm, tilt -2~25, swivel +/-30, pivot +/-92, 'Burn-in at normal usage covered within warranty (But, not covered for Commercial, abuse or mis-use)', UL Glare Free (54% less glossy). Not on the page: DSC, UHBR, HDR peak nits -> dsc left empty, no peak figure. Color: Samsung SA says Silver; the Amazon.sa B0DVBZS5WZ title says 'Black' but carries the same model code LS27FG810SMXUE, so I kept Samsung's Silver. vrr kept as 'FreeSync Premium Pro' only, matching how the 32\" entry was finally stored and Samsung SA's 'G-Sync: No'. Microless URL slug also ends ls27fg810smxue."
+ },
+ {
+  "key": "Alienware AW3225QF",
+  "brand": "Dell",
+  "name": "Alienware AW3225QF",
+  "specs": {
+   "sizeInch": "32",
+   "resolution": "3840x2160",
+   "refreshHz": "240",
+   "panel": "QD-OLED",
+   "responseMs": "0.03",
+   "hdr": "DisplayHDR True Black 400",
+   "vrr": "G-Sync Compatible · Adaptive-Sync",
+   "dpVersion": "1.4",
+   "hdmiVersion": "2.1",
+   "curvature": "1700R",
+   "brightnessNits": "250",
+   "speakers": "No",
+   "usbC": "No",
+   "dsc": "Yes"
+  },
+  "imageUrl": "https://m.media-amazon.com/images/I/61qoWlre+5L._AC_SL1500_.jpg",
+  "offers": [
+   {
+    "store": "amazon",
+    "url": "https://www.amazon.sa/dp/B0CVQGSRZ9"
+   },
+   {
+    "store": "microless",
+    "url": "https://saudi.microless.com/product/dell-alienware-32-4k-qd-oled-curved-gaming-monitor-4k-uhd-3840x2160-240hz-0-03ms-g-to-g-adaptivesync-nvidia-g-sync-1bn-colors-dci-p3-99-dolby-vision-dp-1-4-hdmi-2-1-usb-c-aw3225qf/"
+   }
+  ],
+  "description": "### Dell Alienware AW3225QF\n\nشاشة ألعاب 32 بوصة (31.6) منحنية بلوحة QD-OLED ودقّة 4K وتردّد 240 هرتز، وتدعم Dolby Vision. مكانها مع كرتٍ من الفئة العليا يلعب على 4K، لمن يبي شاشةً كبيرة للألعاب والأفلام ويوصل معها كونسول بجانب الكمبيوتر.\n\n**التقنيات الأساسية المدعومة:**\n\n[green]QD-OLED بدقّة 4K و240 هرتز:[/green] سوادٌ كامل وتباين 1.5 مليون:1، واستجابة 0.03ms (GtG) كحدٍّ أدنى بحسب Dell.\n\n[green]انحناء 1700R:[/green] انحناءٌ خفيف تقول Dell إنّه يزيد الانغماس ويريح العين على شاشةٍ بهذا الحجم.\n\n[green]DisplayHDR True Black 400 وDolby Vision:[/green] ذروة 1000 نِت في وضع HDR Peak 1000، مع 99% من DCI-P3 ومعايرة من المصنع (Delta E < 2) في وضعي sRGB وDCI-P3.\n\n[green]G-Sync Compatible وVESA AdaptiveSync:[/green] شهادتان رسميّتان لمزامنة الإطارات؛ وDell لا تذكر شهادة FreeSync، لكنّ كروت AMD تدعم معيار Adaptive-Sync نفسه.\n\n[green]DisplayPort 1.4 مع DSC ومنفذا HDMI 2.1 بـ240 هرتز:[/green] Dell تذكر 4K بـ240 هرتز عبر HDMI 2.1 أيضاً، وأحد المنفذين يدعم eARC لتمرير Dolby Atmos إلى مكبّر صوت (Soundbar)، مع وضعٍ خاصّ للكونسول وPiP وPbP.\n\n[green]حاملٌ يرتفع 110 مم:[/green] مع ميلٍ والتفاف وإضاءة AlienFX، وأربعة منافذ USB منها USB-C للشحن والملحقات.\n\n[yellow]مدعوم جزئياً أو ليس الأفضل فيه:[/yellow]\n\n* ⚠️ **الاحتراق ممكن والسطوع على الشاشة كاملةً 250 نِت:** نشرة Dell تذكر ضماناً 3 سنوات يشمل احتراق OLED، لكنّ ضمان البيع في السعوديّة قد يختلف فاسأل المتجر. وفيها Pixel Refresh وPanel Refresh تلقائيّان لتقليل بقاء الصورة.\n* الحامل بلا دوران عموديّ (Pivot)، وDell تحذّر من تركيبها عمودياً.\n* 4K بـ240 إطاراً صعبة حتى على أقوى الكروت في الألعاب الثقيلة، فالـ240 هرتز تظهر أكثر في الألعاب الخفيفة أو مع DLSS وFSR.\n\n[red]غير مدعوم أو ليس من مزاياه الرئيسية:[/red]\n\n* لا سمّاعات مدمجة، ومنفذ USB-C فيها للشحن والملحقات فقط لا لنقل الصورة.\n* لا DisplayPort 2.1 (UHBR): الـ240 هرتز عبر DisplayPort تعتمد على ضغط DSC.\n\nhttps://www.dell.com/support/product-details/en-us/product/aw3225qf-monitor/overview",
+  "altKey": "Gigabyte MO32U2",
+  "altReason": "Gigabyte MO32U2 بالحجم والدقّة والتردّد ولوحة QD-OLED نفسها لكنّها مسطّحة، وتضيف USB-C ينقل الصورة وKVM وسمّاعتين وحاملاً يدور عمودياً، لمن لا يحبّ الانحناء.",
+  "notes": "Sources: Dell official AW3225QF User's Guide https://dl.dell.com/content/manual84466845-alienware-aw3225qf-monitor-user-s-guide.pdf and Dell's spec sheet https://www.delltechnologies.com/asset/pt-pt/products/electronics-and-accessories/technical-support/aw3225qf-alienware-32-4k-qd-oled-gaming-monitor-spec-sheet.pdf.external (dell.com shop pages redirect/geo-block; last description line = Dell support overview page, which loads). Guide spec table: QD-OLED, 803.17 mm (31.62 in.) diagonal -> class 32, '250 cd/m2 (typical)(SDR full white pattern); 450 (HDR TB400); 1000 (HDR peak)', 1.5 million:1 (spec sheet says 1 million:1), anti-reflection, 0.03 ms GtG (spec sheet: min; 0.1 ms most observed), 'Curvature 1700R (typical)', DCI-P3 99%, DisplayHDR 400 True Black + Dolby Vision, dE2000<2 in sRGB and DCI-P3 modes. Ports: '1x DP 1.4 (Supports up to 3840 x 2160 240 Hz, DSC, HDR)' -> dsc Yes; '2 x HDMI 2.1 (Supports up to 3840 x 2160 240 Hz FRL, HDR, VRR)' with one eARC; USB-B up, 2 USB-A down, quick access 1 USB-C 3.2 Gen1 downstream (BC1.2 charging, no video) + 1 USB-A -> usbC No. Spec sheet 'Audio Output: No'; no speakers in the guide -> speakers No. Stand: height 0-110 mm, tilt -5~21, swivel -20~20, 'Pivot N/A' with a note not to use it in portrait. VRR: 'NVIDIA G-SYNC Compatible Certification and VESA AdaptiveSync Display'; the spec sheet's 'AMD Free-Sync Premium Technology' row reads 'No' -> vrr 'G-Sync Compatible · Adaptive-Sync'. Warranty: spec sheet '3-Year Advanced Exchange Service and Premium Panel Exchange (Including coverage for OLED burn in)' - this is Dell's own (US/global sheet); Saudi retailer warranty not verified, so the text says ask the store. CURVATURE FLAG: 1700R is NOT in the allowed list (Flat|1800R|1500R|1000R|800R); I wrote the real value '1700R' - map to 1800R or extend the enum. SKU: Amazon.sa B0CVQGSRZ9 title 'Alienware AW3225QF 32 Inch 4K UHD (3840x2160) 1700R Curved Gaming Monitor, 240Hz, QD OLED...'; Microless URL ends -aw3225qf."
+ }
+]

@@ -137,7 +137,7 @@ const BY_CATEGORY: Record<string, Record<string, FieldMeta>> = {
     dpVersion: { type: 'select', options: ['1.2', '1.4', '2.1', 'None'] },
     dpUhbr: { type: 'select', options: ['UHBR10', 'UHBR13.5', 'UHBR20'] },
     hdmiVersion: { type: 'select', options: ['1.4', '2.0', '2.1'] },
-    curvature: { type: 'select', options: ['Flat', '1800R', '1500R', '1000R', '800R'] },
+    curvature: { type: 'select', options: ['Flat', '1800R', '1700R', '1500R', '1000R', '800R'] },
     dsc: { type: 'select', options: ['Yes', 'No'] },
     brightnessNits: { type: 'number', hint: '400' },
   },
