@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { getArticle, AUTHOR } from '../../../lib/content';
 import JsonLd, { absUrl, plainText, breadcrumbs, SITE_URL } from '../../../components/JsonLd';
@@ -11,6 +11,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const news = await getArticle(id);
   if (!news) return { title: 'الخبر غير موجود', robots: { index: false, follow: true } };
+  if (news.isGuide) return { title: news.title, alternates: { canonical: `/guides/${id}` }, robots: { index: false, follow: true } };
 
   const description = (news.summary || news.content || '')
     .replace(/[#*\[\]]/g, '')
@@ -41,7 +42,9 @@ export default async function NewsDetails({ params }: { params: Promise<{ id: st
   }
 
   // لو الرابط خبر لكن المحتوى دليل، حوّله لمساره الصحيح (تفادي محتوى مكرّر)
-  if (news.isGuide) redirect(`/guides/${id}`);
+  /* ⚠️ دائمٌ (308) لا مؤقّت: بالمؤقّت (307) كان قوقل يحفظ /news/<دليل> صفحةً ثانية
+     («Crawled - currently not indexed» في Search Console، 2026-11-17) */
+  if (news.isGuide) permanentRedirect(`/guides/${id}`);
 
   /* بيانات منظّمة للبحث: المقال وكاتبه ومسار التنقّل */
   const articleLd = {

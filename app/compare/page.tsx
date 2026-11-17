@@ -29,12 +29,17 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const params = await searchParams;
   const ids = params.ids?.split(',').filter(Boolean).slice(0, 3) ?? [];
 
-  if (ids.length < 2) {
-    return {
-      title: 'قارن القطع جنباً إلى جنب',
-      description: 'قارن مواصفات وأسعار قطع الحاسوب جنباً إلى جنب، واختر الأنسب لتجميعتك بثقة.',
-    };
-  }
+  /* ⚠️ «قارنها» في صفحة كلّ قطعة وفي الباني يفتح /compare?ids=<قطعةٌ واحدة> — مئات الروابط
+     بالعنوان نفسه والمحتوى نفسه تقريباً. كانت قابلةً للفهرسة بلا canonical، فعدّها Search Console
+     مكرّرةً و«Crawled - currently not indexed» (2026-11-17)، وهي من نمط «المحتوى منخفض القيمة»
+     الذي رُفض به أدسنس. فكلّ ما ليس مقارنةً حقيقيّة بين قطعتين: لا يُفهرس، ويشير إلى /compare. */
+  const notAComparison: Metadata = {
+    title: 'قارن القطع جنباً إلى جنب',
+    description: 'قارن مواصفات وأسعار قطع الحاسوب جنباً إلى جنب، واختر الأنسب لتجميعتك بثقة.',
+    alternates: { canonical: '/compare' },
+    ...(ids.length ? { robots: { index: false, follow: true } } : {}),
+  };
+  if (ids.length < 2) return notAComparison;
 
   try {
     const comps = await prisma.component.findMany({
@@ -47,19 +52,18 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
        فعنوان يذكرهم يخالف ما يراه الزائر ويضلّل نتائج البحث. */
     const catId = comps[0].categoryId;
     const sameCat = comps.filter((c) => c.categoryId === catId);
-    if (sameCat.length < 2) {
-      return { title: 'قارن القطع جنباً إلى جنب', robots: { index: false, follow: true } };
-    }
+    if (sameCat.length < 2) return notAComparison;
 
     const names = sameCat.map((c) => `${c.brand} ${c.name}`);
     const title = `مقارنة ${names.join(' مقابل ')}`;
     return {
       title,
       description: `مقارنة تفصيلية بين ${names.join(' و ')} — المواصفات والأسعار والأداء، لتختار الأنسب لتجميعتك.`,
-      alternates: { canonical: `/compare?ids=${ids.join(',')}` },
+      /* الترتيب لا يغيّر المقارنة: a,b وb,a صفحةٌ واحدة لقوقل */
+      alternates: { canonical: `/compare?ids=${[...ids].sort().join(',')}` },
     };
   } catch {
-    return { title: 'قارن القطع جنباً إلى جنب' };
+    return notAComparison;
   }
 }
 

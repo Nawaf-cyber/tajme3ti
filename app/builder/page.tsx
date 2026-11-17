@@ -26,9 +26,16 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     ? "تفقد مواصفات هذه التجميعة، وتعرف على التكلفة الإجمالية والأداء المتوقع في الألعاب عبر منصة تجميعتي."
     : "أفضل منصة عربية لبناء الـ PC. اختر قطعك، تأكد من التوافق برمجياً، وتعرف على الفريمات وسحب الطاقة.";
 
+  /* روابط التجميعات المشاركة (?cpu=…&gpu=…) و?add= و?from= لكلٍّ منها عنوانٌ واحد ومحتوى الباني نفسه؛
+     كانت قابلةً للفهرسة بلا canonical فعدّها Search Console صفحاتٍ مكرّرة (2026-11-17).
+     تبقى قابلةً للمشاركة (openGraph كما هو)، لكنّ قوقل يُحال إلى /builder. */
+  const hasParams = Object.keys(resolvedParams).length > 0;
+
   return {
     title,
     description,
+    alternates: { canonical: '/builder' },
+    ...(hasParams ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
       title,
       description,
