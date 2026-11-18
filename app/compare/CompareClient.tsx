@@ -368,12 +368,14 @@ export default function CompareClient({
         }
       } else {
         const cat = selected[0]?.category?.name;
-        const dir = compareDirection(label, cat);
-        /* زمن استجابة الشاشات أرقامٌ لا تُقاس بالطريقة نفسها (IPS «1ms MPRT» وOLED «0.03ms GtG»)، فكانت
-           النسبة «أعلى بـ 3233%» — النجمة تبقى للأسرع، والنسبة تُحذف (2026-11-18) */
-        /* …إلّا إن أعلنت كلّها بالطريقة نفسها (responseType: GtG أو MPRT) فالنسبة صادقة */
+        /* زمن استجابة الشاشات يُعلَن بطريقتين لا تُقارنان (GtG وMPRT: «1ms MPRT» ليست أبطأ من «0.5ms GtG»
+           ولا أسرع) — فكانت النسبة «أعلى بـ 3233%» والنجمة لرقم MPRT الأصغر. فلا نجمة ولا نسبة إلّا إن
+           أعلنت الشاشات كلّها بالطريقة نفسها (responseType) — 2026-11-18 */
         const rtypes = selected.map((c) => (typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {}).responseType);
-        const noPct = cat === 'Monitor' && label === 'زمن الاستجابة' && !(rtypes[0] && rtypes.every((t) => t === rtypes[0]));
+        const sameMethod = !!rtypes[0] && rtypes.every((t) => t === rtypes[0]);
+        const dir = cat === 'Monitor' && label === 'زمن الاستجابة' && !sameMethod ? null : compareDirection(label, cat);
+        /* ومع الطريقة نفسها: نجمةٌ للأسرع بلا نسبة — 0.03 مقابل 1 «أعلى بـ 3233%» صحيحٌ حساباً ولا يُقرأ */
+        const noPct = cat === 'Monitor' && label === 'زمن الاستجابة';
         if (dir) {
           const nums = values.map(parseNum);
           const valid = nums.filter((n): n is number => n != null);
