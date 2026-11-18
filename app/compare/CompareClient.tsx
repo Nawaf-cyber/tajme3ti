@@ -26,7 +26,7 @@ import { gpuUpscaler, UPSCALING_SOURCES } from '../../lib/gpu-upscaling';
 import ComparePriceHistory, { SERIES_COLORS, type HistorySeries } from './ComparePriceHistory';
 import SuggestPartCard from '../../components/SuggestPartCard';
 import { productImage, IMAGE_FALLBACK } from '../../lib/image';
-import { specLabelLoose, specValueLines } from '../../lib/spec-labels';
+import { specLabelLoose, specValueLines, categoryLabelOrder } from '../../lib/spec-labels';
 import { isFeatureKey } from '../../lib/spec-schema';
 import { capacityGb } from '../../lib/capacity';
 
@@ -161,7 +161,10 @@ const parseNum = (v: any): number | null => {
   return m ? parseFloat(m[0]) : null;
 };
 
-const compareDirection = (label: string): 'higher' | 'lower' | null => {
+/* الشاشات: الهرتز والسطوع أعلى أفضل (أمّا الدقّة والمقاس فاختيارٌ لا أفضليّة) */
+const MONITOR_HIGHER = ['معدّل التحديث', 'السطوع'];
+const compareDirection = (label: string, category?: string): 'higher' | 'lower' | null => {
+  if (category === 'Monitor' && MONITOR_HIGHER.includes(label)) return 'higher';
   if (LOWER_IS_BETTER.includes(label)) return 'lower';
   if (HIGHER_IS_BETTER.includes(label)) return 'higher';
   return null;
@@ -326,9 +329,12 @@ export default function CompareClient({
     /* المعالج: TDP الرسميّ سطرٌ صغير في صفّ «الاستهلاك» — كانا صفّين برقمين
        مختلفين (9800X3D: 120 و162) بلا ما يشرح الفرق */
     if (selected[0]?.category?.name === 'CPU') labels.delete(specLabel('tdpW'));
+    /* الشاشات خارج ROW_ORDER (أُضيفت 2026-11)، فكانت صفوفها تُرتَّب أبجدياً: «زمن الاستجابة» أوّلاً
+       والدقّة والهرتز في الوسط. لها ترتيب صفحة القطعة نفسه (lib/spec-labels: ORDER) */
+    const order = selected[0]?.category?.name === 'Monitor' ? categoryLabelOrder('Monitor') : ROW_ORDER;
     return Array.from(labels).sort((a, b) => {
-      const ia = ROW_ORDER.indexOf(a);
-      const ib = ROW_ORDER.indexOf(b);
+      const ia = order.indexOf(a);
+      const ib = order.indexOf(b);
       if (ia === -1 && ib === -1) return a.localeCompare(b, 'ar');
       if (ia === -1) return 1;
       if (ib === -1) return -1;
@@ -361,7 +367,11 @@ export default function CompareClient({
           if (winnerIdx.length === valid.length) winnerIdx = [];
         }
       } else {
-        const dir = compareDirection(label);
+        const cat = selected[0]?.category?.name;
+        const dir = compareDirection(label, cat);
+        /* زمن استجابة الشاشات أرقامٌ لا تُقاس بالطريقة نفسها (IPS «1ms MPRT» وOLED «0.03ms GtG»)، فكانت
+           النسبة «أعلى بـ 3233%» — النجمة تبقى للأسرع، والنسبة تُحذف (2026-11-18) */
+        const noPct = cat === 'Monitor' && label === 'زمن الاستجابة';
         if (dir) {
           const nums = values.map(parseNum);
           const valid = nums.filter((n): n is number => n != null);
@@ -372,7 +382,7 @@ export default function CompareClient({
             if (allEqual) winnerIdx = [];
 
             /* النسبة تُقاس عن الأفضل. نتجاهلها عند التساوي أو القسمة على صفر. */
-            if (!allEqual && best !== 0) {
+            if (!allEqual && best !== 0 && !noPct) {
               deltas = nums.map((n) => {
                 if (n == null || n === best) return null;
                 const pct = Math.round(Math.abs((n - best) / best) * 100);

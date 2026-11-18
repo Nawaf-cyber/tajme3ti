@@ -44,9 +44,11 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   try {
     const comps = await prisma.component.findMany({
       where: { id: { in: ids } },
-      select: { name: true, brand: true, categoryId: true },
+      select: { id: true, name: true, brand: true, categoryId: true },
     });
     if (comps.length < 2) throw new Error('not enough');
+    /* بترتيب الرابط كما تُرسم الأعمدة — القاعدة تعيدها بترتيبها هي، فكان العنوان يبدأ بغير العمود الأوّل */
+    comps.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
 
     /* لا نولّد عنواناً لمقارنة مختلطة الفئات: الصفحة تستبعد الغرباء،
        فعنوان يذكرهم يخالف ما يراه الزائر ويضلّل نتائج البحث. */

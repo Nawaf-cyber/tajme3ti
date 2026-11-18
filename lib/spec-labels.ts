@@ -210,6 +210,10 @@ const UNITS: Record<string, string> = {
   brightnessNits: 'نِت',
 };
 
+/** تسميات صفوف الفئة بترتيب العرض (ORDER) — لصفحة المقارنة حين لا يغطّي ترتيبُها العامّ الفئة (الشاشات) */
+export const categoryLabelOrder = (categoryName: string | null | undefined): string[] =>
+  (categoryName && ORDER[categoryName] ? ORDER[categoryName].map(specLabel) : []);
+
 export const specUnit = (key: string): string | undefined => UNITS[key];
 
 /* قيم إنجليزية مفردة يقرؤها العربي أسرع مترجمة. المطابقة تامّة عمداً:
