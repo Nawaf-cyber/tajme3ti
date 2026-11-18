@@ -108,3 +108,19 @@ export const classifyPriceChange = (
 /** نسبة الارتفاع صحيحةً — للعرض في اللوحة */
 export const risePercent = (previous: number, next: number): number =>
   previous > 0 ? Math.round(((next - previous) / previous) * 100) : 0;
+
+/* ============ حجم الكتالوج مقرَّباً ============
+   «736» يبدو غريباً ويتبدّل مع كلّ قطعةٍ تُضاف أو تُحذف؛ فيُعرض مقرَّباً **لأسفل** إلى أقرب ٥٠
+   (736 ← 700، 787 ← 750) فيبقى صادقاً دائماً: لا يقول ٧٥٠ وعندنا ٧٤٠. لحجم الكتالوج وحده —
+   عدّاد نتائج البحث والفلاتر يبقى دقيقاً (طلب نوّاف 2026-11-18). */
+export const CATALOG_STEP = 50;
+export const catalogFloor = (n: number): number => (n < CATALOG_STEP ? n : Math.floor(n / CATALOG_STEP) * CATALOG_STEP);
+
+/* عدد القطع بتمييزه العربيّ: «قطعة واحدة»، «قطعتين»، «٣–١٠ قطع»، «١١+ قطعة» (والمئات كذلك بباقيها:
+   103 قطع، 111 قطعة). كان العدّاد يقول «6 قطعة». */
+export const partsCount = (n: number): string => {
+  if (n === 1) return 'قطعة واحدة';
+  if (n === 2) return 'قطعتين';
+  const r = n % 100;
+  return r >= 3 && r <= 10 ? `${n} قطع` : `${n} قطعة`;
+};

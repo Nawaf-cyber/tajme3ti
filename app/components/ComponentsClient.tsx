@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { brandColor } from '../../lib/brand';
 import Link from 'next/link';
 import { isAvailable, offerDeal } from '../../lib/stores';
-import { formatPrice } from '../../lib/price';
+import { formatPrice, catalogFloor, CATALOG_STEP, partsCount } from '../../lib/price';
 import { specBadges as getSpecBadges } from '../../lib/spec-badges';
 import { track } from '../../lib/track';
 import SuggestPartCard from '../../components/SuggestPartCard';
@@ -511,7 +511,10 @@ export default function ComponentsClient({ components, categories, dealsLocked =
           {/* tabular-nums بلا font-mono: الأرقام تصطفّ (وهو المطلوب) والعربية
               تبقى على خطّ الصفحة بدل السقوط إلى بديلٍ لا يحمل محارفها */}
           <span className="mr-auto text-[12px] font-bold text-slate-500 dark:text-slate-300 tabular-nums px-2">
-            {remaining > 0 ? `${visible.length} من ${filtered.length} قطعة` : `${filtered.length} قطعة`}
+            {/* بلا فلتر = حجم الكتالوج فيُقرَّب لأسفل (lib/price: catalogFloor)؛ ومع أيّ فلترٍ أو بحث يبقى دقيقاً */}
+            {filtered.length === components.length && filtered.length >= CATALOG_STEP
+              ? (remaining > 0 ? `${visible.length} من أكثر من ${partsCount(catalogFloor(filtered.length))}` : `أكثر من ${partsCount(catalogFloor(filtered.length))}`)
+              : (remaining > 0 ? `${visible.length} من ${partsCount(filtered.length)}` : partsCount(filtered.length))}
           </span>
         </div>
 
@@ -690,7 +693,7 @@ export default function ComponentsClient({ components, categories, dealsLocked =
               ></div>
             </div>
             <span className="text-[12px] font-bold text-slate-500 dark:text-slate-300 tabular-nums">
-              بقيت {remaining} قطعة
+              بقيت {partsCount(remaining)}
             </span>
           </div>
         )}

@@ -8,7 +8,7 @@ import AutoBuildsSection from '../components/AutoBuildsSection';
 import CompareTeaser from '../components/CompareTeaser';
 import PriceDropsSection from '../components/PriceDropsSection';
 import { GUIDE_CATEGORIES } from '../lib/content';
-import { BUILD_PART } from '../lib/categories';
+import { catalogFloor } from '../lib/price';
 
 /* ⚠️ كانت revalidate = 300 فتُخزَّن النسخة ٥ دقائق، ومع stale-while-revalidate
    يرى أول زائرٍ بعدها النسخة **القديمة** ويُطلق التجديد للتالي — فالتأخير
@@ -25,7 +25,8 @@ export default async function HomePage() {
     orderBy: { createdAt: 'desc' }
   });
 
-  const componentsCount = await prisma.component.count({ where: BUILD_PART });
+  /* حجم الكتالوج كلّه (الشاشات منه — يتصفّحها الزائر ويقارن أسعارها) مقرَّباً لأسفل (lib/price: catalogFloor) */
+  const componentsCount = catalogFloor(await prisma.component.count());
 
   /* مقتطفٌ يُقصّ في الخادم (~١٦٠ حرفاً) — كانت البطاقة تحمل المقال كاملاً داخل الرابط
      ويُخفيه line-clamp وحده، فيقرأ الزاحف رابطاً بـ١٨٠٠ حرف (مراجعة أدسنس 2026-10-15) */
