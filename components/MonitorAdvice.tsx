@@ -153,7 +153,7 @@ export function MonitorAdviceLine({ gpu, monitors }: Props) {
 /* ============ قسم «شاشة تلائم تجميعتك» في صفحة التصفّح ============
  * الكرت من تجميعة الزائر المحفوظة في المتصفّح (draft_pc_build — الباني يكتبها)، وإلّا يختاره هنا.
  * والاختيار هنا لا يغيّر تجميعته: قراءةٌ فقط من localStorage. */
-type GpuOpt = { id: string; brand: string; name: string; specs?: unknown };
+export type GpuOpt = { id: string; brand: string; name: string; specs?: unknown };
 
 /* بحثٌ بالكلمات: «5070 ti» يطابق «MSI GeForce RTX 5070 Ti …» — كلّ كلمةٍ موجودة في الاسم بأيّ ترتيب،
    والمسافات داخل الرقم لا تهمّ («rtx5070» = «RTX 5070»). نوّاف 2026-11-15: «خل فيه بحث» — ٦٠ كرتاً في قائمةٍ واحدة. */
@@ -164,7 +164,7 @@ const matches = (g: GpuOpt, q: string) => {
 };
 const label = (g: GpuOpt) => `${g.brand} ${g.name}`;
 
-function GpuSearch({ gpus, value, onPick }: { gpus: GpuOpt[]; value: GpuOpt | null; onPick: (g: GpuOpt) => void }) {
+export function GpuSearch({ gpus, value, onPick }: { gpus: GpuOpt[]; value: GpuOpt | null; onPick: (g: GpuOpt) => void }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);

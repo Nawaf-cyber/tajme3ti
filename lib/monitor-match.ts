@@ -98,7 +98,8 @@ export function targetRes(p: GpuPerf): MonRes {
 /* الأسباب بلهجة الواجهة (سعوديّة بيضاء خفيفة — memory: saudi-dialect-copy) لأنّها تُعرض كما هي */
 function reasonsFor(role: Pick['role'], m: MonitorLike, res: MonRes, fps: number, band: [number, number], fit: PortFit | null, base: MonRes): string[] {
   const hz = Number(m.specs.refreshHz);
-  const f = r0(fps);
+  /* تحت الستّين لأسفل: 59.8 «تقريباً 60… مقبول، مو مريح» تناقض نفسها (الستّون حدّ المريح) */
+  const f = fps < 60 ? Math.floor(fps) : r0(fps);
   const out: string[] = [];
   if (role === 'alt') {
     out.push(ORDER.indexOf(res) > ORDER.indexOf(base)
@@ -166,4 +167,60 @@ export function adviseMonitors(gpu: GpuLike, monitors: MonitorLike[]): MonitorAd
     add('alt', cheapest(c.filter((x) => inBand(x.m, b))) ?? cheapest(c), dn, f, b);
   }
   return { perf, res, fps, band, picks };
+}
+
+/* ============ حكم شاشةٍ بعينها مع كرت — لصفّ «تناسب كرتك؟» في المقارنة ============
+ *
+ * المنطق نفسه الذي تختار به adviseMonitors (لا نسخة ثانية): الدقّة المريحة من الإطارات المقيسة،
+ * ونطاق الهرتز من إطارات الكرت إلى max(ضعفها، 180)، وفحص المنافذ portFit. والفرق أنّ الزائر هنا
+ * اختار الشاشات بنفسه، فنحكم على كلّ واحدةٍ بدل أن نختار.
+ *
+ *   best    — دقّتها دقّة كرتك المريحة وهرتزها داخل نطاقه
+ *   over    — هرتزها فوق ما يعطيه كرتك في الألعاب الثقيلة (تُستغلّ في التنافسيّة الخفيفة)
+ *   under   — هرتزها أقلّ من إطارات كرتك: تقصّ منها
+ *   heavy   — دقّتها أعلى من راحة كرتك (45–59 إطاراً «مقبول»، وأقلّ «ثقيلة»)
+ *   light   — دقّتها أقلّ ممّا يقدر عليه كرتك
+ *   limited — منافذ كرتك لا توصلها لسرعتها
+ */
+export type MonitorJudgement = {
+  level: 'best' | 'over' | 'under' | 'heavy' | 'light' | 'limited';
+  title: string;
+  reason: string;
+  ports: string | null;
+  fps: number;
+};
+
+export function judgeMonitor(gpu: GpuLike, mon: MonitorLike): MonitorJudgement | null {
+  const perf = gpuPerf(gpu.name, Number(String(gpu.specs?.vram ?? '').replace(/\D/g, '')) || null);
+  const res = resOf(mon.specs.resolution);
+  const hz = Number(mon.specs.refreshHz);
+  if (!perf || !res || !hz) return null;
+  const target = targetRes(perf);
+  const f = fpsAt(perf, res);
+  const lo = r0(f), hi = Math.max(r0(f * 2), 180);
+  const fit = portFit(gpu, mon);
+  const ports = !fit ? null
+    : fit.kind === 'full' ? `كامل السرعة عبر ${fit.via}`
+    : fit.kind === 'dsc' ? 'كامل السرعة بضغط DSC'
+    : fit.kind === 'dsc-unsure' ? 'تحتاج ضغط DSC، والشركة ما تذكر إنّ كرتك يدعمه'
+    : `توقف عند ${fit.maxHz} هرتز`;
+  const base = { ports, fps: r0(f) };
+
+  if (fit?.kind === 'limited') {
+    return { ...base, level: 'limited', title: 'منافذ كرتك ما توصلها', reason: `توصلها لـ${fit.maxHz} هرتز بس، مو ${hz}.` };
+  }
+  const di = ORDER.indexOf(res) - ORDER.indexOf(target);
+  if (di > 0) {
+    /* لأسفل لا للأقرب: 59.8 «نحو 60» تناقض «مقبول، مو مريح» (الستّون حدّ المريح) */
+    const fl = Math.floor(f);
+    return f >= 45
+      ? { ...base, fps: fl, level: 'heavy', title: 'مقبول، مو مريح', reason: `في ${res} كرتك يعطي نحو ${fl} إطار.` }
+      : { ...base, fps: fl, level: 'heavy', title: 'ثقيلة على كرتك', reason: `في ${res} كرتك يعطي نحو ${fl} إطار بس — تحتاج تخفّض الإعدادات كثير.` };
+  }
+  if (di < 0) {
+    return { ...base, level: 'light', title: 'كرتك أقوى منها', reason: `كرتك يعطي نحو ${r0(fpsAt(perf, target))} إطار في ${target} — تقدر تاخذ دقّة أعلى.` };
+  }
+  if (hz < lo) return { ...base, level: 'under', title: 'تقصّ من إطاراتك', reason: `كرتك يعطي نحو ${r0(f)} إطار في ${res}، والشاشة ${hz} هرتز بس.` };
+  if (hz > hi) return { ...base, level: 'over', title: 'أعلى من حاجتك', reason: `${hz} هرتز فوق إطارات كرتك (${r0(f)}) في الألعاب الثقيلة — تستفيد منها في التنافسيّة الخفيفة.` };
+  return { ...base, level: 'best', title: 'تناسب كرتك', reason: `كرتك يعطي نحو ${r0(f)} إطار في ${res}، و${hz} هرتز تغطّيها.` };
 }

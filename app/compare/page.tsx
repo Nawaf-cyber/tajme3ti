@@ -142,6 +142,11 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     platform = ordered.map((c) => platformCost(c as any, boards as any, coolers as any));
   }
 
+  /* الشاشات: الكروت لصفّ «تناسب كرتك؟» — بما يحتاجه الحكم وحده (الاسم والمواصفات) */
+  const gpus = ordered[0]?.category?.name === 'Monitor'
+    ? await prisma.component.findMany({ where: { category: { name: 'GPU' } }, select: { id: true, brand: true, name: true, specs: true } })
+    : [];
+
   let history: { componentId: string; points: { d: string; p: number }[] }[] = [];
   let priceStats: (PriceStats | null)[] = [];
   /* متاجر كلّ قطعةٍ التي تبيعها الآن — للرسم ولـ«وضع السعر» معاً */
@@ -199,6 +204,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       history={history}
       priceStats={priceStats}
       platform={JSON.parse(JSON.stringify(platform))}
+      gpus={JSON.parse(JSON.stringify(gpus))}
     />
   );
 }

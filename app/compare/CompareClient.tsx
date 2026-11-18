@@ -17,6 +17,7 @@ import UseInBuildModal from './UseInBuildModal';
 import CompareActions from './CompareActions';
 import BuyCell from './BuyCell';
 import RigFitRow, { useRigFits } from './RigFitRow';
+import MonitorFitRow from './MonitorFitRow';
 import { buildVerdict, type VerdictInput } from '../../lib/compare-verdict';
 import { gpuPerf, feelLine, GPU_PERF_SOURCE } from '../../lib/gpu-perf';
 import { cpuPerf, CPU_PERF_SOURCE } from '../../lib/cpu-perf';
@@ -214,6 +215,7 @@ export default function CompareClient({
   history = [],
   priceStats = [],
   platform = [],
+  gpus = [],
 }: {
   selected: Comp[];
   available: Comp[];
@@ -226,6 +228,8 @@ export default function CompareClient({
   priceStats?: (PriceStats | null)[];
   /** للمعالجات: المعالج + أرخص لوحةٍ متوفّرة تقبله — lib/platform-cost */
   platform?: (PlatformCost | null)[];
+  /** للشاشات: الكروت لصفّ «تناسب كرتك؟» (MonitorFitRow) */
+  gpus?: { id: string; brand: string; name: string; specs?: unknown }[];
 }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -1075,6 +1079,10 @@ export default function CompareClient({
                 {/* وما ليس قطعة تجميعة لا يُفحص في الجهاز — كان سيقول «تناسب» لكلّ شاشة */}
                 {isBuildCategory(categoryName) && (
                   <RigFitRow parts={selected} fits={rigFits} bestIdx={bestIdx} addCol={selected.length < 3} />
+                )}
+                {/* والشاشة تُحكم على الكرت لا على الجهاز (lib/monitor-match · judgeMonitor) */}
+                {categoryName === 'Monitor' && gpus.length > 0 && (
+                  <MonitorFitRow parts={selected} gpus={gpus} bestIdx={bestIdx} addCol={selected.length < 3} />
                 )}
 
                 {/* صفوف المواصفات */}
