@@ -16,6 +16,36 @@
 import { gpuPerf, type GpuPerf } from './gpu-perf';
 import { gpuDisplay } from './gpu-display';
 
+/* ============ وش تلعب؟ (نوّاف 2026-11-18: «ابدأ بـ1 و3 و6») ============
+ * أرقام توم على Ultra في ألعاب ثقيلة، فالحساب الأصليّ يصحّ لمن يلعبها. ومن يلعب التنافسيّة الخفيفة
+ * (Valorant وCS2) بإعداداتٍ منخفضة إطاراته أعلى بكثير والمعالج يحدّها — وما عندنا قياسٌ لها، فلا رقم
+ * إطارات نخترعه: الحكم فيها **قاعدةٌ معلنة** (240 هرتز فأكثر، والدقّة لا تتجاوز 1440p) تُشرح في
+ * /how-we-rate وتُقال كذلك في الواجهة. و«الاثنين» = الحساب الأصليّ بسقفٍ لا يقلّ عن 240.
+ * ⚠️ الحدود هنا وحدها — صفحة «كيف نقيّم» تقرؤها من MON_RULES، فلا تُكتب أرقامٌ ثانية هناك.
+ */
+export type MonUse = 'heavy' | 'mixed' | 'competitive';
+export const MON_USES: { id: MonUse; label: string; hint: string }[] = [
+  { id: 'heavy', label: 'ثقيلة وقصصية', hint: 'مثل Cyberpunk وBlack Myth' },
+  { id: 'mixed', label: 'الاثنين', hint: 'ثقيلة وتنافسية' },
+  { id: 'competitive', label: 'تنافسية خفيفة', hint: 'مثل Valorant وCS2' },
+];
+export const isMonUse = (v: unknown): v is MonUse => v === 'heavy' || v === 'mixed' || v === 'competitive';
+
+export const MON_RULES = {
+  /** «مريح» و«مقبول» — معيار النجمة نفسه (lib/gpu-perf · feel) */
+  comfortFps: 60,
+  acceptFps: 45,
+  /** سقف نطاق الهرتز: ضعف الإطارات، ولا يقلّ عن هذا (ثقيلة / الاثنين) */
+  heavyHzFloor: 180,
+  mixedHzFloor: 240,
+  /** التنافسيّة: أدنى هرتز، وأدنى منه لكرتٍ تحت compWeakFps في 1080p Ultra */
+  compHz: 240,
+  compHzWeak: 165,
+  compWeakFps: 60,
+  /** كثافة بكسلٍ تحتها تبان الصورة أقلّ حدّة (27 بوصة بـ1080p = 82) */
+  softPpi: 85,
+} as const;
+
 export type MonRes = '1080p' | '1440p' | '4K';
 export const RES_PX: Record<MonRes, [number, number]> = { '1080p': [1920, 1080], '1440p': [2560, 1440], '4K': [3840, 2160] };
 const resOf = (r: string | undefined): MonRes | null =>
@@ -95,21 +125,62 @@ export function targetRes(p: GpuPerf): MonRes {
   return '1080p';
 }
 
+/** الدقّة المستهدفة حسب نوع اللعب: التنافسيّ لا يتجاوز 1440p (الهرتز أهمّ فيه من الدقّة) */
+export function targetFor(use: MonUse, p: GpuPerf): MonRes {
+  const t = targetRes(p);
+  return use === 'competitive' && t === '4K' ? '1440p' : t;
+}
+
+/** نطاق الهرتز المناسب في دقّةٍ ما. التنافسيّ بلا سقف (Infinity): كلّ هرتزٍ زيادة يوضّح الحركة */
+export function bandFor(use: MonUse, p: GpuPerf, res: MonRes): [number, number] {
+  const f = fpsAt(p, res);
+  if (use === 'competitive') return [p.f1080 >= MON_RULES.compWeakFps ? MON_RULES.compHz : MON_RULES.compHzWeak, Infinity];
+  return [r0(f), Math.max(r0(f * 2), use === 'mixed' ? MON_RULES.mixedHzFloor : MON_RULES.heavyHzFloor)];
+}
+export const bandText = (b: [number, number]) => (b[1] === Infinity ? `${b[0]}+` : `${b[0]}–${b[1]}`);
+
+/* ============ حدّة الصورة: كثافة البكسل ============ */
+export const ppiOf = (s: Record<string, any>): number | null => {
+  const [w, h] = String(s.resolution ?? '').split('x').map(Number);
+  const d = Number(s.sizeInch);
+  return w && h && d ? Math.hypot(w, h) / d : null;
+};
+export const SIZE_FOR: Record<MonRes, string> = { '1080p': '24–25', '1440p': '27', '4K': '27–32' };
+const isSoft = (m: MonitorLike) => (ppiOf(m.specs) ?? 999) < MON_RULES.softPpi;
+/** تنبيهٌ حين تكون الصورة أقلّ حدّة من المعتاد — وإلّا null */
+export function sharpNote(s: Record<string, any>): string | null {
+  const p = ppiOf(s);
+  const r = resOf(s.resolution);
+  if (!p || !r || p >= MON_RULES.softPpi) return null;
+  return `الصورة أقل حدّة: ${s.sizeInch} بوصة بدقّة ${r} (${Math.round(p)} بكسل لكل بوصة)، والأحدّ لـ${r} مقاس ${SIZE_FOR[r]} بوصة.`;
+}
+
 /* الأسباب بلهجة الواجهة (سعوديّة بيضاء خفيفة — memory: saudi-dialect-copy) لأنّها تُعرض كما هي */
-function reasonsFor(role: Pick['role'], m: MonitorLike, res: MonRes, fps: number, band: [number, number], fit: PortFit | null, base: MonRes): string[] {
+function reasonsFor(role: Pick['role'], m: MonitorLike, res: MonRes, fps: number, band: [number, number], fit: PortFit | null, base: MonRes, use: MonUse): string[] {
   const hz = Number(m.specs.refreshHz);
   /* تحت الستّين لأسفل: 59.8 «تقريباً 60… مقبول، مو مريح» تناقض نفسها (الستّون حدّ المريح) */
   const f = fps < 60 ? Math.floor(fps) : r0(fps);
   const out: string[] = [];
-  if (role === 'alt') {
-    out.push(ORDER.indexOf(res) > ORDER.indexOf(base)
+  const higher = ORDER.indexOf(res) > ORDER.indexOf(base);
+  if (use === 'competitive') {
+    if (role === 'alt') out.push(higher
+      ? `لو تبي دقّة أعلى: ${res} أثقل على كرتك (تقريباً ${f} إطار في الألعاب الثقيلة)، بس في التنافسية الخفيفة تمشي.`
+      : `لو تبي أرخص: ${res} أخفّ على كرتك، فتطلع إطارات أعلى.`);
+    out.push(hz < band[0]
+      ? `${hz} هرتز أقل من ${band[0]} اللي ننصح فيها للتنافسي، بس أرخص.`
+      : `${hz} هرتز تخلّي الحركة أوضح — وفي الألعاب التنافسية الخفيفة كرتك يطلع إطارات أعلى بكثير من الثقيلة (${f} في ${res}).`);
+  } else if (role === 'alt') {
+    out.push(higher
       ? `لو تبي دقّة أعلى: كرتك يجيب تقريباً ${f} إطار في ${res} — مقبول، مو مريح.`
       : `لو تبي إطارات أكثر بسعر أقل: كرتك يجيب تقريباً ${f} إطار في ${res}.`);
   }
-  if (hz < band[0]) out.push(`${hz} هرتز أقل من إطارات كرتك (${f} في ${res})، يعني تضيّع شوي منها، بس أرخص.`);
+  if (use === 'competitive') { /* سطر الهرتز أعلاه */ }
+  else if (hz < band[0]) out.push(`${hz} هرتز أقل من إطارات كرتك (${f} في ${res})، يعني تضيّع شوي منها، بس أرخص.`);
   else if (role !== 'alt' && hz <= band[1]) out.push(`كرتك يجيب تقريباً ${f} إطار في ${res}، و${hz} هرتز تغطّيها وزيادة.`);
   else if (hz > band[1]) out.push(`${hz} هرتز أعلى بكثير من إطارات كرتك في الألعاب الثقيلة — تستفيد منها أكثر في الألعاب التنافسية الخفيفة.`);
-  if (role === 'best' && fps < 60) out.push('كرتك ما يوصل ٦٠ إطار حتى في 1080p بالإعدادات العالية — خفّف الإعدادات شوي وتستفيد من الهرتز.');
+  if (use !== 'competitive' && role === 'best' && fps < 60) out.push('كرتك ما يوصل ٦٠ إطار حتى في 1080p بالإعدادات العالية — خفّف الإعدادات شوي وتستفيد من الهرتز.');
+  const soft = sharpNote(m.specs);
+  if (soft) out.push(soft);
   if (isOled(m)) out.push('OLED: أسود حقيقي واستجابة شبه فورية — أحلى صورة، بس أغلى وتبي عناية عشان ما تحترق الشاشة.');
   else if (m.specs.panel === 'IPS') out.push('IPS: ألوان دقيقة وزوايا رؤية واسعة.');
   else if (m.specs.panel === 'VA') out.push('VA: تباين أعلى من IPS وأسود أعمق، وممكن يبان أثر خفيف في المشاهد الغامقة السريعة.');
@@ -120,20 +191,23 @@ function reasonsFor(role: Pick['role'], m: MonitorLike, res: MonRes, fps: number
   return out;
 }
 
-export function adviseMonitors(gpu: GpuLike, monitors: MonitorLike[]): MonitorAdvice | null {
+export function adviseMonitors(gpu: GpuLike, monitors: MonitorLike[], use: MonUse = 'heavy'): MonitorAdvice | null {
   const perf = gpuPerf(gpu.name, Number(String(gpu.specs?.vram ?? '').replace(/\D/g, '')) || null);
   if (!perf) return null;
-  const res = targetRes(perf);
+  const res = targetFor(use, perf);
   const fps = fpsAt(perf, res);
   /* السقف ضعف الإطارات أو 180 أيّهما أعلى: 180 صارت مدخل شاشات الألعاب، فكرتٌ بـ٦٣ إطاراً لا يُدفع
-     إلى شاشةٍ أغلى لمجرّد أنّ هرتزها 165 أقرب إلى ١٢٦ (قيس: G55C 32 بـ1124 بدل G50F بـ729) */
-  const hi = (f: number) => Math.max(r0(f * 2), 180);
-  const band: [number, number] = [r0(fps), hi(fps)];
+     إلى شاشةٍ أغلى لمجرّد أنّ هرتزها 165 أقرب إلى ١٢٦ (قيس: G55C 32 بـ1124 بدل G50F بـ729) — bandFor */
+  const band = bandFor(use, perf, res);
   const live = monitors.filter((m) => m.available && m.price > 0);
   const at = (r: MonRes) => live.filter((m) => resOf(m.specs.resolution) === r);
   const hzOf = (m: MonitorLike) => Number(m.specs.refreshHz);
   const withFit = (m: MonitorLike) => ({ m, fit: portFit(gpu, m) });
-  const cheapest = <T extends { m: MonitorLike }>(xs: T[]) => [...xs].sort((a, b) => a.m.price - b.m.price)[0];
+  /* الأرخص — والحادّة الصورة أوّلاً: 27 بوصة بـ1080p لا تُقترح وفي النطاق 24–25 (sharpNote) */
+  const cheapest = <T extends { m: MonitorLike }>(xs: T[]) => {
+    const sharp = xs.filter((x) => !isSoft(x.m));
+    return [...(sharp.length ? sharp : xs)].sort((a, b) => a.m.price - b.m.price)[0];
+  };
   const inBand = (m: MonitorLike, b = band) => hzOf(m) >= b[0] && hzOf(m) <= b[1];
 
   const picks: Pick[] = [];
@@ -141,28 +215,32 @@ export function adviseMonitors(gpu: GpuLike, monitors: MonitorLike[]): MonitorAd
   const add = (role: Pick['role'], x: { m: MonitorLike; fit: PortFit | null } | undefined, r: MonRes, f: number, b: [number, number]) => {
     if (!x || used.has(x.m.id)) return;
     used.add(x.m.id);
-    picks.push({ role, mon: x.m, res: r, fit: x.fit, reasons: reasonsFor(role, x.m, r, f, b, x.fit, res) });
+    picks.push({ role, mon: x.m, res: r, fit: x.fit, reasons: reasonsFor(role, x.m, r, f, b, x.fit, res, use) });
   };
 
   /* ١) الأنسب: غير OLED داخل النطاق، الأرخص. وإن خلا النطاق: أقرب هرتزٍ فوقه، ثمّ تحته */
   const pool = at(res).filter((m) => !isOled(m)).map(withFit).filter((x) => fitOk(x.fit));
   const above = pool.filter((x) => hzOf(x.m) > band[1]).sort((a, b) => hzOf(a.m) - hzOf(b.m) || a.m.price - b.m.price)[0];
   const below = pool.filter((x) => hzOf(x.m) < band[0]).sort((a, b) => hzOf(b.m) - hzOf(a.m) || a.m.price - b.m.price)[0];
-  add('best', cheapest(pool.filter((x) => inBand(x.m))) ?? above ?? below, res, fps, band);
+  /* «الاثنين»: الأرخص بـ240 فأكثر داخل النطاق أوّلاً — وإلّا لكان اختيارها اختيار «ثقيلة» نفسه */
+  const fitting = pool.filter((x) => inBand(x.m));
+  const fast = use === 'mixed' ? fitting.filter((x) => hzOf(x.m) >= MON_RULES.mixedHzFloor) : [];
+  add('best', cheapest(fast) ?? cheapest(fitting) ?? above ?? below, res, fps, band);
 
   /* ٢) صورة أفضل: OLED في الدقّة نفسها — داخل النطاق أوّلاً، وإلّا الأرخص */
   const oled = at(res).filter(isOled).map(withFit).filter((x) => fitOk(x.fit));
   add('image', cheapest(oled.filter((x) => hzOf(x.m) >= band[0])) ?? cheapest(oled), res, fps, band);
 
-  /* ٣) بديل: الدقّة الأعلى إن كان الكرت فيها «مقبولاً» (٤٥+) — وإلّا الأدنى بهرتزٍ أعلى */
+  /* ٣) بديل: الدقّة الأعلى إن كان الكرت فيها «مقبولاً» (٤٥+) — وإلّا الأدنى بهرتزٍ أعلى.
+     والتنافسيّ لا يصعد إلى 4K */
   const i = ORDER.indexOf(res);
-  const up = ORDER[i + 1];
-  if (up && fpsAt(perf, up) >= 45) {
-    const f = fpsAt(perf, up); const b: [number, number] = [r0(f), hi(f)];
+  const up = use === 'competitive' && ORDER[i + 1] === '4K' ? undefined : ORDER[i + 1];
+  if (up && fpsAt(perf, up) >= MON_RULES.acceptFps) {
+    const f = fpsAt(perf, up); const b = bandFor(use, perf, up);
     const c = at(up).filter((m) => !isOled(m)).map(withFit).filter((x) => fitOk(x.fit));
     add('alt', cheapest(c.filter((x) => hzOf(x.m) >= b[0])) ?? cheapest(c), up, f, b);
   } else if (i > 0) {
-    const dn = ORDER[i - 1]; const f = fpsAt(perf, dn); const b: [number, number] = [r0(f), hi(f)];
+    const dn = ORDER[i - 1]; const f = fpsAt(perf, dn); const b = bandFor(use, perf, dn);
     const c = at(dn).map(withFit).filter((x) => fitOk(x.fit));
     add('alt', cheapest(c.filter((x) => inBand(x.m, b))) ?? cheapest(c), dn, f, b);
   }
@@ -187,33 +265,42 @@ export type MonitorJudgement = {
   title: string;
   reason: string;
   ports: string | null;
+  /** تنبيه حدّة الصورة (sharpNote) — مستقلٌّ عن الكرت */
+  sharp: string | null;
   fps: number;
 };
 
-export function judgeMonitor(gpu: GpuLike, mon: MonitorLike): MonitorJudgement | null {
+export function judgeMonitor(gpu: GpuLike, mon: MonitorLike, use: MonUse = 'heavy'): MonitorJudgement | null {
   const perf = gpuPerf(gpu.name, Number(String(gpu.specs?.vram ?? '').replace(/\D/g, '')) || null);
   const res = resOf(mon.specs.resolution);
   const hz = Number(mon.specs.refreshHz);
   if (!perf || !res || !hz) return null;
-  const target = targetRes(perf);
+  const target = targetFor(use, perf);
   const f = fpsAt(perf, res);
-  const lo = r0(f), hi = Math.max(r0(f * 2), 180);
+  const [lo, hi] = bandFor(use, perf, res);
   const fit = portFit(gpu, mon);
   const ports = !fit ? null
     : fit.kind === 'full' ? `كامل السرعة عبر ${fit.via}`
     : fit.kind === 'dsc' ? 'كامل السرعة بضغط DSC'
     : fit.kind === 'dsc-unsure' ? 'تحتاج ضغط DSC، والشركة ما تذكر إنّ كرتك يدعمه'
     : `توقف عند ${fit.maxHz} هرتز`;
-  const base = { ports, fps: r0(f) };
+  const base = { ports, sharp: sharpNote(mon.specs), fps: r0(f) };
 
   if (fit?.kind === 'limited') {
     return { ...base, level: 'limited', title: 'منافذ كرتك ما توصلها', reason: `توصلها لـ${fit.maxHz} هرتز بس، مو ${hz}.` };
   }
   const di = ORDER.indexOf(res) - ORDER.indexOf(target);
+  if (use === 'competitive') {
+    if (res === '4K') return { ...base, level: 'heavy', title: 'مو للتنافسي', reason: '4K تاكل من إطاراتك، والتنافسي يبي هرتز أعلى مو دقّة أعلى.' };
+    if (di > 0) return { ...base, level: 'heavy', title: 'أثقل على كرتك', reason: `كرتك أريح في ${target}، وفي التنافسي الإطارات أهمّ من الدقّة.` };
+    if (hz < lo) return { ...base, level: 'under', title: 'هرتز قليل للتنافسي', reason: `${hz} هرتز — للتنافسي ننصح بـ${lo} فأكثر.` };
+    if (di < 0) return { ...base, level: 'light', title: 'تنفع، وكرتك يقدر أعلى', reason: `بنفس الهرتز تقدر تاخذ ${target}.` };
+    return { ...base, level: 'best', title: 'تناسب لعبك', reason: `${hz} هرتز للتنافسي، وكرتك في الألعاب الخفيفة يطلع إطارات أعلى بكثير من الثقيلة.` };
+  }
   if (di > 0) {
     /* لأسفل لا للأقرب: 59.8 «نحو 60» تناقض «مقبول، مو مريح» (الستّون حدّ المريح) */
     const fl = Math.floor(f);
-    return f >= 45
+    return f >= MON_RULES.acceptFps
       ? { ...base, fps: fl, level: 'heavy', title: 'مقبول، مو مريح', reason: `في ${res} كرتك يعطي نحو ${fl} إطار.` }
       : { ...base, fps: fl, level: 'heavy', title: 'ثقيلة على كرتك', reason: `في ${res} كرتك يعطي نحو ${fl} إطار بس — تحتاج تخفّض الإعدادات كثير.` };
   }
@@ -221,6 +308,8 @@ export function judgeMonitor(gpu: GpuLike, mon: MonitorLike): MonitorJudgement |
     return { ...base, level: 'light', title: 'كرتك أقوى منها', reason: `كرتك يعطي نحو ${r0(fpsAt(perf, target))} إطار في ${target} — تقدر تاخذ دقّة أعلى.` };
   }
   if (hz < lo) return { ...base, level: 'under', title: 'تقصّ من إطاراتك', reason: `كرتك يعطي نحو ${r0(f)} إطار في ${res}، والشاشة ${hz} هرتز بس.` };
-  if (hz > hi) return { ...base, level: 'over', title: 'أعلى من حاجتك', reason: `${hz} هرتز فوق إطارات كرتك (${r0(f)}) في الألعاب الثقيلة — تستفيد منها في التنافسيّة الخفيفة.` };
+  if (hz > hi) return { ...base, level: 'over', title: 'أعلى من حاجتك', reason: use === 'mixed'
+    ? `${hz} هرتز فوق إطارات كرتك (${r0(f)}) في الثقيلة، وفوق ${hi} اللي تكفي التنافسي.`
+    : `${hz} هرتز فوق إطارات كرتك (${r0(f)}) في الألعاب الثقيلة — تستفيد منها في التنافسيّة الخفيفة.` };
   return { ...base, level: 'best', title: 'تناسب كرتك', reason: `كرتك يعطي نحو ${r0(f)} إطار في ${res}، و${hz} هرتز تغطّيها.` };
 }

@@ -9,7 +9,7 @@
  *   <MonitorAdviceLine gpu={...} monitors={...} />   سطرٌ واحد تحت خانة الكرت في الباني
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { adviseMonitors, type MonitorLike, type MonRes, type Pick } from '../lib/monitor-match';
+import { adviseMonitors, bandText, isMonUse, MON_USES, type MonitorLike, type MonRes, type MonUse, type Pick } from '../lib/monitor-match';
 import { isAvailable, type Offer } from '../lib/stores';
 import { specBadges } from '../lib/spec-badges';
 import { productImage, IMAGE_FALLBACK } from '../lib/image';
@@ -41,6 +41,50 @@ const Riyal = () => (
   />
 );
 
+/* ============ وش تلعب؟ — اختيارٌ واحد يتشاركه الباني والتصفّح والمقارنة ============
+ * في المتصفّح (monitor_use) لا في التجميعة، وحدثٌ محلّيّ يحدّث كلّ بطاقةٍ مفتوحة في الصفحة نفسها. */
+const USE_KEY = 'monitor_use';
+const USE_EVENT = 'monitor-use';
+export function useMonitorUse(): [MonUse, (u: MonUse) => void] {
+  const [use, setUse] = useState<MonUse>('heavy');
+  useEffect(() => {
+    const read = () => { try { const v = localStorage.getItem(USE_KEY); if (isMonUse(v)) setUse(v); } catch { /* تخزينٌ ممنوع */ } };
+    read();
+    window.addEventListener(USE_EVENT, read);
+    window.addEventListener('storage', read);
+    return () => { window.removeEventListener(USE_EVENT, read); window.removeEventListener('storage', read); };
+  }, []);
+  const set = (u: MonUse) => {
+    setUse(u);
+    try { localStorage.setItem(USE_KEY, u); } catch { /* تخزينٌ ممنوع — يبقى للصفحة */ }
+    window.dispatchEvent(new Event(USE_EVENT));
+  };
+  return [use, set];
+}
+
+export function UsePicker({ value, onChange, className = '' }: { value: MonUse; onChange: (u: MonUse) => void; className?: string }) {
+  return (
+    <div className={`flex flex-wrap items-center gap-1.5 ${className}`} role="radiogroup" aria-label="وش تلعب؟">
+      <span className="text-[12px] font-black text-slate-600 dark:text-slate-300 ml-0.5">وش تلعب؟</span>
+      {MON_USES.map((u) => (
+        <button
+          key={u.id}
+          type="button"
+          role="radio"
+          aria-checked={value === u.id}
+          title={u.hint}
+          onClick={() => onChange(u.id)}
+          className={`px-2.5 py-1 rounded-sm border text-[12px] font-black transition-colors ${value === u.id
+            ? 'border-cyan-500 bg-cyan-500 text-white dark:text-[#052e37]'
+            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-cyan-500'}`}
+        >
+          {u.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function roleLabel(p: Pick, base: MonRes): string {
   if (p.role === 'best') return 'الأنسب لكرتك';
   if (p.role === 'image') return 'صورة أحلى · OLED';
@@ -57,8 +101,9 @@ type Props = {
 };
 
 export function MonitorAdviceCard({ gpu, monitors, onShowAll, className = '' }: Props) {
+  const [use, setUse] = useMonitorUse();
   if (!gpu) return null;
-  const a = adviseMonitors({ name: gpu.name, specs: specsOf(gpu.specs) }, monitors);
+  const a = adviseMonitors({ name: gpu.name, specs: specsOf(gpu.specs) }, monitors, use);
   const shell = `border border-slate-200 dark:border-slate-700/50 rounded-sm overflow-hidden bg-white dark:bg-slate-800/30 shadow-sm ${className}`;
 
   if (!a || a.picks.length === 0) {
@@ -81,9 +126,16 @@ export function MonitorAdviceCard({ gpu, monitors, onShowAll, className = '' }: 
       <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-slate-200 dark:border-slate-700/50">
         <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">🖥️ شاشة تلائم كرتك</h4>
         <p className="text-[12.5px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
-          {a.perf.chip} يجيب تقريباً <b className="font-black text-slate-800 dark:text-slate-200">{Math.round(a.fps)} إطار</b> في <bdi dir="ltr">{a.res}</bdi>،
-          فالأنسب له شاشة <bdi dir="ltr">{a.res}</bdi> بين <bdi dir="ltr">{a.band[0]}–{a.band[1]}</bdi> هرتز.
+          {use === 'competitive' ? (
+            <>في الألعاب التنافسية الخفيفة الهرتز أهمّ من الدقّة، فالأنسب لـ{a.perf.chip} شاشة <bdi dir="ltr">{a.res}</bdi> بـ<b className="font-black text-slate-800 dark:text-slate-200"><bdi dir="ltr">{a.band[0]}</bdi> هرتز فأكثر</b>.</>
+          ) : (
+            <>
+              {a.perf.chip} يجيب تقريباً <b className="font-black text-slate-800 dark:text-slate-200">{Math.round(a.fps)} إطار</b> في <bdi dir="ltr">{a.res}</bdi> بالألعاب الثقيلة،
+              فالأنسب له شاشة <bdi dir="ltr">{a.res}</bdi> بين <bdi dir="ltr">{bandText(a.band)}</bdi> هرتز{use === 'mixed' ? '، و240 تكفيك للتنافسي' : ''}.
+            </>
+          )}
         </p>
+        <UsePicker value={use} onChange={setUse} className="mt-2" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3">
@@ -122,7 +174,7 @@ export function MonitorAdviceCard({ gpu, monitors, onShowAll, className = '' }: 
       </div>
 
       <div className="bg-slate-50 dark:bg-slate-800/40 px-4 py-2.5 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center justify-between gap-2 text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-        <span>اقتراح بس — ما ينحفظ مع التجميعة. الإطارات بدون DLSS أو FSR · <a href="/how-we-rate" className="underline">كيف نقيّم؟</a></span>
+        <span>اقتراح بس — ما ينحفظ مع التجميعة. الإطارات بدون DLSS أو FSR · <a href="/how-we-rate#monitors" className="underline">كيف نقيّم؟</a></span>
         {onShowAll ? (
           <button onClick={() => onShowAll(a.res)} className="font-black text-cyan-700 dark:text-cyan-400 hover:underline">شوف كل شاشات <bdi dir="ltr">{a.res}</bdi> ({sameRes}) ←</button>
         ) : (
@@ -135,8 +187,9 @@ export function MonitorAdviceCard({ gpu, monitors, onShowAll, className = '' }: 
 
 /** سطر تحت خانة الكرت: الدقّة والهرتز، وينزل للبطاقة */
 export function MonitorAdviceLine({ gpu, monitors }: Props) {
+  const [use] = useMonitorUse();
   if (!gpu) return null;
-  const a = adviseMonitors({ name: gpu.name, specs: specsOf(gpu.specs) }, monitors);
+  const a = adviseMonitors({ name: gpu.name, specs: specsOf(gpu.specs) }, monitors, use);
   if (!a) return null;
   return (
     <button
@@ -144,7 +197,7 @@ export function MonitorAdviceLine({ gpu, monitors }: Props) {
       onClick={() => document.getElementById('monitor-advice')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
       className="mt-2 w-full flex items-center justify-between gap-2 px-3 py-2 rounded-sm border border-dashed border-cyan-500/40 bg-cyan-500/[0.04] text-[12.5px] font-bold text-slate-600 dark:text-slate-300 hover:border-cyan-500 transition-colors"
     >
-      <span>🖥️ شاشته المناسبة: <bdi dir="ltr" className="font-black text-slate-800 dark:text-slate-100">{a.res} · {a.band[0]}–{a.band[1]}Hz</bdi></span>
+      <span>🖥️ شاشته المناسبة: <bdi dir="ltr" className="font-black text-slate-800 dark:text-slate-100">{a.res} · {bandText(a.band)}Hz</bdi></span>
       <span className="font-black text-cyan-700 dark:text-cyan-400 whitespace-nowrap">شوف الاقتراحات ↓</span>
     </button>
   );

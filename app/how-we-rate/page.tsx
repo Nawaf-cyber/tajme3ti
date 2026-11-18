@@ -5,6 +5,7 @@ import { cpuPerf, CPU_PERF_SOURCE, CPU_GAMING_TOP } from '../../lib/cpu-perf';
 import { gpuPerf, GPU_PERF_SOURCE } from '../../lib/gpu-perf';
 import { CPU_GAMING_LEVELS, CPU_MULTI_LEVELS, cpuTierFromGaming, cpuTierFromMulti } from '../../lib/perf-tier';
 import { GPU_FPS_LEVELS, gpuTierFromFps, levelWord } from '../../lib/perf-rating';
+import { MON_RULES, SIZE_FOR, bandFor, bandText, ppiOf, targetFor, type MonRes } from '../../lib/monitor-match';
 
 /* ============ كيف نقيّم أداء القطع؟ ============
  * يشرح بطاقة «تقييم الأداء» (components/PartRating): المصدر، والحدود، ولماذا للمعالج تقييمان،
@@ -14,7 +15,7 @@ import { GPU_FPS_LEVELS, gpuTierFromFps, levelWord } from '../../lib/perf-rating
 
 export const metadata: Metadata = {
   title: 'كيف نقيّم أداء القطع',
-  description: 'تقييم أداء المعالجات وكروت الشاشة في تجميعتي محسوبٌ من اختبارات منشورة لا بالتقدير: المصدر، وحدود كلّ درجة، ولماذا للمعالج تقييمان للألعاب وللمونتاج.',
+  description: 'تقييم أداء المعالجات وكروت الشاشة في تجميعتي محسوبٌ من اختبارات منشورة لا بالتقدير: المصدر، وحدود كلّ درجة، ولماذا للمعالج تقييمان، وكيف نحكم إنّ الشاشة تناسب كرتك.',
   alternates: { canonical: '/how-we-rate' },
 };
 
@@ -58,8 +59,21 @@ const cpuExample = (name: string) => {
     : null;
 };
 
+/* مثال الشاشات من الحساب نفسه (lib/monitor-match) — لا أرقام مكتوبة باليد */
+const monExample = (chip: string) => {
+  const p = gpuPerf(chip);
+  if (!p) return null;
+  const res = targetFor('heavy', p);
+  const fps = Math.round(res === '4K' ? p.f4k : res === '1440p' ? p.f1440 : p.f1080);
+  return { chip, res, fps, band: bandText(bandFor('heavy', p, res)) };
+};
+const SIZE_ROWS: [MonRes, string, number][] = [['1080p', '1920x1080', 24.5], ['1440p', '2560x1440', 27], ['4K', '3840x2160', 32]];
+
 export default function HowWeRatePage() {
   const strong = 'text-blue-600 dark:text-blue-400';
+  const h3 = 'font-black text-slate-800 dark:text-slate-200 mt-5 mb-1';
+  const monEx = monExample('RTX 5070');
+  const soft27 = Math.round(ppiOf({ resolution: '1920x1080', sizeInch: 27 }) ?? 0);
   const gpuEx = gpuPerf('RTX 5080');
   const cpuExs = ['Ryzen 7 9800X3D', 'Core i9-14900K'].map(cpuExample).filter(Boolean) as NonNullable<ReturnType<typeof cpuExample>>[];
 
@@ -120,6 +134,75 @@ export default function HowWeRatePage() {
             </div>
           </section>
 
+          <section id="monitors" className="scroll-mt-24">
+            <h2 className={`font-black ${strong} mb-1`}>الشاشات: وش تناسب كرتك؟</h2>
+            <p>
+              ما نعطي الشاشة «تقييم جودة»، لأنّه ما فيه مصدر قياس موحّد للشاشات مثل جداول الكروت. اللي نحسبه هو <strong>تناسبها مع
+              كرتك</strong>، من ثلاث أشياء:
+            </p>
+            <ol className="list-decimal pr-6 mt-2 space-y-1.5">
+              <li>
+                <strong>الدقّة:</strong> أعلى دقّة يعطي فيها كرتك {MON_RULES.comfortFps} إطار أو أكثر في الألعاب الثقيلة (نفس أرقام الكروت
+                فوق). من {MON_RULES.acceptFps} لين {MON_RULES.comfortFps - 1} إطار نسمّيها «مقبول، مو مريح»، وتحتها «ثقيلة على كرتك».
+              </li>
+              <li>
+                <strong>الهرتز:</strong> من إطارات كرتك في هالدقّة لين ضعفها، والسقف ما ينزل عن {MON_RULES.heavyHzFloor} هرتز. الشاشة اللي
+                هرتزها أقل من إطاراتك تقصّ منها، واللي فوق الضعف ما تستفيد منها في الألعاب الثقيلة.
+                {monEx && <> مثلاً {monEx.chip} يعطي نحو {monEx.fps} إطار في {monEx.res}، فالأنسب له شاشة {monEx.res} بين <bdi dir="ltr">{monEx.band}</bdi> هرتز.</>}
+              </li>
+              <li>
+                <strong>المنافذ:</strong> نحسب البيانات اللي تحتاجها الشاشة بأعلى هرتز، ونقارنها بأقوى منفذ مشترك بين كرتك والشاشة
+                (DisplayPort أو HDMI). ونقول لك لو تشتغل بكامل سرعتها، أو تحتاج ضغط DSC، أو توقف قبل سرعتها.
+              </li>
+            </ol>
+
+            <h3 className={h3}>وش تلعب؟</h3>
+            <ul className="list-disc pr-6 space-y-1.5">
+              <li><strong>ثقيلة وقصصية:</strong> الحساب فوق كما هو.</li>
+              <li>
+                <strong>تنافسية خفيفة</strong> (مثل Valorant وCS2): بإعدادات منخفضة تطلع إطارات أعلى بكثير من الألعاب الثقيلة، والمعالج
+                غالباً هو اللي يحدّها. وما عندنا قياس منشور موحّد لهالألعاب، فما نخترع رقم: نستخدم قاعدة عامة، {MON_RULES.compHz} هرتز
+                فأكثر ({MON_RULES.compHzWeak} لو كرتك تحت {MON_RULES.compWeakFps} إطار في 1080p بالألعاب الثقيلة)، والدقّة ما تتعدّى 1440p
+                لأنّ الهرتز هنا أهمّ من الدقّة.
+              </li>
+              <li>
+                <strong>الاثنين:</strong> نفس حساب الثقيلة، بس السقف ما ينزل عن {MON_RULES.mixedHzFloor} هرتز، ونقدّم الشاشة اللي توصل{' '}
+                {MON_RULES.mixedHzFloor} لو كانت ضمن النطاق.
+              </li>
+            </ul>
+
+            <h3 className={h3}>حدّة الصورة</h3>
+            <p>
+              نفس الدقّة تطلع أحدّ على شاشة أصغر. نحسب كثافة البكسل (كم بكسل في كل بوصة)، ولو كانت تحت {MON_RULES.softPpi} ننبّهك، مثل
+              27 بوصة بدقّة 1080p ({soft27}). ولو فيه شاشة أحدّ في نفس النطاق نقدّمها في الاقتراح.
+            </p>
+            <table className="w-full text-[15px] border-collapse mt-3">
+              <thead>
+                <tr className="text-right text-slate-500 dark:text-slate-400 text-[13px]">
+                  <th className="font-bold pb-2 border-b border-gray-100 dark:border-slate-800">الدقّة</th>
+                  <th className="font-bold pb-2 border-b border-gray-100 dark:border-slate-800">المقاس الأنسب</th>
+                  <th className="font-bold pb-2 border-b border-gray-100 dark:border-slate-800">مثال: بكسل لكل بوصة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SIZE_ROWS.map(([r, px, inch]) => (
+                  <tr key={r}>
+                    <td className="py-1.5 border-b border-gray-50 dark:border-slate-800/60 font-black" dir="ltr" style={{ textAlign: 'right' }}>{r}</td>
+                    <td className="py-1.5 border-b border-gray-50 dark:border-slate-800/60">{SIZE_FOR[r]} بوصة</td>
+                    <td className="py-1.5 border-b border-gray-50 dark:border-slate-800/60">{inch} بوصة: <b className="font-black">{Math.round(ppiOf({ resolution: px, sizeInch: inch }) ?? 0)}</b></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <h3 className={h3}>«الأنسب» يعني إيش؟</h3>
+            <p>
+              الأرخص المتوفّر من الشاشات اللي تناسب الحساب (غير OLED)، وجنبه خيار OLED لصورة أحلى، وبديل بدقّة أعلى أو أرخص. وما
+              نرتّب الشاشات بالجودة لأنّنا ما نملك قياساً لها؛ نعرض المواصفات اللي تفرّق بينها: نوع اللوحة، والسطوع، وشهادة HDR، وزمن
+              الاستجابة مع طريقة قياسه (GtG أو MPRT)، والطريقتين ما تنقارن ببعض.
+            </p>
+          </section>
+
           <section>
             <h2 className={`font-black ${strong} mb-1`}>نفس الشريحة بأسماء مختلفة</h2>
             <p>
@@ -145,6 +228,10 @@ export default function HowWeRatePage() {
               </li>
               <li>
                 في «ما تدري وش تبي؟»: تجميعات الألعاب تُبنى بتقييم الألعاب، وتجميعات المونتاج بتقييم المونتاج.
+              </li>
+              <li>
+                في «شاشة تلائم كرتك» (الباني وصفحة الشاشات) وصفّ «تناسب كرتك؟» في مقارنة الشاشات: إطارات الكرت هي اللي تحدّد الدقّة
+                والهرتز المناسبة.
               </li>
             </ul>
           </section>
