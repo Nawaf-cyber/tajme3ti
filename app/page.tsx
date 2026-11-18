@@ -7,10 +7,7 @@ import { prisma } from '../lib/prisma';
 import AutoBuildsSection from '../components/AutoBuildsSection';
 import CompareTeaser from '../components/CompareTeaser';
 import PriceDropsSection from '../components/PriceDropsSection';
-import { productImage, IMAGE_FALLBACK } from '../lib/image';
-import { formatPrice, formatTotal } from '../lib/price';
 import { GUIDE_CATEGORIES } from '../lib/content';
-import { catMeta } from '../lib/category-meta';
 import { BUILD_PART } from '../lib/categories';
 
 /* ⚠️ كانت revalidate = 300 فتُخزَّن النسخة ٥ دقائق، ومع stale-while-revalidate
@@ -20,18 +17,8 @@ import { BUILD_PART } from '../lib/categories';
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  /* قطع التجميعة وحدها: دفعةُ شاشاتٍ تُضاف معاً كانت ستملأ «أحدث القطع» (lib/categories · BUILD_PART) */
-  const latestComponents = await prisma.component.findMany({
-    where: BUILD_PART,
-    take: 6,
-    orderBy: { createdAt: 'desc' },
-    include: { category: true }
-  });
-
-  const latestPrebuilds = await prisma.prebuild.findMany({
-    take: 3,
-    orderBy: { createdAt: 'desc' }
-  });
+  /* عناوين التجميعات الجاهزة للسطر تحت التجميعات اليوميّة */
+  const prebuilds = await prisma.prebuild.findMany({ select: { id: true, title: true }, orderBy: { price: 'asc' } });
 
   const latestNews = await prisma.news.findMany({
     take: 4, 
@@ -47,22 +34,6 @@ export default async function HomePage() {
     const plain = src.replace(/\[\/?[a-z]+\]/gi, '').replace(/[#*_>`]/g, '').replace(/\s+/g, ' ').trim();
     return plain.length > 160 ? `${plain.slice(0, plain.lastIndexOf(' ', 160) || 160)}…` : plain;
   };
-
-  const RiyalIcon = ({ size = 'h-5 w-5', colorClass = 'bg-blue-600 dark:bg-blue-400' }: { size?: string, colorClass?: string }) => (
-    <div 
-      className={`${size} ${colorClass} inline-block align-middle`} 
-      style={{ 
-        maskImage: "url('/riyal.svg')", 
-        WebkitMaskImage: "url('/riyal.svg')", 
-        maskSize: 'contain', 
-        WebkitMaskSize: 'contain', 
-        maskRepeat: 'no-repeat', 
-        WebkitMaskRepeat: 'no-repeat',
-        maskPosition: 'center',
-        WebkitMaskPosition: 'center'
-      }} 
-    />
-  );
 
   return (
     <div className="relative min-h-screen text-slate-900 dark:text-slate-100 transition-colors pb-20 font-sans selection:bg-cyan-500/20">
@@ -145,6 +116,31 @@ export default async function HomePage() {
       {/* التجميعات بالميزانية أوّلاً — أقرب ما يبحث عنه المبتدئ، وكانت في الشاشة السابعة على الجوال
           بعد التخفيضات والمقارنة وأحدث القطع (تجربة المستخدمين 2026-10-17) */}
       <AutoBuildsSection />
+      {/* التجميعات الجاهزة سطرٌ تحت التجميعات اليوميّة لا قسماً ثانياً بالفكرة نفسها (والثاني كان بأسعارٍ
+          مخزّنة)، وأُزيل «أحدث القطع المضافة» (بطاقات بلا سياق): قسم الأدوات يأخذ مكانهما لا يزيد عليهما (2026-11-18) */}
+      {prebuilds.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 -mt-10 pb-16">
+          {/* صندوقٌ واضح لا سطرٌ باهت (نوّاف: «وضّح أزرار التجميعات الجاهزة»)، وكلّ زرٍّ يفتح تجميعته في /prebuilds */}
+          <div className="rounded-sm border border-cyan-500/30 bg-cyan-500/[0.05] dark:bg-cyan-500/[0.07] p-4 md:p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+              <h3 className="text-base md:text-lg font-black text-slate-900 dark:text-white">تبي تجميعة لاستخدام محدّد؟</h3>
+              <Link href="/prebuilds" className="text-sm font-black text-cyan-700 dark:text-cyan-400 hover:underline">كل التجميعات الجاهزة &larr;</Link>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2.5">
+              {prebuilds.map((b) => (
+                <Link
+                  key={b.id}
+                  href={`/prebuilds#pb-${b.id}`}
+                  className="inline-flex items-center gap-2 text-sm font-black px-4 py-2.5 rounded-sm border border-cyan-500/40 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm hover:border-cyan-500 hover:bg-cyan-500 hover:text-white dark:hover:bg-cyan-500 dark:hover:text-[#052e37] transition-colors"
+                >
+                  <svg className="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25" /></svg>
+                  {b.title}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ما يميّز الموقع عن قائمة أسعار — رُفض أدسنس «محتوى منخفض القيمة» (2026-11-17) والصفحة
           كانت قوائم قطعٍ وأسعارٍ تحت العنوان، والأدوات لا تُرى إلّا لمن يدخلها */}
@@ -154,94 +150,6 @@ export default async function HomePage() {
       <PriceDropsSection />
 
       <CompareTeaser />
-
-      {/* 2. قسم أحدث القطع */}
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <div className="flex justify-between items-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
-            <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
-            أحدث القطع المضافة
-          </h2>
-          <Link href="/components" className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors">
-            عرض الكل &larr;
-          </Link>
-        </div>
-        
-        {latestComponents.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-sm text-slate-500 font-medium">
-            لا توجد قطع مضافة حالياً في النظام.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {/* ثلاثٌ على الجوال لا ستّ: كانت البطاقات الستّ وحدها شاشتين ونصفاً (تجربة المستخدمين
-                2026-10-17)، و«عرض الكل» فوقها. والستّ كلّها في HTML وعلى الشاشات الأعرض. */}
-            {latestComponents.map((comp, i) => (
-              <Link href={`/components/${comp.id}`} key={comp.id} className={`${i >= 3 ? 'max-md:hidden ' : ''}group bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 transition-all duration-300`}>
-                <div className="h-40 bg-slate-50 dark:bg-white p-6 flex items-center justify-center border-b border-slate-100 dark:border-slate-200 relative">
-                  <img 
-                    src={productImage(comp.imageUrl, IMAGE_FALLBACK)} 
-                    alt={comp.name} 
-                    className="max-w-full max-h-full object-contain filter drop-shadow-sm mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-2.5 py-1 bg-white dark:bg-slate-100 border border-slate-200 text-[12px] font-black text-slate-600 rounded-sm shadow-sm">
-                      {comp.category?.name ? catMeta(comp.category.name).label : ''}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <p className="text-xs text-slate-500 dark:text-slate-300 mb-1 font-bold">{comp.brand}</p>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight line-clamp-1 mb-4">{comp.name}</h3>
-                  <div className="font-black text-lg text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
-                    <div className="flex items-center justify-center gap-1 leading-none">
-                      {formatPrice(comp.price)} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
-
-      {/* 3. قسم التجميعات الجاهزة */}
-      <section className="max-w-7xl mx-auto px-4 pb-20">
-        <div className="flex justify-between items-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
-            <span className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full shadow-[0_0_10px] shadow-cyan-500/40"></span>
-            تجميعات مقترحة جاهزة
-          </h2>
-          <Link href="/prebuilds" className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors">
-            عرض الكل &larr;
-          </Link>
-        </div>
-
-        {latestPrebuilds.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-sm text-slate-500 font-medium">
-            لا توجد تجميعات مقترحة مضافة حالياً.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {latestPrebuilds.map((build) => (
-              <div key={build.id} className="bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-sm p-8 flex flex-col justify-between hover:shadow-xl hover:shadow-cyan-500/10 hover:border-cyan-400/50 dark:hover:border-cyan-500/50 hover:-translate-y-1 transition-all duration-300">
-                <div>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3">{build.title}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 line-clamp-3 leading-loose font-medium">{build.description}</p>
-                </div>
-                <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800/80">
-                  <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 leading-none">
-                    {formatTotal(build.price)} <RiyalIcon size="h-4 w-4" colorClass="bg-emerald-600 dark:bg-emerald-400" />
-                  </div>
-                  <Link href="/prebuilds" className="text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-white px-5 py-2.5 rounded-sm transition-colors">
-                    استعراض
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
 
       {/* 4. قسم الأخبار */}
       <section className="max-w-7xl mx-auto px-4 pb-20">

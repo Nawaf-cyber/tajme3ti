@@ -117,8 +117,9 @@ export default async function PrebuildsPage() {
 
             return (
               <div 
-                key={build.id} 
-                className="group bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800/80 rounded-[2rem] shadow-sm hover:shadow-2xl hover:-translate-y-1 hover:border-blue-500/40 dark:hover:border-blue-500/40 transition-all duration-300 flex flex-col lg:flex-row overflow-hidden"
+                key={build.id}
+                id={`pb-${build.id}`}
+                className="scroll-mt-24 group bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800/80 rounded-[2rem] shadow-sm hover:shadow-2xl hover:-translate-y-1 hover:border-blue-500/40 dark:hover:border-blue-500/40 transition-all duration-300 flex flex-col lg:flex-row overflow-hidden"
               >
                 {/* القسم الأيمن: المحتوى والقطع */}
                 <div className="p-6 md:p-8 flex-1 flex flex-col selection:bg-blue-500/10">
