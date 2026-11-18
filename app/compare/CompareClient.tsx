@@ -20,6 +20,7 @@ import RigFitRow, { useRigFits } from './RigFitRow';
 import MonitorFitRow from './MonitorFitRow';
 import { buildVerdict, type VerdictInput } from '../../lib/compare-verdict';
 import { gpuPerf, feelLine, GPU_PERF_SOURCE } from '../../lib/gpu-perf';
+import { NoUpscaleBadge } from '../../components/FpsNote';
 import { cpuPerf, CPU_PERF_SOURCE } from '../../lib/cpu-perf';
 import { partRatings } from '../../lib/perf-rating';
 import RatingMeter from '../../components/RatingMeter';
@@ -1285,9 +1286,9 @@ export default function CompareClient({
                     <tr>
                       <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
                         الأداء في الألعاب
-                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
-                          متوسّط الإطارات بدون DLSS أو FSR ·{' '}
-                          {/* bdi: بلاه يلتصق «FSR · Tom's Hardware» في سطرٍ لاتينيّ واحد فيُقرأ «أو Tom's Hardware» */}
+                        <span className="block mt-1.5"><NoUpscaleBadge /></span>
+                        <span className="block mt-1 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
+                          متوسّط الإطارات · قياس{' '}
                           <bdi><a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a></bdi>
                         </span>
                       </th>
@@ -1327,9 +1328,7 @@ export default function CompareClient({
                     <tr>
                       <th scope="row" className="sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top">
                         مع تتبّع الأشعة
-                        <span className="block mt-0.5 text-xs font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
-                          بدون DLSS أو FSR · الإعدادات نفسها
-                        </span>
+                        <span className="block mt-1.5"><NoUpscaleBadge /></span>
                       </th>
                       {rs.map((x, i) => (
                         <td key={selected[i].id} className={`py-3.5 px-3 text-center align-top border-b border-r border-slate-200 dark:border-slate-800 ${

@@ -27,6 +27,7 @@ import {
 import { shortDateAr } from '../../../lib/time-ago';
 import { formatCapacity } from '../../../lib/capacity';
 import { GPU_PERF_SOURCE, feelLine } from '../../../lib/gpu-perf';
+import { NoUpscaleBadge } from '../../../components/FpsNote';
 import { CPU_PERF_SOURCE } from '../../../lib/cpu-perf';
 import { goToLogin } from '../../../lib/login-href';
 import { SERIES_COLORS } from '../ComparePriceHistory';
@@ -392,9 +393,9 @@ export default function CompareBuildsClient() {
                           <tr className="bg-cyan-500/[0.03]">
                             <th scope="row" className={TH}>
                               الألعاب
-                              <span className="block mt-0.5 text-[12px] font-normal text-slate-500 dark:text-slate-400 leading-relaxed">
-                                متوسّط الإطارات بدون DLSS أو FSR ·{' '}
-                                {/* bdi: بلاه يلتصق «FSR · Tom's Hardware» في سطرٍ لاتينيّ واحد فيُقرأ «أو Tom's Hardware» */}
+                              <span className="block mt-1.5"><NoUpscaleBadge /></span>
+                              <span className="block mt-1 text-[12px] font-normal text-slate-500 dark:text-slate-400 leading-relaxed">
+                                متوسّط الإطارات · قياس{' '}
                                 <bdi><a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a></bdi>
                               </span>
                             </th>
@@ -416,7 +417,7 @@ export default function CompareBuildsClient() {
                           <tr className="bg-cyan-500/[0.03]">
                             <th scope="row" className={TH}>
                               مع تتبّع الأشعة
-                              <span className="block mt-0.5 text-[12px] font-normal text-slate-500 dark:text-slate-400 leading-relaxed">بدون DLSS أو FSR</span>
+                              <span className="block mt-1.5"><NoUpscaleBadge /></span>
                             </th>
                             {analyses.map((a, i) => (
                               <td key={i} className={TD}>

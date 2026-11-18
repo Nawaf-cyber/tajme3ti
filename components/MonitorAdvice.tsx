@@ -14,6 +14,7 @@ import { isAvailable, type Offer } from '../lib/stores';
 import { specBadges } from '../lib/spec-badges';
 import { productImage, IMAGE_FALLBACK } from '../lib/image';
 import { formatPrice } from '../lib/price';
+import { NoUpscaleBadge, FpsSource } from './FpsNote';
 
 type PartLike = { id: string; brand: string; name: string; price: number; specs?: unknown; imageUrl?: string | null; offers?: Offer[] | null };
 export type MonitorItem = MonitorLike & { imageUrl?: string | null };
@@ -124,7 +125,10 @@ export function MonitorAdviceCard({ gpu, monitors, onShowAll, className = '' }: 
   return (
     <div id="monitor-advice" className={shell}>
       <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-slate-200 dark:border-slate-700/50">
-        <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">🖥️ شاشة تلائم كرتك</h4>
+        <div className="flex flex-wrap items-center gap-2">
+          <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">🖥️ شاشة تلائم كرتك</h4>
+          <NoUpscaleBadge href="/how-we-rate#monitors" />
+        </div>
         <p className="text-[12.5px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
           {use === 'competitive' ? (
             <>في الألعاب التنافسية الخفيفة الهرتز أهمّ من الدقّة، فالأنسب لـ{a.perf.chip} شاشة <bdi dir="ltr">{a.res}</bdi> بـ<b className="font-black text-slate-800 dark:text-slate-200"><bdi dir="ltr">{a.band[0]}</bdi> هرتز فأكثر</b>.</>
@@ -174,7 +178,7 @@ export function MonitorAdviceCard({ gpu, monitors, onShowAll, className = '' }: 
       </div>
 
       <div className="bg-slate-50 dark:bg-slate-800/40 px-4 py-2.5 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center justify-between gap-2 text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-        <span>اقتراح بس — ما ينحفظ مع التجميعة. الإطارات بدون DLSS أو FSR · <a href="/how-we-rate#monitors" className="underline">كيف نقيّم؟</a></span>
+        <span>اقتراح بس — ما ينحفظ مع التجميعة · <FpsSource how="/how-we-rate#monitors" /></span>
         {onShowAll ? (
           <button onClick={() => onShowAll(a.res)} className="font-black text-cyan-700 dark:text-cyan-400 hover:underline">شوف كل شاشات <bdi dir="ltr">{a.res}</bdi> ({sameRes}) ←</button>
         ) : (

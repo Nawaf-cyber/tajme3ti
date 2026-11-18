@@ -11,6 +11,7 @@
  */
 
 import { gpuPerf, feelLine, feel, GPU_PERF_SOURCE } from '../lib/gpu-perf';
+import { NoUpscaleBadge } from './FpsNote';
 import { Panel, SectionHeading } from './Panel';
 
 const num = (v: unknown): number | null => {
@@ -31,7 +32,7 @@ export default function PartPerformance({ category, name, specs }: { category?: 
     const rows: [string, number][] = [['1080p', p.f1080], ['1440p', p.f1440], ['4K', p.f4k]];
     return (
       <div className="flex flex-col gap-4">
-        <SectionHeading>الأداء في الألعاب</SectionHeading>
+        <SectionHeading>الأداء في الألعاب <NoUpscaleBadge /></SectionHeading>
         <Panel className="px-6 py-5">
           <div className="grid grid-cols-3 gap-2 text-center">
             {rows.map(([res, fps]) => (
@@ -49,7 +50,6 @@ export default function PartPerformance({ category, name, specs }: { category?: 
             <div className="mt-4 border-t border-slate-200 dark:border-slate-800 pt-3">
               <p className="mb-2 text-[13px] font-black text-slate-800 dark:text-slate-200">
                 مع تتبّع الأشعة
-                <span className="font-semibold text-[12px] text-slate-500 dark:text-slate-400"> · بدون DLSS أو FSR</span>
               </p>
               <div className="grid grid-cols-3 gap-2 text-center">
                 {([['1080p', p.rt.f1080], ['1440p', p.rt.f1440], ['4K', p.rt.f4k]] as [string, number][]).map(([res, fps]) => (
@@ -65,8 +65,7 @@ export default function PartPerformance({ category, name, specs }: { category?: 
           <p className="mt-3 text-[12px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
             متوسّط الإطارات لشريحة {p.chip} في اختبارات{' '}
             <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-700 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a>
-            {p.rt ? '، كلها بدون DLSS أو FSR' : '، بدون DLSS أو FSR'}
-            {' '}— يختلف باللعبة والمعالج. «مريح» 60 إطاراً فأكثر، و«مقبول» 45–60.
+            {' '}— يختلف باللعبة والمعالج، ولو شغّلت DLSS أو FSR تطلع إطارات أكثر. «مريح» 60 إطاراً فأكثر، و«مقبول» 45–60.
           </p>
         </Panel>
       </div>

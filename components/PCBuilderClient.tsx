@@ -39,6 +39,7 @@ import {
 import { checkBuild } from '../lib/build-check';
 import { buildIntentPlans, type TierPlan, type Intent } from '../lib/intent-plans';
 import { GPU_PERF_SOURCE } from '../lib/gpu-perf';
+import { NoUpscaleBadge } from './FpsNote';
 
 type Component = {
   id: string;
@@ -1436,7 +1437,7 @@ export default function PCBuilderClient({ categories, importedSelections = {}, m
             <p className="mt-4 text-[12px] text-slate-400 font-medium text-center">كل القطع متوفّرة فعلاً بأسعارها الحين · وتقدر تغيّر أي قطعة بعد ما تختار</p>
             {aiPlans.some((p) => p.perf) && (
               <p className="mt-1 text-[12px] text-slate-400 font-medium text-center">
-                الإطارات: متوسّط ألعاب حديثة على Ultra بدون DLSS/FSR ·{' '}
+                الإطارات: متوسّط ألعاب حديثة على Ultra <NoUpscaleBadge /> · قياس{' '}
                 <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-600 dark:hover:text-cyan-400">{GPU_PERF_SOURCE.name}</a>
               </p>
             )}

@@ -10,7 +10,8 @@
  * يُذكر بالكلمات إن كان أدنى من الكرت بدرجتين — بلا نسبة خصمٍ لا نملك قياسها.
  * بلا حالة ولا 'use client': يُرسم في صفحة الخادم (التجميعة المشتركة) وفي الباني و«تجميعاتي».
  */
-import { gpuPerf, feel, GPU_PERF_SOURCE } from '../lib/gpu-perf';
+import { gpuPerf, feel } from '../lib/gpu-perf';
+import { NoUpscaleBadge, FpsSource } from './FpsNote';
 import { partRatings } from '../lib/perf-rating';
 
 type PartLike = { name: string; specs?: any } | null | undefined;
@@ -46,9 +47,12 @@ export default function GamePerformance({ gpu, cpu }: { gpu: PartLike; cpu?: Par
   return (
     <div className="mt-6 border border-slate-200 dark:border-slate-700/50 rounded-sm overflow-hidden bg-white dark:bg-slate-800/30 shadow-sm">
       <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-slate-200 dark:border-slate-700/50">
-        <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">⚡ أداء الكرت في الألعاب</h4>
+        <div className="flex flex-wrap items-center gap-2">
+          <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">⚡ أداء الكرت في الألعاب</h4>
+          <NoUpscaleBadge />
+        </div>
         <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-          متوسّط الإطارات في ألعاب حديثة بإعدادات عالية بدون DLSS أو FSR — مقيس، مو تقدير
+          متوسّط الإطارات في ألعاب حديثة بإعدادات عالية — مقيس، مو تقدير
         </p>
       </div>
 
@@ -73,7 +77,6 @@ export default function GamePerformance({ gpu, cpu }: { gpu: PartLike; cpu?: Par
             <div className="mx-3 mb-3 border-t border-slate-100 dark:border-slate-700/50 pt-2.5">
               <p className="mb-2 text-[12.5px] font-black text-slate-700 dark:text-slate-300">
                 مع تتبّع الأشعة
-                <span className="font-semibold text-[12px] text-slate-500 dark:text-slate-400"> · بدون DLSS أو FSR</span>
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {([['1080p', p.rt.f1080], ['1440p', p.rt.f1440], ['4K', p.rt.f4k]] as [string, number][]).map(([res, fps]) => (
@@ -101,8 +104,7 @@ export default function GamePerformance({ gpu, cpu }: { gpu: PartLike; cpu?: Par
 
       <div className="bg-slate-50 dark:bg-slate-800/40 px-3 py-2.5 border-t border-slate-100 dark:border-slate-700/50 text-center text-[12px] font-semibold text-slate-500 dark:text-slate-400">
         {p && <>«مريح» 60 إطاراً فأكثر، و«مقبول» 45–60 · {best && <>★ أعلى دقّة مريحة لكرتك · </>}</>}
-        المصدر <a href={GPU_PERF_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline">{GPU_PERF_SOURCE.name}</a>
-        {' · '}<a href="/how-we-rate" className="underline font-bold text-cyan-700 dark:text-cyan-400">كيف نقيّم؟</a>
+        <FpsSource />
       </div>
     </div>
   );

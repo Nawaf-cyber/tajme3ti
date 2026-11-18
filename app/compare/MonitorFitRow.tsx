@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRig } from '../../lib/use-rig';
 import { judgeMonitor, type MonitorJudgement } from '../../lib/monitor-match';
 import { GpuSearch, UsePicker, useMonitorUse, type GpuOpt } from '../../components/MonitorAdvice';
+import { NoUpscaleBadge } from '../../components/FpsNote';
 
 const TH = 'sticky right-0 z-10 bg-white dark:bg-[#0F172A] text-right py-3.5 px-4 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 align-top';
 
@@ -63,6 +64,7 @@ export default function MonitorFitRow({ parts, gpus, bestIdx, addCol }: {
     <tr data-noexport className="bg-cyan-500/[0.04]">
       <th scope="row" className={TH}>
         تناسب كرتك؟
+        <span className="block mt-1.5"><NoUpscaleBadge href="/how-we-rate#monitors" /></span>
         <div className="mt-2 font-normal">
           <GpuSearch gpus={sorted} value={gpu} onPick={(g) => { setGpuId(g.id); setSource('picked'); }} />
         </div>
