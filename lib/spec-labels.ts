@@ -123,6 +123,7 @@ const LABELS: Record<string, string> = {
   refreshHz: 'معدّل التحديث',
   panel: 'نوع اللوحة',
   responseMs: 'زمن الاستجابة',
+  responseType: 'طريقة قياس الاستجابة',
   hdr: 'HDR',
   vrr: 'مزامنة الإطارات (VRR)',
   dpVersion: 'DisplayPort',
@@ -183,7 +184,7 @@ const ORDER: Record<string, string[]> = {
   PSU: ['wattage', 'rating', 'qualityTier', 'modularity', 'formFactor'],
   Case: ['formFactor', 'maxGpuLength', 'maxCoolerHeight', 'radiatorSupport', 'psuFormFactor', 'includedFans', 'frontPanel', 'sidePanel', 'dualChamber', 'verticalGpu', 'pcieRiser', 'cableManagement', 'screen', 'color'],
   /* ما يقرّر التناسب مع الكرت أوّلاً (الدقّة والهرتز)، ثمّ الصورة، ثمّ المنافذ */
-  Monitor: ['sizeInch', 'resolution', 'refreshHz', 'panel', 'responseMs', 'hdr', 'vrr', 'dpVersion', 'dpUhbr', 'hdmiVersion', 'dsc', 'curvature', 'brightnessNits', 'usbC', 'speakers', 'color'],
+  Monitor: ['sizeInch', 'resolution', 'refreshHz', 'panel', 'responseMs', 'responseType', 'hdr', 'vrr', 'dpVersion', 'dpUhbr', 'hdmiVersion', 'dsc', 'curvature', 'brightnessNits', 'usbC', 'speakers', 'color'],
 };
 
 /* ============ الوحدات ============

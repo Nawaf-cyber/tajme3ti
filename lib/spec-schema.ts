@@ -165,7 +165,7 @@ export const SPEC_SCHEMA: Record<string, CategorySchema> = {
     compat: ['resolution', 'refreshHz', 'dpVersion', 'hdmiVersion'],
     compare: ['sizeInch', 'panel', 'responseMs', 'hdr', 'vrr', 'curvature'],
     conditional: ['color', 'dpUhbr'],
-    undecided: ['dsc', 'brightnessNits', 'usbC', 'speakers'],
+    undecided: ['dsc', 'brightnessNits', 'usbC', 'speakers', 'responseType'],
   },
 };
 

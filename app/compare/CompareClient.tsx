@@ -371,7 +371,9 @@ export default function CompareClient({
         const dir = compareDirection(label, cat);
         /* زمن استجابة الشاشات أرقامٌ لا تُقاس بالطريقة نفسها (IPS «1ms MPRT» وOLED «0.03ms GtG»)، فكانت
            النسبة «أعلى بـ 3233%» — النجمة تبقى للأسرع، والنسبة تُحذف (2026-11-18) */
-        const noPct = cat === 'Monitor' && label === 'زمن الاستجابة';
+        /* …إلّا إن أعلنت كلّها بالطريقة نفسها (responseType: GtG أو MPRT) فالنسبة صادقة */
+        const rtypes = selected.map((c) => (typeof c.specs === 'string' ? JSON.parse(c.specs) : c.specs || {}).responseType);
+        const noPct = cat === 'Monitor' && label === 'زمن الاستجابة' && !(rtypes[0] && rtypes.every((t) => t === rtypes[0]));
         if (dir) {
           const nums = values.map(parseNum);
           const valid = nums.filter((n): n is number => n != null);

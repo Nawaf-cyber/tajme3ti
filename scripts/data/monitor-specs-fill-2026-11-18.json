@@ -1,0 +1,994 @@
+[
+ {
+  "id": "cmwgr5cxe001g3oym89scjzrb",
+  "name": "AOC CQ27G4",
+  "add": {
+   "usbC": "No",
+   "responseType": "MPRT"
+  },
+  "evidence": {
+   "usbC": "Connectivity table lists only 'HDMI 2.0 x 2', 'DisplayPort 1.4 x 1', 'Audio Output: Headphone out (3.5mm)' - no USB-C. https://www.aoc.com/ae/gaming/monitors/cq27g4",
+   "responseType": "Spec table 'Response time MPRT: 0.5 ms' (= our 0.5); marketing copy also says 'up to 1ms GtG'. https://www.aoc.com/ae/gaming/monitors/cq27g4",
+   "dsc": "Not mentioned on AE/AU/MY/SG AOC pages; no user manual published on the AOC page (only G-Menu, regulation and REACH PDFs).",
+   "speakers": "No 'Speakers' row on any AOC regional spec table (AE/AU/MY/SG); Audio section lists only 'Headphone out (3.5mm)'. Not explicitly stated - probably none, unconfirmed."
+  },
+  "notStated": [
+   "dsc",
+   "speakers"
+  ],
+  "corrections": [
+   {
+    "field": "vrr",
+    "ours": "FreeSync",
+    "maker": "FreeSync Premium",
+    "evidence": "'Sync technology (VRR): Freesync Premium', 'Sync range: 48-280' on https://www.aoc.com/ae/gaming/monitors/cq27g4 (same on /au and /my). Note: /sg page lists 'Adaptive Sync' and 5000:1 contrast - apparently a different regional variant."
+   }
+  ],
+  "notes": "AE copy also claims '280Hz refresh rate' and DP signal range is 48-280Hz, but spec table and title say 'Max Refresh rate: 180 Hz' - our 180 kept. Spec table HDR = 'HDR Ready' (copy says 'HDR 10'); our HDR10 left as is."
+ },
+ {
+  "id": "cmwgr5e4l001u3oymr2homiwe",
+  "name": "ASUS ROG Strix OLED XG27AQDMGR",
+  "add": {
+   "usbC": "No",
+   "brightnessNits": "275",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "Spec I/O: 'DisplayPort 1.4 DSC x 1, HDMI (v2.1) x 2 (FRL), Earphone jack, USB Hub: 2x USB 3.2 Gen 1 Type-A'; manual rear-panel list: HDMI-1, HDMI-2, DisplayPort, Earphone, 'USB 3.2 Gen 1 Type-B Port', Type-A, AC-IN - no USB-C. https://rog.asus.com/sa-en/monitors/27-to-31-5-inches/rog-strix-oled-xg27aqdmg-gen2-xg27aqdmgr/spec/ + https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/XG27AQDMGR/ASUS_XG27AQDMGR_English.pdf",
+   "brightnessNits": "Manual spec table: 'Brightness 275nits (Typ.)/ 1300nits (HDR peak)'. Web spec page lists only HDR peak 1,300. https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/XG27AQDMGR/ASUS_XG27AQDMGR_English.pdf",
+   "responseType": "'Response Time : 0.03ms(GTG)'; no MPRT figure (ROG spec page)."
+  },
+  "notStated": [],
+  "corrections": [],
+  "notes": "Panel 26.5\" WOLED (ours 27 / OLED - fine as category)."
+ },
+ {
+  "id": "cmwgr5eid001y3oymxbwqjec7",
+  "name": "ASUS ROG Strix OLED XG27AQWMG",
+  "add": {
+   "usbC": "No",
+   "brightnessNits": "335",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "Spec I/O: 'DisplayPort 1.4 DSC x 1, HDMI (v2.1) x 2 (FRL), Earphone jack: Yes, USB Hub: 2x USB 3.2 Gen 1 Type-A'; official manual rear-panel list: HDMI-1, HDMI-2, DisplayPort, Earphone, 'USB 3.2 Gen 1 Type-B Port', Type-A, AC-IN - no USB-C. CAVEAT: SA overview page feature grid shows a tile 'USB Type-C(PD)' beside 'AUTO KVM', contradicting spec table and manual. https://rog.asus.com/sa-en/monitors/27-to-31-5-inches/rog-strix-oled-xg27aqwmg/spec/ + https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/XG27AQWMG/ASUS_XG27AQWMG_English.pdf",
+   "brightnessNits": "Manual spec table: 'Brightness 335nits (Typ.)/ 1500nits (HDR peak)'. Web spec page lists only HDR peak 1,500. https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/XG27AQWMG/ASUS_XG27AQWMG_English.pdf",
+   "responseType": "'Response Time : 0.03ms(GTG)'; no MPRT figure (ROG spec page)."
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwklybyg0000g0yma7d9gmeq",
+  "name": "ASUS ROG Strix OLED XG32UQWMS",
+  "add": {
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "responseType": "'Response Time : 0.03ms(GTG)'; no MPRT figure. https://rog.asus.com/monitors/27-to-31-5-inches/rog-strix-oled-xg32uqwms/spec/",
+   "check": "Spec page confirms 240Hz (Dual Mode; AdaptiveSync 240Hz + 480Hz certs), 'Brightness (Typ.) : 330cd/m2', 'DisplayPort 1.4 DSC x 1', 'HDMI (v2.1) x 2 (FRL, 48Gbps)', Speaker: No, DisplayHDR 500 True Black, FreeSync Premium Pro & G-SYNC Compatible. Manual rear ports: AC, HDMI-1, HDMI-2, DP, USB-B upstream, USB-A - no USB-C (usbC No confirmed). Manual spec says '335 cd/m2' vs web 330 - minor; ours matches web. https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/XG32UQWMS/XG32UQWMS_English.pdf"
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5ae7000p3oymmq7tvbpu",
+  "name": "ASUS ROG Strix XG27ACG",
+  "add": {
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "Spec I/O 'DisplayPort 1.4 x 1 (HBR3)', 'USB-C x 1 (DP Alt Mode)' - no DSC wording; manual has 'DisplayPort Stream' (1.2/1.4) OSD item but no DSC anywhere. https://rog.asus.com/monitors/27-to-31-5-inches/rog-strix-xg27acg/spec/ + https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/XG27ACG/XG27ACG_English.pdf",
+   "responseType": "'Response Time : 1ms(GTG)'; no MPRT figure (ROG spec page)."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5cg3001b3oym79zdgolr",
+  "name": "ASUS ROG Strix XG27WCS",
+  "add": {
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "Spec I/O 'DisplayPort 1.4 x 1 (HBR3)', 'USB-C x 1 (DP Alt Mode)' - no DSC wording on spec/overview pages or in manual. https://rog.asus.com/sa-en/monitors/27-to-31-5-inches/rog-strix-xg27wcs/spec/ + https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/XG27WCS/XG27WCS_English.pdf",
+   "responseType": "'Response Time : 1ms(GTG)'; no MPRT figure (ROG spec page)."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5f5a00253oymy01z6vyd",
+  "name": "ASUS ROG Strix XG32UCG",
+  "add": {
+   "dsc": "Yes",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "Official manual OSD: 'DSC Support: Enable/Disable the DSC (Display Stream Compression) function.' (web spec page itself does not mention DSC). https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/XG32UCG/ASUS_XG32UCG_English.pdf",
+   "responseType": "'Response Time : 1ms(GTG), 0.3ms(min.)'; our 1 = GtG; no MPRT figure. https://rog.asus.com/sa-en/monitors/27-to-31-5-inches/rog-strix-xg32ucg/spec/"
+  },
+  "notStated": [],
+  "corrections": [],
+  "notes": "Dual mode 4K160 / FHD320 (certs AdaptiveSync 160Hz + 320Hz); our 160 is the native-res max. Certs list AMD FreeSync Premium + G-SYNC Compatible (matches ours)."
+ },
+ {
+  "id": "cmwgr57ym00003oymv9pes6iz",
+  "name": "ASUS TUF Gaming VG249Q3A-W",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "Tech spec I/O: DisplayPort 1.2 x1, HDMI 2.0 x2, earphone jack; manual rear ports: Earphone-out, DP-in, HDMI-2, HDMI-1, AC-IN - no USB-C. https://www.asus.com/me-en/displays-desktops/monitors/tuf-gaming/tuf-gaming-vg249q3a-w/techspec/ + https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/VG249Q3A/ASUS_VG249Q3A_UG_English.pdf",
+   "dsc": "Not mentioned on tech spec page or in manual.",
+   "responseType": "Spec page headline 'Response Time : 1ms(GTG)'; manual '1ms (Gray to Gray), 1ms MPRT' - both equal our 1; headline is GtG. Manual also confirms Chassis Colors 'White' for -W."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwkd9imi000ct0ymzvs66eub",
+  "name": "ASUS TUF Gaming VG279Q3R",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "Tech spec I/O: DisplayPort 1.2 x1, HDMI (v2.0) x2, earphone jack; manual rear ports: HDMI-1, HDMI-2, DisplayPort, Audio-out, DC-IN - no USB-C. https://www.asus.com/me-en/displays-desktops/monitors/tuf-gaming/tuf-gaming-vg279q3r/techspec/ + https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/VG279Q3R/ASUS_VG279Q3R_English_UG.pdf",
+   "dsc": "Not mentioned on tech spec page or in manual.",
+   "responseType": "'1ms(GTG)' on spec page, manual '1ms (G To G)'; no MPRT figure."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr58f800043oymsihkqu5r",
+  "name": "ASUS TUF Gaming VG279QM5A",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "Tech spec I/O: DisplayPort 1.4 x1 (HBR2), HDMI v2.0 x2, earphone; manual rear ports: AC-IN, DP-in, HDMI-1, HDMI-2, Earphone-out - no USB-C. https://www.asus.com/me-en/displays-desktops/monitors/tuf-gaming/tuf-gaming-vg279qm5a/techspec/ + https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/VG249QM5A/ASUS_VG249QM5A_VG279QM5A_UM_English.pdf",
+   "dsc": "Not mentioned on tech spec page or in manual.",
+   "responseType": "'1ms (Gray to Gray), 0.3ms (min)' - our 0.3 is the GtG minimum figure; no MPRT figure (headline 1ms GtG)."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5blt00123oymogx3u17n",
+  "name": "ASUS TUF Gaming VG27AQ5A",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "USB-C is service-only: spec 'USB Hub : 1x USB 3.2 Gen 1 Type-C (Service Port)'; manual '5. This port is for service only. (USB Type-C)' - no video. https://www.asus.com/sa-en/displays-desktops/monitors/tuf-gaming/tuf-gaming-vg27aq5a/techspec/ + https://dlcdnets.asus.com/pub/ASUS/LCD%20Monitors/VG27AQ5A/VG27AQ5A_VG27AQL5A_English.pdf",
+   "dsc": "Not mentioned on tech spec page or in manual.",
+   "responseType": "'Response Time : 1ms(GTG), 0.3ms(min.)' - our 0.3 is the GtG minimum; no MPRT figure."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwkd9kyc0010t0ymrohig6cf",
+  "name": "BenQ MOBIUZ EX271QMZ",
+  "add": {
+   "dsc": "Yes",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "Official user manual OSD table: 'DSC - Supports Display Streaming Compression (DSC) technology to display video source from DP or USB-C' (ON/OFF). https://esupportdownload.benq.com/esupport/WORK%20&%20ENTERTAINMENT%20DISPLAY/UserManual/EX271QMZ/EX271QMZ_UM_EN_260914090032.pdf",
+   "responseType": "Spec 'Response Times (GtG): 0.03 ms'; no MPRT. https://www.benq.com/en-me/monitor/gaming/ex271qmz/spec.html"
+  },
+  "notStated": [],
+  "corrections": [],
+  "notes": "Spec confirms 200 nits typ / 400 HDR peak, HDR10, HDMI v2.1 x2, DP v1.4 x1, 'USB C (PowerDelivery 15W, DisplayPort Alt Mode, Data)', speakers 2Wx2, FreeSync Premium. Panel listed as 'OLED' (3rd-gen QD-OLED per overview), 26.5\"."
+ },
+ {
+  "id": "cmwkd9jb5000jt0ymto6qr6vy",
+  "name": "Dell 27 Plus S2725DSM",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "User's Guide: 'The ports on the monitor are as follows: 1 HDMI 2.1 TMDS port (HDCP 1.4), 1 DisplayPort 1.4 port (HDCP 1.4)' - no USB-C. https://dl.dell.com/content/manual18892623-dell-s-27-qhd-monitor-s2725dsm-user-s-guide.pdf",
+   "dsc": "Not mentioned in User's Guide or on Dell product page.",
+   "responseType": "User's Guide: 'MPRT mode: 1 ms; Extreme mode: 4 ms (gray to gray); Fast 5 ms; Normal 8 ms' - our 4 = GtG (Extreme). Dell's marketing headline is 1ms MPRT."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": [
+   {
+    "field": "hdmiVersion",
+    "ours": "2.0",
+    "maker": "2.1 (TMDS)",
+    "evidence": "User's Guide: '1 HDMI 2.1 TMDS port (HDCP 1.4)' / 'Supports up to QHD 2560x1440 144 Hz TMDS, VRR as per specified in HDMI 2.1'; Dell shop page same. TMDS only (no FRL) = HDMI-2.0-class bandwidth - change only if the site labels TMDS-only ports as 2.1."
+   }
+  ],
+  "notes": "Panel IPS, 350 cd/m2 typ, 144Hz, 2x3W speakers, 'AMD FreeSync Technology' (manual) all match ours. Colour not stated in User's Guide or US shop page text."
+ },
+ {
+  "id": "cmwkd9llg0017t0ym3mkfepoo",
+  "name": "Dell Alienware AW2725DF",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "Only USB-C is '1 x USB 3.2 Gen 1 (5 Gbps) Type-C downstream port which supports BC1.2 power-charging' (data/charging, no video); video inputs are 2x DP 1.4 + 1x HDMI. User's Guide https://dl.dell.com/content/manual84043186-alienware-aw2725df-monitor-user-s-guide.pdf + https://www.dell.com/en-us/shop/p/APD/210-BLJD/",
+   "responseType": "'Response time 0.03 ms (gray-to-gray)' (no MPRT figure published). User's Guide (same URL)",
+   "dsc_check": "Our dsc=Yes confirmed: 'Maximum preset resolution 2560 x 1440 at 359.98 Hz (DSC enabled and visually lossless)' (User's Guide)"
+  },
+  "notStated": [],
+  "corrections": [
+   {
+    "field": "hdmiVersion",
+    "ours": "2.0",
+    "maker": "2.1 (TMDS only, up to 2560x1440 144 Hz)",
+    "evidence": "'1 x HDMI 2.1 (HDCP 1.4 & 2.3)(Supports up to QHD 2560 x 1440 144 Hz TMDS, HDR, VRR as per specified in HDMI 2.1)' - User's Guide https://dl.dell.com/content/manual84043186-alienware-aw2725df-monitor-user-s-guide.pdf. TMDS-only (no FRL), so 2.0 may be an intentional site convention."
+   }
+  ]
+ },
+ {
+  "id": "cmwkd9j04000gt0ymzo9jhvuy",
+  "name": "Dell Alienware AW2725DM",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "No USB-C port at all: ports are 1x DP 1.4, 2x HDMI 2.1, 1x USB 5Gbps Type-B upstream, 2x USB 5Gbps Type-A downstream. User's Guide https://dl.dell.com/content/manual52095525-alienware-27-gaming-monitor-aw2725dm-user-s-guide.pdf + https://www.dell.com/en-us/shop/alienware-27-gaming-monitor-aw2725dm/apd/210-bqwq/monitors-monitor-accessories",
+   "speakers": "INFERRED BY OMISSION: no speaker and no audio port of any kind in the User's Guide feature list/spec table; Dell shop page has no speaker row ('Built-in Devices' = USB hub only). Dell does not print an explicit 'Speakers: No' for this model.",
+   "responseType": "'Response time (Gray to Gray) ... 1 millisecond gray to gray in Extreme Mode' (2 ms Super Fast, 4 ms Fast); shop page '1 ms GTG (Extreme Mode)'. No MPRT figure."
+  },
+  "notStated": [
+   "dsc",
+   "speakers (inferred — dropped)"
+  ],
+  "corrections": [
+   {
+    "field": "hdmiVersion",
+    "ours": "2.0",
+    "maker": "2.1 (TMDS only, up to QHD 144 Hz)",
+    "evidence": "'Two HDMI 2.1 (HDCP 1.4 & 2.3) (Supports up to QHD 2560 x 1440 144Hz 10bit TMDS, HDR, VRR as per specified in HDMI 2.1)' - User's Guide; shop page 'HDMI Version 2.1'. TMDS-only, so 2.0 may be an intentional site convention."
+   }
+  ]
+ },
+ {
+  "id": "cmwkd9mhq001gt0ymb391f8vk",
+  "name": "Dell Alienware AW2725QF",
+  "add": {
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "responseType": "'0.5 millisecond (gray-to-gray min), 1 millisecond (gray-to-gray most observed) in Extreme Mode' - our 0.5 = GtG min; no MPRT published. User's Guide https://dl.dell.com/content/manual10676330-alienware-aw2725qf-monitor-user-s-guide.pdf",
+   "checks": "dsc=Yes confirmed ('One DisplayPort 1.4 connector ... (Supports 4K 3840 x 2160 at 165 Hz, FHD 1920 x 1080 at 330 Hz, DSC, HDR)'); usbC=No confirmed (only 'One USB-C 3.2 Gen1 downstream port (5 Gbps)' / 'Type-C downstream charging port'); HDMI 2.1 FRL, DisplayHDR 600, 400 cd/m2 typical all match. Maker also lists Dolby Vision HDR."
+  },
+  "notStated": [],
+  "corrections": [
+   {
+    "field": "refreshHz",
+    "ours": "180",
+    "maker": "165 native at 4K (180 Hz overclock); 330 Hz at FHD (360 Hz overclock)",
+    "evidence": "'Supports a high refresh rate of 330 Hz (Over Clock 360 Hz) for FHD timings, 165 Hz (Over Clock 180 Hz) for 4K timings' - User's Guide. Our 180 is the OC value; G2524H in this batch is stored at native 240 (not OC 280), so this is inconsistent. Decide per site convention."
+   }
+  ]
+ },
+ {
+  "id": "cmwkd9nai001pt0ymlcu5gdmy",
+  "name": "Dell Alienware AW3225QF",
+  "add": {
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "responseType": "'Response time 0.03 ms (gray-to-gray)'; no MPRT published. User's Guide https://dl.dell.com/content/manual84466845-alienware-aw3225qf-monitor-user-s-guide.pdf",
+   "checks": "dsc=Yes confirmed ('1x DP 1.4 ... (Supports up to 3840 x 2160 240 Hz, DSC, HDR)'); usbC=No confirmed (only 'Type-C downstream port which supports BC1.2 power-charging'); 2x HDMI 2.1 FRL, QD OLED, 1700R, 250 cd/m2 SDR, DisplayHDR 400 True Black, 240 Hz all match. Maker also lists Dolby Vision HDR."
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr59dk000e3oymwjv8hn18",
+  "name": "Dell G2524H",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "No USB-C port on the monitor: 2x DP 1.4, 1x HDMI 2.1, 1x USB 3.2 Gen1 upstream, 2x USB 3.2 Gen1 Type-A downstream. The bundled 'USB Type-C to DisplayPort' cable plugs into the PC, not the monitor. User's Guide https://dl.dell.com/content/manual65605857-dell-g2524h-monitor-user-s-guide.pdf",
+   "responseType": "'Response time 0.5 ms (gray-to-gray min), 1 ms (gray-to-gray most observed) in Extreme Mode' - our 0.5 = GtG min; no MPRT published. User's Guide (same URL)"
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": [
+   {
+    "field": "hdmiVersion",
+    "ours": "2.0",
+    "maker": "2.1 (TMDS only, FHD 240 Hz)",
+    "evidence": "'1 x HDMI 2.1 (HDCP 1.4)(Supports up to FHD 1920 x 1080 240 Hz TMDS, VRR as per specified in HDMI 2.1)' - User's Guide. TMDS-only, so 2.0 may be an intentional site convention."
+   }
+  ]
+ },
+ {
+  "id": "cmwgr597b000c3oym2hgourb1",
+  "name": "Gigabyte GS25F14",
+  "add": {
+   "usbC": "No",
+   "responseType": "MPRT"
+  },
+  "evidence": {
+   "usbC": "Connectivity: '1 x HDMI 2.0, 1 x Displayport 1.2, 1 x Earphone Jack' - no USB-C. https://www.gigabyte.com/Monitor/GS25F14/sp",
+   "responseType": "'Response Time 1ms MPRT' (no GtG figure). https://www.gigabyte.com/Monitor/GS25F14/sp",
+   "dsc": "Not on spec page nor in User Manual https://download.gigabyte.com/FileList/Manual/GIGABYTE_GS25F14_UM_English_20251015.pdf"
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5a3y000m3oymptse0027",
+  "name": "Gigabyte GS27FC",
+  "add": {
+   "usbC": "No",
+   "speakers": "No",
+   "responseType": "MPRT"
+  },
+  "evidence": {
+   "usbC": "Connectivity: '2 x HDMI 2.0, 1 x Displayport 1.4, 1 x Earphone Jack' - no USB-C. https://www.gigabyte.com/Monitor/GS27FC/sp",
+   "speakers": "'Speaker N/A'. https://www.gigabyte.com/Monitor/GS27FC/sp",
+   "responseType": "'Response Time 1ms (MPRT)' (no GtG figure). https://www.gigabyte.com/Monitor/GS27FC/sp",
+   "dsc": "Not on spec page nor in User Manual https://download.gigabyte.com/FileList/Manual/GIGABYTE_GS27FC_GS27QC_GS32QC_UM_English_20230626.pdf (lists 'DP 1.4 (HBR2)')"
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwkd9m7o001dt0ymgk9qp3ns",
+  "name": "Gigabyte GS27U",
+  "add": {
+   "responseType": "MPRT"
+  },
+  "evidence": {
+   "responseType": "'Response Time 1ms MPRT' (no GtG figure). https://www.gigabyte.com/Monitor/GS27U/sp",
+   "checks": "dsc=Yes confirmed ('1 x Displayport 1.4 (DSC)'); 2x HDMI 2.1; no USB-C; 'Speaker N/A'; 350 cd/m2; 160Hz; VESA DisplayHDR400 - all match."
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwkd9jyk000qt0ym9ntgrhqp",
+  "name": "Gigabyte M27Q3",
+  "add": {
+   "speakers": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "speakers": "'Speaker N/A'. https://www.gigabyte.com/Monitor/M27Q3/sp",
+   "responseType": "'Response Time 1ms GTG' (no MPRT figure). https://www.gigabyte.com/Monitor/M27Q3/sp",
+   "checks": "dsc=Yes confirmed by manual OSD: 'DSC: Select OFF to disable DSC signal source. (Only for M27Q3)' https://download.gigabyte.com/FileList/Manual/GIGABYTE_M27Q3_M27Q2_M27Q2ICE_UM_English_20260826.pdf; USB-C 'Alternate Mode; Upstream port; Power Delivery up to 18W' confirms usbC=Yes; refresh '300Hz/ OC 320Hz'; 400 cd/m2; HDR400; 2x HDMI 2.1 - match."
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5evz00223oym24kon4c1",
+  "name": "Gigabyte M27UP ICE",
+  "add": {
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "responseType": "'Response Time 1ms GTG' (no MPRT figure). https://www.gigabyte.com/Monitor/M27UP-ICE/sp",
+   "checks": "'1 x Display port 1.4 (DSC)', USB-C 'Alternate Mode ... Power Delivery up to 18W', 'Speaker 5W x2', 2x HDMI 2.1, 350 cd/m2, 160Hz, VESA DisplayHDR400 - all match ours."
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5dsg001q3oymfx3oq7qw",
+  "name": "Gigabyte MO27Q28G",
+  "add": {
+   "dsc": "Yes",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "User Manual OSD 'Other Settings': 'DSC: Select OFF to disable DSC signal source.' https://download.gigabyte.com/FileList/Manual/GIGABYTE_MO27Q28G_MO27Q28GR_UM_English_20251001.pdf (spec page itself only says 'Displayport 1.4'; manual spec 'DP 1.4 (HBR3)')",
+   "responseType": "'Response Time 0.03ms GTG' (no MPRT figure). https://www.gigabyte.com/Monitor/MO27Q28G/sp",
+   "checks": "335 cd/m2 SDR APL100%, 280Hz, True Black 500, 2x HDMI 2.1, USB-C Alt Mode, 'Speaker 5W x 2' - match."
+  },
+  "notStated": [],
+  "corrections": [
+   {
+    "field": "panel",
+    "ours": "OLED",
+    "maker": "WOLED",
+    "evidence": "'Panel Size (inch) 27\" WOLED / Panel Type WOLED' - https://www.gigabyte.com/Monitor/MO27Q28G/sp. Only change if the site's panel list distinguishes WOLED from generic OLED."
+   }
+  ]
+ },
+ {
+  "id": "cmwkd9l840013t0yml2a76qt5",
+  "name": "Gigabyte MO27Q28GR",
+  "add": {
+   "dsc": "Yes",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "Shared MO27Q28G/MO27Q28GR User Manual OSD: 'DSC: Select OFF to disable DSC signal source.' https://download.gigabyte.com/FileList/Manual/GIGABYTE_MO27Q28G_MO27Q28GR_UM_English_20251001.pdf",
+   "responseType": "'Response Time 0.03ms GTG' (no MPRT figure). https://www.gigabyte.com/Monitor/MO27Q28GR/sp",
+   "checks": "335 cd/m2 SDR, 280Hz, True Black 500, 2x HDMI 2.1, USB-C Alt Mode, 'Speaker 5W x 2', 'Glossy, Anti-Reflection' surface - match."
+  },
+  "notStated": [],
+  "corrections": [
+   {
+    "field": "panel",
+    "ours": "OLED",
+    "maker": "WOLED",
+    "evidence": "'Panel Size (inch) 27\" WOLED / Panel Type WOLED' - https://www.gigabyte.com/Monitor/MO27Q28GR/sp. Only change if the site's panel list distinguishes WOLED."
+   }
+  ]
+ },
+ {
+  "id": "cmwkd9mro001jt0ymkhbn2a8n",
+  "name": "Gigabyte MO27U2",
+  "add": {
+   "dsc": "Yes",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "Shared MO32U/MO27Q2/MO27U2 User Manual OSD: 'DSC: Select OFF to disable DSC signal source.' https://download.gigabyte.com/FileList/Manual/GIGABYTE_MO32U_MO27Q2_MO27U2_UM_English_20260729.pdf (spec: '1 x DP 1.4 (HBR3)')",
+   "responseType": "'Response Time 0.03ms GTG' (no MPRT figure). https://www.gigabyte.com/Monitor/MO27U2/sp",
+   "checks": "QD-OLED, 250 cd/m2 SDR APL100%, 240Hz, True Black 400, 2x HDMI 2.1, USB-C Alt Mode, 'Speaker 5W x 2' - match. Maker also lists 'VESA Certified ClearMR 13000'."
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5fof002b3oymt8qb5vu7",
+  "name": "Gigabyte MO32U2",
+  "add": {
+   "dsc": "Yes",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "The official user manual, shared by MO32U24, MO32U2 and MO27Q3, has this OSD item: 'DSC: Select OFF to disable DSC signal source.' The timing list also shows 3840x2160/240Hz on the MO32U2 over DP 1.4 (HBR3). The web spec page does not mention DSC. https://download.gigabyte.com/FileList/Manual/GIGABYTE_MO32U24_MO32U2_MO27Q3_UM_English_20251209.pdf",
+   "responseType": "'Response Time 0.03ms GTG' (no MPRT figure given). https://www.gigabyte.com/Monitor/MO32U2/sp",
+   "verified": "The spec page confirms 250 cd/m2 (Typ, SDR APL 100%), 240Hz, QD-OLED, DisplayHDR True Black 400, 2x HDMI 2.1, 1x DP 1.4, 'USB Type-C (Alternate Mode; Upstream port; Power Delivery up to 18W)' and 'Speaker 5W x 2'."
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwkd9htg0003t0ymh3es66et",
+  "name": "KOORUI G2511P",
+  "add": {
+   "usbC": "No"
+  },
+  "evidence": {
+   "usbC": "The official manual spec table lists 'Type-C: None' and 'USB: None'. Inputs are HDMI 2.0*2 and DP1.4*1. https://cdn.shopify.com/s/files/1/0934/7570/1022/files/G2511P_user_manual.pdf",
+   "responseType": "INFERRED, so weak. The manual gives only '1ms(OD)' (OD = overdrive) and never prints 'GtG'. The OSD has a separate 'MPRT ON/OFF' mode, so the 1ms headline is the overdrive (GtG-type) figure, not MPRT. Drop this field if you only want explicit statements. Same PDF.",
+   "dsc": "Not stated anywhere in the manual."
+  },
+  "notStated": [
+   "dsc",
+   "responseType (inferred — dropped)"
+  ],
+  "corrections": [
+   {
+    "field": "hdr",
+    "ours": "DisplayHDR 400",
+    "maker": "HDR400",
+    "evidence": "The manual's Product Features say 'HDR: HDR400' and spec 'SDR 350cd/m2; HDR 400cd/m2'. It never says VESA DisplayHDR certified, so this is only a soft flag. Same PDF."
+   }
+  ]
+ },
+ {
+  "id": "cmwkd9i2j0006t0ymuy62d08s",
+  "name": "KOORUI G2711P",
+  "add": {
+   "usbC": "No"
+  },
+  "evidence": {
+   "usbC": "The official manual spec table lists 'Type-C: None' and 'USB: None'. Inputs are HDMI 2.0*2 and DP1.4*1. https://cdn.shopify.com/s/files/1/0934/7570/1022/files/G2711P_user_manual.pdf",
+   "responseType": "INFERRED, so weak. The manual gives only '1ms(OD)' (overdrive) and never prints 'GtG'. The separate 'MPRT ON/OFF' OSD mode means the headline is not MPRT. Drop this field if you only want explicit statements. Same PDF.",
+   "dsc": "Not stated anywhere in the manual."
+  },
+  "notStated": [
+   "dsc",
+   "responseType (inferred — dropped)"
+  ],
+  "corrections": [
+   {
+    "field": "hdr",
+    "ours": "DisplayHDR 400",
+    "maker": "HDR400",
+    "evidence": "The manual's Product Features say 'HDR: HDR400' and never say VESA DisplayHDR certified. Soft flag only. Same PDF."
+   }
+  ]
+ },
+ {
+  "id": "cmwgr5d9b001k3oymto4zod3t",
+  "name": "LG UltraGear 27GS60QC-B",
+  "add": {
+   "usbC": "No",
+   "speakers": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "LG's full spec table (UK page, same model) lists Connectivity as only 'HDMI YES(2ea)', 'DisplayPort YES(1ea)', 'DP Version 1.4' and 'Headphone output 3-pole (Sound Only)'. There is no USB or USB-C row. https://www.lg.com/uk/monitors/gaming/27gs60qc-b/ (the SA page's All Spec table is empty)",
+   "speakers": "The same LG spec table has no Speaker row and no Sound section. Audio is 'Headphone output 3-pole (Sound Only)'. https://www.lg.com/uk/monitors/gaming/27gs60qc-b/",
+   "responseType": "'Response Time 1ms (GtG at Faster)'. https://www.lg.com/uk/monitors/gaming/27gs60qc-b/ and the SA page's '1ms (GtG) response time'.",
+   "dsc": "Not mentioned in LG's spec table or feature text.",
+   "verified": "Panel VA, 1000R, 180Hz, 300cd/m2 Typ (250 Min), HDR10, FreeSync, DP 1.4. LG gives no HDMI version, so our '2.0' can't be confirmed from LG."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmw55cj1i00001cym4wgynyme",
+  "name": "LG UltraGear 27GS75Q-B",
+  "add": {
+   "usbC": "No",
+   "speakers": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "LG's full spec table lists Connectivity as 'HDMI YES(2ea)', 'DisplayPort YES(1ea)', 'DP Version 1.4' and 'Headphone output 3-pole (Sound Only)'. There is no USB-C row. The table also has an odd 'Thunderbolt: 2.2' row, which looks like LG data noise. No Thunderbolt or USB-C port appears in the ports or features. https://www.lg.com/uk/monitors/gaming/27gs75q-b/",
+   "speakers": "No Speaker row or Sound section in LG's spec table. Audio is 'Headphone output 3-pole (Sound Only)'. https://www.lg.com/uk/monitors/gaming/27gs75q-b/",
+   "responseType": "'Response Time 1ms (GtG at Faster)'. https://www.lg.com/uk/monitors/gaming/27gs75q-b/",
+   "dsc": "Not mentioned in LG's spec table or feature text.",
+   "verified": "IPS, '180 200 (O/C)' Hz, 300cd/m2 Typ, HDR10, G-SYNC Compatible + FreeSync, DP 1.4. HDMI version is not stated by LG."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwkd9lxr001at0ymhwfnv8e2",
+  "name": "LG UltraGear 27GX790A-B",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "LG's spec table lists 'USB Upstream Port YES(1ea/ver3.0)', 'USB Downstream Port YES(2ea/ver3.0)' and the accessory 'USB A to B'. There is no USB-C row, so the USB ports are data-only and carry no video. https://www.lg.com/uk/monitors/gaming/27gx790a-b/",
+   "dpUhbr": "Not stated. LG's spec table says only 'DP Version 2.1', and the feature text says only 'Latest DisplayPort 2.1'. A user review on LG's page claims it was first advertised as UHBR20 but lacks 80Gbps. That is a review, not a maker statement, so I did not use it.",
+   "responseType": "'Response Time 0.03ms (GTG)' (UK); 'Display - Response Time 0.03ms (GtG at Faster)' (SA). https://www.lg.com/sa_en/monitors/gaming/27gx790a-b/",
+   "verified": "'Others (Features): VESA DSC Tech' confirms our dsc=Yes. Also 275cd/m2 Typ, 480Hz, OLED, DisplayHDR True Black 400, FreeSync Premium Pro, HDMI 2.1 x2, and no Speaker row (Sound only lists 'DTS HP:X')."
+  },
+  "notStated": [
+   "dpUhbr"
+  ],
+  "corrections": [
+   {
+    "field": "sizeInch",
+    "ours": "27",
+    "maker": "26.5",
+    "evidence": "LG's spec table says 'Size [Inch] 26.5'. LG markets it as a '27-inch' monitor, so this is optional and only matters if you store the true diagonal. https://www.lg.com/uk/monitors/gaming/27gx790a-b/"
+   }
+  ]
+ },
+ {
+  "id": "cmwgr5atp000t3oymyxd80eu3",
+  "name": "MSI MAG 274QF X24",
+  "add": {
+   "usbC": "No",
+   "speakers": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "Official datasheet: 'USB ports N/A'. Video ports are '2x HDMI 2.0b (WQHD@144Hz)' and '1x DisplayPort 1.4a (HBR3)'. https://storage-asset.msi.com/datasheet/monitor/global/MAG-274QF-X24.pdf",
+   "speakers": "Official datasheet: 'SPEAKER N/A'. The spec page lists audio as '1x Headphone-out' only. https://www.msi.com/Monitor/MAG-274QF-X24/Specification",
+   "responseType": "'RESPONSE TIME 0.5ms (GtG, Min)'. The manual mentions MPRT only as an OSD mode, with no MPRT figure. https://www.msi.com/Monitor/MAG-274QF-X24/Specification",
+   "dsc": "No DSC mention in the spec page, the datasheet or the English user guide (https://download.msi.com/archive/mnu_exe/monitor/MAG_274QF_MAG_274QF_X24v1.0_English.pdf)."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": [
+   {
+    "field": "hdr",
+    "ours": "None",
+    "maker": "HDR Ready",
+    "evidence": "Spec page and datasheet say 'HDR SUPPORT: HDR Ready'. The panel takes HDR signals but has no VESA certification. https://www.msi.com/Monitor/MAG-274QF-X24/Specification"
+   }
+  ]
+ },
+ {
+  "id": "cmwgr5bz200163oymmxta1daz",
+  "name": "MSI MAG 274QPF E20",
+  "add": {
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "responseType": "'RESPONSE TIME 0.5ms (GtG, Min.)'. https://www.msi.com/Monitor/MAG-274QPF-E20/Specification",
+   "dsc": "No DSC mention in the spec page, the datasheet (https://storage-asset.msi.com/datasheet/monitor/global/MAG-274QPF-E20.pdf) or the English user guide (https://download.msi.com/archive/mnu_exe/monitor/MAG_274QPF_274QRFW_E20v1.0_English.pdf).",
+   "verified": "SDR 300 cd/m2, 200Hz, Rapid IPS, VESA DisplayHDR 400, G-SYNC Compatible + FreeSync Premium, 2x HDMI 2.0b, DP 1.4a, '1x Type-C (DP alt.) w/ 15W PD', 'SPEAKER N/A'."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5cp9001e3oymhpdkhv6b",
+  "name": "MSI MAG 274QPF X30MV",
+  "add": {
+   "dsc": "Yes",
+   "usbC": "No",
+   "speakers": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "The English user guide (shared with the 274UPDF E16M) has the OSD item 'Users can toggle DSC (Display Stream Compression) on/off'. Its timing tables are headed 'MAG 274QPF X30MV — Standard Mode (HDMI 2.1 - PC, DSC ON)' and '... DSC OFF'. https://download.msi.com/archive/mnu_exe/monitor/MAG_274QPF_X30MV_274UPDF_E16Mv1.1_English.pdf",
+   "usbC": "Datasheet video ports are only '1x DisplayPort 1.4a (HBR3)' and '2x HDMI 2.1 (WQHD@300Hz)', with audio '1x Headphone-out'. The USB Type-C port in the shared manual belongs to the 274UPDF E16M, not this model. https://storage-asset.msi.com/datasheet/monitor/global/MAG-274QPF-X30MV.pdf",
+   "speakers": "No speaker row in the datasheet. Audio ports are '1x Headphone-out' only. Same datasheet.",
+   "responseType": "'Response time 0.5ms (GtG, Min.)'. Same datasheet.",
+   "verified": "Panel 'Rapid VA with Mini-LED (1152 Zones)', SDR 400 cd/m2, HDR 1000 peak, VESA DisplayHDR 1000, 300Hz, HDMI 2.1."
+  },
+  "notStated": [],
+  "corrections": [
+   {
+    "field": "vrr",
+    "ours": "FreeSync",
+    "maker": "Adaptive-Sync",
+    "evidence": "The global datasheet row 'DYNAMIC REFRESH RATE TECHNOLOGY: Adaptive-Sync' does not claim AMD FreeSync branding. https://storage-asset.msi.com/datasheet/monitor/global/MAG-274QPF-X30MV.pdf"
+   }
+  ]
+ },
+ {
+  "id": "cmwkd9kc2000ut0ymtfqzg1wn",
+  "name": "MSI MAG 274QRF QD E2",
+  "add": {
+   "speakers": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "speakers": "No speaker row in the official datasheet. Audio ports are '1 x Headphone Out' only. https://storage-asset.msi.com/datasheet/monitor/global/MAG-274QRF-QD-E2.pdf",
+   "responseType": "The spec row reads 'Response time 1ms (GTG)'. The marketing text on the same datasheet also claims '1ms(MPRT) response time', so both are 1ms, and our responseMs=1 is the GtG spec-table value. Same datasheet.",
+   "dsc": "No DSC mention in the datasheet or the English user guide (https://download.msi.com/archive/mnu_exe/monitor/MAG_274QRF-QD-E2v1.1_English.pdf).",
+   "verified": "'1x Type-C (DP alt.) w/ PD 65W' confirms usbC=Yes. Also brightness 400, DisplayHDR 400, AMD FreeSync, 180Hz, HDMI 2.0b, DP 1.4a."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwkd9klu000xt0ymm2lwo6g6",
+  "name": "MSI MAG 274QRFW X32",
+  "add": {
+   "dsc": "Yes",
+   "usbC": "No",
+   "speakers": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "The English user guide (shared by the 274QPF X32 and 274QRFW X32) has the OSD item 'Users can toggle DSC (Display Stream Compression) on/off', with timing tables 'HDMI 2.1 - PC, DSC On/Off' and 'HDMI 2.1 - Console, DSC On/Off'. https://download.msi.com/archive/mnu_exe/monitor/MAG_274QPF_274QRFW_X32v1.0_English.pdf",
+   "usbC": "Datasheet video ports are only '1x DisplayPort 1.4a (HBR3)' and '2x HDMI 2.1 (WQHD@320Hz)', with no USB row. https://storage-asset.msi.com/datasheet/monitor/global/MAG-274QRFW-X32.pdf",
+   "speakers": "No speaker row in the datasheet. Audio ports are '1x Headphone-out' only. Same datasheet.",
+   "responseType": "'Response time 0.5ms (GtG, Min.)'. Same datasheet.",
+   "verified": "SDR 300 cd/m2, HDR 400 peak, 320Hz, VESA DisplayHDR 400, G-SYNC Compatible + FreeSync Premium, HDMI 2.1. The 'White' color is not stated in the datasheet text; the model name's W suffix suggests it but I did not verify it."
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr58w800093oymnx9pipvi",
+  "name": "MSI MAG 275F",
+  "add": {
+   "usbC": "No",
+   "speakers": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "Official datasheet: 'USB ports N/A'. Video ports are '1x DisplayPort 1.4' and '2x HDMI 2.0b'. https://storage-asset.msi.com/datasheet/monitor/global/MAG-275F.pdf",
+   "speakers": "No speaker row in the datasheet. Audio ports are '1 x Headphone Out' only. Same datasheet.",
+   "responseType": "'Response time 0.5ms (GtG, Min.)'. Same datasheet.",
+   "dsc": "No DSC mention in the datasheet or the English user guide (https://download.msi.com/archive/mnu_exe/monitor/MAG_275Fv1.1_English.pdf)."
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": [
+   {
+    "field": "hdr",
+    "ours": "None",
+    "maker": "Yes (HDR support, no certification)",
+    "evidence": "Datasheet says 'HDR Support: Yes'. The user guide has a section on 'when HDR signals are received'. https://storage-asset.msi.com/datasheet/monitor/global/MAG-275F.pdf"
+   }
+  ]
+ },
+ {
+  "id": "cmwgr5fe900283oym1pr7g3jd",
+  "name": "MSI MAG 322URDF E16",
+  "add": {
+   "dsc": "Yes",
+   "usbC": "No",
+   "speakers": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "English user guide: 'Users can toggle DSC (Display Stream Compression) on/off', plus 'To activate DSC-specific timing and frequency, ensure your graphics card supports DSC'. It has 'Standard Mode (DSC On)' and 'Standard Mode (DSC Off)' timing tables. https://download.msi.com/archive/mnu_exe/monitor/MAG_322URDF_E16v1.0_English.pdf",
+   "usbC": "Datasheet USB ports are '2 x USB 2.0 Type-A' and '1 x USB 2.0 Type-B' (hub only). There is no USB-C, and video is only DP 1.4a plus 2x HDMI 2.1. https://storage-asset.msi.com/datasheet/monitor/global/MAG-322URDF-E16.pdf",
+   "speakers": "No speaker row in the datasheet. Audio ports are '1x Headphone-out' only. Same datasheet.",
+   "responseType": "'Response time 0.5ms (GtG, Min.)'. Same datasheet.",
+   "verified": "SDR 400 cd/m2 (Typ.), HDR 450 peak, VESA DisplayHDR 400, FreeSync Premium, 'Normal: 160Hz / Dual Mode: 320Hz' (Dual Mode is FHD), HDMI 2.1 (4K@160Hz)."
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5c7c00183oymz07yfo6n",
+  "name": "MSI MPG 275CQRXF",
+  "add": {
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "responseType": "RESPONSE TIME \"0.5ms (GtG, Min.)\" (only figure listed, no MPRT) — https://www.msi.com/Monitor/MPG-275CQRXF/Specification ; same in https://storage-asset.msi.com/datasheet/monitor/ca/MPG-275CQRXF.pdf",
+   "speakers": "No SPEAKER row on the spec page/datasheet; AUDIO PORTS \"1 x Headphone-out\" only (probably no speakers, but not stated explicitly) — same URLs",
+   "dsc": "Video ports \"1 x DisplayPort 1.4a / 2 x HDMI 2.0b (WQHD@144Hz) / 1 x USB 2.0 Type-C (DP alt.) w/ 98W PD\"; no DSC mention anywhere — same URLs"
+  },
+  "notStated": [
+   "dsc",
+   "speakers"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5b4b000w3oym8wj4oesg",
+  "name": "Samsung Odyssey G5 G50F",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "Interface section lists only \"Display Port 1 EA / Version 1.2\", \"HDMI 1 EA / Version 2.0\", \"Headphone Yes\" — no USB of any kind — https://www.samsung.com/sa_en/monitors/gaming/odyssey-g5-g50f-27-inch-180hz-qhd-ls27fg502emxue/",
+   "responseType": "\"Response Time 1ms(GTG)\" — same URL",
+   "dsc": "Not on spec page; the user manual (BN81-28255D-02 Gaming-Series-Y25) mentions DSC only for 2560x1440 @ 240 Hz or higher; this model is 180 Hz"
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5d3l001i3oym2v06dugx",
+  "name": "Samsung Odyssey G5 G55C 32",
+  "add": {
+   "usbC": "No",
+   "speakers": "No",
+   "responseType": "MPRT"
+  },
+  "evidence": {
+   "usbC": "Interface lists only Display Port 1 EA (1.2), HDMI 1 EA (2), Headphone Yes — no USB — https://www.samsung.com/sa_en/monitors/gaming/odyssey-g5-g55c-32-inch-165hz-curved-qhd-ls32cg552emxue/ (same on UK page)",
+   "speakers": "Samsung UK page, same model: \"Note, speakers are not included with this monitor but you can plug in your own headphones or speakers...\" — https://www.samsung.com/uk/monitors/gaming/odyssey-g5-g55c-32-inch-165hz-curved-qhd-ls32cg552euxxu/ (SA page has no Audio section)",
+   "responseType": "\"Response Time 1 (MPRT)\" (no GtG figure) — SA URL above",
+   "dsc": "No DSC mention on SA/UK/AU spec pages"
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5bdh000z3oymps637e21",
+  "name": "Samsung Odyssey G6 G60F",
+  "add": {
+   "dsc": "Yes",
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "Official user manual (covers S27FG60*E = G60F, 2560x1440@350Hz), spec-section note: \"When using dual monitors from your computer while in DSC mode at 2560 x 1440 @ 240 Hz or higher...\" — https://org.downloadcenter.samsung.com/downloadfile/ContentsFile.aspx?CDSite=UNI_LEVANT&OriginYN=N&ModelType=N&ModelName=S27FG600EM&CttFileID=11598156&CDCttType=UM&VPath=UM%2F202608%2F20260805035322001%2FBN81-28255D-02_WUG_Gaming-Series-Y25_ASIA+MENA+AFRICA_ENG_260728.0.pdf (p.53). A manual note, not a spec-table row",
+   "usbC": "Interface: \"USB-C: No\" — https://www.samsung.com/sa_en/monitors/gaming/odyssey-g6-g60f-27-inch-350hz-qhd-ls27fg600emxue/",
+   "responseType": "\"Response Time 1ms (GTG)\" — same URL"
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5di7001n3oymsuj5m8ej",
+  "name": "Samsung Odyssey OLED G5 G50SF",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "Interface: \"USB-C: No\" — https://www.samsung.com/sa_en/monitors/gaming/odyssey-oled-g5-g50sf-27-inch-180hz-oled-qhd-ls27fg502smxue/",
+   "responseType": "\"Response Time 0.03ms(GTG)\" — same URL",
+   "dsc": "Not on spec page; the manual's DSC note covers only 2560x1440 @ 240 Hz or higher (this model: 180 Hz DP / 144 Hz HDMI)"
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr5g1p002f3oym8sbc6ot7",
+  "name": "Samsung Odyssey OLED G8 G81SF",
+  "add": {
+   "dsc": "Yes",
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "Official G81SF user manual (S32FG81*S, 3840x2160@240Hz), spec-section note: \"...while in DSC mode at 2560 x 1440 @ 240 Hz or higher...\" — https://org.downloadcenter.samsung.com/downloadfile/ContentsFile.aspx?CDSite=UNI_LEVANT&OriginYN=N&ModelType=N&ModelName=S27FG810SM&CttFileID=10637292&CDCttType=UM&VPath=UM%2F202507%2F20250710095931277%2FBN81-28065G-01_WUG_G60SD_G61SD_G60SF_G81SF_G90XF_ASIA_MENA_AFRICA_ENG_250605.0.pdf (same note in the Y25 manual). A manual note, not a spec-table row",
+   "usbC": "Interface: \"USB-C: No\" (has USB-B upstream x1 + USB-A 3.2 Gen1 x2, data hub only) — https://www.samsung.com/sa_en/monitors/gaming/odyssey-oled-g8-g81sf-32-inch-240hz-oled-uhd-ls32fg810smxue/",
+   "responseType": "\"Response Time 0.03ms(GTG)\" — same URL"
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwkd9n0l001mt0ymbl125bew",
+  "name": "Samsung Odyssey OLED G8 G81SF 27",
+  "add": {
+   "dsc": "Yes",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "dsc": "Same official G81SF manual (covers S27FG81*S, 3840x2160@240Hz): \"...while in DSC mode at 2560 x 1440 @ 240 Hz or higher...\" — BN81-28065G-01 manual URL above (ModelName=S27FG810SM). A manual note, not a spec-table row",
+   "responseType": "0.03 ms gray-to-gray (GTG) — https://www.samsung.com/sa_en/monitors/gaming/odyssey-oled-g8-g81sf-27-inch-240hz-oled-uhd-ls27fg810smxue/"
+  },
+  "notStated": [],
+  "corrections": []
+ },
+ {
+  "id": "cmwkd9ics0009t0ymc7ounte0",
+  "name": "ViewSonic VX2719-PC-MHD",
+  "add": {
+   "usbC": "No",
+   "responseType": "MPRT"
+  },
+  "evidence": {
+   "usbC": "Connector section (complete): \"3.5mm Audio Out: 1\", \"HDMI 2.1: 2\", \"DisplayPort: 1\", \"Power in: DC Socket\" — no USB — https://www.viewsonic.com/me/products/lcd/VX2719-PC-MHD",
+   "responseType": "\"Response Time (MPRT): 1ms\" (no GtG figure listed) — same URL",
+   "dsc": "No DSC mention on the spec page"
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": [
+   {
+    "field": "hdmiVersion",
+    "ours": "2.0",
+    "maker": "2.1",
+    "evidence": "Connector \"HDMI 2.1: 2\"; Input Signal \"HDMI (v2.1): 48 ~ 240Hz\"; Video Input \"TMDS - HDMI (v2.1)\" (TMDS signalling, so probably HDMI 2.0-class bandwidth, but the maker labels it 2.1) — https://www.viewsonic.com/me/products/lcd/VX2719-PC-MHD"
+   }
+  ]
+ },
+ {
+  "id": "cmwkd9jkp000mt0ymas5m6g6m",
+  "name": "Xiaomi G Pro 27i",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "\"Type and Number of Ports: DP port x2, HDMI port x2, Audio port x1, DC IN power port x1\" — https://www.mi.com/sa-en/product/xiaomi-mini-led-gaming-monitor-g-pro-27i/specs/",
+   "responseType": "Overview: \"The fast 1ms GTG response reduces monitor ghosting...\" (spec table says \"1ms (TYP)\") — https://www.mi.com/sa-en/product/xiaomi-mini-led-gaming-monitor-g-pro-27i/",
+   "brightnessNits": "Only \"Peak Brightness: 1000 nits\" published (HDR + dynamic backlight on); no typical SDR figure",
+   "speakers": "No speaker row; ports list only \"Audio port x1\" (likely none, not stated explicitly)",
+   "dsc": "Not mentioned; overview: \"DP1.4 x2, HDMI2.0 x2\""
+  },
+  "notStated": [
+   "dsc",
+   "speakers",
+   "brightnessNits"
+  ],
+  "corrections": [
+   {
+    "field": "hdr",
+    "ours": "DisplayHDR 1000",
+    "maker": "HDR1000",
+    "evidence": "Spec \"HDR: HDR1000\"; overview \"HDR1000 for stunning and lifelike moments\" — Xiaomi SA pages name no VESA/DisplayHDR certification"
+   }
+  ]
+ },
+ {
+  "id": "cmwkd9hit0000t0ymey0nwaqi",
+  "name": "Xiaomi G24i 2026",
+  "add": {
+   "usbC": "No",
+   "responseType": "GtG"
+  },
+  "evidence": {
+   "usbC": "\"Ports: DP port x1, HDMI port x1, Audio port x1, DC IN power port x1\" — https://www.mi.com/sa-en/product/xiaomi-gaming-monitor-g24i-2026/specs/",
+   "responseType": "\"1ms fast response G to G (GTG)\"; footnote \"1ms GTG response time was measured... set to Ultrafast\" — https://www.mi.com/sa-en/product/xiaomi-gaming-monitor-g24i-2026/",
+   "dsc": "Not mentioned; DP/HDMI versions are not stated on the SA pages either"
+  },
+  "notStated": [
+   "dsc"
+  ],
+  "corrections": [
+   {
+    "field": "hdr",
+    "ours": "DisplayHDR 400",
+    "maker": "HDR 400",
+    "evidence": "Overview: \"HDR 400 delivers a peak brightness of 400nits*\" / \"HDR400* technology...\" — no VESA DisplayHDR certification named — https://www.mi.com/sa-en/product/xiaomi-gaming-monitor-g24i-2026/"
+   },
+   {
+    "field": "brightnessNits",
+    "ours": "350",
+    "maker": "400",
+    "evidence": "Spec \"Peak brightness 400nits (TYP)\"; footnote: measured \"using a pure white screen with the monitor brightness set to 100\" (full-white, i.e. effectively the typical max). No 350 figure anywhere on the maker page — https://www.mi.com/sa-en/product/xiaomi-gaming-monitor-g24i-2026/specs/"
+   }
+  ]
+ },
+ {
+  "id": "cmwgr59ub000j3oym03gqw0ma",
+  "name": "Z-Edge UG24",
+  "add": {
+   "usbC": "No",
+   "responseType": "MPRT"
+  },
+  "evidence": {
+   "usbC": "Specifications \"Ports: HDMIx1, DPx1, Audio Outx1\" — https://www.z-edge.com/products/ug24-180hz",
+   "responseType": "\"Response Time: 1ms (MPRT)\" — same URL",
+   "speakers": "No speaker row; only \"Audio Outx1\"",
+   "dsc": "Not mentioned (HDMI/DP versions not stated either)"
+  },
+  "notStated": [
+   "dsc",
+   "speakers"
+  ],
+  "corrections": []
+ },
+ {
+  "id": "cmwgr59kh000g3oymjrpnzwpy",
+  "name": "Z-Edge UG27F",
+  "add": {
+   "responseType": "MPRT"
+  },
+  "evidence": {
+   "responseType": "Z-Edge's own UG27F page: \"Response Time: MPRT 1ms\" — https://www.z-edge.com/products/ug27f-ips (the IPS UG27F and the curved-VA UG27 are both 1ms MPRT on z-edge.com)",
+   "identity": "Our makerUrl is a Microless store page, not the maker. z-edge.com's only UG27F (SKU UG27F-SP, handle ug27f-ips) is titled 'Z-EDGE UG27F 27in 180Hz IPS Gaming Monitor': Panel IPS, DP(1.4)/HDMI(2.0) max 180Hz, Brightness (Max) 300cd/m2, Port HDMI x1 / DP x1 / Audio x1, 'Speaker: No', HDR Support. Our record (curved VA 1500R) matches z-edge.com's 'UG27' instead (https://www.z-edge.com/products/z-edge-ug27: VA, 1500R, 180Hz, MPRT 1ms, HDMI x1/DP x1/Audio Out x1). If the stocked item is the IPS UG27F, then usbC=No, speakers=No, brightnessNits=300 apply; not added because the maker page does not match our panel/curvature",
+   "dsc": "Not mentioned on either page"
+  },
+  "notStated": [
+   "dsc",
+   "usbC",
+   "speakers",
+   "brightnessNits"
+  ],
+  "corrections": [
+   {
+    "field": "panel",
+    "ours": "VA",
+    "maker": "IPS",
+    "evidence": "z-edge.com UG27F page: 'Panel Type: IPS', titled '180Hz IPS Gaming Monitor' — https://www.z-edge.com/products/ug27f-ips. Identity conflict: needs a manual check of what the stores actually sell (third-party listings disagree)"
+   },
+   {
+    "field": "curvature",
+    "ours": "1500R",
+    "maker": "no curvature listed (product titled IPS, not curved)",
+    "evidence": "https://www.z-edge.com/products/ug27f-ips — same identity caveat"
+   }
+  ]
+ }
+]
