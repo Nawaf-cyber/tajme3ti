@@ -309,6 +309,9 @@ export type StoreOutcome = {
   errors: string[];
   /** سعر قُرئ بنجاح لكنه ارتفاع مشبوه — يُعلَّق للمراجعة ولا يُطبَّق */
   heldPrice?: number;
+  /** هبوطٌ شديد رُفض (classifyPriceChange · reject) — فإن تكرّر الرقم نفسه في الفحص التالي صار سؤالاً
+   *  في طابور المراجعة (lib/scrape-offers · resolveOfferPrices) */
+  rejectedDrop?: number;
   /**
    * لم تُجرَّب القراءة أصلاً: لا رابط، أو متجرٌ سحبه موقوف (سعر يدوي).
    * ⚠️ ويُفرَّق عن الفشل: الفاشل يُسجَّل وقتُ محاولته، وهذا لا محاولة له —
@@ -361,10 +364,24 @@ export function applyPriceVerdict(
       return;
     case 'reject':
       out.errors.push(
-        `${storeName} (${itemName}): سعر مرفوض لانحرافه الشديد (${price} مقابل ${previous ?? '؟'} سابقاً) — تحقّق من بنية الصفحة.`,
+        `${storeName} (${itemName}): ${REJECT_MARK} (${price} مقابل ${previous ?? '؟'} سابقاً) — تحقّق من بنية الصفحة.`,
       );
+      if (price > 0 && previous && price < previous) out.rejectedDrop = price;
       return;
   }
+}
+
+/* ============ الهبوط المرفوض الذي يتكرّر ============
+ * الهبوط تحت ٤٠٪ من السابق يُرفض صامتاً (lib/price · classifyPriceChange) لأنه غالباً خطأ قراءة.
+ * لكنّ «السابق» قد يكون هو الخطأ: أمازون عرض QUBE 540 بـ1315 (بائعٌ ثانٍ مضخّم) وهو بـ357 في
+ * مايكرولس، فلمّا عاد إلى 389 رُفض كلّ ساعةٍ ثلاثة أيّام، وبقي الخطأ معروضاً (2026-11-20).
+ * فالرقم نفسه في فحصين متتاليين ليس خطأ قراءةٍ عابراً ← سؤالٌ للأدمن، والقديم معروضٌ حتى يقرّر.
+ * والعدّ من lastError نفسه: الرسالة تحمل الرقم المرفوض، فلا عمود جديد. */
+const REJECT_MARK = 'سعر مرفوض لانحرافه الشديد';
+export function rejectedDropIn(lastError: string | null | undefined): number | null {
+  const i = lastError?.indexOf(`${REJECT_MARK} (`) ?? -1;
+  const m = i >= 0 ? lastError!.slice(i + REJECT_MARK.length).match(/^ \(([\d.]+) مقابل/) : null;
+  return m ? Number(m[1]) : null;
 }
 
 const scrapeUrl = (token: string, target: string, premium: boolean) =>

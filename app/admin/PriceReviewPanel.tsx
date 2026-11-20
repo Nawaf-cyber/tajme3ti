@@ -60,10 +60,11 @@ export default function PriceReviewPanel({ rows }: { rows: ReviewRow[] }) {
           <span className="text-lg">⚠️</span>
           <div>
             <h3 className="font-black text-sm text-amber-900 dark:text-amber-200">
-              ارتفاع سعري يحتاج مراجعة
+              تغيّر سعري كبير يحتاج مراجعة
             </h3>
             <p className="text-[11px] text-amber-700/80 dark:text-amber-300/70 font-medium mt-0.5">
               السعر القديم ما زال معروضاً للزوار حتى تقرّر. افتح رابط المتجر ثم اعتمد أو ارفض.
+              {' '}والنزول الكبير يوصل هنا إذا تكرّر الرقم نفسه مرّتين — يمكن السعر القديم هو الغلط.
             </p>
           </div>
         </div>
@@ -103,9 +104,13 @@ export default function PriceReviewPanel({ rows }: { rows: ReviewRow[] }) {
                   <span className="text-slate-500 dark:text-slate-400 line-through">{formatPrice(r.oldPrice)}</span>
                   <span className="text-slate-400">←</span>
                   <span className="font-black text-amber-700 dark:text-amber-300">{formatPrice(r.newPrice)} ﷼</span>
-                  <span className="font-black text-red-600 dark:text-red-400">▲{r.changePct}%</span>
+                  {r.changePct >= 0 ? (
+                    <span className="font-black text-red-600 dark:text-red-400">▲{r.changePct}%</span>
+                  ) : (
+                    <span className="font-black text-emerald-600 dark:text-emerald-400">▼{-r.changePct}%</span>
+                  )}
                   <span className="text-slate-400 dark:text-slate-500 font-bold">
-                    (+{formatPrice(r.newPrice - r.oldPrice)} ﷼)
+                    ({r.newPrice >= r.oldPrice ? '+' : '−'}{formatPrice(Math.abs(r.newPrice - r.oldPrice))} ﷼)
                   </span>
                 </div>
               </div>

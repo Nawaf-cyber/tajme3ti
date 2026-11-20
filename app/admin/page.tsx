@@ -167,7 +167,7 @@ export default async function AdminDashboard() {
               { label: 'طلبٌ أو ردٌّ جديد', value: newRequests, tone: newRequests ? 'alert' : 'ok', href: '/admin/part-requests' },
               { label: 'متجرٌ يطلب الانضمام', value: newStoreApps, tone: newStoreApps ? 'alert' : 'ok', href: '/admin/store-applications' },
               { label: 'بلاغُ سعرٍ من زائر', value: reportRows.length, tone: reportRows.length ? 'alert' : 'ok', href: '#price-reports' },
-              { label: 'ارتفاعٌ ينتظر قرارك', value: reviewRows.length, tone: reviewRows.length ? 'warn' : 'ok', href: '#price-reviews' },
+              { label: 'سعرٌ ينتظر قرارك', value: reviewRows.length, tone: reviewRows.length ? 'warn' : 'ok', href: '#price-reviews' },
               { label: 'رابطٌ مكسور في وصف', value: brokenLinks.length, tone: brokenLinks.length ? 'alert' : 'ok' },
             ].map((s) => {
               const tone =

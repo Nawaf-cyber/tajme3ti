@@ -12,7 +12,7 @@
  */
 
 import {
-  round2, applyPriceVerdict, GONE_MARK,
+  round2, applyPriceVerdict, rejectedDropIn, GONE_MARK,
   scrapeAmazon, scrapeCazasouq, scrapeMicroless, scrapeJarir,
   type OfferTarget, type StoreOutcome,
 } from './scrape-prices';
@@ -194,7 +194,14 @@ export function resolveOfferPrices(
     if (o.price != null && o.price > 0) pricePoints.push({ store: r.storeSlug, price: o.price });
     if (prev.inStock === false && inStock && o.price != null) restocked = true;
 
-    if (o.heldPrice != null && prev.price != null) {
+    /* الهبوط المرفوض مرّتين بالرقم نفسه (±٢٪) ← طابور المراجعة (انظر lib/scrape-prices · rejectedDropIn).
+       يبقى خطؤه في lastError فيُعدّ التكرار في كلّ دورة، ولا يُحدَّث lastReadAt — فإن لم يُحسم في
+       SCRAPE_STALE_DAYS سقط العرض من «أقلّ سعر» بدل أن يبقى سعره المشكوك فيه معروضاً. */
+    const lastDrop = rejectedDropIn(prev.lastError);
+    if (o.rejectedDrop != null && prev.price != null && lastDrop != null &&
+        Math.abs(o.rejectedDrop - lastDrop) / Math.max(o.rejectedDrop, lastDrop) <= 0.02) {
+      holds.push({ offerId: r.offerId, storeName: r.storeName, oldPrice: prev.price, newPrice: o.rejectedDrop });
+    } else if (o.heldPrice != null && prev.price != null) {
       holds.push({ offerId: r.offerId, storeName: r.storeName, oldPrice: prev.price, newPrice: o.heldPrice });
     } else if (o.price != null) {
       /* قُرئ سعرٌ واعتُمد، فأي سؤال معلَّق على هذا العرض بطل: إمّا عاد المتجر
