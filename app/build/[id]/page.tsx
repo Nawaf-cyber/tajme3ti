@@ -4,6 +4,7 @@ import GamePerformance from '../../../components/GamePerformance';
 import { brandColor } from '../../../lib/brand';
 import { prisma } from '../../../lib/prisma';
 import StoreBuyChips from '../../../components/StoreBuyChips';
+import AffiliateDisclosure from '../../../components/AffiliateDisclosure';
 import { OFFER_INCLUDE } from '../../../lib/stores-server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -320,6 +321,7 @@ export default async function SharedBuildPage({ params }: { params: Promise<{ id
             );
           })}
         </div>
+        <AffiliateDisclosure className="mt-4" />
 
         <div className="mt-12 text-center">
           <Link href="/builder" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-8 rounded-xl transition-all shadow-sm active:scale-95 text-sm">

@@ -24,6 +24,7 @@ import RatingMeter from './RatingMeter';
 import GamePerformance from './GamePerformance';
 import { MonitorAdviceCard, MonitorAdviceLine, toMonitorItem } from './MonitorAdvice';
 import { buildStoreUrl, storeLinkProps } from '../lib/affiliate';
+import AffiliateDisclosure from './AffiliateDisclosure';
 import { track, trackOnce } from '../lib/track';
 import { productImage } from '../lib/image';
 import RichDescription from './RichDescription';
@@ -1811,6 +1812,7 @@ export default function PCBuilderClient({ categories, importedSelections = {}, m
                             );
                           })}
                         </div>
+                        <AffiliateDisclosure className="mt-4" />
                       </div>
                     )}
                   </div>

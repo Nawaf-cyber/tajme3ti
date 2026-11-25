@@ -15,6 +15,7 @@ import * as cheerio from 'cheerio';
 import { isBhdText, bhdToSar } from './currency';
 import { classifyPriceChange } from './price';
 import { withProxyFallback } from './proxy-fallback';
+import { amazonSource, amazonItem, amazonApiDown, amazonInStock, type AmazonApiItem } from './amazon-creators';
 
 /* ---- تدوير لمنزلتين ----
    يمنع نواتج الفاصلة العائمة مثل 409.09*10 = 4090.8999999999996
@@ -389,8 +390,40 @@ const scrapeUrl = (token: string, target: string, premium: boolean) =>
 
 /* ============================ أمازون ============================ */
 /* البروكسي العاديّ أولاً والمتقدّم احتياطاً — انظر lib/proxy-fallback */
-export const scrapeAmazon = (t: OfferTarget, token: string): Promise<StoreOutcome> =>
-  withProxyFallback('amazon', t, (premium) => scrapeAmazonVia(t, token, premium));
+export async function scrapeAmazon(t: OfferTarget, token: string): Promise<StoreOutcome> {
+  /* الطريق الرسميّ أوّلاً حين يُفعَّل (lib/amazon-creators · AMAZON_SOURCE) */
+  const mode = amazonSource();
+  if (mode !== 'scrape' && t.url) {
+    const item = await amazonItem(t.url);
+    if (item) return amazonOutcomeFromApi(t, item);
+    if (mode === 'api') {
+      const out = emptyOutcome(t.inStock ?? true);
+      out.errors.push(`أمازون (${t.name}): الواجهة الرسميّة غير متاحة (${amazonApiDown() ?? '؟'}) — أُبقي السعر السابق.`);
+      return out;
+    }
+    // auto: الواجهة رفضت (غير مؤهّل بعد/تعطّل) ← السحب كما كان
+  }
+  return withProxyFallback('amazon', t, (premium) => scrapeAmazonVia(t, token, premium));
+}
+
+/** عرض الواجهة ← النتيجة نفسها التي يُخرجها السحب، وبالحكم نفسه (applyPriceVerdict) */
+function amazonOutcomeFromApi(t: OfferTarget, item: AmazonApiItem): StoreOutcome {
+  const out = emptyOutcome(t.inStock ?? true);
+  out.pageRecognized = true;
+  if (item.kind === 'missing') {
+    out.errors.push(`أمازون (${t.name}): الواجهة لم تُرجع المنتج (${item.code}).`);
+    return out;
+  }
+  if (item.kind === 'no-offer') {
+    out.inStock = false; // لا عرض مميّز = نافد (وثائق OffersV2)
+    return out;
+  }
+  const stock = amazonInStock(item.availability);
+  if (stock != null) out.inStock = stock;
+  if (item.price) applyPriceVerdict(out, 'أمازون', t.name, item.price, item.listPrice ?? 0, t.price);
+  else if (out.inStock) out.errors.push(`أمازون (${t.name}): الواجهة بلا سعر (${item.availability}).`);
+  return out;
+}
 
 async function scrapeAmazonVia(t: OfferTarget, token: string, premium: boolean): Promise<StoreOutcome> {
   const out = emptyOutcome(t.inStock ?? true);

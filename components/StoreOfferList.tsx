@@ -15,6 +15,7 @@ import { storeVars, type Offer } from '../lib/stores';
 import { StoreNoticeInline } from './StoreNotice';
 import OfferLengthTag from './OfferLengthTag';
 import OfferSeriesTag from './OfferSeriesTag';
+import AffiliateDisclosure from './AffiliateDisclosure';
 import { offerLengthMm } from '../lib/fit';
 
 const RiyalIcon = ({ size = 'h-5 w-5' }: { size?: string }) => (
@@ -227,9 +228,7 @@ export default function StoreOfferList({
 
       {/* إفصاح العمولة عند أزرار الشراء نفسها — اتفاقية شركاء أمازون (البند ٥) تطلبه
           «بشكلٍ واضح وبارز»، والفوتر وحده بعيدٌ عن لحظة الضغط */}
-      <p className="px-1 text-[11.5px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
-        بعض روابط المتاجر بعمولة ما تزيد السعر عليك، وبصفتنا مشاركين في برنامج شركاء أمازون نكسب من المشتريات المؤهّلة.
-      </p>
+      <AffiliateDisclosure />
     </div>
   );
 }

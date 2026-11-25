@@ -31,6 +31,7 @@ import { productImage, IMAGE_FALLBACK } from '../../lib/image';
 import { specLabelLoose, specValueLines, categoryLabelOrder } from '../../lib/spec-labels';
 import { isFeatureKey } from '../../lib/spec-schema';
 import { capacityGb } from '../../lib/capacity';
+import AffiliateDisclosure from '../../components/AffiliateDisclosure';
 
 type Comp = any;
 
@@ -1831,6 +1832,7 @@ export default function CompareClient({
               </tbody>
             </table>
           </div>
+          <AffiliateDisclosure className="mt-3" />
 
         {/* ===== الحكم — سطرٌ لأغلب الناس، وبطاقةٌ لكلّ قطعة (lib/compare-verdict) ===== */}
         {(verdict.pick || verdict.empty) && (

@@ -7,6 +7,7 @@ import GamePerformance from '../../components/GamePerformance';
 import { brandColor } from '../../lib/brand';
 import { formatPrice, formatTotal } from '../../lib/price';
 import StoreBuyChips from '../../components/StoreBuyChips';
+import AffiliateDisclosure from '../../components/AffiliateDisclosure';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -724,6 +725,7 @@ export default function MyBuildsPage() {
                     );
                   })}
                 </div>
+                <AffiliateDisclosure className="mt-4" />
               </div>
 
               <div className="p-5 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0B1120] flex justify-between items-center shrink-0">

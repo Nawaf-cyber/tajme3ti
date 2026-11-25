@@ -6,6 +6,7 @@ import { dropPercent, MIN_DROP_PERCENT } from '../../../../lib/price';
 import { recordPriceHistory, setScrapeDeadline } from '../../../../lib/scrape-prices';
 import { recordPriceHolds } from '../../../../lib/price-review';
 import { scrapeComponentOffers, resolveOfferPrices } from '../../../../lib/scrape-offers';
+import { prefetchAmazon, amazonSource } from '../../../../lib/amazon-creators';
 import { SCRAPE_STORE_SELECT, OFFER_INCLUDE } from '../../../../lib/stores-server';
 import { isStale, fixableByScrape } from '../../../../lib/price-staleness';
 import { loadProxyMode, flushProxyStats, alertProxy } from '../../../../lib/proxy-stats';
@@ -269,6 +270,14 @@ export async function GET(req: Request) {
 
        الآن عمّالٌ ثابتون يأخذ كلٌّ القطعة التالية حين يفرغ: الصفحة البطيئة تؤخّر قطعتها
        وحدها. والعدد يملأ بوّابة الطلبات (٨) بلا زحام: القطعة ~١٫٦ طلب سحب. */
+    /* أمازون من الواجهة الرسميّة (إن فُعّلت — lib/amazon-creators): دفعةٌ واحدة لكلّ القطع
+       (١٠ لكلّ طلب، طلبٌ/ثانية) بدل طلبٍ لكلّ قطعة يزاحم حدّ الثانية. */
+    const amazonPrefetch = await prefetchAmazon(
+      components.flatMap((c) => c.offers.filter((o) => o.store.slug === 'amazon').map((o) => o.url)),
+    );
+    // في auto رفضُ الواجهة متوقّعٌ حتى يتأهّل الحساب والسحب يكمل — فلا يُبلَّغ كلّ ساعة
+    if (amazonPrefetch.error && amazonSource() === 'api') allErrors.push(`أمازون (الواجهة الرسميّة): ${amazonPrefetch.error}`);
+
     const PARTS_IN_FLIGHT = 6;
     let nextIndex = 0;
     const storeRun: StoreRunTally = {};
