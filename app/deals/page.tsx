@@ -22,7 +22,7 @@
 
 import { prisma } from '../../lib/prisma';
 import { HAS_PARTS } from '../../lib/categories';
-import { OFFER_INCLUDE } from '../../lib/stores-server';
+import { OFFER_INCLUDE, verifyListPrices } from '../../lib/stores-server';
 import { offerDeal } from '../../lib/stores';
 import ComponentsClient from '../components/ComponentsClient';
 import type { Metadata } from 'next';
@@ -39,10 +39,10 @@ export const dynamic = 'force-dynamic';
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
 export default async function DealsPage() {
-  const components = await prisma.component.findMany({
+  const components = await verifyListPrices(await prisma.component.findMany({
     include: { category: true, ...OFFER_INCLUDE },
     orderBy: { createdAt: 'desc' },
-  });
+  }));
   const categories = await prisma.category.findMany({ where: HAS_PARTS });
 
   /* الأرقام تُحسب هنا لا في المتصفّح: الزائر يقرأها قبل أن يحمّل شيئاً */
@@ -76,8 +76,9 @@ export default async function DealsPage() {
               والحروف العربية تحتاج قياساً أكبر من اللاتينية لنفس الوضوح.
               فرُفع إلى ١٦ بكسل، ودُرِّج اللون فوق ذلك. */}
           <p className="text-[15px] md:text-base font-semibold text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
-            القطع التي نزل سعرها عند أرخص متجرٍ متوفّر، مرتّبةً بأكبر انخفاض. النسبة محسوبة من
-            السعر المشطوب في المتجر نفسه — ولا نُعلن خصماً على متجرٍ أغلى بينما نعرض سعر غيره.
+            القطع التي نزل سعرها عند أرخص متجرٍ متوفّر، مرتّبةً بأكبر انخفاض. النسبة من السعر
+            المشطوب في المتجر، ونعرضها بس إذا رصدنا ذاك السعر عنده فعلاً. ولا نعلن خصماً على متجرٍ
+            أغلى بينما نعرض سعر غيره.
           </p>
         </div>
 

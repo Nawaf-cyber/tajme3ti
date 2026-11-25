@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { HAS_PARTS } from '../../lib/categories';
 import CompareClient from './CompareClient';
-import { OFFER_INCLUDE } from '../../lib/stores-server';
+import { OFFER_INCLUDE, verifyListPrices } from '../../lib/stores-server';
 import { liveOffers } from '../../lib/stores';
 import { liveStats, type PriceStats } from '../../lib/price-stats-core';
 import { platformCost, type PlatformCost } from '../../lib/platform-cost';
@@ -75,10 +75,10 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
 
   // القطع المختارة للمقارنة
   const selected = ids.length
-    ? await prisma.component.findMany({
+    ? await verifyListPrices(await prisma.component.findMany({
         where: { id: { in: ids } },
         include: { category: true, ...OFFER_INCLUDE },
-      })
+      }))
     : [];
 
   // نحافظ على ترتيب الـ IDs كما في الرابط
@@ -105,11 +105,11 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
 
   // القطع المتاحة للإضافة (نفس الفئة، غير المختارة)
   const available = activeCategoryId
-    ? await prisma.component.findMany({
+    ? await verifyListPrices(await prisma.component.findMany({
         where: { categoryId: activeCategoryId, id: { notIn: keptIds } },
         select: PICKER_FIELDS,
         orderBy: { name: 'asc' },
-      })
+      }))
     : [];
 
   // كل الفئات (لاختيار فئة عند بدء مقارنة جديدة)
@@ -117,10 +117,10 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
 
   // إن لم تُختر قطع بعد: نجلب قطعاً من كل فئة للبدء
   const starterComponents = !activeCategoryId
-    ? await prisma.component.findMany({
+    ? await verifyListPrices(await prisma.component.findMany({
         select: PICKER_FIELDS,
         orderBy: { name: 'asc' },
-      })
+      }))
     : [];
 
   /* ============ تاريخ الأسعار للمقارنة ============

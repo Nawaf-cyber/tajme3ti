@@ -61,7 +61,7 @@ function PriceContextNote({ stats, now }: { stats: PriceStats; now: number }) {
         </>
       )}
       <span className="block mt-1 text-[11.5px] font-bold text-slate-500 dark:text-slate-400">
-        الرسم البيانيّ أسفل الصفحة يوضّح الحركة يوماً بيوم.
+        الرسم البيانيّ «تاريخ السعر» يوضّح الحركة يوماً بيوم.
       </span>
     </div>
   );
@@ -82,7 +82,12 @@ export default function StoreOfferList({
   gpuSpecs?: any;
 }) {
   // نعرض كل متجر له رابط — حتى النافد، ليعرف الزائر أنه مرصود لا مفقود
-  const rows = (offers || []).filter((o) => !!o.url);
+  /* الأرخص المتوفّر أوّلاً ثمّ الأغلى، والنافد آخراً — كان الترتيب ترتيبَ المتاجر في
+     اللوحة، فقد يقع الأرخص ثالثاً والزرّ الأوضح عليه (نموذج الجوال «ب» 2026-11-25) */
+  const isLive = (o: Offer) => o.inStock && !!o.price;
+  const rows = (offers || [])
+    .filter((o) => !!o.url)
+    .sort((a, b) => Number(isLive(b)) - Number(isLive(a)) || (a.price ?? 1e12) - (b.price ?? 1e12));
   if (rows.length === 0) return null;
 
   /* ⚠️ ١٩٢ قطعةً من ٣٣١ لا يبيعها إلّا متجرٌ واحد — والعنوان فوقها كان
@@ -113,13 +118,20 @@ export default function StoreOfferList({
       <h3 className="mb-3 text-[11.5px] font-bold text-slate-400 dark:text-slate-500">
         {single ? 'المتجر الذي يبيعها' : 'مقارنة الأسعار في المتاجر'}
       </h3>
+      {live.length > 0 && (
+        <p className="-mt-4 mb-1 text-[12px] font-bold text-slate-500 dark:text-slate-400">
+          اضغط على المتجر يفتح لك صفحتها عنده.
+        </p>
+      )}
 
       {single && stats && (
         <PriceContextNote stats={stats} now={live[0].price!} />
       )}
 
-      {rows.map((o) => {
-        const live = o.inStock && !!o.price;
+      {rows.map((o, idx) => {
+        const live = isLive(o);
+        const cheapest = live && idx === 0;
+        const more = live && !cheapest && rows[0].price ? Math.round(o.price! - rows[0].price) : 0;
         const pct = discountPercent(o.price, o.listPrice);
         return (
           <a
@@ -149,7 +161,15 @@ export default function StoreOfferList({
               </div>
               <span className="min-w-0 font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-[color:var(--store-color)] transition-colors flex flex-col">
                 {/* الاسم العربيّ — كانت صفحة القطعة تعرض Amazon وCazaSouq والمقارنةُ أمازون وكازاسوق */}
-                {o.store.name}
+                <span className="flex flex-wrap items-center gap-x-1.5">
+                  {o.store.name}
+                  {cheapest && !single && (
+                    <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 rounded-sm px-1.5 py-0.5">الأرخص</span>
+                  )}
+                  {more > 0 && (
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">أغلى بـ{more.toLocaleString('en-US')}</span>
+                  )}
+                </span>
                 {!live && <span className="text-[11.5px] font-black text-rose-500 mt-0.5">غير متوفر حالياً</span>}
                 {lengthsVary && measured(o) !== null && (
                   <OfferLengthTag lengthMm={measured(o)!} variant={(o as any).variant} />
@@ -185,13 +205,31 @@ export default function StoreOfferList({
               </span>
               {/* ما يفعله الضغط، مكتوباً: الصفّ كان يبدو بطاقةً للقراءة لا رابطاً للشراء.
                   والنافد سعرُه آخرُ ما رصدناه — لا عرضٌ قائم أرخص من المتوفّر */}
-              <span className={`text-[11px] font-bold ${live ? 'text-slate-500 dark:text-slate-400 group-hover:text-[color:var(--store-color)]' : 'text-slate-400 dark:text-slate-500'}`}>
-                {live ? 'اذهب للمتجر ←' : o.price ? 'آخر سعر رصدناه' : ''}
-              </span>
+              {/* زرٌّ مكتوب لا سهمٌ صغير: «اذهب للمتجر ←» بخطّ ١١ رماديّ لم يكن يبدو قابلاً للضغط
+                  (نوّاف 2026-11-25: «تحس انه راح يتوه»). الأرخص مصمت، والباقي بإطار */}
+              {live ? (
+                <span
+                  className={`inline-flex items-center justify-center min-h-[36px] rounded-sm px-3 text-[12.5px] font-black whitespace-nowrap transition-colors ${
+                    cheapest
+                      ? 'bg-emerald-600 text-white group-hover:bg-emerald-500 shadow-sm'
+                      : 'border-2 border-cyan-600/50 text-cyan-800 dark:text-cyan-300 group-hover:border-cyan-500'
+                  }`}
+                >
+                  {cheapest ? 'اشترها ←' : 'افتح المتجر ←'}
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{o.price ? 'آخر سعر رصدناه' : ''}</span>
+              )}
             </span>
           </a>
         );
       })}
+
+      {/* إفصاح العمولة عند أزرار الشراء نفسها — اتفاقية شركاء أمازون (البند ٥) تطلبه
+          «بشكلٍ واضح وبارز»، والفوتر وحده بعيدٌ عن لحظة الضغط */}
+      <p className="px-1 text-[11.5px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+        بعض روابط المتاجر بعمولة ما تزيد السعر عليك، وبصفتنا مشاركين في برنامج شركاء أمازون نكسب من المشتريات المؤهّلة.
+      </p>
     </div>
   );
 }

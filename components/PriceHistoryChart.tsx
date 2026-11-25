@@ -1,53 +1,48 @@
 import { prisma } from '../lib/prisma';
-import { Panel, SectionHeading, StatStrip, type Stat } from './Panel';
-import { liveStats, daysAr } from '../lib/price-stats-core';
-import PriceChartHover from './PriceChartHover';
+import { Panel, SectionHeading } from './Panel';
+import { daysAr } from '../lib/price-stats-core';
+import PriceChart, { type ChartDay, type ChartStore } from './PriceChart';
 
-/* ============ رسم تاريخ السعر ============
-   مكوّن خادم بحت (بلا 'use client') — يرندر SVG على الخادم،
-   فيراه جوجل كمحتوى فعلي ولا يحتاج أي مكتبة رسم.
+/* ============ رسم تاريخ السعر — تجهيز البيانات (خادم) ============
+ *
+ * الرسم نفسه في components/PriceChart (عميل). هنا نجلب ٩٠ يوماً ونحوّلها إلى
+ * سلاسل يوميّة متساوية الطول — يومٌ لكلّ خانة من أوّل قراءة حتى اليوم:
+ *
+ *  - لكلّ متجر: سعرُه يوماً بيوم. السجلّ يكتب نقطةً واحدة لكلّ متجر في اليوم
+ *    (lib/scrape-prices · recordPriceHistory)، والسعر يبقى حتى يتغيّر، فنحمل
+ *    آخر قراءة على الأيّام الخالية — من أوّل قراءة للمتجر حتى آخرها فقط، لا قبلها
+ *    ولا بعدها (المتجر النافد ينتهي خطّه حيث انتهت قراءاته).
+ *  - والمتجر البائع الآن يمتدّ خطّه إلى اليوم بسعر عرضه الحاليّ — وهو الرقم
+ *    نفسه في قائمة العروض أعلى الصفحة.
+ *
+ * ⚠️ والخطّ الرئيس «الأرخص» من المتاجر البائعة الآن وحدها: السجلّ يخزّن السعر
+ * ولا يخزّن التوفّر، ورُصد على RTX 5070 Ti كازاسوق يسجّل ٣٩٥٠ يوميّاً وهو نافد
+ * وأرخصُ ما يُشترى ٥٢٩٠ — فخطٌّ من الجميع كان سيقول «الأدنى ٣٩٥٠» لسعرٍ لا
+ * يبيعه أحد. (نفس قاعدة lib/price-stats-core · liveStats، فالأدنى والأعلى هنا
+ * يطابقان سطر «سعرها اليوم عند أدنى ما رصدناه» أعلى الصفحة.)
+ */
 
-   يعرض خلال آخر 90 يوماً:
-   - خطاً لكل متجر بلونه المسجّل في جدول Store (كان الثلاثة مكتوبين هنا
-     يدوياً، فالمتجر الرابع كان سيُرسم بلا لون ولا اسم — أو لا يُرسم أصلاً).
-   - خط "أدنى سعر" منقّط فوق الجميع (أرخص متجر في كل يوم).
-   كل متجر يُرسم بنقاطه الحقيقية فقط — لا نسدّ الفجوات بتخمين. */
+const DAY = 86_400_000;
+const LOC = 'ar-SA-u-nu-latn-ca-gregory';
 
-type StorePoint = { date: Date; price: number };
+export type PriceChartData = {
+  days: ChartDay[];
+  stores: ChartStore[];
+  low: (number | null)[];
+  lowStore: (string | null)[];
+  anyLive: boolean;
+};
 
-const LOWEST_COLOR = '#10B981'; // أخضر لخط أدنى سعر
+/** السلاسل اليوميّة للرسم، أو null إن لم تكفِ القراءات (أقلّ من يومين) */
+export async function loadPriceChart(
+  componentId: string,
+  /** المتاجر التي تبيع القطعة الآن وسعرها — انظر التعليق أعلاه */
+  live: { slug: string; price: number }[] = [],
+): Promise<PriceChartData | null> {
+  const since = new Date(Date.now() - 90 * DAY);
 
-const RiyalMark = () => (
-  <span
-    className="inline-block h-3 w-3 bg-current align-middle"
-    style={{
-      maskImage: "url('/riyal.svg')",
-      WebkitMaskImage: "url('/riyal.svg')",
-      maskSize: 'contain',
-      WebkitMaskSize: 'contain',
-      maskRepeat: 'no-repeat',
-      WebkitMaskRepeat: 'no-repeat',
-      maskPosition: 'center',
-      WebkitMaskPosition: 'center',
-    }}
-  />
-);
-
-export default async function PriceHistoryChart({
-  componentId,
-  liveStores = [],
-}: {
-  componentId: string;
-  /** slugs المتاجر التي تبيع القطعة الآن — انظر «شريط الملخّص» أدناه */
-  liveStores?: string[];
-}) {
-  // آخر 90 يوماً
-  const since = new Date();
-  since.setDate(since.getDate() - 90);
-
-  /* سجلّ الأسعار يخزّن slug المتجر نصّاً، فنجلب المتاجر لنعرف اسمها ولونها
-     وترتيبها. المعطّلة تُستثنى — كي يختفي خطّها فور إيقافها من اللوحة. */
-  const [rows, stores] = await Promise.all([
+  /* المعطّلة تُستثنى — كي يختفي خطّها فور إيقافها من اللوحة */
+  const [rows, storeRows] = await Promise.all([
     prisma.priceHistory.findMany({
       where: { componentId, recordedAt: { gte: since } },
       orderBy: { recordedAt: 'asc' },
@@ -60,43 +55,88 @@ export default async function PriceHistoryChart({
     }),
   ]);
 
-  const storeMeta = new Map(stores.map((s) => [s.slug, s]));
+  const known = new Set(storeRows.map((s) => s.slug));
+  const liveMap = new Map(live.filter((o) => o.price > 0).map((o) => [o.slug, o.price]));
 
-  // نجمّع النقاط لكل متجر على حدة (نقطة واحدة لكل يوم/متجر — الأدنى إن تكرر)
+  // سعر كلّ متجر في كلّ يوم (الأدنى إن تكرّر)
   const perStore = new Map<string, Map<string, number>>();
-  // ولأدنى سعر يومي عبر كل المتاجر
-  const lowestByDay = new Map<string, number>();
-
   for (const r of rows) {
-    if (!storeMeta.has(r.store)) continue; // متجر محذوف أو معطّل
+    if (!known.has(r.store) || !(r.price > 0)) continue;
     const day = r.recordedAt.toISOString().slice(0, 10);
-
     if (!perStore.has(r.store)) perStore.set(r.store, new Map());
-    const days = perStore.get(r.store)!;
-    const cur = days.get(day);
-    if (cur == null || r.price < cur) days.set(day, r.price);
-
-    const low = lowestByDay.get(day);
-    if (low == null || r.price < low) lowestByDay.set(day, r.price);
+    const m = perStore.get(r.store)!;
+    const cur = m.get(day);
+    if (cur == null || r.price < cur) m.set(day, r.price);
   }
 
-  const toPoints = (m: Map<string, number>): StorePoint[] =>
-    Array.from(m.entries())
-      .map(([k, price]) => ({ date: new Date(k), price }))
-      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  const allKeys = [...perStore.values()].flatMap((m) => [...m.keys()]).sort();
+  if (new Set(allKeys).size < 2) return null;
 
-  // بترتيب المتاجر في اللوحة، لا بترتيب ورود الصفوف من القاعدة
-  const storeSeries = stores
-    .map((s) => ({ slug: s.slug, label: s.name, color: s.color, points: toPoints(perStore.get(s.slug) ?? new Map()) }))
-    .filter((s) => s.points.length > 0);
+  // خانات الأيّام: من أوّل قراءة حتى اليوم (UTC — كما يكتبها السجلّ)
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const keys: string[] = [];
+  for (let t = Date.parse(allKeys[0]); ; t += DAY) {
+    const k = new Date(t).toISOString().slice(0, 10);
+    keys.push(k);
+    if (k >= todayKey) break;
+  }
+  const days: ChartDay[] = keys.map((k) => {
+    const d = new Date(k);
+    return {
+      key: k,
+      label: d.toLocaleDateString(LOC, { day: 'numeric', month: 'long', timeZone: 'UTC' }),
+      month: d.toLocaleDateString(LOC, { month: 'long', timeZone: 'UTC' }),
+      dom: d.getUTCDate(),
+    };
+  });
 
-  const lowestPoints = toPoints(lowestByDay);
+  const stores: ChartStore[] = storeRows
+    .filter((s) => perStore.has(s.slug) || liveMap.has(s.slug))
+    .map((s) => {
+      const m = perStore.get(s.slug) ?? new Map<string, number>();
+      const isLive = liveMap.has(s.slug);
+      const own = [...m.keys()].sort();
+      const lastOwn = own[own.length - 1] ?? '';
+      let carry: number | null = null;
+      const vals = keys.map((k, i) => {
+        if (m.has(k)) carry = m.get(k)!;
+        if (isLive && i === keys.length - 1) return liveMap.get(s.slug)!; // اليوم = سعر العرض الحاليّ
+        if (!isLive && k > lastOwn) return null; // النافد ينتهي خطّه عند آخر قراءة
+        return carry;
+      });
+      return { slug: s.slug, name: s.name, color: s.color, live: isLive, vals };
+    })
+    .filter((s) => s.vals.some((v) => v != null));
 
-  // نحتاج نقطتين على الأقل (في أي سلسلة) لرسم خط
-  const maxLen = Math.max(lowestPoints.length, ...storeSeries.map((s) => s.points.length), 0);
-  if (maxLen < 2) {
+  /* الأرخص يوميّاً: من البائعين الآن، فإن لم يبعها أحد فمن الجميع («آخر سعر رصدناه») */
+  const anyLive = stores.some((s) => s.live);
+  const pool = anyLive ? stores.filter((s) => s.live) : stores;
+  const low: (number | null)[] = [];
+  const lowStore: (string | null)[] = [];
+  keys.forEach((_, i) => {
+    let best: number | null = null, who: string | null = null;
+    for (const s of pool) {
+      const v = s.vals[i];
+      if (v != null && (best == null || v < best)) { best = v; who = s.slug; }
+    }
+    low.push(best);
+    lowStore.push(who);
+  });
+
+  return { days, stores, low, lowStore, anyLive };
+}
+
+export default async function PriceHistoryChart({
+  componentId,
+  live = [],
+}: {
+  componentId: string;
+  live?: { slug: string; price: number }[];
+}) {
+  const data = await loadPriceChart(componentId, live);
+  if (!data) {
     return (
-      <section className="flex flex-col gap-4">
+      <section id="price-history" className="flex flex-col gap-4 scroll-mt-24">
         <SectionHeading note="آخر 90 يوماً">تاريخ السعر</SectionHeading>
         <Panel className="px-6 py-8 text-center">
           <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
@@ -107,369 +147,16 @@ export default async function PriceHistoryChart({
     );
   }
 
-  // النطاق الزمني والسعري عبر كل السلاسل مجتمعة
-  const allPoints: StorePoint[] = [...lowestPoints, ...storeSeries.flatMap((s) => s.points)];
-  const allPrices = allPoints.map((p) => p.price);
-  const allTimes = allPoints.map((p) => p.date.getTime());
-
-  const minP = Math.min(...allPrices);
-  const maxP = Math.max(...allPrices);
-  const range = maxP - minP || 1;
-  const yMin = minP - range * 0.05;
-  const yMax = maxP + range * 0.05;
-
-  const t0 = Math.min(...allTimes);
-  const t1 = Math.max(...allTimes);
-  const span = t1 - t0 || 1;
-
-  // تغيّر كل متجر على حدة (آخر سعر − أول سعر خلال الفترة).
-  // نعرضه بجانب اسم المتجر في المفتاح، فيرى الزائر حركة كل متجر.
-  const storeChange = (pts: StorePoint[]): number | null => {
-    if (pts.length < 2) return null;
-    return pts[pts.length - 1].price - pts[0].price;
-  };
-
-  // عناصر مفتاح الألوان: المتاجر الظاهرة (مع تغيّرها) + خط أدنى سعر
-  const legend: {
-    label: string;
-    color: string;
-    dashed: boolean;
-    change: number | null;
-  }[] = [
-    ...storeSeries.map((s) => ({
-      label: s.label,
-      color: s.color,
-      dashed: false,
-      change: storeChange(s.points),
-    })),
-    ...(lowestPoints.length >= 2
-      ? [{ label: 'أدنى سعر', color: LOWEST_COLOR, dashed: true, change: null }]
-      : []),
-  ];
-
-  const fmtDate = (d: Date) => d.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' });
-  const dayKeys = Array.from(new Set(allPoints.map((p) => p.date.toISOString().slice(0, 10)))).sort();
-
   /* ⚠️ العنوان يقول المدّة الحقيقيّة: «آخر 90 يوماً» فوق رسمٍ يبدأ قبل شهر يوهم أنّ
      المتابعة أطول ممّا هي (تجربة المستخدمين 2026-10-17) */
-  const spanDays = Math.round(span / 86_400_000) + 1;
-  const periodNote = spanDays >= 85 ? 'آخر 90 يوماً' : `منذ بدء متابعتها قبل ${daysAr(spanDays)}`;
-
-  /* ============ رسمان: للمكتب وللجوال ============
-   * الـSVG يتمدّد بعرضه، فرسمُ 720×260 على جوالٍ عرضه 302 بكسل صار ارتفاعه 109،
-   * وأرقامه ٣٩ رقماً بخطّ ٤ بكسل لا تُقرأ (تجربة المستخدمين 2026-10-17). فللجوال
-   * رسمٌ ثانٍ بأبعاده: أضيق وأطول، بخطوطٍ أكبر، وبلا تسمياتٍ فوق النقاط — السعر يومَ
-   * المسّ في التلميح، والملخّص فوقه. والرسمان من الهندسة نفسها فلا يفترقان. */
-  const geometry = (W: number, H: number, PAD: { top: number; right: number; bottom: number; left: number }, withLabels: boolean) => {
-    const plotW = W - PAD.left - PAD.right;
-    const plotH = H - PAD.top - PAD.bottom;
-    const x = (d: Date) => PAD.left + ((d.getTime() - t0) / span) * plotW;
-    const y = (p: number) => PAD.top + (1 - (p - yMin) / (yMax - yMin)) * plotH;
-    const pathFor = (pts: StorePoint[]) =>
-      pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(p.date).toFixed(1)} ${y(p.price).toFixed(1)}`).join(' ');
-
-    // خطوط شبكية أفقية (3 مستويات)
-    const gridLines = [0, 0.5, 1].map((f) => {
-      const price = yMin + (yMax - yMin) * (1 - f);
-      return { yPos: PAD.top + f * plotH, price: Math.round(price) };
-    });
-
-    /* ============ أعمدة التأشير ============
-     * تلميح لكل **يوم** لا لكل نقطة، لثلاثة أسباب:
-     *  ١) ما يريده القارئ هو المقارنة: كم كان سعر كل متجر في ذلك اليوم.
-     *  ٢) SVG بلا z-index — تلميحُ نقطةٍ مبكرة يختفي تحت ما يُرسم بعدها.
-     *     الأعمدة لا تتقاطع أفقياً وواحدٌ فقط ظاهر، فترتيب الطبقات ينحلّ.
-     *  ٣) منطقة التأشير تصير عموداً كامل الارتفاع بدل دائرة نصف قطرها ٣ —
-     *     إصابتها بالفأرة (والإصبع) أسهل بكثير.
-     */
-    const colW = dayKeys.length > 1 ? plotW / (dayKeys.length - 1) : plotW;
-    const columns = dayKeys.map((key) => {
-      const date = new Date(key);
-      const cx = x(date);
-      const entries = storeSeries
-        .map((s) => {
-          const hit = s.points.find((p) => p.date.toISOString().slice(0, 10) === key);
-          return hit ? { name: s.label, color: s.color, price: hit.price } : null;
-        })
-        .filter((e): e is { name: string; color: string; price: number } => e !== null)
-        .sort((a, b) => a.price - b.price);
-      return { key, date, cx, entries };
-    }).filter((c) => c.entries.length > 0);
-
-    /* ============ تسميات فوق النقاط (رسم المكتب وحده) ============
-     * لا نسمّي كل نقطة: السعر الثابت أسبوعاً يعطي سبع تسميات متطابقة تحجب
-     * الخط ولا تضيف خبراً. نسمّي أوّل نقطة وآخرها وكلَّ نقطة تغيّر فيها
-     * السعر — وهي مواضع الخبر بالضبط.
-     *
-     * ثم مرشّح تصادم: التسمية تسقط إن تداخل صندوقها مع صندوق سُمّي قبله.
-     * الترتيب من اليمين (الأحدث) فالأولوية للأقرب زمناً.
-     */
-    type Label = { cx: number; cy: number; text: string; color: string };
-    const candidates: Label[] = [];
-    if (withLabels) {
-      for (const s of storeSeries) {
-        s.points.forEach((p, i) => {
-          const isEdge = i === 0 || i === s.points.length - 1;
-          const changed = i > 0 && s.points[i - 1].price !== p.price;
-          if (!isEdge && !changed) return;
-          candidates.push({
-            cx: x(p.date),
-            cy: y(p.price),
-            text: Math.round(p.price).toLocaleString('en-US'),
-            color: s.color,
-          });
-        });
-      }
-    }
-
-    const placed: { x1: number; y1: number; x2: number; y2: number }[] = [];
-    const labels = candidates
-      .sort((a, b) => b.cx - a.cx) // الأحدث أوّلاً
-      .filter((l) => {
-        const w = l.text.length * 5.6 + 6;
-        const box = { x1: l.cx - w / 2, y1: l.cy - 18, x2: l.cx + w / 2, y2: l.cy - 6 };
-        const clash = placed.some((b) => !(box.x2 < b.x1 || box.x1 > b.x2 || box.y2 < b.y1 || box.y1 > b.y2));
-        if (clash) return false;
-        placed.push(box);
-        return true;
-      });
-
-    return { W, H, PAD, plotH, x, y, pathFor, gridLines, colW, columns, labels };
-  };
-
-  const desk = geometry(720, 260, { top: 20, right: 16, bottom: 28, left: 56 }, true);
-  const phone = geometry(360, 300, { top: 16, right: 12, bottom: 30, left: 50 }, false);
-
-  /* ============ شريط الملخّص ============
-   * الرسم يُجيب «كيف تحرّك السعر»، ولا يُجيب «كم أدنى ما بلغ» إلا بتتبّع
-   * العين للخطّ وقراءة المحور. وهو أوّل ما يريده من يفكّر في الشراء الآن.
-   *
-   * ⚠️ ولماذا لا يُبنى على خطّ «أدنى سعر» المنقّط رغم أنه الأقرب شكلاً:
-   * جدول PriceHistory يخزّن السعر ولا يخزّن التوفّر، والسحب يسجّل سعر
-   * المتجر النافد كما يسجّل سعر المتوفّر. فمتجرٌ معلَّق بسعرٍ قديم منخفض
-   * يقود ذلك الخطّ إلى الأبد.
-   *
-   * رُصد فعلاً على RTX 5070 Ti: كازاسوق يسجّل ٣٩٥٠ يومياً وهو نافد، بينما
-   * أرخص ما يُشترى ٥٢٩٠. فكان الشريط سيصدّر عنواناً يقول «أدنى سعر بلغه
-   * ٣٧٠٨ ﷼» لسعرٍ لا يبيعه أحد — وهو أسوأ من ألّا يُكتب.
-   *
-   * فالملخّص يُحسب من سلاسل المتاجر التي تبيع القطعة **الآن** فقط. تقريبٌ
-   * لا يقين — فقد ينفد أحدها في يومٍ ماضٍ ولا نعلم — لكنه رقمٌ يقابله
-   * زرُّ شراء، والخطوط تحته تبقى كاملة كما هي.
-   */
-  /* ⚠️ والحساب من `lib/price-stats.ts` لا هنا: نفسُ الرقم يُعرض فوق قائمة
-     العروض أيضاً، وحسابُه مرّتين يعني رقمين مختلفين على صفحةٍ واحدة. */
-  const stats = liveStats(rows, liveStores);
-  const money = (n: number) => Math.round(n).toLocaleString('en-US');
-
-  let summary: Stat[] = [];
-  if (stats) {
-    const netChange = Math.round(stats.last - stats.first);
-    summary = [
-      { label: 'أدنى ما بلغه', value: money(stats.min), unit: '﷼', accent: 'emerald' },
-      { label: 'أعلى ما بلغه', value: money(stats.max), unit: '﷼', accent: 'none' },
-      netChange === 0
-        ? { label: 'التغيّر خلال الفترة', value: '—', accent: 'none' }
-        : {
-            label: 'التغيّر خلال الفترة',
-            value: `${netChange < 0 ? '-' : '+'}${money(Math.abs(netChange))}`,
-            unit: '﷼',
-            accent: netChange < 0 ? 'emerald' : 'rose',
-          },
-    ];
-  }
-
-  type Geo = ReturnType<typeof geometry>;
-  const chartSvg = (g: Geo, o: { axisFont: number; dotR: number; stroke: number }) => (
-    <>
-      {/* direction مضمّن لا صفّي: تثبيت الهندسة أهمّ من أن يعتمد على قاعدة
-          قد تصل ناقصة — انظر التعليق في <style> أدناه */}
-      <svg
-        viewBox={`0 0 ${g.W} ${g.H}`}
-        className="w-full h-auto"
-        style={{ direction: 'ltr' }}
-        role="img"
-        aria-label="رسم تاريخ السعر لكل متجر"
-      >
-        {/* الأنماط داخل الـSVG لا في globals.css: القسم يبقى مكوّن خادم بلا
-            جافاسكربت، ولا يتعطّل التلميح لو وصل ملف الأنماط قديماً — وهو
-            عطلٌ وقعنا فيه فعلاً في شريط التخفيضات. */}
-        <style>{`
-          /* ⚠️ الصفحة RTL والـSVG يرث الاتجاه، وفي RTL ينقلب معنى
-             text-anchor: start تعني اليمين وend تعني اليسار — عكس ما بُنيت
-             عليه إحداثيات هذا الرسم. النتيجة نصوصٌ تخرج من صناديقها
-             (رُصد: سعرٌ يمتدّ إلى ١٣٤ في صندوق عرضه ١٢٦) وتسمياتُ محاورٍ
-             تمتدّ إلى الهامش. نثبّت الهندسة على LTR، والنصّ العربي نفسه
-             يبقى صحيحاً لأن خوارزمية الاتجاه ثنائي الاتجاه تتولّى كل مقطع
-             على حدة. والترتيب البصري العربي نصنعه بالإحداثيات لا بالوراثة. */
-        `}</style>
-
-        {/* شبكة أفقية + تسميات المحور الرأسي */}
-        {g.gridLines.map((gl, i) => (
-          <g key={i}>
-            <line
-              x1={g.PAD.left}
-              y1={gl.yPos}
-              x2={g.W - g.PAD.right}
-              y2={gl.yPos}
-              className="stroke-slate-200 dark:stroke-slate-700"
-              strokeWidth="1"
-              strokeDasharray="3 3"
-            />
-            <text
-              x={g.PAD.left - 8}
-              y={gl.yPos + 4}
-              textAnchor="end"
-              className="fill-slate-400 dark:fill-slate-500"
-              fontSize={o.axisFont}
-              fontWeight="700"
-            >
-              {gl.price.toLocaleString('en-US')}
-            </text>
-          </g>
-        ))}
-
-        {/* خط أدنى سعر (منقّط، خلف خطوط المتاجر) */}
-        {lowestPoints.length >= 2 && (
-          <path
-            d={g.pathFor(lowestPoints)}
-            fill="none"
-            stroke={LOWEST_COLOR}
-            strokeWidth="2"
-            strokeDasharray="5 4"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            opacity="0.8"
-          />
-        )}
-
-        {/* خط لكل متجر بلونه */}
-        {storeSeries.map((s) => (
-          <g key={s.slug}>
-            <path
-              d={g.pathFor(s.points)}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={o.stroke}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-            {/* نقطة عند كل قيمة فعلية */}
-            {s.points.map((p, idx) => (
-              <circle key={idx} cx={g.x(p.date)} cy={g.y(p.price)} r={o.dotR} fill={s.color} />
-            ))}
-          </g>
-        ))}
-
-        {/* تسميات الأسعار فوق النقاط — بحاشية بلون الخلفية (paint-order)
-            كي تُقرأ فوق الخطوط بدل أن تختلط بها */}
-        {g.labels.map((l, i) => (
-          <text
-            key={i}
-            x={l.cx}
-            y={l.cy - 8}
-            textAnchor="middle"
-            fontSize="9.5"
-            fontWeight="800"
-            fill={l.color}
-            paintOrder="stroke"
-            strokeWidth="3"
-            strokeLinejoin="round"
-            className="stroke-white dark:stroke-slate-900"
-          >
-            {l.text}
-          </text>
-        ))}
-
-        {/* أعمدة التأشير — آخر طبقة كي يعلو التلميح على كل ما سبق.
-            التلميح يُرسم في المتصفّح لليوم المُشار إليه وحده (components/PriceChartHover):
-            كان يُرسم هنا لكلّ يوم × كلّ متجر مخفيّاً، فصار في الصفحة ٤٨٩ عنصراً نصّياً
-            يقرؤها الزاحف (مراجعة أدسنس 2026-10-15). */}
-        <PriceChartHover
-          columns={g.columns.map((c) => ({ key: c.key, cx: c.cx, dateLabel: fmtDate(c.date), entries: c.entries }))}
-          colW={g.colW}
-          padTop={g.PAD.top}
-          plotH={g.plotH}
-          W={g.W}
-          H={g.H}
-        />
-
-        {/* تسميات المحور الأفقي: البداية والنهاية */}
-        <text
-          x={g.PAD.left}
-          y={g.H - 8}
-          textAnchor="start"
-          className="fill-slate-400 dark:fill-slate-500"
-          fontSize={o.axisFont}
-          fontWeight="700"
-        >
-          {fmtDate(new Date(t0))}
-        </text>
-        <text
-          x={g.W - g.PAD.right}
-          y={g.H - 8}
-          textAnchor="end"
-          className="fill-slate-400 dark:fill-slate-500"
-          fontSize={o.axisFont}
-          fontWeight="700"
-        >
-          {fmtDate(new Date(t1))}
-        </text>
-      </svg>
-    </>
-  );
+  const n = data.days.length;
+  const periodNote = n >= 85 ? 'آخر 90 يوماً' : `منذ بدء متابعتها قبل ${daysAr(n)}`;
 
   return (
     <section id="price-history" className="flex flex-col gap-4 scroll-mt-24">
       <SectionHeading note={periodNote}>تاريخ السعر</SectionHeading>
-      <Panel className="px-5 py-5 md:px-6">
-      <StatStrip stats={summary} />
-
-      {/* مفتاح الألوان مع تغيّر كل متجر */}
-      <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mb-3">
-        {legend.map((item) => (
-          <div key={item.label} className="flex items-center gap-1.5">
-            <span
-              className="inline-block w-5 h-0.5 rounded-full shrink-0"
-              style={{
-                backgroundColor: item.dashed ? 'transparent' : item.color,
-                borderTop: item.dashed ? `2px dashed ${item.color}` : undefined,
-              }}
-            />
-            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{item.label}</span>
-            {item.change !== null && (
-              <span
-                className={`text-[11px] font-black flex items-center gap-0.5 ${
-                  item.change < 0
-                    ? 'text-emerald-500'
-                    : item.change > 0
-                    ? 'text-red-500'
-                    : 'text-slate-400 dark:text-slate-500'
-                }`}
-              >
-                {item.change === 0 ? (
-                  '—'
-                ) : (
-                  <>
-                    {item.change < 0 ? '▼' : '▲'}
-                    {Math.abs(Math.round(item.change))}
-                    <RiyalMark />
-                  </>
-                )}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* الرسم للمكتب، ورسمٌ بأبعاد الجوال تحته (انظر geometry أعلاه) */}
-      <div className="hidden sm:block">{chartSvg(desk, { axisFont: 11, dotR: 3, stroke: 2.5 })}</div>
-      <div className="sm:hidden">{chartSvg(phone, { axisFont: 13, dotR: 1.6, stroke: 2.5 })}</div>
-
-      <p className="mt-3 border-t border-dashed border-slate-200 pt-3 text-center text-[11.5px] font-semibold text-slate-400 dark:border-slate-800 dark:text-slate-500">
-        أشِر على أي يوم (أو المس واستمرّ) لترى أسعار المتاجر فيه — الخط المنقّط يمثّل أدنى سعر مسجّل
-        {summary.length > 0 && '، والملخّص أعلاه يحسب المتاجر التي تبيعها الآن'}
-      </p>
+      <Panel className="px-4 py-4 sm:px-6 sm:py-5">
+        <PriceChart {...data} />
       </Panel>
     </section>
   );

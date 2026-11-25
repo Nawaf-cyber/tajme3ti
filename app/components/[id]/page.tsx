@@ -2,14 +2,15 @@ import { prisma } from '../../../lib/prisma';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ImageZoom from '../ImageZoom';
-import { AFFILIATE_LINK_PROPS } from '../../../lib/affiliate';
+import { AFFILIATE_LINK_PROPS, buildStoreUrl, storeLinkProps } from '../../../lib/affiliate';
+import MobileClamp from '../../../components/MobileClamp';
 import PriceHistoryChart from '../../../components/PriceHistoryChart';
 import StoreOfferList from '../../../components/StoreOfferList';
 import PriceMismatchReport from '../../../components/PriceMismatchReport';
 import WatchPriceButton from '../../../components/WatchPriceButton';
 import RigFitPanel from '../../../components/RigFitPanel';
 import StoreNotices from '../../../components/StoreNotice';
-import { OFFER_INCLUDE, getStoreNotices } from '../../../lib/stores-server';
+import { OFFER_INCLUDE, getStoreNotices, verifyListPrices } from '../../../lib/stores-server';
 import { cheapestStoreNames, offerDeal, liveOffers, priceAsOf } from '../../../lib/stores';
 import { formatPrice } from '../../../lib/price';
 import type { Metadata } from 'next';
@@ -98,6 +99,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
   });
 
   if (!comp) return notFound();
+  await verifyListPrices([comp]); // «السعر قبل» المصدَّق — قبل offerDeal وقائمة المتاجر
 
   const specs = typeof comp.specs === 'string' ? JSON.parse(comp.specs) : comp.specs || {};
 
@@ -175,7 +177,9 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
       <JsonLd data={[productLd, breadcrumbs([['الرئيسية', '/'], ['القطع', '/components'], [comp.name, `/components/${comp.id}`]])]} />
-      <div className="max-w-6xl mx-auto space-y-8">
+      {/* ⚠️ flex وorder لا space-y: على الجوال يصعد «تاريخ السعر» فوق المواصفات والوصف
+          (كان بعد ستّ شاشات)، وعلى الكمبيوتر يبقى آخراً كما كان (نموذج الجوال «ب» 2026-11-25) */}
+      <div className="max-w-6xl mx-auto flex flex-col gap-6 lg:gap-8">
         
         <nav>
           <Link href="/components" className="group inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 transition-colors">
@@ -183,13 +187,15 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
           </Link>
         </nav>
 
-        <div className="relative bg-gradient-to-b from-white/80 to-white/60 dark:from-[#0F172A]/70 dark:to-[#0B1120]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-6 md:p-10 shadow-sm flex flex-col lg:flex-row gap-10 items-center overflow-hidden">
+        <div className="relative bg-gradient-to-b from-white/80 to-white/60 dark:from-[#0F172A]/70 dark:to-[#0B1120]/50 backdrop-blur-sm border-t-2 border-t-cyan-500 border-x border-b border-slate-200 dark:border-slate-800 rounded-sm p-4 md:p-10 shadow-sm flex flex-col lg:flex-row gap-5 lg:gap-10 items-center overflow-hidden">
           {/* زاوية هندسية */}
           <div className="absolute top-0 right-0 w-0 h-0 border-t-[16px] border-t-cyan-500/60 border-l-[16px] border-l-transparent z-20"></div>
           <div className="absolute -top-24 -left-24 w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/8 blur-3xl rounded-full pointer-events-none"></div>
           
           <div className="w-full lg:w-1/2 flex justify-center relative z-[100]">
-            <div className="w-full max-w-[450px] aspect-square bg-white rounded-sm flex items-center justify-center p-6 shadow-md">
+            {/* على الجوال صورةٌ بارتفاع ١٩٢ لا مربّعٌ بعرض الشاشة — كانت تأخذ نصف أوّل شاشة
+                فلا يظهر سعرٌ ولا متجر قبل التمرير */}
+            <div className="w-full max-w-[450px] h-48 lg:h-auto lg:aspect-square bg-white rounded-sm flex items-center justify-center p-3 lg:p-6 shadow-md">
 
               <ImageZoom 
                 src={productImage(comp.imageUrl, IMAGE_FALLBACK)} 
@@ -198,6 +204,8 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             </div>
           </div>
 
+          {/* على الجوال: الاسم ← المتاجر بأزرارها ← حكم السعر ← أضف/قارن ← الأداء (order)؛
+              وعلى الكمبيوتر الترتيب كما هو (lg:order-none) */}
           <div className="w-full lg:w-1/2 flex flex-col justify-center">
             <div className="flex items-center gap-3 mb-4">
               {/* اسم الفئة بالعربية — كان «GPU» بخطٍّ لاتينيّ متباعد (تجربة المستخدمين 2026-10-17) */}
@@ -210,7 +218,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             </div>
             
             <div className="flex items-start gap-3 mb-6">
-              <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight">
+              <h1 className="text-[26px] md:text-5xl font-black text-slate-900 dark:text-white leading-tight">
                 {comp.name}
               </h1>
               {mainDiscount > 0 && (
@@ -232,7 +240,8 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               />
             )}
 
-            <div className="flex flex-wrap items-end gap-5 mb-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+            {/* على الجوال يغني عنه صفّ المتجر الأرخص بسعره وزرّه — إلّا إن لم يبعها أحد */}
+            <div className={`${liveForLd.length ? 'hidden lg:flex' : 'flex'} flex-wrap items-end gap-5 mb-4 pb-6 border-b border-slate-100 dark:border-slate-800`}>
               <div>
                 {/* كان: font-mono uppercase tracking-widest بحجم ١٠ بكسل.
                     ثلاثتها تؤذي العربية — انظر MicroLabel في Panel.tsx */}
@@ -288,7 +297,7 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             {priceStats && comp.price > 0 && liveForLd.length > 1 && (() => {
               const pct = pctAboveMin(comp.price, priceStats.min);
               return (
-                <p className={`-mt-1 mb-4 text-[13px] font-bold leading-relaxed ${pct <= 2 ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                <p className={`order-3 lg:order-none mt-3 lg:-mt-1 mb-4 text-[13px] font-bold leading-relaxed ${pct <= 2 ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300'}`}>
                   {pct <= 2
                     ? <>✓ سعرها اليوم عند أدنى ما رصدناه خلال {daysAr(priceStats.days)} من المتابعة.</>
                     : <>سعرها اليوم أعلى من أدنى ما رصدناه (<span className="font-mono">{Math.round(priceStats.min).toLocaleString('en-US')}</span> ﷼) بـ{pct}% — خلال {daysAr(priceStats.days)} من المتابعة.</>}
@@ -298,30 +307,33 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             })()}
 
             {/* تقييم الأداء بكلمةٍ وشريط ورقمٍ مقيس — قرب السعر لا أسفل الصفحة (lib/perf-rating) */}
-            <PartRating category={comp.category?.name} name={comp.name} specs={specs} />
+            <div className="order-5 lg:order-none">
+              <PartRating category={comp.category?.name} name={comp.name} specs={specs} />
+            </div>
 
             {/* ما بعد القراءة: كانت الصفحة طريقاً مسدوداً إلّا الخروج إلى متجر — لا «أضفها لتجميعتي»
                 ولا «قارنها»، والقادم من البحث يهبط هنا (تجربة المستخدمين 2026-10-17).
                 والإضافة تدمج القطعة في مسودّة الباني ولا تمحوها (PCBuilderClient · ?add=). */}
             {/* ما ليس قطعة تجميعة (الشاشة) لا يُضاف للباني — الباني لا يعرض غير الفئات الثماني */}
-            <div className={`grid ${isBuildCategory(comp.category?.name) ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mb-5`}>
+            <div className={`order-4 lg:order-none grid ${isBuildCategory(comp.category?.name) ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mb-5`}>
               {isBuildCategory(comp.category?.name) && (
                 <Link
                   href={`/builder?add=${comp.id}`}
-                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[13px] font-black hover:opacity-90 transition-opacity"
+                  className="flex items-center justify-center gap-1.5 min-h-[48px] py-2.5 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[13.5px] font-black hover:opacity-90 transition-opacity"
                 >
-                  ＋ أضفها لتجميعتي
+                  <span className="text-[17px] leading-none">＋</span> أضفها لتجميعتي
                 </Link>
               )}
               <Link
                 href={`/compare?ids=${comp.id}`}
-                className="flex items-center justify-center gap-1.5 py-2.5 rounded-sm border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[13px] font-black hover:border-cyan-500 hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors"
+                className="flex items-center justify-center gap-1.5 min-h-[48px] py-2.5 rounded-sm border-2 border-slate-400/60 dark:border-slate-600 bg-white/60 dark:bg-slate-900/40 text-slate-800 dark:text-slate-200 text-[13.5px] font-black hover:border-cyan-500 hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors"
               >
-                ⚖ قارنها بغيرها
+                ⚖ قارنها بقطعة ثانية
               </Link>
             </div>
 
             {/* إعلانات المتاجر السارية — تشمل الموقوف، فيعرف الزائر سبب اختفائه */}
+            <div className="order-2 lg:order-none">
             <StoreNotices stores={notices as any} />
             <StoreOfferList
               offers={comp.offers as any}
@@ -329,6 +341,13 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
               stats={priceStats}
               gpuSpecs={comp.category?.name === 'GPU' ? (typeof comp.specs === 'string' ? JSON.parse(comp.specs) : comp.specs ?? {}) : undefined}
             />
+            {liveForLd.length > 0 && priceAge && (
+              <p title={priceAgeExact} className={`lg:hidden mt-2 text-[11.5px] font-bold ${priceStale ? 'text-amber-600 dark:text-amber-500' : 'text-slate-500 dark:text-slate-400'}`}>
+                آخر تحديث للأسعار {priceAge}
+              </p>
+            )}
+            </div>
+            <div className="order-6 lg:order-none">
             {/* تحت الأسعار مباشرةً — عند النظر إلى الرقم لا في أسفل الصفحة */}
             <PriceMismatchReport offers={comp.offers as any} />
             {/* «تابع السعر» هنا لا في أسفل الصفحة: القرار يُتّخذ عند رؤية
@@ -339,18 +358,43 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
                 يحتاج أن يتابع سعرها. */}
             {/* «تناسب جهازك» يفحص قطعةً داخل الجهاز — ولا فحص للشاشة فيه، فكان سيقول «تناسب» لكلّ شاشة */}
             {isBuildCategory(comp.category?.name) && <RigFitPanel category={comp.category?.name as any} part={comp as any} />}
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* «انتقل إلى» — الجوال وحده: الصفحة بعد أوّل شاشة طويلة، والأقسام بعناوينها لا تُرى */}
+        <nav aria-label="أقسام الصفحة" className="order-2 lg:hidden -mb-2">
+          <p className="mb-1.5 text-[12px] font-bold text-slate-500 dark:text-slate-400">انتقل إلى:</p>
+          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1 whitespace-nowrap">
+            {([
+              ['#price-history', 'تاريخ السعر'],
+              ['#performance', 'الأداء'],
+              ['#specs', 'المواصفات'],
+              ...(comp.category?.name && seriesHeading(comp, comp.category.name, variantOffers) ? [['#series', 'السلسلة والضمان']] : []),
+              ['#overview', 'نظرة عامة'],
+            ] as [string, string][]).map(([href, label]) => (
+              <a key={href} href={href} className="inline-flex items-center min-h-[40px] px-4 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/50 text-[13px] font-black text-slate-700 dark:text-slate-200">
+                {label}
+              </a>
+            ))}
+          </div>
+        </nav>
+
+        <div className="order-4 lg:order-none grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           <div className="lg:col-span-5 flex flex-col gap-4">
-            <PartPerformance category={comp.category?.name} name={comp.name} specs={specs} />
-            <SectionHeading>المواصفات التقنية</SectionHeading>
+            <div id="performance" className="scroll-mt-24 flex flex-col gap-4">
+              <PartPerformance category={comp.category?.name} name={comp.name} specs={specs} />
+            </div>
+            <div id="specs" className="scroll-mt-24">
+              <SectionHeading>المواصفات التقنية</SectionHeading>
+            </div>
             {/* بلا h-full: اللوحة كانت تُشدّ لطول الوصف، فتترك تحت ثماني
                 مواصفات ٢٤٢ بكسل فراغاً يبدو خللاً. تحتضن محتواها الآن. */}
-            <Panel className="px-6 py-4">
-              <SpecSheet categoryName={comp.category?.name} specs={specs} />
+            <Panel className="px-4 sm:px-6 py-4">
+              <MobileClamp label="كل المواصفات ↓" height={420}>
+                <SpecSheet categoryName={comp.category?.name} specs={specs} />
+              </MobileClamp>
             </Panel>
 
             {/* ما تنشره الشركة عن سلسلتها وضمانها، وما قاله عنها مختبرٌ مستقلّ —
@@ -365,25 +409,55 @@ export default async function ComponentDetails({ params }: { params: Promise<{ i
             )}
           </div>
 
-          <div className="lg:col-span-7 flex flex-col gap-4">
+          <div id="overview" className="scroll-mt-24 lg:col-span-7 flex flex-col gap-4">
             <SectionHeading>نظرة عامة</SectionHeading>
-            <Panel className="p-6 md:p-8">
-              <div className="prose prose-slate dark:prose-invert max-w-none">
-                <div className="text-slate-700 dark:text-slate-300 leading-loose font-medium text-[15px] md:text-base">
-                  {comp.description ? <RichDescription text={comp.description} /> : "لا يوجد وصف إضافي متاح لهذه القطعة حالياً."}
+            <Panel className="p-4 sm:p-6 md:p-8">
+              <MobileClamp label="اقرأ الباقي ↓" height={360}>
+                <div className="prose prose-slate dark:prose-invert max-w-none">
+                  <div className="text-slate-700 dark:text-slate-300 leading-loose font-medium text-[15px] md:text-base">
+                    {comp.description ? <RichDescription text={comp.description} /> : "لا يوجد وصف إضافي متاح لهذه القطعة حالياً."}
+                  </div>
                 </div>
-              </div>
+              </MobileClamp>
             </Panel>
           </div>
 
         </div>
         {/* المتاجر التي تبيعها الآن — الرسم يحتاجها لأن سجلّ الأسعار لا
             يخزّن التوفّر، فبدونها يلخّص سعراً لا يبيعه أحد */}
-        <PriceHistoryChart
-          componentId={comp.id}
-          liveStores={liveOffers(comp.offers as any).map((o) => o.store.slug)}
-        />
+        <div className="order-3 lg:order-none">
+          <PriceHistoryChart
+            componentId={comp.id}
+            live={liveOffers(comp.offers as any).map((o) => ({ slug: o.store.slug, price: o.price as number }))}
+          />
+        </div>
       </div>
+
+      {/* ============ شريط الشراء الثابت — الجوال وحده ============
+          زرّ الشراء كان في أوّل شاشة فقط؛ من نزل يقرأ المواصفات أو الرسم يرجع فوق
+          ليشتري. والزرّ يقول أيّ متجر سيُفتح («اشترها من أمازون») لا «اذهب للمتجر». */}
+      {liveForLd[0] && (
+        <>
+          <div className="h-20 lg:hidden" aria-hidden />
+          <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-300 dark:border-slate-700 bg-[#F8F7F3]/95 dark:bg-[#0B1120]/95 backdrop-blur px-4 py-2.5 flex items-center gap-3">
+            <div className="min-w-0 shrink-0">
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-none">أقل سعر · {liveForLd[0].store.name}</p>
+              {/* div لا p: RiyalIcon عنصر div، وdiv داخل p يكسر الترطيب */}
+              <div className="mt-1 text-[20px] font-black text-emerald-700 dark:text-emerald-400 leading-none font-mono flex items-center gap-1">
+                {formatPrice(liveForLd[0].price)} <RiyalIcon size="h-4 w-4" />
+              </div>
+            </div>
+            <a
+              href={buildStoreUrl(liveForLd[0].store, liveForLd[0].url, liveForLd[0].affiliateUrl)}
+              {...storeLinkProps(liveForLd[0].store)}
+              className="flex-1 flex flex-col items-center justify-center min-h-[52px] rounded-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow"
+            >
+              <span className="font-black text-[15px] leading-tight">اشترها من {liveForLd[0].store.name} ←</span>
+              <span className="text-[10.5px] font-bold opacity-90 leading-tight">يفتح صفحتها في موقع {liveForLd[0].store.name}</span>
+            </a>
+          </div>
+        </>
+      )}
     </div>
   );
 }

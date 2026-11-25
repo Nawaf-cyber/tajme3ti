@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { HAS_PARTS } from '../../lib/categories';
-import { OFFER_INCLUDE } from '../../lib/stores-server';
+import { OFFER_INCLUDE, verifyListPrices } from '../../lib/stores-server';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -18,10 +18,10 @@ export default async function ComponentsPage({ searchParams }: { searchParams: P
   const sp = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const query = { cat: one(sp.cat), res: one(sp.res), hz: one(sp.hz), panel: one(sp.panel), size: one(sp.size) };
-  const components = await prisma.component.findMany({
+  const components = await verifyListPrices(await prisma.component.findMany({
     include: { category: true, ...OFFER_INCLUDE },
     orderBy: { createdAt: 'desc' }
-  });
+  }));
   
   const categories = await prisma.category.findMany({ where: HAS_PARTS });
 
