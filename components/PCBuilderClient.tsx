@@ -1772,7 +1772,10 @@ export default function PCBuilderClient({ categories, importedSelections = {}, m
                                     <span className="font-black text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1.5 rounded-sm border border-emerald-100 dark:border-emerald-800/30 shrink-0">
                                       {formatPrice(comp.price)} <RiyalIcon size="h-3.5 w-3.5" colorClass="bg-emerald-700 dark:bg-emerald-400" />
                                     </span>
-                                    <div className="flex flex-wrap gap-1.5 export-ignore">
+                                    {/* ⚠️ min-w-0 وmax-w-full هنا وعلى الشارة: عمود النصّ على الجوال ~١٥٠px (بعد الصورة)،
+                                        وشارة «مايكرولس ١٩٠٫٩٥ الأرخص» ~١٩٠px لا تنكسر، فكانت تخرج عن البطاقة يساراً
+                                        (رُصد 2026-11-25 على ٣٩٠px). الآن تلفّ الشارة داخلها بدل أن تفيض. */}
+                                    <div className="flex flex-wrap gap-1.5 export-ignore min-w-0 max-w-full">
                                       {/* ⚠️ `data-cid` لا مُعالِج نقرة: المستمع العامّ في
                                           `OfferClickTracker` يلتقطها، والسمة تعطيه القطعة.
                                           ولا يُكتب تعليقٌ بين السمات — لا بصيغة JSX ولا بصيغة
@@ -1783,7 +1786,7 @@ export default function PCBuilderClient({ categories, importedSelections = {}, m
                                           href={buildStoreUrl(offer.store, offer.url, offer.affiliateUrl)}
                                           {...storeLinkProps(offer.store)}
                                           data-cid={comp.id}
-                                          className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-sm font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+                                          className={`flex flex-wrap max-w-full items-center gap-x-1.5 gap-y-0.5 px-3 py-1.5 text-[12px] rounded-sm font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
                                             i === 0
                                               ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-300 dark:ring-emerald-500/40'
                                               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500'
